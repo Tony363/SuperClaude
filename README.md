@@ -58,7 +58,7 @@ The SuperClaude framework provides 25+ specialized commands organized into categ
 | **Security & Quality** | `/sc:security`, `/sc:review` | Security audits and code reviews |
 | **Discovery** | `/sc:brainstorm`, `/sc:learn` | Requirements discovery and learning |
 | **UI/UX** | `/ui`, `/21`, `/logo` | UI component generation and assets |
-| **Utility** | `/help`, `/feedback` | Help and issue reporting |
+| **Utility** | `/sc:cleanup`, `/help`, `/feedback` | Workspace management, help and issue reporting |
 
 All `/sc:` commands support:
 - **Quality evaluation** (0-100 scoring)
@@ -315,6 +315,53 @@ All `/sc:` commands support:
 /logo github --format svg              # GitHub logo as SVG
 /logo "discord slack" --format tsx     # Multiple logos as TSX
 /logo microsoft --theme dark           # Dark theme variant
+```
+
+#### `/sc:cleanup` - Workspace Cleanup & Hygiene
+```bash
+/sc:cleanup [--scope session|current|all] [--preserve patterns] [--pattern cleanup-patterns] [--dry-run]
+
+# Purpose: Maintain clean workspace by removing temporary files and build artifacts
+# Quality: Validates cleanup safety, preserves important files
+
+# Examples:
+/sc:cleanup                                      # Standard session cleanup
+/sc:cleanup --dry-run                           # Preview what will be deleted
+/sc:cleanup --scope session --preserve tests    # Keep test files
+/sc:cleanup --pattern "*.log,*.tmp,debug.*"    # Target specific patterns
+/sc:cleanup --scope all --confirm               # Deep cleanup with confirmation
+```
+
+**Best Practices:**
+- Always run `git status` before cleanup to ensure changes are committed
+- Use `--dry-run` first in unfamiliar projects to preview deletions
+- Preserve important artifacts with `--preserve` flag
+- Schedule regular cleanups at session end or before commits
+
+**Scope Options:**
+- `session`: Recent temporary files from current session (default)
+- `current`: Current working directory only
+- `all`: Deep cleanup of entire project (use carefully)
+
+**Smart Pattern Recognition:**
+- **Node.js**: Preserves `node_modules`, removes `*.log`, temp test files
+- **Python**: Preserves `venv/`, removes `__pycache__`, `*.pyc`
+- **Build Projects**: Preserves final artifacts, removes intermediate files
+
+**Integration with Git Workflow:**
+```bash
+# Before committing
+/sc:cleanup --scope session
+git add .
+git commit -m "Feature complete"
+
+# After testing
+npm test
+/sc:cleanup --pattern "*.coverage,*.test-results"
+
+# Post-build cleanup
+npm run build
+/sc:cleanup --preserve dist --pattern "*.map,*.cache"
 ```
 
 ### Utility Commands
