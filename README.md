@@ -98,17 +98,112 @@ All `/sc:` commands support:
 
 #### `/sc:document` - Documentation Generation
 ```bash
-/sc:document [target] [--type inline|api|guide|readme] [--style brief|detailed] [--format md|jsdoc|openapi]
+/sc:document [target] [--type inline|external|api|guide|readme] [--style brief|detailed] [--format md|jsdoc|typedoc|openapi|swagger]
 
-# Purpose: Comprehensive documentation generation
-# Quality: Completeness and accuracy evaluated
+# Purpose: Comprehensive documentation generation with multi-format support
+# Quality: Completeness, accuracy, and clarity evaluated (auto-iterates if <70)
 
 # Examples:
-/sc:document src/api --type api --format openapi   # OpenAPI spec
-/sc:document components/ --type external           # Component library docs
-/sc:document payment-module --type guide           # User guide
-/sc:document . --type readme --style detailed      # Project README
+/sc:document src/api --type api --format openapi        # OpenAPI 3.0 spec
+/sc:document components/ --type external --style detailed # Component library docs
+/sc:document payment-module --type guide --format md    # User guide in markdown
+/sc:document . --type readme --style detailed           # Comprehensive README
+/sc:document src/auth --type inline --format jsdoc      # JSDoc comments
+/sc:document backend/ --type api --format swagger       # Swagger documentation
 ```
+
+**Documentation Types:**
+
+| Type | Purpose | Output |
+|------|---------|--------|
+| `inline` | Add comments directly in code | JSDoc, docstrings, inline comments |
+| `external` | Separate documentation files | Markdown files, HTML docs |
+| `api` | API reference documentation | OpenAPI, Swagger, REST docs |
+| `guide` | User guides and tutorials | Step-by-step guides, examples |
+| `readme` | Project README files | Overview, setup, usage docs |
+
+**Format Options:**
+
+| Format | Use Case | Example Output |
+|--------|----------|----------------|
+| `md` | Markdown documentation | `API.md`, `GUIDE.md` |
+| `jsdoc` | JavaScript documentation | `/** @param {string} */` |
+| `typedoc` | TypeScript documentation | Type-aware comments |
+| `openapi` | OpenAPI 3.0 specification | `openapi.yaml` |
+| `swagger` | Swagger 2.0 specification | `swagger.json` |
+
+**Style Options:**
+- `brief`: Concise documentation with essential information only
+- `detailed`: Comprehensive documentation with examples and edge cases
+
+**Advanced Usage:**
+
+```bash
+# Generate complete API documentation suite
+/sc:document src/api --type api --format openapi --style detailed
+# → Analyzes all endpoints → Generates schemas → Creates examples
+# → Quality: 85/100 ✅
+
+# Add inline documentation to existing code
+/sc:document src/services --type inline --format jsdoc
+# → Analyzes functions → Adds parameter docs → Includes return types
+# → Preserves existing comments
+
+# Create user guide with examples
+/sc:document auth-system --type guide --style detailed
+# → Extracts workflows → Creates tutorials → Adds code examples
+# → Includes troubleshooting section
+
+# Generate component library documentation
+/sc:document components/ --type external --format md
+# → Documents props → Adds usage examples → Creates playground snippets
+# → Generates component index
+
+# Update project README
+/sc:document . --type readme --style detailed
+# → Analyzes project structure → Updates sections → Adds badges
+# → Includes installation and usage
+```
+
+**Smart Features:**
+
+1. **Auto-detection**: Automatically detects language and framework conventions
+2. **Preservation**: Never overwrites existing documentation without confirmation  
+3. **Cross-references**: Automatically links related documentation
+4. **Examples extraction**: Finds and includes real usage examples from codebase
+5. **Version awareness**: Handles API versioning and deprecation notices
+
+**Integration with Other Commands:**
+
+```bash
+# Document after refactoring
+/sc:refactor auth-module --preserve api
+/sc:document auth-module --type api --format openapi
+
+# Generate docs after implementation
+/sc:implement new-feature
+/sc:test --coverage 90
+/sc:document new-feature --type guide
+
+# Create comprehensive documentation suite
+/sc:document . --type readme
+/sc:document src/api --type api --format openapi
+/sc:document components/ --type external
+/sc:document . --type guide --style detailed
+```
+
+**Quality Metrics:**
+- **Completeness**: All public APIs documented (weight: 40%)
+- **Accuracy**: Correct parameter types and descriptions (weight: 30%)
+- **Clarity**: Clear explanations and examples (weight: 20%)
+- **Structure**: Proper formatting and organization (weight: 10%)
+
+**Best Practices:**
+- Run after significant code changes to keep docs in sync
+- Use `--type inline` for public APIs and complex functions
+- Generate `--type api` documentation for all REST endpoints
+- Create `--type guide` for new features requiring user education
+- Maintain `--type readme` as the entry point for new developers
 
 #### `/sc:load` - Load Project Context
 ```bash
