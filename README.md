@@ -1,655 +1,527 @@
-# SuperClaude Framework - Enhanced with Quality-Driven Agentic Loops
+# SuperClaude Framework - Complete Command Reference & Documentation
 
 ## 🚀 Overview
 
-SuperClaude is an advanced framework for Claude Code that introduces **quality-driven agentic loops**, systematic task management, and intelligent agent delegation. This latest version integrates automatic quality evaluation (0-100 scoring) with mandatory iteration when outputs fall below acceptable thresholds.
+SuperClaude is an advanced framework for Claude Code that introduces **quality-driven agentic loops**, systematic task management, and intelligent agent delegation. This framework enhances Claude Code with specialized behaviors, commands, and multi-agent coordination capabilities.
 
-### Key Enhancements
-- **Quality Evaluation System**: Every Task agent output is scored 0-100 with automatic iteration when quality < 70
+### 🎯 Core Features
+
+- **30+ Slash Commands**: Comprehensive command system for all development workflows
+- **Quality Evaluation System**: Automatic 0-100 scoring with mandatory iteration when quality < 70
+- **15+ Specialized Agents**: Domain experts for every aspect of development
+- **MCP Server Integration**: 7 specialized servers for enhanced capabilities
+- **Behavioral Modes**: 5 operational modes that adapt to context
 - **Agentic Loop Implementation**: Execute → Evaluate → Iterate pattern with context preservation
-- **Enhanced Rules with Imperatives**: "You MUST" and "You MUST NOT" directives for clear behavioral enforcement
-- **Comprehensive Agent Framework**: 15+ specialized agents with quality factors and decision trees
 
-## 📋 Latest Changes
+### 📦 Framework Components
 
-### Quality Evaluation System (NEW)
-- **Scoring Dimensions**:
-  - Correctness (40%): Does it solve the stated problem?
-  - Completeness (30%): Are all requirements addressed?
-  - Code Quality (20%): Maintainability, readability, best practices
-  - Performance (10%): Efficiency and resource usage
-
-- **Action Thresholds**:
-  | Score | Action | Description |
-  |-------|--------|-------------|
-  | 90-100 | ✅ Accept | Production-ready |
-  | 70-89 | ⚠️ Review | Acceptable with notes |
-  | 50-69 | 🔄 Iterate | Auto-iteration required |
-  | 0-49 | ❌ Reject | Fundamental issues |
-
-### Context Enhancement Protocol (NEW)
-Every Task delegation now includes structured context:
-```yaml
-context:
-  goal: "High-level objective"
-  constraints: ["resource limits", "requirements"]
-  prior_work: {"agent_1": "output"}
-  dependencies: ["related files"]
-  quality_criteria: {"min_score": 70}
+```
+SuperClaude Framework
+├── Commands (30+)      # /sc:* slash commands
+├── Agents (15+)        # Specialized task agents
+├── Modes (5)           # Behavioral modes
+├── MCP Servers (7)     # Enhanced capabilities
+├── Flags (20+)         # Behavior modifiers
+└── Rules & Principles  # Core framework logic
 ```
 
-### Enhanced Rules with Imperatives (UPDATED)
-- **You MUST** evaluate output quality systematically
-- **You MUST** iterate automatically when quality < 70
-- **You MUST NOT** accept suboptimal outputs without explicit override
-- **IMPORTANT**: Quality gates throughout workflow
+## 📚 Complete Slash Commands Reference
 
-## 🛠️ Command Reference
+The SuperClaude framework provides **30+ specialized slash commands** organized into categories. All commands follow the pattern `/sc:[command]` and support quality evaluation, automatic iteration, and flag combinations.
 
-### Command Overview
-
-The SuperClaude framework provides 25+ specialized commands organized into categories:
-
-| Category | Commands | Purpose |
-|----------|----------|---------|
-| **Core** | `/sc:analyze`, `/sc:explain`, `/sc:document`, `/sc:load`, `/sc:save` | Foundation commands for analysis, documentation, and session management |
-| **Task Management** | `/sc:plan`, `/sc:checkpoint`, `/sc:delegate` | Task organization with quality-driven delegation |
-| **Development** | `/sc:refactor`, `/sc:test`, `/sc:debug`, `/sc:optimize` | Code improvement and debugging |
-| **Security & Quality** | `/sc:security`, `/sc:review` | Security audits and code reviews |
-| **Discovery** | `/sc:brainstorm`, `/sc:learn` | Requirements discovery and learning |
-| **UI/UX** | `/ui`, `/21`, `/logo` | UI component generation and assets |
-| **Utility** | `/sc:cleanup`, `/help`, `/feedback` | Workspace management, help and issue reporting |
-
-All `/sc:` commands support:
-- **Quality evaluation** (0-100 scoring)
-- **Automatic iteration** when quality < 70
-- **Flag combinations** for enhanced behavior
-- **Agent delegation** for specialized tasks
-
-### Core Commands
+### 🛠️ Core Commands
 
 #### `/sc:analyze` - Code Analysis & Quality Assessment
 ```bash
-/sc:analyze [target] [--focus quality|security|performance] [--depth quick|deep] [--delegate]
+/sc:analyze [target] [--focus quality|security|performance|architecture] [--depth quick|deep] [--format text|json|report] [--delegate]
 
-# Purpose: Systematic code analysis with quality evaluation
+# Purpose: Comprehensive code analysis with quality evaluation
+# MCP Servers: None (can use Sequential with --think flags)
 # Quality: Auto-evaluates output quality 0-100, iterates if <70
 
 # Examples:
-/sc:analyze                                         # Full project analysis
-/sc:analyze src/auth --focus security --depth deep  # Security audit
-/sc:analyze --focus performance --delegate          # Delegate to performance-engineer
-/sc:analyze --think-hard --all-mcp                 # Deep analysis with all tools
+/sc:analyze                                              # Full project analysis
+/sc:analyze src/auth --focus security --depth deep       # Security audit
+/sc:analyze --focus performance --delegate               # Delegate to performance-engineer
+/sc:analyze backend/ --focus architecture --format report # Architecture review with report
+/sc:analyze --think-hard --all-mcp                      # Deep analysis with all MCP tools
 ```
 
 #### `/sc:explain` - Code & Concept Explanation
 ```bash
-/sc:explain [target] [--level basic|intermediate|advanced] [--format text|examples] [--context framework]
+/sc:explain [target] [--level basic|intermediate|advanced] [--format text|examples|interactive] [--context domain]
 
 # Purpose: Educational explanations tailored to audience level
+# MCP Servers: Sequential, Context7
 # Quality: Clarity and completeness scored, auto-enhanced if needed
 
 # Examples:
-/sc:explain authentication.js --level basic         # Beginner-friendly
-/sc:explain react-hooks --context react            # Framework-specific
-/sc:explain jwt --context security                 # Security concepts
-/sc:explain design-patterns --format examples      # With code examples
+/sc:explain authentication.js --level basic              # Beginner-friendly explanation
+/sc:explain react-hooks --context react --format examples # Framework-specific with examples
+/sc:explain jwt --context security                       # Security concept explanation
+/sc:explain design-patterns --level advanced             # Advanced pattern discussion
 ```
 
-#### `/sc:document` - Documentation Generation
+#### `/sc:document` - Comprehensive Documentation Generation
 ```bash
 /sc:document [target] [--type inline|external|api|guide|readme] [--style brief|detailed] [--format md|jsdoc|typedoc|openapi|swagger]
 
-# Purpose: Comprehensive documentation generation with multi-format support
-# Quality: Completeness, accuracy, and clarity evaluated (auto-iterates if <70)
+# Purpose: Generate all types of documentation with multi-format support
+# MCP Servers: None (basic utility)
+# Quality: Completeness and accuracy evaluated
 
 # Examples:
-/sc:document src/api --type api --format openapi        # OpenAPI 3.0 spec
+/sc:document src/api --type api --format openapi         # OpenAPI 3.0 specification
 /sc:document components/ --type external --style detailed # Component library docs
-/sc:document payment-module --type guide --format md    # User guide in markdown
-/sc:document . --type readme --style detailed           # Comprehensive README
-/sc:document src/auth --type inline --format jsdoc      # JSDoc comments
-/sc:document backend/ --type api --format swagger       # Swagger documentation
+/sc:document payment --type guide --format md            # User guide in markdown
+/sc:document . --type readme --style detailed            # Comprehensive README
+/sc:document src/auth --type inline --format jsdoc       # JSDoc inline comments
 ```
 
 **Documentation Types:**
+- `inline`: Add comments directly in code (JSDoc, docstrings)
+- `external`: Separate documentation files (markdown, HTML)
+- `api`: API reference documentation (OpenAPI, Swagger)
+- `guide`: User guides and tutorials
+- `readme`: Project README files
 
-| Type | Purpose | Output |
-|------|---------|--------|
-| `inline` | Add comments directly in code | JSDoc, docstrings, inline comments |
-| `external` | Separate documentation files | Markdown files, HTML docs |
-| `api` | API reference documentation | OpenAPI, Swagger, REST docs |
-| `guide` | User guides and tutorials | Step-by-step guides, examples |
-| `readme` | Project README files | Overview, setup, usage docs |
-
-**Format Options:**
-
-| Format | Use Case | Example Output |
-|--------|----------|----------------|
-| `md` | Markdown documentation | `API.md`, `GUIDE.md` |
-| `jsdoc` | JavaScript documentation | `/** @param {string} */` |
-| `typedoc` | TypeScript documentation | Type-aware comments |
-| `openapi` | OpenAPI 3.0 specification | `openapi.yaml` |
-| `swagger` | Swagger 2.0 specification | `swagger.json` |
-
-**Style Options:**
-- `brief`: Concise documentation with essential information only
-- `detailed`: Comprehensive documentation with examples and edge cases
-
-**Advanced Usage:**
-
+#### `/sc:load` - Load Project Context & Session State
 ```bash
-# Generate complete API documentation suite
-/sc:document src/api --type api --format openapi --style detailed
-# → Analyzes all endpoints → Generates schemas → Creates examples
-# → Quality: 85/100 ✅
-
-# Add inline documentation to existing code
-/sc:document src/services --type inline --format jsdoc
-# → Analyzes functions → Adds parameter docs → Includes return types
-# → Preserves existing comments
-
-# Create user guide with examples
-/sc:document auth-system --type guide --style detailed
-# → Extracts workflows → Creates tutorials → Adds code examples
-# → Includes troubleshooting section
-
-# Generate component library documentation
-/sc:document components/ --type external --format md
-# → Documents props → Adds usage examples → Creates playground snippets
-# → Generates component index
-
-# Update project README
-/sc:document . --type readme --style detailed
-# → Analyzes project structure → Updates sections → Adds badges
-# → Includes installation and usage
-```
-
-**Smart Features:**
-
-1. **Auto-detection**: Automatically detects language and framework conventions
-2. **Preservation**: Never overwrites existing documentation without confirmation  
-3. **Cross-references**: Automatically links related documentation
-4. **Examples extraction**: Finds and includes real usage examples from codebase
-5. **Version awareness**: Handles API versioning and deprecation notices
-
-**Integration with Other Commands:**
-
-```bash
-# Document after refactoring
-/sc:refactor auth-module --preserve api
-/sc:document auth-module --type api --format openapi
-
-# Generate docs after implementation
-/sc:implement new-feature
-/sc:test --coverage 90
-/sc:document new-feature --type guide
-
-# Create comprehensive documentation suite
-/sc:document . --type readme
-/sc:document src/api --type api --format openapi
-/sc:document components/ --type external
-/sc:document . --type guide --style detailed
-```
-
-**Quality Metrics:**
-- **Completeness**: All public APIs documented (weight: 40%)
-- **Accuracy**: Correct parameter types and descriptions (weight: 30%)
-- **Clarity**: Clear explanations and examples (weight: 20%)
-- **Structure**: Proper formatting and organization (weight: 10%)
-
-**Best Practices:**
-- Run after significant code changes to keep docs in sync
-- Use `--type inline` for public APIs and complex functions
-- Generate `--type api` documentation for all REST endpoints
-- Create `--type guide` for new features requiring user education
-- Maintain `--type readme` as the entry point for new developers
-
-#### `/sc:load` - Load Project Context
-```bash
-/sc:load [project] [--memory all|recent|specific]
+/sc:load [project] [--type project|config|deps|checkpoint] [--memory all|recent|specific] [--refresh] [--analyze]
 
 # Purpose: Load saved project context, memories, and session state
-# Integrates with: Serena MCP for persistence
+# MCP Servers: Serena (for memory persistence)
+# Integration: Works with Serena MCP for cross-session persistence
 
 # Examples:
-/sc:load                                # Load current project
-/sc:load auth-project                   # Load specific project
-/sc:load --memory recent               # Load only recent memories
+/sc:load                                                  # Load current project
+/sc:load auth-project --memory recent                    # Load project with recent memories
+/sc:load --type checkpoint                               # Load last checkpoint
+/sc:load myproject --refresh --analyze                   # Fresh load with analysis
 ```
 
-#### `/sc:save` - Save Project Context
+#### `/sc:save` - Save Project Context & Session
 ```bash
-/sc:save [--checkpoint] [--compress] [--tag label]
+/sc:save [--type session|learnings|context|all] [--checkpoint] [--compress] [--tag label] [--summarize]
 
 # Purpose: Save current work state, memories, and context
+# MCP Servers: Serena (for memory persistence)
 # Quality: Validates completeness before saving
 
 # Examples:
-/sc:save                                # Standard save
-/sc:save --checkpoint                   # Quick checkpoint save
-/sc:save --tag "auth-complete"         # Tagged milestone save
+/sc:save                                                  # Standard save
+/sc:save --checkpoint --tag "auth-complete"              # Tagged checkpoint
+/sc:save --type learnings --summarize                    # Save key learnings
+/sc:save --compress --type all                           # Compressed full save
 ```
 
-### Task Management Commands
+### 📋 Task Management Commands
 
-#### `/sc:plan` - Create Task Hierarchy
+#### `/sc:brainstorm` - Interactive Requirements Discovery
 ```bash
-/sc:plan [goal] [--phases n] [--delegate auto|manual] [--quality threshold]
+/sc:brainstorm [topic] [--strategy systematic|agile|enterprise] [--depth shallow|normal|deep] [--mode explore|define|refine] [--parallel]
 
-# Purpose: Generate hierarchical task plan with quality gates
-# Quality: Each task gets quality criteria (min 70)
+# Purpose: Collaborative discovery through Socratic dialogue
+# MCP Servers: All 6 servers available (Sequential, Context7, Magic, Playwright, Morphllm, Serena)
+# Personas: Activated based on discovery needs
 
 # Examples:
-/sc:plan "implement authentication" --phases 3      # 3-phase plan
-/sc:plan "refactor codebase" --delegate auto       # Auto-delegation
-/sc:plan "add feature" --quality 85                # High quality bar
+/sc:brainstorm "user dashboard"                          # Explore dashboard ideas
+/sc:brainstorm "api design" --strategy enterprise        # Enterprise API planning
+/sc:brainstorm --mode define --depth deep                # Deep requirements definition
+/sc:brainstorm "payment system" --parallel               # Parallel exploration paths
 ```
 
-#### `/sc:checkpoint` - Save Work Progress
+#### `/sc:task` - Execute Complex Tasks with Delegation
 ```bash
-/sc:checkpoint [--quick] [--with-todos] [--tag label]
+/sc:task [description] [--strategy systematic|agile|enterprise] [--parallel] [--delegate] [--quality threshold]
 
-# Purpose: Quick progress save with task state
-# Integrates with: TodoWrite and memory systems
+# Purpose: Complex task execution with intelligent workflow management
+# MCP Servers: All 6 servers for comprehensive capability
+# Quality: Each subtask evaluated, auto-iteration if <70
 
 # Examples:
-/sc:checkpoint                          # Standard checkpoint
-/sc:checkpoint --quick                   # Minimal checkpoint
-/sc:checkpoint --with-todos --tag "v1" # Full state capture
+/sc:task "implement authentication" --strategy systematic # Systematic implementation
+/sc:task "refactor codebase" --parallel --delegate       # Parallel refactoring
+/sc:task "add feature" --quality 85                      # High quality requirement
+/sc:task "debug api" --delegate root-cause-analyst       # Specific agent delegation
 ```
 
-#### `/sc:delegate` - Smart Task Delegation
+#### `/sc:workflow` - Generate Implementation Workflows
 ```bash
-/sc:delegate [task] [--agent auto|specific] [--loop] [--iterations n]
+/sc:workflow [requirement] [--strategy systematic|agile|enterprise] [--depth shallow|normal|deep] [--parallel]
 
-# Purpose: Delegate to specialized Task agents with quality control
-# Quality: Auto-iterates until quality >= 70
+# Purpose: Generate structured workflows from PRDs and requirements
+# MCP Servers: All 6 servers for comprehensive planning
+# Output: Structured task hierarchy with dependencies
 
 # Examples:
-/sc:delegate "debug API" --agent root-cause-analyst
-/sc:delegate "refactor auth" --loop --iterations 5
-/sc:delegate "optimize queries" --agent performance-engineer
+/sc:workflow "payment integration" --strategy agile      # Agile workflow generation
+/sc:workflow prd.md --depth deep --parallel              # Deep PRD analysis
+/sc:workflow "user management" --strategy enterprise     # Enterprise workflow
 ```
 
-### Development Commands
-
-#### `/sc:refactor` - Code Refactoring
+#### `/sc:spawn` - Meta-System Task Orchestration
 ```bash
-/sc:refactor [target] [--type extract|inline|rename|restructure] [--preserve tests|api|behavior]
+/sc:spawn [meta-task] [--strategy sequential|parallel|adaptive] [--depth normal|deep]
 
-# Purpose: Systematic refactoring with quality preservation
-# Quality: Ensures tests pass, complexity reduced
+# Purpose: Break down meta-tasks into coordinated subtasks
+# MCP Servers: None (orchestration-focused)
+# Behavior: Intelligent task breakdown and delegation
 
 # Examples:
-/sc:refactor src/auth --type restructure --preserve tests
-/sc:refactor "extract getUserData" --preserve api
-/sc:refactor . --delegate refactoring-expert --loop
+/sc:spawn "redesign architecture" --strategy adaptive    # Adaptive task breakdown
+/sc:spawn "migrate to microservices" --depth deep        # Deep migration planning
+/sc:spawn "optimize everything" --strategy parallel      # Parallel optimization
+```
+
+### 🔨 Development Commands
+
+#### `/sc:implement` - Feature Implementation
+```bash
+/sc:implement [feature] [--type component|api|service|feature] [--framework react|vue|express|angular] [--safe] [--with-tests]
+
+# Purpose: Feature implementation with persona activation
+# MCP Servers: Context7, Sequential, Magic, Playwright
+# Personas: architect, frontend, backend, security, qa-specialist
+
+# Examples:
+/sc:implement "user auth" --framework react --with-tests # React auth with tests
+/sc:implement "REST API" --type api --safe               # Safe API implementation
+/sc:implement "dashboard" --type component               # Component implementation
+/sc:implement "payment" --framework express --safe       # Secure payment service
+```
+
+#### `/sc:build` - Build & Compile Projects
+```bash
+/sc:build [target] [--type dev|prod|test] [--clean] [--optimize] [--verbose]
+
+# Purpose: Build, compile, and package with error handling
+# MCP Servers: Playwright (for validation)
+# Features: Intelligent error resolution, optimization
+
+# Examples:
+/sc:build --type prod --optimize                         # Production build
+/sc:build frontend --clean --verbose                     # Clean frontend build
+/sc:build --type test                                    # Test build
+/sc:build backend --type dev --verbose                   # Development build with details
 ```
 
 #### `/sc:test` - Testing & Validation
 ```bash
-/sc:test [target] [--type unit|integration|e2e] [--coverage target] [--fix]
+/sc:test [target] [--type unit|integration|e2e|all] [--coverage target] [--watch] [--fix]
 
-# Purpose: Run tests with quality validation
+# Purpose: Execute tests with coverage analysis
+# MCP Servers: Playwright (for browser testing)
 # Quality: Coverage and test quality evaluated
 
 # Examples:
-/sc:test                                # Run all tests
-/sc:test auth --type unit --coverage 90
-/sc:test --fix                         # Auto-fix test issues
-/sc:test --delegate quality-engineer   # Comprehensive testing
+/sc:test                                                  # Run all tests
+/sc:test auth --type unit --coverage 90                  # Unit tests with 90% coverage
+/sc:test --type e2e --watch                              # E2E tests with watch mode
+/sc:test api --fix                                       # Fix test issues
 ```
 
-#### `/sc:debug` - Systematic Debugging
+#### `/sc:improve` - Code Improvement
 ```bash
-/sc:debug [issue] [--depth shallow|deep] [--approach systematic|targeted]
+/sc:improve [target] [--type quality|performance|maintainability|style] [--safe] [--interactive]
 
-# Purpose: Root cause analysis with evidence gathering
-# Quality: Solution completeness and accuracy scored
+# Purpose: Systematic code improvements
+# MCP Servers: Sequential, Context7
+# Quality: Improvement impact measured and validated
 
 # Examples:
-/sc:debug "API returns 500"            # Debug specific issue
-/sc:debug --depth deep --think-hard    # Deep investigation
-/sc:debug --delegate root-cause-analyst --loop
+/sc:improve src/ --type quality --safe                   # Safe quality improvements
+/sc:improve database --type performance                  # Performance optimization
+/sc:improve --type maintainability --interactive         # Interactive refactoring
+/sc:improve styles --type style                          # Style improvements
 ```
 
-#### `/sc:optimize` - Performance Optimization
-```bash
-/sc:optimize [target] [--focus speed|memory|size] [--measure before|after|both]
+### 🔍 Analysis & Debugging Commands
 
-# Purpose: Performance improvement with metrics
-# Quality: Measurable improvement required (>20%)
+#### `/sc:troubleshoot` - Issue Diagnosis & Resolution
+```bash
+/sc:troubleshoot [issue] [--type bug|build|performance|deployment] [--trace] [--fix]
+
+# Purpose: Diagnose and resolve various issues
+# MCP Servers: None (uses native debugging)
+# Approach: Systematic root cause analysis
 
 # Examples:
-/sc:optimize database-queries --focus speed
-/sc:optimize bundle --focus size --measure both
-/sc:optimize --delegate performance-engineer
+/sc:troubleshoot "API returns 500" --type bug --trace    # Bug investigation
+/sc:troubleshoot "build fails" --fix                     # Build issue with fix
+/sc:troubleshoot "slow queries" --type performance       # Performance debugging
+/sc:troubleshoot deployment --trace                      # Deployment investigation
 ```
 
-### Security & Quality Commands
-
-#### `/sc:security` - Security Audit
+#### `/sc:estimate` - Development Estimation
 ```bash
-/sc:security [target] [--standard owasp|cwe|custom] [--severity all|high|critical]
+/sc:estimate [task] [--type time|effort|complexity] [--unit hours|days|weeks] [--breakdown]
 
-# Purpose: Security vulnerability assessment
-# Quality: Coverage and remediation quality scored
+# Purpose: Provide intelligent development estimates
+# MCP Servers: Sequential, Context7
+# Analysis: Complexity scoring and risk assessment
 
 # Examples:
-/sc:security                           # Full security scan
-/sc:security auth --standard owasp     # OWASP compliance
-/sc:security --delegate security-engineer --loop
+/sc:estimate "auth system" --type time --unit days       # Time estimate in days
+/sc:estimate feature.md --breakdown                      # Detailed breakdown
+/sc:estimate "refactoring" --type complexity             # Complexity assessment
+/sc:estimate project --type effort --unit weeks          # Effort in weeks
 ```
 
-#### `/sc:review` - Code Review
+#### `/sc:reflect` - Task Reflection & Validation
 ```bash
-/sc:review [target] [--focus quality|security|performance|all] [--suggest fixes]
+/sc:reflect [--type task|session|completion] [--analyze] [--validate]
 
-# Purpose: Comprehensive code review with suggestions
-# Quality: Review thoroughness evaluated
+# Purpose: Reflect on work and validate completeness
+# MCP Servers: Serena (think_about_* tools)
+# Output: Insights and validation results
 
 # Examples:
-/sc:review pull-request                # Review PR changes
-/sc:review src/ --suggest fixes       # With fix suggestions
-/sc:review --focus all --think-hard   # Deep review
+/sc:reflect --type task --analyze                        # Analyze current task
+/sc:reflect --type session --validate                    # Validate session work
+/sc:reflect --type completion                            # Completion assessment
 ```
 
-### Discovery Commands
+### 🧹 Utility Commands
 
-#### `/sc:brainstorm` - Requirements Discovery
+#### `/sc:cleanup` - Code & Workspace Cleanup
 ```bash
-/sc:brainstorm [topic] [--mode explore|define|refine] [--output brief|prd]
+/sc:cleanup [target] [--type code|imports|files|all] [--safe|--aggressive] [--interactive]
 
-# Purpose: Collaborative discovery and ideation
-# Quality: Requirement clarity and feasibility scored
+# Purpose: Clean up code, remove dead code, optimize structure
+# MCP Servers: Sequential, Context7
+# Safety: Multiple safety levels available
 
 # Examples:
-/sc:brainstorm "user dashboard"        # Explore ideas
-/sc:brainstorm --mode define --output prd
-/sc:brainstorm --delegate requirements-analyst
+/sc:cleanup --type imports --safe                        # Safe import cleanup
+/sc:cleanup src/ --type code --interactive               # Interactive code cleanup
+/sc:cleanup --type all --aggressive                      # Aggressive full cleanup
+/sc:cleanup tests --type files                           # File organization cleanup
 ```
 
-#### `/sc:learn` - Learning & Tutorials
+#### `/sc:git` - Git Operations
 ```bash
-/sc:learn [topic] [--level beginner|intermediate|advanced] [--format tutorial|guide|reference]
+/sc:git [operation] [args] [--smart-commit] [--interactive]
 
-# Purpose: Educational content generation
-# Quality: Pedagogical effectiveness evaluated
+# Purpose: Git operations with intelligent commit messages
+# MCP Servers: None (native git)
+# Features: Smart commits, workflow optimization
 
 # Examples:
-/sc:learn "react hooks" --level beginner
-/sc:learn authentication --format tutorial
-/sc:learn --delegate learning-guide
+/sc:git commit --smart-commit                            # Intelligent commit message
+/sc:git status                                           # Enhanced status display
+/sc:git branch feature/auth                              # Branch management
+/sc:git push --interactive                               # Interactive push workflow
 ```
 
-### UI/UX Commands
-
-#### `/ui` or `/21` - UI Component Generation
+#### `/sc:design` - Design System Architecture
 ```bash
-/ui [component] [--framework react|vue|angular] [--style material|tailwind|custom]
-/21 [search-term]
+/sc:design [target] [--type architecture|api|component|database] [--format diagram|spec|code]
 
-# Purpose: Generate modern UI components from 21st.dev
-# Quality: Accessibility and reusability scored
+# Purpose: Design system architecture and interfaces
+# MCP Servers: None (design-focused)
+# Output: Comprehensive design specifications
 
 # Examples:
-/ui login-form --framework react       # React login component
-/21 data-table                        # Search 21st.dev patterns
-/ui navbar --style tailwind           # Tailwind navbar
+/sc:design system --type architecture --format diagram   # Architecture diagram
+/sc:design api --type api --format spec                  # API specification
+/sc:design UserAuth --type component                     # Component design
+/sc:design schema --type database --format code          # Database schema
 ```
 
-#### `/logo` - Logo Search & Integration
-```bash
-/logo [company] [--format svg|png|jsx|tsx] [--theme light|dark|both]
+### 🎓 Learning & Documentation Commands
 
-# Purpose: Find and integrate company logos
-# Quality: Resolution and compatibility checked
+#### `/sc:index` - Project Documentation Index
+```bash
+/sc:index [target] [--type docs|api|structure|readme] [--format md|json|yaml]
+
+# Purpose: Generate comprehensive project documentation
+# MCP Servers: Sequential, Context7
+# Features: Intelligent organization, cross-referencing
 
 # Examples:
-/logo github --format svg              # GitHub logo as SVG
-/logo "discord slack" --format tsx     # Multiple logos as TSX
-/logo microsoft --theme dark           # Dark theme variant
+/sc:index . --type structure --format md                 # Project structure docs
+/sc:index src/api --type api --format json               # API documentation
+/sc:index project --type readme                          # README generation
+/sc:index --type docs --format yaml                      # Full documentation index
 ```
 
-#### `/sc:cleanup` - Workspace Cleanup & Hygiene
+#### `/sc:select-tool` - Intelligent Tool Selection
 ```bash
-/sc:cleanup [--scope session|current|all] [--preserve patterns] [--pattern cleanup-patterns] [--dry-run]
+/sc:select-tool [operation] [--analyze] [--explain]
 
-# Purpose: Maintain clean workspace by removing temporary files and build artifacts
-# Quality: Validates cleanup safety, preserves important files
+# Purpose: Select optimal MCP tools for operations
+# MCP Servers: Serena, Morphllm
+# Analysis: Complexity scoring and tool matching
 
 # Examples:
-/sc:cleanup                                      # Standard session cleanup
-/sc:cleanup --dry-run                           # Preview what will be deleted
-/sc:cleanup --scope session --preserve tests    # Keep test files
-/sc:cleanup --pattern "*.log,*.tmp,debug.*"    # Target specific patterns
-/sc:cleanup --scope all --confirm               # Deep cleanup with confirmation
+/sc:select-tool "refactor auth module" --analyze         # Analyze tool needs
+/sc:select-tool "debug performance" --explain            # Explain tool choice
+/sc:select-tool "implement UI" --analyze --explain       # Full analysis
 ```
 
-**Best Practices:**
-- Always run `git status` before cleanup to ensure changes are committed
-- Use `--dry-run` first in unfamiliar projects to preview deletions
-- Preserve important artifacts with `--preserve` flag
-- Schedule regular cleanups at session end or before commits
+## 🎯 Flag System
 
-**Scope Options:**
-- `session`: Recent temporary files from current session (default)
-- `current`: Current working directory only
-- `all`: Deep cleanup of entire project (use carefully)
-
-**Smart Pattern Recognition:**
-- **Node.js**: Preserves `node_modules`, removes `*.log`, temp test files
-- **Python**: Preserves `venv/`, removes `__pycache__`, `*.pyc`
-- **Build Projects**: Preserves final artifacts, removes intermediate files
-
-**Integration with Git Workflow:**
-```bash
-# Before committing
-/sc:cleanup --scope session
-git add .
-git commit -m "Feature complete"
-
-# After testing
-npm test
-/sc:cleanup --pattern "*.coverage,*.test-results"
-
-# Post-build cleanup
-npm run build
-/sc:cleanup --preserve dist --pattern "*.map,*.cache"
-```
-
-### Utility Commands
-
-#### `/help` - Get Help
-```bash
-/help [command|topic]
-
-# Purpose: Get help and documentation
-
-# Examples:
-/help                                  # General help
-/help refactor                        # Command-specific help
-/help agents                          # Topic help
-```
-
-#### `/feedback` - Report Issues
-```bash
-/feedback [type bug|feature|improvement]
-
-# Purpose: Report issues to https://github.com/anthropics/claude-code/issues
-
-# Examples:
-/feedback bug "command not working"
-/feedback feature "add new command"
-```
-
-## 🎯 Flags System
+Flags modify command behavior and can be combined for enhanced functionality:
 
 ### Mode Activation Flags
 
-| Flag | Purpose | Triggers |
-|------|---------|----------|
-| `--brainstorm` | Collaborative discovery | Vague requirements, exploration |
-| `--introspect` | Self-analysis mode | Error recovery, meta-cognition |
-| `--task-manage` | Task management | >3 steps, complex operations |
-| `--orchestrate` | Tool optimization | Multi-tool operations |
-| `--token-efficient` / `--uc` | Compressed output | Context >75%, efficiency needs |
+| Flag | Purpose | Triggers | Example |
+|------|---------|----------|---------|
+| `--brainstorm` | Collaborative discovery | Vague requirements | `/sc:task --brainstorm` |
+| `--introspect` | Self-analysis mode | Error recovery | `/sc:analyze --introspect` |
+| `--task-manage` | Task management | Complex operations | `/sc:implement --task-manage` |
+| `--orchestrate` | Tool optimization | Multi-tool ops | `/sc:build --orchestrate` |
+| `--token-efficient` / `--uc` | Compressed output | High context usage | `/sc:explain --uc` |
 
 ### Quality & Iteration Flags
 
-| Flag | Purpose | Example |
-|------|---------|---------|
-| `--loop` | Enable quality-driven iteration | Auto-iterate when quality < 70 |
-| `--iterations [n]` | Set max iterations | `--iterations 5` (default: 3) |
-| `--quality [n]` | Set quality threshold | `--quality 80` (default: 70) |
-| `--delegate` | Auto-delegate to Task agents | Complex operations |
+| Flag | Purpose | Default | Example |
+|------|---------|---------|---------|
+| `--loop` | Enable quality iteration | Off | `/sc:implement --loop` |
+| `--iterations [n]` | Max iterations | 3 | `--iterations 5` |
+| `--quality [n]` | Quality threshold | 70 | `--quality 85` |
+| `--delegate` | Auto-delegation | Off | `/sc:task --delegate` |
 
 ### Analysis Depth Flags
 
-| Flag | Token Usage | When to Use |
-|------|-------------|-------------|
-| `--think` | ~4K tokens | Multi-component analysis |
-| `--think-hard` | ~10K tokens | Architecture review |
-| `--ultrathink` | ~32K tokens | System redesign |
+| Flag | Token Usage | Use Case | Example |
+|------|-------------|----------|---------|
+| `--think` | ~4K tokens | Multi-component | `/sc:analyze --think` |
+| `--think-hard` | ~10K tokens | Architecture | `/sc:design --think-hard` |
+| `--ultrathink` | ~32K tokens | System redesign | `/sc:spawn --ultrathink` |
 
-### MCP Server Control
+### MCP Server Control Flags
 
-| Flag | Purpose |
-|------|---------|
-| `--dw` / `--deepwiki` | Library documentation |
-| `--seq` / `--sequential` | Complex reasoning |
-| `--magic` | UI components |
-| `--morph` / `--morphllm` | Pattern-based edits |
-| `--serena` | Symbol operations |
-| `--play` / `--playwright` | Browser testing |
-| `--all-mcp` | Enable all MCP servers |
-| `--no-mcp` | Disable all MCP servers |
+| Flag | Purpose | Server | Example |
+|------|---------|--------|---------|
+| `--dw` / `--deepwiki` | Documentation | Deepwiki | `/sc:explain --dw` |
+| `--seq` / `--sequential` | Complex reasoning | Sequential | `/sc:analyze --seq` |
+| `--magic` | UI components | Magic | `/sc:implement --magic` |
+| `--morph` / `--morphllm` | Pattern edits | Morphllm | `/sc:improve --morph` |
+| `--serena` | Symbol operations | Serena | `/sc:load --serena` |
+| `--play` / `--playwright` | Browser testing | Playwright | `/sc:test --play` |
+| `--all-mcp` | Enable all servers | All | `/sc:task --all-mcp` |
+| `--no-mcp` | Disable all servers | None | `/sc:analyze --no-mcp` |
 
 ## 🤖 Task Agent Catalog
 
-### Discovery & Analysis
-- **general-purpose**: Unknown scope exploration
-- **root-cause-analyst**: Debugging, error investigation
+SuperClaude includes 15+ specialized agents for delegation:
 
-### Code Quality & Improvement
-- **refactoring-expert**: Technical debt reduction
-- **quality-engineer**: Test coverage, edge cases
-- **performance-engineer**: Optimization, bottlenecks
+### Discovery & Analysis Agents
+- **general-purpose**: Unknown scope exploration, broad searches
+- **root-cause-analyst**: Debugging, error investigation, performance bottlenecks
 
-### Documentation & Planning
-- **technical-writer**: API docs, guides
-- **requirements-analyst**: PRD analysis, scoping
-- **learning-guide**: Tutorials, education
+### Code Quality & Improvement Agents
+- **refactoring-expert**: Technical debt reduction, code cleanup
+- **quality-engineer**: Test coverage, edge case detection, quality metrics
+- **performance-engineer**: Optimization, bottleneck identification
 
-### Architecture & Design
-- **system-architect**: System design, scalability
-- **backend-architect**: API design, database
-- **frontend-architect**: UI/UX, components
+### Documentation & Planning Agents
+- **technical-writer**: API docs, user guides, comprehensive documentation
+- **requirements-analyst**: PRD analysis, feature scoping, requirement discovery
+- **learning-guide**: Tutorial creation, educational content
 
-### Specialized Operations
-- **security-engineer**: Security audits
-- **devops-architect**: Infrastructure, CI/CD
-- **socratic-mentor**: Teaching, exploration
+### Architecture & Design Agents
+- **system-architect**: System design, scalability planning, architecture decisions
+- **backend-architect**: API design, database architecture, server patterns
+- **frontend-architect**: UI/UX implementation, component architecture
+- **python-expert**: Python-specific development expertise
 
-## 💡 Quick Start Examples
+### Specialized Operations Agents
+- **security-engineer**: Security audits, vulnerability assessment
+- **devops-architect**: Infrastructure, CI/CD, deployment strategies
+- **socratic-mentor**: Teaching through questions, concept exploration
 
-### 1. Quality-Driven Development
-```bash
-# Request a feature with automatic quality control
-"Implement user authentication" --loop --quality 85
-# → Task executes → Quality: 65 → Auto-iterates → Quality: 88 ✅
+## 📊 Quality Evaluation System
+
+All Task agent outputs are evaluated on a 0-100 scale:
+
+### Scoring Dimensions
+- **Correctness** (40%): Does it solve the stated problem?
+- **Completeness** (30%): Are all requirements addressed?
+- **Code Quality** (20%): Maintainability, readability, best practices
+- **Performance** (10%): Efficiency and resource usage
+
+### Action Thresholds
+| Score Range | Action | Description |
+|------------|--------|-------------|
+| 90-100 | ✅ Accept | Production-ready |
+| 70-89 | ⚠️ Review | Acceptable with notes |
+| 50-69 | 🔄 Iterate | Auto-iteration required |
+| 0-49 | ❌ Reject | Fundamental issues |
+
+## 🔄 Agentic Loop Workflow
+
+```
+Task Request → Delegate to Agent → Execute Task → Evaluate Quality (0-100)
+     ↑                                                      ↓
+     ←── Enhance Context ← Generate Feedback ← If Quality < 70
 ```
 
-### 2. Complex Debugging with Agentic Loops
-```bash
-/sc:debug "API returns 500" --delegate --think-hard
-# → root-cause-analyst investigates → Quality: 55 → Auto-iterate
-# → Enhanced context → Quality: 88 → performance-engineer fixes
-```
+## 💾 MCP Server Integration
 
-### 3. Multi-Agent Refactoring
-```bash
-/sc:refactor authentication --task-manage --loop
-# → general-purpose finds debt → refactoring-expert cleans
-# → quality-engineer validates → All quality > 70 ✅
-```
+SuperClaude integrates with 7 specialized MCP servers:
 
-### 4. Comprehensive Security Audit
-```bash
-/sc:security --standard owasp --delegate --all-mcp
-# → security-engineer performs audit → Quality scored
-# → Automatic iteration if needed → Final report
-```
+| Server | Purpose | Commands Using | Capabilities |
+|--------|---------|---------------|--------------|
+| **Sequential** | Complex reasoning | analyze, explain, task | Multi-step analysis, hypothesis testing |
+| **Context7** | Framework patterns | implement, improve | React, Vue, Angular patterns |
+| **Magic** | UI components | implement, UI commands | 21st.dev patterns, design systems |
+| **Playwright** | Browser testing | test, build | E2E testing, browser automation |
+| **Morphllm** | Pattern edits | improve, select-tool | Bulk edits, refactoring |
+| **Serena** | Symbol operations | load, save, reflect | Code navigation, memory |
+| **Deepwiki** | Documentation | explain, document | Library docs, examples |
 
-## 📖 Command Workflows
+## 🚀 Quick Start Examples
 
-### Complete Feature Development
+### Complete Feature Development Workflow
 ```bash
 # 1. Discovery & Planning
 /sc:brainstorm "user dashboard" --mode explore
-/sc:plan "implement dashboard" --phases 4 --quality 80
+/sc:workflow "dashboard requirements" --strategy agile
 
 # 2. Implementation
-/sc:refactor existing-code --preserve api
-/ui dashboard-layout --framework react
-/sc:optimize --focus performance
+/sc:implement "dashboard layout" --framework react --with-tests
+/sc:implement "api endpoints" --type api --safe
 
 # 3. Quality & Testing
 /sc:test --type unit --coverage 90
-/sc:security --standard owasp
-/sc:review --focus all --suggest fixes
+/sc:analyze --focus security --depth deep
 
 # 4. Documentation & Save
-/sc:document --type api --format openapi
-/sc:save --tag "dashboard-v1"
+/sc:document . --type api --format openapi
+/sc:save --checkpoint --tag "dashboard-v1"
 ```
 
 ### Debugging Workflow
 ```bash
-# 1. Initial Analysis
-/sc:analyze --focus performance --think-hard
+# 1. Initial Investigation
+/sc:troubleshoot "API errors" --type bug --trace
 
-# 2. Debug Investigation
-/sc:debug "slow queries" --depth deep --delegate
+# 2. Deep Analysis
+/sc:analyze api/ --focus performance --think-hard
 
-# 3. Optimization
-/sc:optimize database --measure both --loop
+# 3. Fix Implementation
+/sc:improve api/ --type performance --safe
 
 # 4. Validation
-/sc:test --type integration
-/sc:checkpoint --tag "perf-fix"
+/sc:test api --type integration
+/sc:reflect --type task --validate
 ```
 
 ### Learning & Documentation Flow
 ```bash
-# 1. Learn Concepts
-/sc:learn "microservices" --level intermediate
+# 1. Understand Existing Code
+/sc:explain src/services --level intermediate
 
-# 2. Explain Existing Code
-/sc:explain src/services --context architecture
-
-# 3. Generate Documentation
+# 2. Generate Documentation
 /sc:document . --type guide --style detailed
+/sc:index project --type structure
 
-# 4. Create Tutorial
-/sc:learn "how to use API" --format tutorial
-```
-
-### UI Component Development
-```bash
-# 1. Generate Components
-/ui data-table --framework react --style material
-/21 responsive-navbar
-
-# 2. Add Branding
-/logo "github microsoft" --format tsx
-
-# 3. Test Accessibility
-/sc:test --focus accessibility
-
-# 4. Document Components
-/sc:document components/ --type external
+# 3. Create Learning Materials
+/sc:explain "how to use API" --format examples
 ```
 
 ## 📁 File Structure
@@ -660,193 +532,92 @@ npm run build
 ├── FLAGS.md               # Behavioral flags and triggers
 ├── RULES.md               # Enhanced with quality controls
 ├── PRINCIPLES.md          # Core engineering philosophy
-├── MODE_*.md              # Operational modes
-│   ├── MODE_Brainstorming.md
-│   ├── MODE_Introspection.md
-│   ├── MODE_Orchestration.md
-│   ├── MODE_Task_Management.md  # Enhanced with quality eval
-│   └── MODE_Token_Efficiency.md
-├── MCP_*.md               # MCP server documentation
-└── AGENTS.md              # NEW: Comprehensive agent framework
+├── MODE_*.md              # 5 Operational modes
+├── MCP_*.md               # 7 MCP server configurations
+└── AGENTS.md              # 15+ Agent specifications
+
+/SuperClaude_Framework/
+├── SuperClaude/
+│   ├── Commands/         # 30+ command definitions
+│   ├── Agents/          # Agent specifications
+│   ├── Modes/           # Behavioral modes
+│   └── MCP/             # MCP configurations
+├── Docs/                # Documentation
+└── setup/              # Installation tools
 ```
 
-## 🔗 Command Chaining & Integration
+## 🔧 Installation & Setup
 
-### Command Integration Patterns
+### Prerequisites
+- Claude Code CLI installed
+- Python 3.8+ (for framework installation)
+- MCP servers configured (optional, for enhanced features)
 
-Commands can be chained together for powerful workflows:
-
-#### Sequential Chaining
+### Installation
 ```bash
-/sc:load → /sc:analyze → /sc:refactor → /sc:test → /sc:save
+# Install SuperClaude framework
+python3 -m pip install SuperClaude
+
+# Or from source
+git clone https://github.com/yourusername/SuperClaude_Framework
+cd SuperClaude_Framework
+python3 -m SuperClaude install
+
+# Verify installation
+python3 -m SuperClaude --version
 ```
 
-#### Parallel Execution
+### Testing Your Setup
 ```bash
-# Run multiple analyses simultaneously
-/sc:analyze --focus security & /sc:analyze --focus performance
+# In Terminal - Verify installation
+python3 -m SuperClaude --version
+
+# In Claude Code - Test commands
+/sc:brainstorm "test project"    # Should start discovery
+/sc:analyze README.md            # Should provide analysis
+/sc:help                        # Should list commands
 ```
-
-#### Quality-Driven Chains
-```bash
-# Auto-chain based on quality scores
-/sc:implement → (quality < 70) → /sc:refactor → /sc:test
-```
-
-### Flag Combinations
-
-Combine flags for enhanced behavior:
-
-```bash
-# Maximum Analysis Depth
-/sc:analyze --think-hard --all-mcp --delegate
-
-# Ultra-Efficient Mode
-/sc:refactor --uc --orchestrate --no-mcp
-
-# Quality-Enforced Development
-/sc:implement --loop --quality 90 --iterations 10
-
-# Comprehensive Testing
-/sc:test --delegate quality-engineer --coverage 95 --fix
-```
-
-### MCP Server Coordination
-
-Commands automatically coordinate MCP servers:
-
-| Command Pattern | MCP Servers Used |
-|----------------|------------------|
-| `/sc:analyze --think-hard` | Sequential + Serena |
-| `/ui component` | Magic + Deepwiki |
-| `/sc:debug --delegate` | Sequential + Task Agent |
-| `/sc:optimize` | Performance-engineer + Morphllm |
-| `/sc:security` | Security-engineer + All relevant |
-
-### Context Preservation
-
-Commands maintain context across operations:
-
-```bash
-# Session Management
-/sc:load                    # Load context
-/sc:plan "feature"         # Context enriched
-/sc:implement              # Context preserved
-/sc:checkpoint             # Context saved
-/sc:save                   # Full persistence
-
-# Memory Integration
-/sc:brainstorm → write_memory("requirements")
-/sc:implement → read_memory("requirements")
-/sc:test → write_memory("test_results")
-```
-
-## 🔄 Agentic Loop Workflow
-
-```mermaid
-graph TD
-    A[Task Request] --> B[Delegate to Agent]
-    B --> C[Execute Task]
-    C --> D[Evaluate Quality 0-100]
-    D --> E{Quality >= 70?}
-    E -->|Yes| F[Accept Output]
-    E -->|No| G{Iterations < Max?}
-    G -->|Yes| H[Generate Feedback]
-    H --> I[Enhance Context]
-    I --> B
-    G -->|No| J[Present Best Result]
-```
-
-## ⚙️ Configuration Tips
-
-### Enable Quality-Driven Development
-```bash
-# Add to your command
---loop --quality 80 --iterations 5
-```
-
-### Optimize for Large Projects
-```bash
-# Combine flags for best results
---delegate --task-manage --think-hard --all-mcp
-```
-
-### Token-Efficient Operations
-```bash
-# When context is high
---uc --orchestrate --no-mcp
-```
-
-## 📊 Quality Metrics
-
-Track these for continuous improvement:
-- Average quality scores by agent type
-- Iteration success rates
-- Context preservation effectiveness
-- Time-to-acceptable-quality
-- Agent selection accuracy
-
-## 🚦 Best Practices
-
-### DO ✅
-- Always let quality evaluation complete
-- Use specialized agents over general-purpose
-- Preserve context across iterations
-- Track quality metrics in memory
-- Enable --loop for critical tasks
-
-### DON'T ❌
-- Skip quality evaluation to save time
-- Accept outputs below quality threshold
-- Lose context between delegations
-- Exceed iteration limits without user consent
-- Ignore quality feedback
 
 ## 🆘 Troubleshooting
 
-### Quality Score Too Low
-- Check if correct agent type selected
+### Common Issues
+
+**Commands not working:**
+- Verify installation: `python3 -m SuperClaude --version`
+- Check Claude Code has access to ~/.claude directory
+- Ensure command format is correct: `/sc:command` not `/sc command`
+
+**Quality scores too low:**
+- Check correct agent type selected
 - Enhance context with more details
 - Break complex tasks into subtasks
+- Adjust threshold: `--quality 70`
 
-### Too Many Iterations
-- Adjust quality threshold: `--quality 70`
-- Increase max iterations: `--iterations 10`
-- Simplify requirements
+**MCP servers not available:**
+- Check server configuration in Claude Code settings
+- Verify server installation
+- Use `--no-mcp` flag as fallback
 
-### Context Lost Between Agents
-- Use structured context packages
-- Enable memory persistence with Serena
-- Check context preservation in logs
+## 📚 Additional Resources
 
-## 📚 Learn More
+- **User Guide**: Detailed usage instructions for all commands
+- **Developer Guide**: Contributing and extending the framework
+- **API Reference**: Complete command and flag documentation
+- **Examples Cookbook**: Real-world usage examples and patterns
+- **Troubleshooting Guide**: Solutions to common issues
 
-- **AGENTS.md**: Complete agent catalog with examples
-- **RULES.md**: Enhanced behavioral rules with imperatives
-- **MODE_Task_Management.md**: Quality-driven task management
-- **FLAGS.md**: All available flags and triggers
+## 🤝 Contributing
 
-## 🔧 Customization
+SuperClaude is open source and welcomes contributions:
+- Report issues: [GitHub Issues](https://github.com/anthropics/claude-code/issues)
+- Submit PRs: Follow contribution guidelines
+- Share feedback: `/feedback` command in Claude Code
 
-To customize SuperClaude:
+## 📄 License
 
-1. **Adjust Quality Thresholds**: Edit scoring in AGENTS.md
-2. **Add Custom Agents**: Extend agent catalog
-3. **Modify Rules**: Update RULES.md with your imperatives
-4. **Create New Modes**: Add MODE_*.md files
-5. **Configure Flags**: Customize FLAGS.md triggers
-
-## 💾 Saving Your Configuration
-
-```bash
-# Backup your customizations
-cd ~/Desktop/SuperClaude
-git checkout -b my-enhancements
-cp ~/.claude/*.md ./
-git add . && git commit -m "feat: My SuperClaude enhancements"
-```
+SuperClaude Framework is released under the MIT License.
 
 ---
 
-*SuperClaude Framework - Quality-Driven Development with Agentic Loops*
-*Last Updated: 2025*
+*SuperClaude Framework - Enhanced Claude Code with Quality-Driven Development*
+*Version: 4.0.8 | Last Updated: 2025*
