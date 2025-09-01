@@ -6,25 +6,22 @@ You can add your own custom instructions and configurations here.
 The SuperClaude framework components will be automatically imported below.
 
 # ═══════════════════════════════════════════════════
-# SuperClaude Framework Components - Simplified v2.0
+# SuperClaude Framework - Simplified v3.0
 # ═══════════════════════════════════════════════════
 
-# Quick Start
-@QUICKSTART.md
-@CHEATSHEET.md
+# Quick Navigation
+@QUICKSTART.md     # Getting started guide
+@CHEATSHEET.md     # Quick reference lookup
 
-# Core Framework
-@FLAGS.md
-@PRINCIPLES.md
-@RULES.md
-
-# Tool & Agent Reference
-@TOOLS.md
-@AGENTS.md
+# Core Components  
+@FLAGS.md          # All behavioral flags
+@PRINCIPLES.md     # Engineering philosophy
+@OPERATIONS.md     # Rules + quality framework
+@WORKFLOWS.md      # Execution patterns
 
 # Behavioral Modes
-@MODE_Brainstorming.md
-@MODE_Introspection.md
-@MODE_Orchestration.md
-@MODE_Task_Management.md
-@MODE_Token_Efficiency.md
+@MODE_CORE.md      # Cognitive patterns (Brainstorm, Introspect, Token)
+@MODE_EXECUTION.md # Operational patterns (Orchestrate, Task Manage)
+
+# Agent Framework
+@AGENTS.md         # Task agent catalog + quality evaluation

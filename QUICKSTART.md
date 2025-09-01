@@ -1,133 +1,125 @@
-# SuperClaude Quick Start
+# SuperClaude Framework - Quick Start Guide
 
-## Most Common Tasks
+## 🎯 What Do You Want To Do?
 
-### "I need to build something new"
-```
---brainstorm                # Explore requirements
---task-manage              # Plan implementation  
---delegate                 # Auto-select best tools
-```
-
-### "My code is broken"
-```
---think 2                  # Analyze the issue
---delegate                 # Uses root-cause-analyst
---test                     # Verify fixes
-```
-
-### "I need a UI component"
-```
---tools magic              # Or use /ui command
-# Creates modern, accessible components
-```
-
-### "I want to improve code"
-```
---delegate                 # Uses refactoring-expert
---loop                     # Iterate until quality ≥70
+```mermaid
+graph TD
+    A[Start Here] --> B{What's your task?}
+    
+    B --> C[Explore Ideas]
+    C --> C1[Use: --brainstorm<br/>Interactive discovery mode]
+    
+    B --> D[Debug Code]
+    D --> D1[Use: --think<br/>+ Task root-cause-analyst]
+    
+    B --> E[Build UI]
+    E --> E1[Use: --magic or /ui<br/>Magic MCP for components]
+    
+    B --> F[Refactor Code]
+    F --> F1[Use: Task refactoring-expert<br/>Systematic improvements]
+    
+    B --> G[Write Tests]
+    G --> G1[Use: Task quality-engineer<br/>+ Playwright for E2E]
+    
+    B --> H[Optimize Performance]
+    H --> H1[Use: --think-hard<br/>+ Task performance-engineer]
 ```
 
-## Essential Commands
+## 🚀 Common Scenarios
 
-| What You Want | Use This |
-|--------------|----------|
-| Explore ideas | `--brainstorm` |
-| Complex task (>3 steps) | `--task-manage` |
-| Find unknown code | `--delegate` |
-| Deep analysis | `--think 3` |
-| UI components | `--tools magic` or `/ui` |
-| Production safety | `--safe-mode` |
-| Save tokens | `--uc` |
+> **Detailed Workflows**: See [WORKFLOWS.md](WORKFLOWS.md) for complete step-by-step processes
 
-## The 5-Step Workflow
+| Scenario | Quick Start | Full Workflow |
+|----------|-------------|---------------|
+| **Starting new project** | `--brainstorm → --task-manage → TodoWrite` | [New Project Kickoff](WORKFLOWS.md#new-project-kickoff) |
+| **Code is failing** | `git status → --think → Task(root-cause-analyst) → --test` | [Debug Failed Test](WORKFLOWS.md#debug-failed-test) |
+| **Add feature** | `Read code → --task-manage → Implement → --test --review` | [New Feature](WORKFLOWS.md#new-feature-standard) |
+| **Improve quality** | `Task(refactoring-expert) → --delegate → --safe-mode` | [Refactoring](WORKFLOWS.md#refactoring-workflow) |
+| **UI components** | `--magic or /ui → Magic MCP → Playwright` | [UI Creation](WORKFLOWS.md#ui-component-creation) |
 
-1. **Check**: `git status` (always start here)
-2. **Plan**: Use flags based on task type
-3. **Execute**: Tools auto-selected or use `--delegate`
-4. **Validate**: Quality score evaluated automatically
-5. **Iterate**: Auto-retry if quality < 70
+## 📝 Essential Commands
 
-## Tool Quick Reference
+| Command | Purpose | Reference |
+|---------|---------|-----------|
+| `git status` | Always start here - check repo state | [RULES.md](RULES.md#git-workflow) |
+| `--brainstorm` | When you're not sure what you need | [MODE_CORE.md](MODE_CORE.md#brainstorming-mode) |
+| `--task-manage` | For any multi-step project | [MODE_EXECUTION.md](MODE_EXECUTION.md#task-management-mode) |
+| `TodoWrite` | Track your progress | [RULES.md](RULES.md#workflow-rules) |
+| `--think` | Analyze complex problems | [FLAGS.md](FLAGS.md#analysis-depth-flags) |
+| `--test` | Run tests after changes | [FLAGS.md](FLAGS.md#testing--quality-flags) |
 
-### Task Agents (use with --delegate)
-- **Unknown scope**: general-purpose
-- **Debugging**: root-cause-analyst  
-- **Refactoring**: refactoring-expert
-- **Documentation**: technical-writer
-- **Performance**: performance-engineer
+> **Complete Flag Reference**: See [FLAGS.md](FLAGS.md) for all available flags and combinations
 
-### MCP Servers (use with --tools)
-- **UI**: magic
-- **Docs**: deepwiki
-- **Analysis**: sequential
-- **Symbols**: serena
-- **Bulk edits**: morphllm
-- **Browser**: playwright
+## 🔄 Standard Workflow Pattern
 
-## Power Combos
-
-```bash
-# Maximum analysis
---think 3 --delegate
-
-# Safe production changes
---safe-mode --loop
-
-# Efficient large operations
---task-manage --uc
-
-# Complete feature development
---brainstorm --task-manage --test
+```
+1. Start → git status + git branch
+2. Plan → Use appropriate mode/flag  
+3. Track → TodoWrite for >3 steps
+4. Execute → Implement with quality gates
+5. Validate → Run tests + lint
+6. Complete → Clean workspace
 ```
 
-## Rules to Remember
+> **Detailed Patterns**: See [WORKFLOWS.md](WORKFLOWS.md#core-workflow-pattern) and [RULES.md](RULES.md#workflow-rules)
 
-✅ **Always Do:**
-- Start with `git status`
-- Use TodoWrite for >3 steps
-- Let quality scores guide iteration
-- Work on feature branches
+## ⚡ Quick Reference
 
-❌ **Never Do:**
-- Work on main/master
-- Skip failing tests
-- Leave TODO comments
-- Add features not requested
+### Flag Combinations
+- `--think --sequential` → Deep structured analysis  
+- `--task-manage --uc` → Efficient task tracking
+- `--safe-mode --validate` → Maximum safety
 
-## Getting Unstuck
+> **All Combinations**: See [FLAGS.md](FLAGS.md#flag-priority-rules)
 
-- **Lost?** → `--brainstorm`
-- **Complex?** → `--task-manage`
-- **Unknown files?** → `--delegate`
-- **Need analysis?** → `--think 2`
-- **High context?** → `--uc`
+### Task Agents by Purpose
+- **Exploration** → `general-purpose` 
+- **Debugging** → `root-cause-analyst`
+- **Refactoring** → `refactoring-expert`
+- **Documentation** → `technical-writer`
 
-## Examples
+> **Complete Agent Guide**: See [AGENTS.md](AGENTS.md#agent-catalog)
 
-### Add Authentication
-```
---brainstorm               # Explore requirements
---task-manage             # Plan implementation
---delegate                # Find existing auth
---tools magic             # Create UI components
---test                    # Validate everything
-```
+### Mode Selection  
+- **Uncertain requirements** → [Brainstorming Mode](MODE_CORE.md#brainstorming-mode)
+- **Complex multi-step** → [Task Management Mode](MODE_EXECUTION.md#task-management-mode)  
+- **Resource constraints** → [Token Efficiency Mode](MODE_CORE.md#token-efficiency-mode)
 
-### Fix Performance Issue
-```
---think 2                 # Analyze problem
---delegate                # Use performance-engineer
---loop                    # Iterate improvements
---test                    # Verify no regressions
-```
+> **All Modes**: See [MODE_CORE.md](MODE_CORE.md) and [MODE_EXECUTION.md](MODE_EXECUTION.md)
 
-### Refactor Legacy Code
-```
---delegate                # Use refactoring-expert
---safe-mode              # Maximum safety
---loop 5                 # Multiple iterations
-```
+## 🚨 Common Mistakes to Avoid
 
----
-**Start now**: Type `--brainstorm` if unsure, or pick a command above!
+> **Complete Rules**: See [RULES.md](RULES.md#quick-reference--decision-trees) for all critical, important, and recommended practices
+
+1. **Don't skip git status** - Always check state first ([Git Workflow](RULES.md#git-workflow))
+2. **Don't ignore quality gates** - Run tests after changes ([Quality Framework](RULES.md#quality-evaluation-system))  
+3. **Don't skip planning** - Use TodoWrite for >3 steps ([Workflow Rules](RULES.md#workflow-rules))
+4. **Don't leave temp files** - Clean workspace ([Workspace Hygiene](RULES.md#workspace-hygiene))
+5. **Don't accept poor quality** - Iterate when score < 70 ([Quality Rules](RULES.md#failure-investigation))
+
+## 🎓 Learning Path
+
+| Level | Focus | Key Resources |
+|-------|-------|---------------|
+| **Beginner** | Basic flags and scenarios | This guide + [CHEATSHEET.md](CHEATSHEET.md) |
+| **Intermediate** | Task agents and workflows | [AGENTS.md](AGENTS.md) + [WORKFLOWS.md](WORKFLOWS.md) |
+| **Advanced** | Mode combinations and optimization | [MODE_CORE.md](MODE_CORE.md) + [FLAGS.md](FLAGS.md) |
+| **Expert** | Quality loops and parallel ops | [RULES.md](RULES.md) + [MODE_EXECUTION.md](MODE_EXECUTION.md) |
+
+## 🆘 Need Help?
+
+| Situation | Action | Reference |
+|-----------|--------|-----------|
+| **Lost or confused** | Use `--brainstorm` to explore | [Brainstorming Mode](MODE_CORE.md#brainstorming-mode) |
+| **Quick lookup** | Check the cheatsheet | [CHEATSHEET.md](CHEATSHEET.md) |
+| **Debugging issues** | Use `--introspect` | [Introspection Mode](MODE_CORE.md#introspection-mode) |
+| **Complex task** | Break down with `--task-manage` | [Task Management](MODE_EXECUTION.md#task-management-mode) |
+
+## ✅ Ready to Start?
+
+1. **Jump in**: Pick a scenario above and follow the quick start
+2. **Learn patterns**: Explore [WORKFLOWS.md](WORKFLOWS.md) for detailed processes  
+3. **Master tools**: Study [FLAGS.md](FLAGS.md) and [AGENTS.md](AGENTS.md)
+4. **Follow rules**: Keep [RULES.md](RULES.md) handy for quality standards
+
+The framework will guide you to the right tools and approaches - start with `--brainstorm` if unsure!
