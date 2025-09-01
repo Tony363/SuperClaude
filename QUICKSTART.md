@@ -1,135 +1,133 @@
-# SuperClaude Framework - Quick Start Guide
+# SuperClaude Quick Start
 
-## 🎯 What Do You Want To Do?
+## Most Common Tasks
 
-```mermaid
-graph TD
-    A[Start Here] --> B{What's your task?}
-    
-    B --> C[Explore Ideas]
-    C --> C1[Use: --brainstorm<br/>Interactive discovery mode]
-    
-    B --> D[Debug Code]
-    D --> D1[Use: --think<br/>+ Task root-cause-analyst]
-    
-    B --> E[Build UI]
-    E --> E1[Use: --magic or /ui<br/>Magic MCP for components]
-    
-    B --> F[Refactor Code]
-    F --> F1[Use: Task refactoring-expert<br/>Systematic improvements]
-    
-    B --> G[Write Tests]
-    G --> G1[Use: Task quality-engineer<br/>+ Playwright for E2E]
-    
-    B --> H[Optimize Performance]
-    H --> H1[Use: --think-hard<br/>+ Task performance-engineer]
+### "I need to build something new"
+```
+--brainstorm                # Explore requirements
+--task-manage              # Plan implementation  
+--delegate                 # Auto-select best tools
 ```
 
-## 🚀 Common Scenarios
+### "My code is broken"
+```
+--think 2                  # Analyze the issue
+--delegate                 # Uses root-cause-analyst
+--test                     # Verify fixes
+```
 
-### "I'm starting a new project"
+### "I need a UI component"
+```
+--tools magic              # Or use /ui command
+# Creates modern, accessible components
+```
+
+### "I want to improve code"
+```
+--delegate                 # Uses refactoring-expert
+--loop                     # Iterate until quality ≥70
+```
+
+## Essential Commands
+
+| What You Want | Use This |
+|--------------|----------|
+| Explore ideas | `--brainstorm` |
+| Complex task (>3 steps) | `--task-manage` |
+| Find unknown code | `--delegate` |
+| Deep analysis | `--think 3` |
+| UI components | `--tools magic` or `/ui` |
+| Production safety | `--safe-mode` |
+| Save tokens | `--uc` |
+
+## The 5-Step Workflow
+
+1. **Check**: `git status` (always start here)
+2. **Plan**: Use flags based on task type
+3. **Execute**: Tools auto-selected or use `--delegate`
+4. **Validate**: Quality score evaluated automatically
+5. **Iterate**: Auto-retry if quality < 70
+
+## Tool Quick Reference
+
+### Task Agents (use with --delegate)
+- **Unknown scope**: general-purpose
+- **Debugging**: root-cause-analyst  
+- **Refactoring**: refactoring-expert
+- **Documentation**: technical-writer
+- **Performance**: performance-engineer
+
+### MCP Servers (use with --tools)
+- **UI**: magic
+- **Docs**: deepwiki
+- **Analysis**: sequential
+- **Symbols**: serena
+- **Bulk edits**: morphllm
+- **Browser**: playwright
+
+## Power Combos
+
 ```bash
---brainstorm                    # Explore requirements
---task-manage                   # Plan implementation
-TodoWrite                       # Track progress
+# Maximum analysis
+--think 3 --delegate
+
+# Safe production changes
+--safe-mode --loop
+
+# Efficient large operations
+--task-manage --uc
+
+# Complete feature development
+--brainstorm --task-manage --test
 ```
 
-### "My code is failing"
-```bash
-git status                      # Check current state
---think                        # Analyze the issue
-Task (root-cause-analyst)      # Deep investigation
---test                         # Verify fixes
+## Rules to Remember
+
+✅ **Always Do:**
+- Start with `git status`
+- Use TodoWrite for >3 steps
+- Let quality scores guide iteration
+- Work on feature branches
+
+❌ **Never Do:**
+- Work on main/master
+- Skip failing tests
+- Leave TODO comments
+- Add features not requested
+
+## Getting Unstuck
+
+- **Lost?** → `--brainstorm`
+- **Complex?** → `--task-manage`
+- **Unknown files?** → `--delegate`
+- **Need analysis?** → `--think 2`
+- **High context?** → `--uc`
+
+## Examples
+
+### Add Authentication
+```
+--brainstorm               # Explore requirements
+--task-manage             # Plan implementation
+--delegate                # Find existing auth
+--tools magic             # Create UI components
+--test                    # Validate everything
 ```
 
-### "I need to add a feature"
-```bash
-Read existing code             # Understand patterns
---task-manage                  # Plan the feature
-Implementation                 # Build it
---test --review               # Validate
+### Fix Performance Issue
+```
+--think 2                 # Analyze problem
+--delegate                # Use performance-engineer
+--loop                    # Iterate improvements
+--test                    # Verify no regressions
 ```
 
-### "I want to improve code quality"
-```bash
-Task (refactoring-expert)      # Analyze improvements
---delegate                     # Multi-file changes
---safe-mode                    # Ensure safety
+### Refactor Legacy Code
+```
+--delegate                # Use refactoring-expert
+--safe-mode              # Maximum safety
+--loop 5                 # Multiple iterations
 ```
 
-### "I need UI components"
-```bash
---magic or /ui                 # Generate components
-Magic MCP                      # Design system integration
-Playwright                     # Test interactions
-```
-
-## 📝 First Commands to Know
-
-| Command | What it does |
-|---------|-------------|
-| `git status` | Always start here - check repo state |
-| `--brainstorm` | When you're not sure what you need |
-| `--task-manage` | For any multi-step project |
-| `TodoWrite` | Track your progress |
-| `--think` | Analyze complex problems |
-| `--test` | Run tests after changes |
-| `--uc` | Save tokens when context is high |
-
-## 🔄 Typical Workflow
-
-1. **Start**: Check git status
-2. **Plan**: Use appropriate flag/mode
-3. **Track**: TodoWrite for progress
-4. **Execute**: Implement with tools
-5. **Validate**: Run tests/lint
-6. **Complete**: Clean workspace
-
-## ⚡ Power User Tips
-
-### Combine Flags for Power
-```bash
---think --sequential           # Structured deep analysis
---task-manage --uc            # Efficient task tracking
---safe-mode --validate        # Maximum safety
-```
-
-### Know Your Task Agents
-- **Exploration**: `general-purpose`
-- **Debugging**: `root-cause-analyst`
-- **Refactoring**: `refactoring-expert`
-- **Documentation**: `technical-writer`
-
-### MCP Server Selection
-- **UI Work**: Magic MCP
-- **Docs Needed**: Deepwiki MCP
-- **Complex Analysis**: Sequential MCP
-- **Symbol Operations**: Serena MCP
-- **Bulk Edits**: Morphllm MCP
-- **Browser Testing**: Playwright MCP
-
-## 🚨 Common Mistakes to Avoid
-
-1. **Don't skip git status** - Always know your state
-2. **Don't ignore tests** - Run them after changes
-3. **Don't use wrong MCP** - Check the cheatsheet
-4. **Don't skip planning** - Use TodoWrite for complex tasks
-5. **Don't leave temp files** - Clean your workspace
-
-## 🎓 Learning Path
-
-1. **Beginner**: Start with `--brainstorm` and basic flags
-2. **Intermediate**: Learn Task agents and MCP servers
-3. **Advanced**: Master flag combinations and delegation
-4. **Expert**: Optimize with `--uc` and parallel operations
-
-## 🆘 Getting Help
-
-- **Lost?** Use `--brainstorm` to explore
-- **Confused?** Check `CHEATSHEET.md`
-- **Debugging?** Use `--introspect` for self-analysis
-- **Complex task?** Break it down with `--task-manage`
-
-## ✅ You're Ready!
-
-Start with any scenario above or just type `--brainstorm` to begin exploring. The framework will guide you to the right tools and approaches.
+---
+**Start now**: Type `--brainstorm` if unsure, or pick a command above!

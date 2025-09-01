@@ -6,13 +6,21 @@ You can add your own custom instructions and configurations here.
 The SuperClaude framework components will be automatically imported below.
 
 # ═══════════════════════════════════════════════════
-# SuperClaude Framework Components
+# SuperClaude Framework Components - Simplified v2.0
 # ═══════════════════════════════════════════════════
+
+# Quick Start
+@QUICKSTART.md
+@CHEATSHEET.md
 
 # Core Framework
 @FLAGS.md
 @PRINCIPLES.md
 @RULES.md
+
+# Tool & Agent Reference
+@TOOLS.md
+@AGENTS.md
 
 # Behavioral Modes
 @MODE_Brainstorming.md
@@ -20,14 +28,3 @@ The SuperClaude framework components will be automatically imported below.
 @MODE_Orchestration.md
 @MODE_Task_Management.md
 @MODE_Token_Efficiency.md
-
-# MCP Documentation
-@MCP_Deepwiki.md
-@MCP_Magic.md
-@MCP_Morphllm.md
-@MCP_Playwright.md
-@MCP_Sequential.md
-@MCP_Serena.md
-
-# Agent Framework
-@AGENTS.md

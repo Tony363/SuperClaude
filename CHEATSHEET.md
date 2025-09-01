@@ -1,108 +1,109 @@
-# SuperClaude Framework Cheatsheet
+# SuperClaude Cheatsheet
 
-## 🚀 Quick Decision Guide
-| I want to... | Use this |
-|-------------|----------|
-| Explore ideas | `--brainstorm` |
-| Debug issues | `--think` → Task (root-cause-analyst) |
-| Optimize performance | `--think` + `--focus performance` |
-| Build UI components | `--magic` or `/ui` |
-| Refactor code | Task (refactoring-expert) |
-| Generate docs | Task (technical-writer) |
-| Run tests | `--test` after changes |
-| Save tokens | `--uc` or `--token-efficient` |
+## Instant Decision Guide
 
-## 🎯 Flags Reference
-| Flag | Trigger | Purpose |
-|------|---------|---------|
-| `--brainstorm` | Vague requests, "maybe", "thinking about" | Interactive discovery |
-| `--introspect` | Self-analysis, error recovery | Meta-cognitive analysis |
-| `--task-manage` | >3 steps OR >2 directories | Hierarchical organization |
-| `--orchestrate` | Multi-tool operations | Optimal tool routing |
-| `--token-efficient` | Context >75% | Compressed communication |
-| `--think` | Moderate complexity | ~4K token analysis |
-| `--think-hard` | System-wide analysis | ~10K token analysis |
-| `--ultrathink` | Critical redesign | ~32K token analysis |
-| `--delegate` | >7 directories OR >50 files | Sub-agent processing |
-| `--safe-mode` | Production, critical ops | Maximum validation |
-| `--test` | After code changes | Run test suites |
-| `--review` | Before commits | Code review mode |
+| Situation | Command |
+|-----------|---------|
+| Don't know where to start | `--brainstorm` |
+| Code is broken | `--think 2 --delegate` |
+| Need UI component | `--tools magic` or `/ui` |
+| Want to improve code | `--delegate --loop` |
+| Complex task (>3 steps) | `--task-manage` |
+| Production changes | `--safe-mode` |
+| High context usage | `--uc` |
 
-## 🔄 Behavioral Modes
-| Mode | Activation Keywords | Primary Use |
-|------|-------------------|-------------|
-| **Brainstorming** | explore, discuss, figure out | Requirements discovery |
-| **Introspection** | analyze reasoning, reflect | Self-examination |
-| **Orchestration** | Performance constraints | Tool optimization |
-| **Task Management** | Complex operations | Progress tracking |
-| **Token Efficiency** | Resource limits | Compressed output |
+## Essential Flags (Only 8!)
 
-## 🛠️ MCP Servers
-| Server | Best For | Don't Use For |
-|--------|----------|---------------|
-| **Deepwiki** | Framework docs, API patterns | Simple explanations |
-| **Magic** | UI components, design systems | Backend logic |
-| **Morphllm** | Bulk edits, pattern replacement | Symbol operations |
-| **Playwright** | Browser testing, E2E | Static analysis |
-| **Sequential** | Complex analysis, debugging | Simple tasks |
-| **Serena** | Symbol ops, project memory | Pattern edits |
+| Flag | When to Use |
+|------|------------|
+| `--brainstorm` | Explore requirements |
+| `--task-manage` | Track multi-step work |
+| `--think [1-3]` | Analyze (1=quick, 3=deep) |
+| `--delegate` | Auto-select best agent |
+| `--loop` | Iterate until quality ≥70 |
+| `--safe-mode` | Production safety |
+| `--uc` | Save tokens |
+| `--tools [name]` | Enable specific MCP |
 
-## 📋 Task Agents
-| Agent | Use When |
-|-------|----------|
-| `general-purpose` | Unknown scope, exploration |
-| `root-cause-analyst` | Debugging, investigations |
-| `refactoring-expert` | Code improvements |
-| `technical-writer` | Documentation |
-| `quality-engineer` | Test coverage |
-| `system-architect` | Design decisions |
-| `performance-engineer` | Optimization |
+## Task Agent Selection
 
-## ⚡ Common Workflows
-
-### Debug Failed Test
-```bash
---think → Task (root-cause-analyst) → Playwright → Fix → --test
+```
+Unknown scope → general-purpose
+Debugging → root-cause-analyst
+Refactoring → refactoring-expert
+Documentation → technical-writer
+Performance → performance-engineer
+UI/UX → frontend-architect
+Backend → backend-architect
+Security → security-engineer
 ```
 
-### Implement Feature
-```bash
---brainstorm → --task-manage → TodoWrite → Implementation → --test → --review
+## MCP Tool Selection
+
+```
+UI components → magic
+Documentation → deepwiki
+Complex analysis → sequential
+Symbol operations → serena
+Bulk edits → morphllm
+Browser testing → playwright
 ```
 
-### Optimize Performance
+## Power Combinations
+
 ```bash
---think-hard → Task (performance-engineer) → Sequential → Implement → Validate
+# Deep debugging
+--think 3 --delegate
+
+# Safe refactoring
+--delegate --safe-mode --loop
+
+# Full feature development
+--brainstorm --task-manage --test
+
+# Efficient large operations
+--task-manage --uc --delegate
 ```
 
-### UI Component
-```bash
---magic → /ui → Magic MCP → Playwright (test) → Integration
+## Quality Scoring
+
+| Score | Action |
+|-------|--------|
+| 90-100 | ✅ Accept |
+| 70-89 | ⚠️ Review |
+| <70 | 🔄 Auto-retry |
+
+## The Golden Rules
+
+1. `git status` first, always
+2. TodoWrite for >3 steps
+3. Feature branches only
+4. Quality <70 = iterate
+5. No TODO comments
+6. Build only what's asked
+
+## Symbols for Efficiency
+
+When using `--uc`:
+- → leads to
+- ✅ complete
+- ❌ failed
+- 🔄 in progress
+- ⚠️ warning
+- 🔍 analyze
+- ⚡ performance
+- 🛡️ security
+
+## Quick Workflow
+
 ```
-
-## 🔴 Priority Rules
-1. **Safety First**: Never compromise security
-2. **Complete Features**: No partial implementations
-3. **Build Only Asked**: No scope creep
-4. **Evidence-Based**: Verify all claims
-5. **Clean Workspace**: Remove temp files
-
-## 💡 Quick Tips
-- Use `--delegate-search` for unknown file locations
-- Combine `--think` + `--sequential` for deep analysis
-- Always `git status` before starting work
-- Run lint/typecheck before marking complete
-- Use Task agents for >5 file operations
-
-## 🔗 Flag Combinations
-| Compatible | Effect |
-|------------|--------|
-| `--think` + `--sequential` | Deep structured analysis |
-| `--task-manage` + `--uc` | Efficient task tracking |
-| `--safe-mode` + `--validate` | Maximum safety checks |
-| `--delegate` + specific agents | Targeted delegation |
-
-## ⚠️ Conflicts
-- `--no-mcp` overrides all MCP flags
-- `--safe-mode` overrides optimization flags
-- Cannot use multiple `--think` levels simultaneously
+git status
+↓
+Choose flag(s)
+↓
+Execute with tools
+↓
+Quality check
+↓
+Iterate if <70
+```
