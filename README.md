@@ -342,17 +342,40 @@ Quality dimensions:
 
 ## 📁 Installation
 
-```bash
-# Clone the repository
-git clone https://github.com/yourusername/SuperClaude_Framework.git
+### 🚀 Quick Install (Recommended)
 
-# Navigate to the directory
+The simplest way to install SuperClaude Framework:
+
+```bash
+# Navigate to the framework directory
+cd /path/to/SuperClaude_Framework
+
+# Install using pip (includes CLI tools)
+pip install -e ".[dev]"
+
+# Run the automated installer
+SuperClaude install
+
+# Or preview what will be installed
+SuperClaude install --dry-run
+```
+
+That's it! The framework is now active in Claude Code.
+
+### 📦 Alternative: Manual Installation
+
+If you prefer manual control or the pip install doesn't work:
+
+```bash
+# Clone or navigate to the framework
 cd SuperClaude_Framework
 
-# Copy core files to Claude directory
+# Copy all framework files to Claude's config directory
 cp -r SuperClaude/Core/* ~/.claude/
+cp -r SuperClaude/Modes/* ~/.claude/
+cp -r SuperClaude/MCP/* ~/.claude/
 
-# Update your CLAUDE.md
+# Create the entry point file
 cat > ~/.claude/CLAUDE.md << 'EOF'
 # SuperClaude Entry Point
 
@@ -364,17 +387,21 @@ cat > ~/.claude/CLAUDE.md << 'EOF'
 @FLAGS.md
 @PRINCIPLES.md
 @RULES.md
+@OPERATIONS.md
 
 # Tool & Agent Reference
 @TOOLS.md
 @AGENTS.md
+@AGENTS_EXTENDED.md
 
 # Behavioral Modes
-@MODE_Brainstorming.md
-@MODE_Introspection.md
-@MODE_Orchestration.md
-@MODE_Task_Management.md
-@MODE_Token_Efficiency.md
+@MODE_CORE.md
+@MODE_EXECUTION.md
+
+# MCP Configurations
+@MCP_Task.md
+@MCP_Sequential.md
+@MCP_Magic.md
 EOF
 ```
 
