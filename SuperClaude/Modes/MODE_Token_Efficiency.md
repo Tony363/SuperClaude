@@ -8,6 +8,16 @@
 - User requests brevity: `--uc`, `--ultracompressed`
 - Complex analysis workflows needing optimization
 
+## Works With Other Modes
+- **Task Management**: Compress task descriptions and updates
+- **Orchestration**: Essential when hitting resource limits
+- **All Modes**: Can overlay any mode when context >75%
+
+## Common Tools
+- **Symbol communication**: Visual symbols for clarity
+- **Tables**: Structured data presentation
+- **Abbreviated terms**: Context-aware compression
+
 ## Behavioral Changes
 - **Symbol Communication**: Use visual symbols for logic, status, and technical domains
 - **Abbreviation Systems**: Context-aware compression for technical terms

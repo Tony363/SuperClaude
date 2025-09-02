@@ -18,7 +18,7 @@
 - **Not for simple tasks**: Basic explanations, single-file changes, straightforward fixes
 
 ## Works Best With
-- **Context7**: Sequential coordinates analysis → Context7 provides official patterns
+- **Deepwiki**: Sequential coordinates analysis → Deepwiki provides comprehensive documentation
 - **Magic**: Sequential analyzes UI logic → Magic implements structured components
 - **Playwright**: Sequential identifies testing strategy → Playwright executes validation
 

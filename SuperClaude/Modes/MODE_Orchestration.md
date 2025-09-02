@@ -8,6 +8,16 @@
 - Parallel execution opportunities (>3 files)
 - Complex routing decisions with multiple valid approaches
 
+## Works With Other Modes
+- **Task Management**: Coordinate complex multi-tool operations
+- **Token Efficiency**: Essential when resource usage is high
+- **Introspection**: Analyze tool selection effectiveness
+
+## Common Tools
+- **MultiEdit**: Batch file operations
+- **Task agents**: Intelligent delegation
+- **Parallel tool calls**: Maximize efficiency
+
 ## Behavioral Changes
 - **Smart Tool Selection**: Choose most powerful tool for each task type
 - **Resource Awareness**: Adapt approach based on system constraints
@@ -22,7 +32,7 @@
 | Deep analysis | Sequential MCP | Native reasoning |
 | Symbol operations | Serena MCP | Manual search |
 | Pattern edits | Morphllm MCP | Individual edits |
-| Documentation | Context7 MCP | Web search |
+| Documentation | Deepwiki MCP | Web search |
 | Browser testing | Playwright MCP | Unit tests |
 | Multi-file edits | MultiEdit | Sequential Edits |
 

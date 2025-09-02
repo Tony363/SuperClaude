@@ -17,7 +17,7 @@
 - **Not for backend**: API logic, database queries, server configuration
 
 ## Works Best With
-- **Context7**: Magic uses 21st.dev patterns → Context7 provides framework integration
+- **Deepwiki**: Magic uses 21st.dev patterns → Deepwiki provides framework integration
 - **Sequential**: Sequential analyzes UI requirements → Magic implements structured components
 
 ## Examples

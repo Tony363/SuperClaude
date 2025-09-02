@@ -9,6 +9,16 @@
 - Manual flags: `--task-manage`, `--delegate`
 - Quality improvement requests: polish, refine, enhance
 
+## Works With Other Modes
+- **Token Efficiency**: Compress task descriptions when context is high
+- **Orchestration**: Optimize tool selection for each task
+- **Introspection**: Reflect on task completion and lessons learned
+
+## Common Tools
+- **TodoWrite**: Core tool for task tracking
+- **Task agents**: Delegation for complex subtasks
+- **Serena (write_memory)**: Persist task state across sessions
+
 ## Task Hierarchy with Memory
 
 📋 **Plan** → write_memory("plan", goal_statement)
@@ -46,8 +56,10 @@
 2. **Plan**: Create hierarchy → write_memory() for each level  
 3. **Track**: TodoWrite + memory updates in parallel
 4. **Execute**: Update memories as tasks complete
-5. **Checkpoint**: Periodic write_memory() for state preservation
-6. **Complete**: Final memory update with outcomes
+5. **Evaluate**: Quality assessment (0-100) → Decide iteration
+6. **Iterate**: If quality < 70 → Re-execute with feedback
+7. **Checkpoint**: Periodic write_memory() for state preservation
+8. **Complete**: Final memory update with outcomes + quality score
 
 ## Tool Selection
 
@@ -57,15 +69,86 @@
 | Implementation | MultiEdit/Morphllm | "code_changes" |
 | UI Components | Magic MCP | "ui_components" |
 | Testing | Playwright MCP | "test_results" |
-| Documentation | Context7 MCP | "doc_patterns" |
+| Documentation | Deepwiki MCP | "doc_patterns" |
+
+## Quality-Driven Agent Selection
+
+### Quality Evaluation Protocol
+**You MUST** evaluate all Task agent outputs using this framework:
+
+```python
+quality_score = (
+    correctness * 0.4 +    # Does it solve the problem?
+    completeness * 0.3 +   # All requirements met?
+    code_quality * 0.2 +   # Best practices followed?
+    performance * 0.1      # Efficient implementation?
+)
+
+if quality_score < 70:
+    iterate_with_feedback()
+elif quality_score < 90:
+    accept_with_improvements()
+else:
+    accept_as_production_ready()
+```
+
+### Context Preservation System
+**You MUST** maintain context across agent delegations:
+
+```yaml
+Shared Context Package:
+  goal: "High-level objective"
+  constraints: ["memory limits", "performance requirements"]
+  prior_work: {"agent_1": "output", "agent_2": "results"}
+  dependencies: ["file1.js", "module2.py"]
+  quality_criteria: {"min_score": 70, "must_have": [...]}
+```
+
+### Agentic Loop Implementation
+When using `--loop` or quality < 70:
+
+1. **Initial Execution**: Task agent → Output → Quality score
+2. **Feedback Generation**: Identify specific improvements needed
+3. **Context Enhancement**: Add feedback to shared context
+4. **Re-delegation**: Same or different agent with enhanced context
+5. **Convergence Check**: Stop when quality ≥ 70 or iterations = limit
+
+### Task Agent Selection
+
+### Exploration & Discovery
+- **general-purpose**: Broad searches across codebase, unknown scope investigations
+- **root-cause-analyst**: Systematic debugging, issue investigation, error analysis
+
+### Code Quality & Improvement
+- **refactoring-expert**: Systematic code improvements, technical debt reduction
+- **quality-engineer**: Test coverage assessment, edge case detection, quality metrics
+- **performance-engineer**: Optimization opportunities, bottleneck identification
+
+### Documentation & Planning  
+- **technical-writer**: Comprehensive documentation tasks, API docs, user guides
+- **requirements-analyst**: Feature analysis, PRD breakdown, requirement scoping
+- **learning-guide**: Tutorial creation, educational content, concept explanation
+
+### Architecture & Design
+- **system-architect**: System design, scalability planning, architecture decisions
+- **backend-architect**: API design, database architecture, server-side patterns
+- **frontend-architect**: UI/UX implementation, component architecture, accessibility
+
+### Specialized Operations
+- **security-engineer**: Security audits, vulnerability assessment, compliance checks
+- **devops-architect**: Infrastructure planning, CI/CD optimization, deployment strategies
+- **socratic-mentor**: Teaching through questions, concept exploration, learning facilitation
 
 ## Memory Schema
 
 ```
 plan_[timestamp]: Overall goal statement
 phase_[1-5]: Major milestone descriptions
-task_[phase].[number]: Specific deliverable status
+task_[phase].[number]: Specific deliverable status + quality score
 todo_[task].[number]: Atomic action completion
+quality_[task]: Quality evaluation (0-100) with justification
+iteration_[task].[n]: Iteration history with improvements
+context_[agent]: Shared context for agent operations
 checkpoint_[timestamp]: Current state snapshot
 blockers: Active impediments requiring attention
 decisions: Key architectural/design choices made
@@ -73,14 +156,19 @@ decisions: Key architectural/design choices made
 
 ## Examples
 
-### Session 1: Start Authentication Task
+### Session 1: Start Authentication Task with Quality Control
 ```
 list_memories() → Empty
 write_memory("plan_auth", "Implement JWT authentication system")
 write_memory("phase_1", "Analysis - security requirements review")
 write_memory("task_1.1", "pending: Review existing auth patterns")
+write_memory("context_analyst", {goal: "Find auth patterns", constraints: [...]})
 TodoWrite: Create 5 specific todos
-Execute task 1.1 → write_memory("task_1.1", "completed: Found 3 patterns")
+Execute task 1.1 → Quality: 65/100 → Auto-iterate
+write_memory("iteration_1.1.1", "Added security considerations")
+Re-execute → Quality: 85/100 → Accept
+write_memory("task_1.1", "completed: Found 3 patterns, quality: 85/100")
+write_memory("quality_1.1", "Score: 85, Justification: Comprehensive pattern analysis")
 ```
 
 ### Session 2: Resume After Interruption

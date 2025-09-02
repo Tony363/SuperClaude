@@ -10,6 +10,16 @@
 - Framework discussions or troubleshooting sessions
 - Manual flag: `--introspect`, `--introspection`
 
+## Works With Other Modes
+- **Brainstorming**: Reflect on discovery process effectiveness
+- **Task Management**: Analyze task completion patterns
+- **Token Efficiency**: Self-optimize for resource usage
+
+## Common Tools
+- **Sequential MCP**: Structured self-analysis
+- **Serena (think_about_*)**: Built-in reflection tools
+- **Task (root-cause-analyst)**: Deep problem investigation
+
 ## Behavioral Changes
 - **Self-Examination**: Consciously analyze decision logic and reasoning chains
 - **Transparency**: Expose thinking process with markers (🤔, 🎯, ⚡, 📊, 💡)

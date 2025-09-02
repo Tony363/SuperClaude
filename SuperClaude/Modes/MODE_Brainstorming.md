@@ -10,6 +10,16 @@
 - Interactive discovery contexts benefiting from dialogue exploration
 - Manual flags: `--brainstorm`, `--bs`
 
+## Works With Other Modes
+- **Task Management**: After discovery, organize implementation with TodoWrite
+- **Introspection**: Reflect on discovered requirements for completeness
+- **Token Efficiency**: When context grows during exploration
+
+## Common Tools
+- **WebSearch**: Research domain concepts and best practices
+- **Task (requirements-analyst)**: Systematic requirement discovery
+- **TodoWrite**: Capture discovered requirements as tasks
+
 ## Behavioral Changes
 - **Socratic Dialogue**: Ask probing questions to uncover hidden requirements
 - **Non-Presumptive**: Avoid assumptions, let user guide discovery direction

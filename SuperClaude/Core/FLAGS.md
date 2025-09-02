@@ -1,121 +1,62 @@
-# SuperClaude Framework Flags
+# SuperClaude Essential Flags
 
-Behavioral flags for Claude Code to enable specific execution modes and tool selection patterns.
-
-## Mode Activation Flags
+## Core Behavioral Flags
 
 **--brainstorm**
-- Trigger: Vague project requests, exploration keywords ("maybe", "thinking about", "not sure")
-- Behavior: Activate collaborative discovery mindset, ask probing questions, guide requirement elicitation
-
-**--introspect**
-- Trigger: Self-analysis requests, error recovery, complex problem solving requiring meta-cognition
-- Behavior: Expose thinking process with transparency markers (🤔, 🎯, ⚡, 📊, 💡)
+- Activate collaborative discovery for vague requirements
+- Ask probing questions, guide requirement elicitation
 
 **--task-manage**
-- Trigger: Multi-step operations (>3 steps), complex scope (>2 directories OR >3 files)
-- Behavior: Orchestrate through delegation, progressive enhancement, systematic organization
+- Enable TodoWrite tracking for multi-step operations (>3 steps)
+- Orchestrate complex workflows with quality gates
 
-**--orchestrate**
-- Trigger: Multi-tool operations, performance constraints, parallel execution opportunities
-- Behavior: Optimize tool selection matrix, enable parallel thinking, adapt to resource constraints
+**--token-efficient / --uc**
+- Reduce tokens by 30-50% when context >75%
+- Use symbols and compressed communication
 
-**--token-efficient**
-- Trigger: Context usage >75%, large-scale operations, --uc flag
-- Behavior: Symbol-enhanced communication, 30-50% token reduction while preserving clarity
+## Analysis Depth
 
-## MCP Server Flags
+**--think [1-3]**
+- 1: Quick analysis (2K tokens)
+- 2: Standard analysis (4K tokens) + Sequential
+- 3: Deep analysis (10K tokens) + all tools
 
-**--c7 / --context7**
-- Trigger: Library imports, framework questions, official documentation needs
-- Behavior: Enable Context7 for curated documentation lookup and pattern guidance
+## Tool Selection
 
-**--seq / --sequential**
-- Trigger: Complex debugging, system design, multi-component analysis
-- Behavior: Enable Sequential for structured multi-step reasoning and hypothesis testing
+**--delegate**
+- Auto-select best Task agent for the job
+- Enable quality-driven iteration (score < 70 = retry)
 
-**--magic**
-- Trigger: UI component requests (/ui, /21), design system queries, frontend development
-- Behavior: Enable Magic for modern UI generation from 21st.dev patterns
+**--tools [name]**
+- Enable specific MCP server: serena, morphllm, sequential, magic, deepwiki, playwright
+- Use --no-mcp to disable all MCP servers
 
-**--morph / --morphllm**
-- Trigger: Bulk code transformations, pattern-based edits, style enforcement
-- Behavior: Enable Morphllm for efficient multi-file pattern application
+## Quality Control
 
-**--serena**
-- Trigger: Symbol operations, project memory needs, large codebase navigation
-- Behavior: Enable Serena for semantic understanding and session persistence
-
-**--play / --playwright**
-- Trigger: Browser testing, E2E scenarios, visual validation, accessibility testing
-- Behavior: Enable Playwright for real browser automation and testing
-
-**--all-mcp**
-- Trigger: Maximum complexity scenarios, multi-domain problems
-- Behavior: Enable all MCP servers for comprehensive capability
-
-**--no-mcp**
-- Trigger: Native-only execution needs, performance priority
-- Behavior: Disable all MCP servers, use native tools with WebSearch fallback
-
-## Analysis Depth Flags
-
-**--think**
-- Trigger: Multi-component analysis needs, moderate complexity
-- Behavior: Standard structured analysis (~4K tokens), enables Sequential
-
-**--think-hard**
-- Trigger: Architectural analysis, system-wide dependencies
-- Behavior: Deep analysis (~10K tokens), enables Sequential + Context7
-
-**--ultrathink**
-- Trigger: Critical system redesign, legacy modernization, complex debugging
-- Behavior: Maximum depth analysis (~32K tokens), enables all MCP servers
-
-## Execution Control Flags
-
-**--delegate [auto|files|folders]**
-- Trigger: >7 directories OR >50 files OR complexity >0.8
-- Behavior: Enable sub-agent parallel processing with intelligent routing
-
-**--concurrency [n]**
-- Trigger: Resource optimization needs, parallel operation control
-- Behavior: Control max concurrent operations (range: 1-15)
-
-**--loop**
-- Trigger: Improvement keywords (polish, refine, enhance, improve)
-- Behavior: Enable iterative improvement cycles with validation gates
-
-**--iterations [n]**
-- Trigger: Specific improvement cycle requirements
-- Behavior: Set improvement cycle count (range: 1-10)
-
-**--validate**
-- Trigger: Risk score >0.7, resource usage >75%, production environment
-- Behavior: Pre-execution risk assessment and validation gates
+**--loop [n]**
+- Enable iterative improvement (default: 3 iterations)
+- Auto-iterate when quality score < 70
 
 **--safe-mode**
-- Trigger: Resource usage >85%, production environment, critical operations
-- Behavior: Maximum validation, conservative execution, auto-enable --uc
+- Maximum validation for production environments
+- Conservative execution with extra checks
 
-## Output Optimization Flags
+## Simplified Triggers
 
-**--uc / --ultracompressed**
-- Trigger: Context pressure, efficiency requirements, large operations
-- Behavior: Symbol communication system, 30-50% token reduction
+| Situation | Use Flag |
+|-----------|----------|
+| Vague requirements | --brainstorm |
+| Complex task (>3 steps) | --task-manage |
+| High context usage | --uc |
+| Need deep analysis | --think 3 |
+| Unknown file locations | --delegate |
+| Production code | --safe-mode |
+| Need improvements | --loop |
 
-**--scope [file|module|project|system]**
-- Trigger: Analysis boundary needs
-- Behavior: Define operational scope and analysis depth
+## Auto-Activation Rules
 
-**--focus [performance|security|quality|architecture|accessibility|testing]**
-- Trigger: Domain-specific optimization needs
-- Behavior: Target specific analysis domain and expertise application
-
-## Flag Priority Rules
-
-**Safety First**: --safe-mode > --validate > optimization flags
-**Explicit Override**: User flags > auto-detection
-**Depth Hierarchy**: --ultrathink > --think-hard > --think  
-**MCP Control**: --no-mcp overrides all individual MCP flags
-**Scope Precedence**: system > project > module > file
+These flags activate automatically when conditions are met:
+- **--task-manage**: >3 steps or >2 directories
+- **--delegate**: Unknown scope or >5 files
+- **--uc**: Context usage >75%
+- **--loop**: Quality score < 70
