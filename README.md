@@ -18,10 +18,12 @@ SuperClaude v2.0 introduces **55% reduction in complexity** while maintaining al
 - Clear decision trees replacing complex rules
 - Table-based documentation over verbose paragraphs
 
-#### 🎯 **Quality-Driven Execution**
+#### 🎯 **Quality-Driven Execution (Agentic Loop)**
+- **Implements the Agentic Loop pattern** ([reference](https://gist.github.com/RchGrav/438eafd62d58f3914f8d569769d0ebb3))
+- Three-agent architecture: Orchestrator → Specialist → Evaluator
 - Automatic quality evaluation (0-100 scoring)
-- Auto-iteration when quality < 70
-- Simplified thresholds: 90+ (accept), 70-89 (review), <70 (retry)
+- Auto-iteration when quality < 70 with enhanced context feedback
+- Simplified thresholds: 90+ (accept), 70-89 (review), <70 (auto-retry)
 
 ## 📋 Core Components
 
@@ -114,6 +116,136 @@ SuperClaude/Core/
 | **serena** | Symbol operations, project memory |
 | **morphllm** | Pattern-based bulk edits |
 | **playwright** | Browser testing & automation |
+
+## 🔄 Agentic Loop Implementation
+
+SuperClaude implements the powerful **Agentic Loop pattern** for automatic quality-driven iteration. This ensures all outputs meet high standards through intelligent feedback loops.
+
+### How It Works
+
+The framework uses a three-agent architecture inspired by [this agentic loop design](https://gist.github.com/RchGrav/438eafd62d58f3914f8d569769d0ebb3):
+
+1. **Orchestrator** (Atlas) - Coordinates the workflow
+   - Activated by `--orchestrate` or `--task-manage`
+   - Decides task delegation and parallelism
+   - Manages context sharing across agents
+
+2. **Specialist** (Mercury) - Executes the actual work
+   - 15+ specialized agents (refactoring-expert, root-cause-analyst, etc.)
+   - Can run in parallel for multi-file operations
+   - Receives shared context for consistency
+
+3. **Evaluator** (Apollo) - Grades output quality
+   - Automatic 0-100 scoring on all outputs
+   - Provides specific feedback for improvements
+   - Triggers iteration if score < threshold
+
+### Using the Agentic Loop
+
+#### Basic Usage
+```bash
+# Automatic quality iteration
+--loop                    # Iterates until quality ≥ 70
+
+# Custom quality threshold (like TARGET_SCORE in the gist)
+--loop --quality 90      # Iterate until quality ≥ 90
+
+# Control iterations
+--loop --iterations 5    # Maximum 5 attempts
+```
+
+#### Direct Agent Delegation
+```bash
+# Auto-select best agent (Orchestrator decides)
+--delegate
+
+# Specify agent directly
+Task(refactoring-expert)   # Specific specialist
+Task(general-purpose)      # Multi-disciplinary (like Mercury)
+```
+
+#### Parallel Execution
+```bash
+# For multi-file operations (N parallel specialists)
+--delegate --concurrency 3
+
+# Each specialist gets:
+# - Same shared context
+# - Specific file/task allocation
+# - Independent quality evaluation
+```
+
+### Context Preservation
+
+Every delegation maintains shared context (like context.md in the original):
+
+```yaml
+context:
+  goal: "High-level objective"
+  constraints: ["requirements", "limitations"]
+  prior_work: {agent_1: "output", agent_2: "results"}
+  quality_criteria: {min_score: 70, required: [...]}
+  iteration_history: ["attempt_1", "feedback_1", ...]
+```
+
+### Example Workflows
+
+#### Debug Complex Issue
+```bash
+--think --delegate --loop
+
+# Flow:
+1. Orchestrator analyzes problem
+2. Delegates to root-cause-analyst
+3. Evaluates output (score: 55/100)
+4. Auto-iterates with feedback: "Need deeper stack trace analysis"
+5. Re-runs with enhanced context
+6. New score: 88/100 → Accept
+```
+
+#### Refactor with Quality Gates
+```bash
+"Refactor authentication module" --loop --quality 85
+
+# Flow:
+1. Task(refactoring-expert) executes
+2. Score: 72/100 (issues: "high complexity remains")
+3. Auto-iterate with specific feedback
+4. Score: 91/100 → Accept
+```
+
+#### Parallel Multi-File Operation
+```bash
+"Update all API endpoints" --delegate --concurrency 3
+
+# Flow:
+1. Orchestrator identifies 3 file groups
+2. Spawns 3 parallel specialists
+3. Each evaluated independently
+4. All must reach quality ≥ 70
+5. Consolidates results
+```
+
+### Quality Feedback Loop
+
+The automatic iteration includes:
+- **Specific Issues**: What exactly needs improvement
+- **Concrete Fixes**: How to address each issue
+- **Context Enhancement**: Additional information for next attempt
+- **Priority Ranking**: Which issues are most critical
+
+### Advanced Control
+
+```bash
+# Maximum quality for production
+--safe-mode --loop --quality 95
+
+# Deep analysis with iteration
+--think 3 --delegate --loop
+
+# Efficient large operations
+--task-manage --uc --loop
+```
 
 ## 📊 Quality Scoring System
 
