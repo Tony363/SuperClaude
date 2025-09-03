@@ -20,6 +20,38 @@ See **TOOLS.md** for complete agent list and selection guide.
 - **quality-engineer**: Test coverage, quality metrics
 - **technical-writer**: Documentation generation
 
+## Extended Agent Library
+
+For specialized needs beyond the 15 core agents:
+
+### 📚 100+ Production-Ready Agents
+- **Location**: `Agents/Extended/` directory
+- **Organization**: 10 categories covering all development domains
+- **Documentation**: See `AGENTS_EXTENDED.md` for quick discovery
+- **Usage**: Same Task() interface, just specify path
+
+### When to Use Extended Agents
+- **Core agents** (15): Daily tasks, quick access, general purpose
+- **Extended agents** (100+): Specialized expertise, specific technologies
+
+### Quick Access Examples
+```bash
+# Core agent (simplified path)
+Task(refactoring-expert)
+
+# Extended agent (category path)
+Task(Extended/02-language-specialists/rust-engineer)
+Task(Extended/03-infrastructure/kubernetes-specialist)
+```
+
+### Popular Extended Categories
+- `02-language-specialists/`: TypeScript, Rust, Go, Python experts
+- `03-infrastructure/`: K8s, Terraform, Cloud, DevOps
+- `05-data-ai/`: ML, LLM, Data Engineering
+- `07-specialized-domains/`: Blockchain, IoT, FinTech
+
+See **AGENTS_EXTENDED.md** for complete category guide and agent discovery.
+
 ## Context Package
 Every delegation includes:
 ```yaml

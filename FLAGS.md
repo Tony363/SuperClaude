@@ -1,87 +1,62 @@
-# SuperClaude Framework Flags
+# SuperClaude Essential Flags
 
-Behavioral flags for Claude Code execution modes and tool selection.
+## Core Behavioral Flags
 
-## Mode Activation Flags
+**--brainstorm**
+- Activate collaborative discovery for vague requirements
+- Ask probing questions, guide requirement elicitation
 
-| Flag | Trigger | Behavior |
-|------|---------|----------|
-| `--brainstorm` | Vague requests, "maybe", "thinking about" | Collaborative discovery, probing questions |
-| `--introspect` | Self-analysis, error recovery, meta-cognition | Expose thinking (🤔, 🎯, ⚡, 📊, 💡) |
-| `--task-manage` | >3 steps OR >2 directories OR >3 files | Delegation, systematic organization |
-| `--orchestrate` | Multi-tool ops, performance constraints | Optimize tool matrix, parallel execution |
-| `--token-efficient` | Context >75%, large operations, --uc | Symbol communication, 30-50% reduction |
+**--task-manage**
+- Enable TodoWrite tracking for multi-step operations (>3 steps)
+- Orchestrate complex workflows with quality gates
 
-## MCP Server Flags
+**--token-efficient / --uc**
+- Reduce tokens by 30-50% when context >75%
+- Use symbols and compressed communication
 
-| Flag | Alias | Purpose | When to Use |
-|------|-------|---------|-------------|
-| `--deepwiki` | `--dw` | Documentation retrieval | Library imports, framework questions |
-| `--sequential` | `--seq` | Multi-step reasoning | Complex debugging, system design |
-| `--magic` | - | UI generation (21st.dev) | /ui, /21, design systems |
-| `--morphllm` | `--morph` | Pattern-based edits | Bulk transformations, style enforcement |
-| `--serena` | - | Symbol operations | Project memory, large codebases |
-| `--playwright` | `--play` | Browser automation | E2E testing, visual validation |
-| `--all-mcp` | - | Enable all servers | Maximum complexity scenarios |
-| `--no-mcp` | - | Disable all servers | Native-only execution |
+## Analysis Depth
 
-## Testing & Quality Flags
+**--think [1-3]**
+- 1: Quick analysis (2K tokens)
+- 2: Standard analysis (4K tokens) + Sequential
+- 3: Deep analysis (10K tokens) + all tools
 
-| Flag | Trigger | Action |
-|------|---------|--------|
-| `--test` | After code changes | Run test suites, validate changes |
-| `--review` | Before commits | Code quality analysis, suggestions |
-| `--fix` | Linting/format errors | Auto-fix issues where possible |
+## Tool Selection
 
-## Analysis Depth Flags
+**--delegate**
+- Auto-select best Task agent for the job
+- Enable quality-driven iteration (score < 70 = retry)
 
-| Flag | Complexity | Token Usage | MCP Servers |
-|------|------------|-------------|-------------|
-| `--think` | Moderate | ~4K | Sequential |
-| `--think-hard` | System-wide | ~10K | Sequential + Deepwiki |
-| `--ultrathink` | Critical redesign | ~32K | All servers |
+**--tools [name]**
+- Enable specific MCP server: serena, morphllm, sequential, magic, deepwiki, playwright
+- Use --no-mcp to disable all MCP servers
 
-## Error Handling Flags
+## Quality Control
 
-| Flag | Purpose | Approach |
-|------|---------|----------|
-| `--no-exceptions` | Defensive coding | Validation-first, minimize try/catch |
+**--loop [n]**
+- Enable iterative improvement (default: 3 iterations)
+- Auto-iterate when quality score < 70
 
-## Execution Control Flags
+**--safe-mode**
+- Maximum validation for production environments
+- Conservative execution with extra checks
 
-| Flag | Parameters | Trigger | Effect |
-|------|------------|---------|--------|
-| `--delegate` | auto/files/folders | >7 dirs OR >50 files | Sub-agent parallel processing |
-| `--concurrency` | 1-15 | Resource optimization | Limit parallel operations |
-| `--loop` | - | Polish/refine/enhance | Iterative improvement cycles |
-| `--iterations` | 1-10 | Specific cycles | Set improvement count |
-| `--validate` | - | Risk >0.7, prod env | Pre-execution risk assessment |
-| `--safe-mode` | - | Resource >85%, critical | Maximum validation, auto --uc |
+## Simplified Triggers
 
-**Formulas**: Complexity = `(files × directories × dependencies) / 100` | Risk = `(impact × probability × irreversibility) / 10`
+| Situation | Use Flag |
+|-----------|----------|
+| Vague requirements | --brainstorm |
+| Complex task (>3 steps) | --task-manage |
+| High context usage | --uc |
+| Need deep analysis | --think 3 |
+| Unknown file locations | --delegate |
+| Production code | --safe-mode |
+| Need improvements | --loop |
 
-## Task Delegation Flags
+## Auto-Activation Rules
 
-| Flag | Delegates To | Use Case |
-|------|--------------|----------|
-| `--delegate-search` | general-purpose | Unknown scope exploration |
-| `--delegate-debug` | root-cause-analyst | Error investigation, debugging |
-| `--delegate-refactor` | refactoring-expert | Code improvement, tech debt |
-| `--delegate-docs` | technical-writer | Multi-file documentation |
-| `--delegate-test` | quality-engineer | Test coverage, quality assessment |
-
-## Output Optimization Flags
-
-| Flag | Parameters | Purpose |
-|------|------------|---------|  
-| `--uc` / `--ultracompressed` | - | Symbol communication, 30-50% reduction |
-| `--scope` | file/module/project/system | Define analysis boundaries |
-| `--focus` | performance/security/quality/etc | Target specific domain |
-
-## Flag Priority Rules
-
-**Safety First**: --safe-mode > --validate > optimization flags
-**Explicit Override**: User flags > auto-detection
-**Depth Hierarchy**: --ultrathink > --think-hard > --think  
-**MCP Control**: --no-mcp overrides all individual MCP flags
-**Scope Precedence**: system > project > module > file
+These flags activate automatically when conditions are met:
+- **--task-manage**: >3 steps or >2 directories
+- **--delegate**: Unknown scope or >5 files
+- **--uc**: Context usage >75%
+- **--loop**: Quality score < 70

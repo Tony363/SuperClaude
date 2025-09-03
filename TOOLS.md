@@ -28,6 +28,39 @@ Quick selection guide for specialized agents.
 - **devops-architect**: Infrastructure, CI/CD, deployment
 - **python-expert**: Python-specific expertise and patterns
 
+## Extended Agent Library (100+ Specialized Agents)
+
+Located in `Agents/Extended/` - organized by category for specialized needs:
+
+### Categories Overview
+- **01-core-development** (14 agents): API designer, backend/frontend developers, fullstack, microservices, GraphQL, WebSocket, mobile, Electron
+- **02-language-specialists** (26 agents): TypeScript, Python, Rust, Go, Java, C++, C#, Swift, Kotlin, PHP, Ruby, and framework experts
+- **03-infrastructure** (12 agents): Cloud architect, DevOps, Kubernetes, Terraform, SRE, network engineering, platform engineering
+- **04-quality-security** (12 agents): QA, penetration testing, security auditing, chaos engineering, accessibility testing
+- **05-data-ai** (12 agents): ML engineer, data scientist, LLM architect, MLOps, NLP, database optimization
+- **06-developer-experience** (10 agents): Build engineering, CLI development, tooling, refactoring, legacy modernization
+- **07-specialized-domains** (11 agents): Blockchain, IoT, gaming, fintech, embedded systems, payments, SEO
+- **08-business-product** (10 agents): Product management, technical writing, UX research, project management
+- **09-meta-orchestration** (8 agents): Multi-agent coordination, workflow orchestration, context management
+- **10-research-analysis** (6 agents): Market research, competitive analysis, trend analysis
+
+### When to Use Extended Agents
+| Need | Use Extended Category |
+|------|----------------------|
+| Specific language/framework expertise | 02-language-specialists |
+| Infrastructure/DevOps beyond basics | 03-infrastructure |
+| Advanced quality/security requirements | 04-quality-security |
+| AI/ML/Data pipeline work | 05-data-ai |
+| Domain-specific development | 07-specialized-domains |
+| Complex multi-agent workflows | 09-meta-orchestration |
+
+### Most Popular Extended Agents
+- `Extended/02-language-specialists/typescript-pro.md` - Advanced TypeScript patterns
+- `Extended/02-language-specialists/rust-engineer.md` - Memory-safe systems programming  
+- `Extended/03-infrastructure/kubernetes-specialist.md` - K8s orchestration expert
+- `Extended/07-specialized-domains/blockchain-developer.md` - Web3/crypto development
+- `Extended/05-data-ai/ml-engineer.md` - Machine learning pipelines
+
 ## MCP Servers
 Specialized tools for enhanced capabilities.
 

@@ -1,110 +1,109 @@
-# SuperClaude Framework Cheatsheet
+# SuperClaude Cheatsheet
 
-> **Quick lookup for the SuperClaude framework. For details, see master docs: [WORKFLOWS.md](WORKFLOWS.md) | [FLAGS.md](FLAGS.md) | [AGENTS.md](AGENTS.md) | [RULES.md](RULES.md)**
+## Instant Decision Guide
 
-## 🚀 Quick Decision Guide
-| I want to... | Use this | Detailed Guide |
-|-------------|----------|----------------|
-| Explore ideas | `--brainstorm` | [Brainstorming Mode](MODE_CORE.md#brainstorming-mode) |
-| Debug issues | `--think` → Task (root-cause-analyst) | [Debug Workflows](WORKFLOWS.md#debugging--investigation) |
-| Optimize performance | `--think-hard` + Task (performance-engineer) | [Performance Optimization](WORKFLOWS.md#performance-optimization) |
-| Build UI components | `--magic` or `/ui` | [UI Component Creation](WORKFLOWS.md#ui-component-creation) |
-| Refactor code | Task (refactoring-expert) | [Refactoring Workflow](WORKFLOWS.md#refactoring-workflow) |
-| Generate docs | Task (technical-writer) | [API Documentation](WORKFLOWS.md#api-documentation) |
-| Run tests | `--test` after changes | [Testing Flags](FLAGS.md#testing--quality-flags) |
-| Save tokens | `--uc` or `--token-efficient` | [Token Efficiency](MODE_CORE.md#token-efficiency-mode) |
+| Situation | Command |
+|-----------|---------|
+| Don't know where to start | `--brainstorm` |
+| Code is broken | `--think 2 --delegate` |
+| Need UI component | `--tools magic` or `/ui` |
+| Want to improve code | `--delegate --loop` |
+| Complex task (>3 steps) | `--task-manage` |
+| Production changes | `--safe-mode` |
+| High context usage | `--uc` |
 
-## 🎯 Essential Flags
+## Essential Flags (Only 8!)
 
-> **Complete Reference**: [FLAGS.md](FLAGS.md) - All flags, triggers, combinations, and conflicts
+| Flag | When to Use |
+|------|------------|
+| `--brainstorm` | Explore requirements |
+| `--task-manage` | Track multi-step work |
+| `--think [1-3]` | Analyze (1=quick, 3=deep) |
+| `--delegate` | Auto-select best agent |
+| `--loop` | Iterate until quality ≥70 |
+| `--safe-mode` | Production safety |
+| `--uc` | Save tokens |
+| `--tools [name]` | Enable specific MCP |
 
-| Category | Key Flags | Purpose |
-|----------|-----------|---------|
-| **Discovery** | `--brainstorm`, `--introspect` | Requirements, self-analysis |
-| **Execution** | `--task-manage`, `--orchestrate` | Organization, tool routing |
-| **Analysis** | `--think`, `--think-hard`, `--ultrathink` | 4K, 10K, 32K token analysis |
-| **Quality** | `--test`, `--review`, `--safe-mode` | Testing, validation, safety |
-| **Efficiency** | `--uc`, `--delegate` | Token saving, parallel processing |
+## Task Agent Selection
 
-## 🔄 Behavioral Modes
+```
+Unknown scope → general-purpose
+Debugging → root-cause-analyst
+Refactoring → refactoring-expert
+Documentation → technical-writer
+Performance → performance-engineer
+UI/UX → frontend-architect
+Backend → backend-architect
+Security → security-engineer
+```
 
-> **Complete Mode Guide**: [MODE_CORE.md](MODE_CORE.md) | [MODE_EXECUTION.md](MODE_EXECUTION.md) - Detailed activation triggers and behavioral changes
+## MCP Tool Selection
 
-| Mode | When to Use | Reference |
-|------|-------------|-----------|
-| **Brainstorming** | Vague requests, exploration | [MODE_CORE.md](MODE_CORE.md#brainstorming-mode) |
-| **Introspection** | Error recovery, self-analysis | [MODE_CORE.md](MODE_CORE.md#introspection-mode) |
-| **Task Management** | >3 steps, complex operations | [MODE_EXECUTION.md](MODE_EXECUTION.md#task-management-mode) |
-| **Orchestration** | Multi-tool, performance constraints | [MODE_EXECUTION.md](MODE_EXECUTION.md#orchestration-mode) |
-| **Token Efficiency** | Resource limits, >75% context | [MODE_CORE.md](MODE_CORE.md#token-efficiency-mode) |
+```
+UI components → magic
+Documentation → deepwiki
+Complex analysis → sequential
+Symbol operations → serena
+Bulk edits → morphllm
+Browser testing → playwright
+```
 
-## 🛠️ Tool Selection
+## Power Combinations
 
-> **Complete Tool Matrix**: [FLAGS.md](FLAGS.md#mcp-server-flags) - MCP servers, triggers, and integration patterns
+```bash
+# Deep debugging
+--think 3 --delegate
 
-### MCP Servers Quick Reference
-| Task Type | Best MCP Server | Alternative |
-|-----------|-----------------|-------------|
-| **UI components** | Magic | Manual coding |
-| **Complex analysis** | Sequential | Native reasoning |
-| **Bulk code edits** | Morphllm | Individual edits |
-| **Browser testing** | Playwright | Unit tests |
-| **Documentation** | Deepwiki | Web search |
-| **Symbol operations** | Serena | Manual search |
+# Safe refactoring
+--delegate --safe-mode --loop
 
-### Task Agent Selection
+# Full feature development
+--brainstorm --task-manage --test
 
-> **Complete Agent Guide**: [AGENTS.md](AGENTS.md#agent-catalog) - Full catalog with examples and quality frameworks
+# Efficient large operations
+--task-manage --uc --delegate
+```
 
-| Purpose | Agent | Use Case |
-|---------|-------|----------|
-| **Exploration** | `general-purpose` | Unknown scope, broad searches |
-| **Debugging** | `root-cause-analyst` | Error investigation, systematic debugging |
-| **Code Quality** | `refactoring-expert` | Technical debt, systematic improvements |
-| **Documentation** | `technical-writer` | API docs, comprehensive documentation |
-| **Architecture** | `system-architect` | Design decisions, scalability |
-| **Performance** | `performance-engineer` | Optimization, bottleneck analysis |
+## Quality Scoring
 
-## ⚡ Quick Workflow Patterns
+| Score | Action |
+|-------|--------|
+| 90-100 | ✅ Accept |
+| 70-89 | ⚠️ Review |
+| <70 | 🔄 Auto-retry |
 
-> **Complete Workflows**: [WORKFLOWS.md](WORKFLOWS.md) - Step-by-step processes for all scenarios
+## The Golden Rules
 
-| Scenario | Quick Pattern | Full Guide |
-|----------|---------------|------------|
-| **Debug Test** | `--think → Task(root-cause-analyst) → Fix → --test` | [Debug Failed Test](WORKFLOWS.md#debug-failed-test) |
-| **New Feature** | `--brainstorm → --task-manage → TodoWrite → Implement → Validate` | [New Feature Standard](WORKFLOWS.md#new-feature-standard) |  
-| **Performance** | `--think-hard → Task(performance-engineer) → Optimize → Measure` | [Performance Optimization](WORKFLOWS.md#performance-optimization) |
-| **UI Component** | `--magic → /ui → Magic MCP → Playwright → Integration` | [UI Component Creation](WORKFLOWS.md#ui-component-creation) |
+1. `git status` first, always
+2. TodoWrite for >3 steps
+3. Feature branches only
+4. Quality <70 = iterate
+5. No TODO comments
+6. Build only what's asked
 
-## 🔴 Critical Rules
+## Symbols for Efficiency
 
-> **All Rules**: [RULES.md](RULES.md) - Complete behavioral rules with priority system and detection methods
+When using `--uc`:
+- → leads to
+- ✅ complete
+- ❌ failed
+- 🔄 in progress
+- ⚠️ warning
+- 🔍 analyze
+- ⚡ performance
+- 🛡️ security
 
-| Priority | Rule | Reference |
-|----------|------|-----------|
-| **🔴 CRITICAL** | Always `git status` first | [Git Workflow](RULES.md#git-workflow) |
-| **🔴 CRITICAL** | Quality score ≥ 70 or iterate | [Quality Framework](RULES.md#quality-evaluation-system) |
-| **🟡 IMPORTANT** | Complete all started features | [Implementation Completeness](RULES.md#implementation-completeness) |
-| **🟡 IMPORTANT** | Build only what's requested | [Scope Discipline](RULES.md#scope-discipline) |
-| **🟢 RECOMMENDED** | Clean workspace after operations | [Workspace Hygiene](RULES.md#workspace-hygiene) |
+## Quick Workflow
 
-## 💡 Essential Patterns & Decision Trees
-
-> **Complete Reference**: [FLAGS.md](FLAGS.md#flag-priority-rules) | [RULES.md](RULES.md#tool-optimization) | [AGENTS.md](AGENTS.md#selection-decision-trees)
-
-**Key Combinations**: `--think + --sequential` (deep analysis) | `--task-manage + --uc` (efficient tracking) | `--safe-mode + --validate` (maximum safety)
-
-**Decision Hierarchy**: Tool Selection (MCP > Native > Basic) | Agent Selection (Specialist > General) | Quality Control (Score < 70 = Auto-iterate)
-
-## 📚 Master Documentation Navigation
-
-| Topic | File | Key Sections |
-|-------|------|--------------|
-| **Workflows** | [WORKFLOWS.md](WORKFLOWS.md) | Debug, Feature Dev, Quality, Docs |
-| **Flags** | [FLAGS.md](FLAGS.md) | All flags, combinations, conflicts |  
-| **Task Agents** | [AGENTS.md](AGENTS.md) | Complete catalog, quality framework |
-| **Modes** | [MODE_CORE.md](MODE_CORE.md) | Brainstorming, Introspection, Token Efficiency |
-| **Execution** | [MODE_EXECUTION.md](MODE_EXECUTION.md) | Task Management, Orchestration |
-| **Rules** | [RULES.md](RULES.md) | Quality gates, behavioral rules, safety |
-
-> **Quick Start**: [QUICKSTART.md](QUICKSTART.md) | **This Cheatsheet**: Quick lookups and cross-references
+```
+git status
+↓
+Choose flag(s)
+↓
+Execute with tools
+↓
+Quality check
+↓
+Iterate if <70
+```
