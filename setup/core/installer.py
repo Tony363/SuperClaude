@@ -28,7 +28,9 @@ class Installer:
         self.install_dir = install_dir or DEFAULT_INSTALL_DIR
         self.dry_run = dry_run
         self.components: Dict[str, Component] = {}
-        self.installed_components: Set[str] = set()
+        from ..services.settings import SettingsService
+        settings_manager = SettingsService(self.install_dir)
+        self.installed_components: Set[str] = set(settings_manager.get_installed_components().keys())
         self.updated_components: Set[str] = set()
 
         self.failed_components: Set[str] = set()
@@ -202,8 +204,8 @@ class Installer:
 
         component = self.components[component_name]
 
-        # Skip if already installed
-        if component_name in self.installed_components:
+        # Skip if already installed and not in update mode
+        if component_name in self.installed_components and not config.get("update_mode"):
             return True
 
         # Check prerequisites
@@ -309,8 +311,10 @@ class Installer:
             self.logger.info("All components validated successfully!")
         else:
             self.logger.error("Some components failed validation. Check errors above.")
+
     def update_components(self, component_names: List[str], config: Dict[str, Any]) -> bool:
         """Alias for update operation (uses install logic)"""
+        config["update_mode"] = True
         return self.install_components(component_names, config)
 
 

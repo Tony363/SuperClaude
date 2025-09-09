@@ -1,6 +1,6 @@
 # SuperClaude Commands Guide
 
-SuperClaude provides 21 commands for Claude Code: `/sc:*` commands for workflows and `@agent-*` for specialists.
+SuperClaude provides 22 commands for Claude Code: `/sc:*` commands for workflows and `@agent-*` for specialists.
 
 ## Command Types
 
@@ -67,7 +67,7 @@ SuperClaude provides behavioral context files that Claude Code reads to adopt sp
 ```bash
 # Verify SuperClaude is working (primary method)
 python3 -m SuperClaude --version
-# Example output: SuperClaude 4.0.8
+# Example output: SuperClaude 4.0.9
 
 # Claude Code CLI version check
 claude --version
@@ -143,6 +143,18 @@ python3 -m SuperClaude install --list-components | grep mcp
 - Project health: `/sc:analyze .`
 - Security audit: `/sc:analyze --focus security`
 - Performance review: `/sc:analyze --focus performance`
+
+### `/sc:business-panel` - Strategic Business Analysis
+**Purpose**: Multi-expert business strategy analysis with 9 renowned thought leaders  
+**Syntax**: `/sc:business-panel "content"` `[--mode discussion|debate|socratic] [--experts "name1,name2"]`
+
+**Use Cases**:
+- Strategy evaluation: `/sc:business-panel "our go-to-market strategy"`
+- Competitive analysis: `/sc:business-panel @competitor_analysis.pdf --mode debate`
+- Innovation assessment: `/sc:business-panel "AI product idea" --experts "christensen,drucker"`
+- Strategic learning: `/sc:business-panel "competitive strategy" --mode socratic`
+
+**Expert Panel**: Christensen, Porter, Drucker, Godin, Kim/Mauborgne, Collins, Taleb, Meadows, Doumont
 
 ### `/sc:troubleshoot` - Problem Diagnosis
 **Purpose**: Systematic issue diagnosis with root cause analysis  
@@ -237,6 +249,7 @@ python3 -m SuperClaude install --list-components | grep mcp
 | Command | Purpose | Best For |
 |---------|---------|----------|
 | **analyze** | Code assessment | Quality audits, security reviews |
+| **business-panel** | Strategic analysis | Business decisions, competitive assessment |
 | **troubleshoot** | Problem diagnosis | Bug investigation, performance issues |
 | **explain** | Code explanation | Learning, code reviews |
 
@@ -276,14 +289,14 @@ python3 -m SuperClaude install --list-components | grep mcp
 **By Function:**
 - **Planning**: brainstorm, design, workflow, estimate
 - **Development**: implement, build, git
-- **Analysis**: analyze, troubleshoot, explain  
+- **Analysis**: analyze, business-panel, troubleshoot, explain  
 - **Quality**: improve, cleanup, test, document
 - **Management**: task, spawn, load, save, reflect
 - **Utility**: index, select-tool
 
 **By Complexity:**
 - **Beginner**: brainstorm, implement, analyze, test
-- **Intermediate**: workflow, design, improve, document  
+- **Intermediate**: workflow, design, business-panel, improve, document  
 - **Advanced**: spawn, task, select-tool, reflect
 
 ## Troubleshooting

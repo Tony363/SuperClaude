@@ -19,7 +19,7 @@ from ...utils.ui import (
 )
 from ...utils.environment import setup_environment_variables
 from ...utils.logger import get_logger
-from ... import DEFAULT_INSTALL_DIR, PROJECT_ROOT
+from ... import DEFAULT_INSTALL_DIR, PROJECT_ROOT, DATA_DIR
 from . import OperationBase
 
 
@@ -275,7 +275,7 @@ def display_update_plan(components: List[str], available_updates: Dict[str, Dict
     print()
 
 
-def perform_update(components: List[str], args: argparse.Namespace) -> bool:
+def perform_update(components: List[str], args: argparse.Namespace, registry: ComponentRegistry) -> bool:
     """Perform the actual update"""
     logger = get_logger()
     start_time = time.time()
@@ -283,10 +283,6 @@ def perform_update(components: List[str], args: argparse.Namespace) -> bool:
     try:
         # Create installer
         installer = Installer(args.install_dir, dry_run=args.dry_run)
-        
-        # Create component registry
-        registry = ComponentRegistry(PROJECT_ROOT / "setup" / "components")
-        registry.discover_components()
         
         # Create component instances
         component_instances = registry.create_component_instances(components, args.install_dir)
@@ -384,6 +380,9 @@ def run(args: argparse.Namespace) -> int:
     operation = UpdateOperation()
     operation.setup_operation_logging(args)
     logger = get_logger()
+
+    from setup.cli.base import __version__
+
     # ✅ Inserted validation code
     expected_home = Path.home().resolve()
     actual_dir = args.install_dir.resolve()
@@ -457,7 +456,7 @@ def run(args: argparse.Namespace) -> int:
                     return 0
         
         # Perform update
-        success = perform_update(components, args)
+        success = perform_update(components, args, registry)
         
         if success:
             if not args.quiet:

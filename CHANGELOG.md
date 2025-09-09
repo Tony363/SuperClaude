@@ -6,8 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
-
-## [4.0.8] - 2025-01-23
+## [4.0.9] - 2025-09-05
+### Fixed
+- **MCP Installer:** Addressed several critical bugs in the MCP installation and update process to improve reliability.
+  - Corrected the npm package name for the `morphllm` server in `setup/components/mcp.py`.
+  - Implemented a custom installation method for the `serena` server using `uv`, as it is not an npm package.
+  - Resolved a `NameError` in the `update` command within `setup/cli/commands/install.py`.
+  - Patched a recurring "Unknown component: core" error by ensuring the component registry is initialized only once.
+  - Added the `claude` CLI as a formal prerequisite for MCP server management, which was previously undocumented.
 
 ### Changed
 - Version bump for PyPI release
