@@ -68,14 +68,15 @@ Specialized tools for enhanced capabilities.
 - **Serena**: Symbol operations, LSP integration, project memory
   - Use for: Rename functions, find references, session persistence
   
-- **Morphllm**: Pattern-based bulk edits, token-optimized
+- **Fetch**: Web content retrieval and extraction
+- **Filesystem**: Secure file system operations
   - Use for: Style enforcement, multi-file replacements, framework updates
 
 - **Sequential**: Multi-step reasoning, complex analysis
   - Use for: Debugging, architecture review, systematic problem solving
 
 ### UI & Documentation  
-- **Magic**: Modern UI components from 21st.dev patterns
+- **MCP-Deepwiki**: Technical documentation and code examples
   - Use for: React/Vue/Angular components, accessible UI, design systems
 
 - **Deepwiki**: Technical documentation, framework patterns
@@ -101,11 +102,11 @@ Quality dimensions: Correctness (40%), Completeness (30%), Code Quality (20%), P
 |------|-------------|-------------|
 | Find unknown code | Task(general-purpose) | Grep/Glob |
 | Debug error | Task(root-cause-analyst) | Sequential |
-| Refactor code | Task(refactoring-expert) | Morphllm |
-| Create UI | Magic | Manual coding |
+| Refactor code | Task(refactoring-expert) | MultiEdit |
+| Fetch web content | Fetch | WebSearch |
 | Get docs | Deepwiki | WebSearch |
 | Rename symbol | Serena | Manual search |
-| Bulk edits | Morphllm | MultiEdit |
+| Bulk edits | MultiEdit | Sequential edits |
 | Complex analysis | Sequential | Native reasoning |
 | Browser test | Playwright | Unit tests |
 
@@ -113,10 +114,9 @@ Quality dimensions: Correctness (40%), Completeness (30%), Code Quality (20%), P
 ```
 Unknown scope? → Task(general-purpose)
 Debugging? → Task(root-cause-analyst)
-UI component? → Magic
-Documentation? → Deepwiki
-Symbol operation? → Serena
-Bulk edits? → Morphllm
+Web content? → Fetch
+File operations? → Filesystem
+Bulk edits? → MultiEdit
 Complex reasoning? → Sequential
 Browser testing? → Playwright
 Quality < 70? → Auto-iterate with feedback

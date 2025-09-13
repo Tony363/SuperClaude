@@ -18,7 +18,7 @@
 
 ### "I need a UI component"
 ```
---tools magic              # Or use /ui command
+--tools fetch              # Or retrieve web content
 # Creates modern, accessible components
 ```
 
@@ -36,7 +36,7 @@
 | Complex task (>3 steps) | `--task-manage` |
 | Find unknown code | `--delegate` |
 | Deep analysis | `--think 3` |
-| UI components | `--tools magic` or `/ui` |
+| Web content | `--tools fetch` |
 | Production safety | `--safe-mode` |
 | Save tokens | `--uc` |
 
@@ -58,11 +58,12 @@
 - **Performance**: performance-engineer
 
 ### MCP Servers (use with --tools)
-- **UI**: magic
-- **Docs**: deepwiki
+- **Web**: fetch
+- **Files**: filesystem
+- **Docs**: mcp-deepwiki
+- **Browser**: playwright
 - **Analysis**: sequential
 - **Symbols**: serena
-- **Bulk edits**: morphllm
 - **Browser**: playwright
 
 ## Power Combos
@@ -110,7 +111,7 @@
 --brainstorm               # Explore requirements
 --task-manage             # Plan implementation
 --delegate                # Find existing auth
---tools magic             # Create UI components
+--tools fetch             # Fetch web content
 --test                    # Validate everything
 ```
 

@@ -1,0 +1,9 @@
+{
+  "mcp-deepwiki": {
+    "command": "npx",
+    "args": [
+      "-y",
+      "@deepwiki/mcp-server"
+    ]
+  }
+}

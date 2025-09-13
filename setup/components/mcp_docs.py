@@ -21,12 +21,12 @@ class MCPDocsComponent(Component):
         
         # Map server names to documentation files
         self.server_docs_map = {
-            "context7": "MCP_Context7.md",
-            "sequential": "MCP_Sequential.md", 
-            "magic": "MCP_Magic.md",
+            "fetch": "MCP_Fetch.md",
+            "filesystem": "MCP_Filesystem.md",
+            "mcp-deepwiki": "MCP_Deepwiki.md",
             "playwright": "MCP_Playwright.md",
-            "serena": "MCP_Serena.md",
-            "morphllm": "MCP_Morphllm.md"
+            "sequential": "MCP_Sequential.md",
+            "serena": "MCP_Serena.md"
         }
         
         super().__init__(install_dir, Path(""))

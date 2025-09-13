@@ -78,8 +78,8 @@ Use the most powerful tool available:
 - Unknown scope → Task(general-purpose)
 - Multi-file edits → MultiEdit > sequential Edits
 - Symbol operations → Serena > manual search
-- Pattern edits → Morphllm > individual changes
-- UI components → Magic > manual coding
+- Pattern edits → MultiEdit > individual changes
+- Web content → Fetch > WebSearch
 - Documentation → Deepwiki > web search
 
 ## Quick Reference

@@ -6,7 +6,7 @@
 |-----------|---------|
 | Don't know where to start | `--brainstorm` |
 | Code is broken | `--think 2 --delegate` |
-| Need UI component | `--tools magic` or `/ui` |
+| Need web content | `--tools fetch` |
 | Want to improve code | `--delegate --loop` |
 | Complex task (>3 steps) | `--task-manage` |
 | Production changes | `--safe-mode` |
@@ -41,11 +41,9 @@ Security → security-engineer
 ## MCP Tool Selection
 
 ```
-UI components → magic
-Documentation → deepwiki
-Complex analysis → sequential
-Symbol operations → serena
-Bulk edits → morphllm
+Web content → fetch
+File operations → filesystem
+Bulk edits → MultiEdit
 Browser testing → playwright
 ```
 

@@ -28,7 +28,7 @@
 - Enable quality-driven iteration (score < 70 = retry)
 
 **--tools [name]**
-- Enable specific MCP server: serena, morphllm, sequential, magic, deepwiki, playwright
+- Enable specific MCP server: fetch, filesystem, mcp-deepwiki, playwright, sequential, serena
 - Use --no-mcp to disable all MCP servers
 
 ## Quality Control

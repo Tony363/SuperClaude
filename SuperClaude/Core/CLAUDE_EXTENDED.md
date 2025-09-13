@@ -25,8 +25,8 @@ Loads when delegation or task management is needed:
 ### MCP Server Documentation
 Loads when specific MCP servers are used:
 
-@MCP_Magic.md           # Activated by: UI components, /ui, /21 commands
-@MCP_Morphllm.md        # Activated by: bulk edits, pattern transformations
+@MCP_Fetch.md           # Activated by: web content retrieval, URL fetching
+@MCP_Filesystem.md      # Activated by: file operations, directory management
 @MCP_Playwright.md      # Activated by: browser testing, E2E scenarios
 @MCP_Sequential.md      # Activated by: --think flags, complex analysis
 @MCP_Serena.md          # Activated by: symbol operations, project memory
@@ -60,8 +60,8 @@ The framework intelligently loads components based on these triggers:
 - Complex workflows → Loads WORKFLOWS.md
 
 ### MCP Server Usage
-- UI/component work → Loads MCP_Magic.md
-- Bulk code edits → Loads MCP_Morphllm.md
+- Web content retrieval → Loads MCP_Fetch.md
+- File operations → Loads MCP_Filesystem.md
 - Browser testing → Loads MCP_Playwright.md
 - Deep analysis → Loads MCP_Sequential.md
 - Symbol operations → Loads MCP_Serena.md

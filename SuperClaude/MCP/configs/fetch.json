@@ -1,9 +1,9 @@
 {
-  "context7": {
+  "fetch": {
     "command": "npx",
     "args": [
       "-y",
-      "@upstash/context7-mcp@latest"
+      "@modelcontextprotocol/server-fetch"
     ]
   }
 }

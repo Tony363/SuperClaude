@@ -21,25 +21,23 @@ class MCPComponent(Component):
         
         # Define MCP servers to install
         self.mcp_servers = {
-            "sequential-thinking": {
-                "name": "sequential-thinking",
-                "description": "Multi-step problem solving and systematic analysis",
-                "npm_package": "@modelcontextprotocol/server-sequential-thinking",
+            "fetch": {
+                "name": "fetch",
+                "description": "Fetch URLs and extract content from web pages",
+                "npm_package": "@modelcontextprotocol/server-fetch",
                 "required": True
             },
-            "context7": {
-                "name": "context7", 
-                "description": "Official library documentation and code examples",
-                "npm_package": "@upstash/context7-mcp",
+            "filesystem": {
+                "name": "filesystem",
+                "description": "File system operations with read/write capabilities",
+                "npm_package": "@modelcontextprotocol/server-filesystem", 
                 "required": True
             },
-            "magic": {
-                "name": "magic",
-                "description": "Modern UI component generation and design systems",
-                "npm_package": "@21st-dev/magic",
-                "required": False,
-                "api_key_env": "TWENTYFIRST_API_KEY",
-                "api_key_description": "21st.dev API key for UI component generation"
+            "mcp-deepwiki": {
+                "name": "mcp-deepwiki",
+                "description": "Technical documentation repository and code examples",
+                "npm_package": "@deepwiki/mcp-server",
+                "required": False
             },
             "playwright": {
                 "name": "playwright",
@@ -47,22 +45,19 @@ class MCPComponent(Component):
                 "npm_package": "@playwright/mcp@latest",
                 "required": False
             },
+            "sequential-thinking": {
+                "name": "sequential-thinking",
+                "description": "Multi-step problem solving and systematic analysis",
+                "npm_package": "@modelcontextprotocol/server-sequential-thinking",
+                "required": True
+            },
             "serena": {
                 "name": "serena",
                 "description": "Semantic code analysis and intelligent editing",
                 "install_method": "uv",
                 "install_command": "uvx --from git+https://github.com/oraios/serena serena-mcp-server",
                 "required": False
-            },
-            "morphllm": {
-                "name": "morphllm-fast-apply",
-                "description": "Fast Apply capability for context-aware code modifications",
-                "npm_package": "@morph-llm/morph-fast-apply",
-                "required": False,
-                "api_key_env": "MORPH_API_KEY",
-                "api_key_description": "Morph API key for Fast Apply"
             }
-
         }
     
     def get_metadata(self) -> Dict[str, str]:
@@ -70,7 +65,7 @@ class MCPComponent(Component):
         return {
             "name": "mcp",
             "version": __version__,
-            "description": "MCP server integration (Context7, Sequential, Magic, Playwright)",
+            "description": "MCP server integration (Fetch, Filesystem, Deepwiki, Playwright, Sequential, Serena)",
             "category": "integration"
         }
     

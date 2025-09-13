@@ -1,390 +1,338 @@
-# SuperClaude Framework v4.0.8 - AI-Enhanced Development Framework
+# SuperClaude Framework
 
-## 🚀 Overview
+<div align="center">
 
-SuperClaude v4.0.8 is a comprehensive AI-enhanced development framework designed for Claude Code, featuring intelligent component loading, automatic update checking, and a powerful agentic loop system for quality-driven development.
+![Version](https://img.shields.io/badge/version-4.0.9-blue)
+![Python](https://img.shields.io/badge/python-3.8%2B-green)
+![License](https://img.shields.io/badge/license-MIT-purple)
+![Framework](https://img.shields.io/badge/framework-AI--Enhanced-orange)
 
-### ✨ What's New in v4.0.8
+**🚀 AI-Enhanced Development Framework for Claude Code**
 
-#### 🔄 **Smart Update Management**
-- **Automatic Update Checking**: Monitors PyPI and NPM for latest versions
-- **Intelligent Installation Detection**: Supports pip, pipx, npm, and yarn installations
-- **24-hour Rate Limiting**: Non-intrusive update notifications
-- **One-Command Updates**: `SuperClaude update` with full rollback support
-- **Environment Integration**: `SUPERCLAUDE_AUTO_UPDATE` environment variable support
+*Intelligent Agents • Dynamic Loading • Quality-Driven Iteration • Token Optimized*
 
-#### ⚡ **Dynamic Loading System**
-- **Performance Optimized**: Conditional component loading under 40KB threshold
-- **On-Demand Components**: Load framework features only when needed
-- **Intelligent Triggers**: Automatic detection of required capabilities
-- **Memory Efficient**: 67% reduction in baseline memory usage (~27KB core)
-
-#### 🎯 **Quality-Driven Execution (Agentic Loop)**
-- **Implements the Agentic Loop pattern** ([reference](https://gist.github.com/RchGrav/438eafd62d58f3914f8d569769d0ebb3))
-- Three-agent architecture: Orchestrator → Specialist → Evaluator
-- Automatic quality evaluation (0-100 scoring)
-- Auto-iteration when quality < 70 with enhanced context feedback
-- Simplified thresholds: 90+ (accept), 70-89 (review), <70 (auto-retry)
-
-#### 🏗️ **Enhanced Architecture**
-- **14 Specialized Agents**: Domain experts for every development need
-- **4 Behavioral Modes**: Intelligent workflow adaptation
-- **6 MCP Servers**: Magic, Sequential, Serena, Morphllm, Playwright, and more
-- **21 Slash Commands**: `/sc:` namespace prevents conflicts
+</div>
 
 ---
 
-## 🆕 Latest Updates & Features
+## 📑 Table of Contents
 
-### Version 4.0.8 (January 2025)
-- **Version Synchronization**: All components unified to v4.0.8
-- **PyPI Package Ready**: Full PyPI distribution with CLI tools
-- **Installation Streamlined**: 2-minute installation process
-- **Documentation Enhanced**: Comprehensive user guides and troubleshooting
+- [Overview](#-overview)
+- [What's New](#-whats-new-in-409)
+- [Quick Start](#-quick-start)
+- [Architecture](#-architecture)
+- [Core Components](#-core-components)
+- [Installation](#-installation)
+- [Agent System](#-agent-system)
+- [MCP Servers](#-mcp-servers)
+- [Behavioral Modes](#-behavioral-modes)
+- [Command Reference](#-command-reference)
+- [Agentic Loop](#-agentic-loop)
+- [Flags & Options](#-flags--options)
+- [Usage Examples](#-usage-examples)
+- [Performance](#-performance--optimization)
+- [Development Guide](#-development-guide)
+- [Troubleshooting](#-troubleshooting)
+- [Contributing](#-contributing)
+- [Support](#-support)
 
-### Version 4.0.7 (January 2025) - Major Update
-#### 🚀 **Automatic Update System**
+---
+
+## 🎯 Overview
+
+SuperClaude is a comprehensive AI-enhanced development framework designed specifically for Claude Code, featuring intelligent component loading, automatic update checking, and a powerful agentic loop system for quality-driven development.
+
+### Key Capabilities
+
+- **🤖 14 Core Agents + 100+ Extended Agents** - Specialized domain experts for every development need
+- **🎭 5 Behavioral Modes** - Intelligent workflow adaptation based on task context
+- **🛠️ 6 MCP Server Integrations** - Advanced capabilities through Model Context Protocol
+- **💻 21 Slash Commands** - Comprehensive workflow coverage with `/sc:` namespace
+- **🔄 Agentic Loop Pattern** - Automatic quality-driven iteration (0-100 scoring)
+- **⚡ 67% Token Reduction** - Optimized from 30K to 10K tokens through conditional loading
+- **📦 Multi-Platform Support** - PyPI, pipx, npm, and yarn installation methods
+
+---
+
+## ✨ What's New in 4.0.9
+
+### 🔧 MCP Installer Improvements
+- Fixed critical bugs in MCP installation and update process
+- Corrected npm package names and custom installation methods
+- Added `claude` CLI as formal prerequisite for MCP management
+- Enhanced reliability for server installations
+
+### 🚀 Previous Major Features (4.0.7-4.0.8)
+- **Automatic Update System** - Smart PyPI/NPM version checking
+- **True Conditional Loading** - 67% token reduction achieved
+- **Command Namespace** - All commands use `/sc:` prefix to prevent conflicts
+- **14-Agent Architecture** - Specialized agents replacing legacy persona system
+- **Quality Scoring** - Automatic 0-100 evaluation with iteration
+
+---
+
+## 🚀 Quick Start
+
+### 2-Minute Installation
+
 ```bash
-# Built-in update checking with smart notifications
-SuperClaude update                    # Interactive update
-SuperClaude update --auto-update      # Automatic mode
-SuperClaude update --no-update-check  # Skip checks
+# Method 1: From PyPI (Recommended)
+pip install SuperClaude
+SuperClaude install
+
+# Method 2: From Source
+git clone https://github.com/SuperClaude-Org/SuperClaude_Framework.git
+cd SuperClaude_Framework
+pip install -e ".[dev]"
+SuperClaude install
 ```
 
-- **Smart Detection**: Automatically detects pip, pipx, npm, or yarn installations
-- **Colored Notifications**: Visual update banners with version information
-- **Rate Limited**: Checks once per 24 hours to avoid disruption
-- **Cache System**: Stores check timestamps in `~/.claude/.update_check`
-- **Environment Control**: `SUPERCLAUDE_AUTO_UPDATE=true` for CI/CD integration
+### Verify Installation
 
-#### 🏗️ **Architecture Improvements**
-- **Agent System Restructured**: 14 specialized domain experts
-- **Command Namespace**: All commands now use `/sc:` prefix to prevent conflicts
-- **Behavioral Modes**: 5 intelligent modes (added Orchestration mode)
-- **Migration Logic**: Automatic migration from old command locations
+```bash
+# Check version
+SuperClaude --version  # Should show 4.0.9
 
-#### 📁 **Directory Structure Changes**
-```
-OLD: ~/.claude/commands/analyze.md
-NEW: ~/.claude/commands/sc/analyze.md
-
-OLD: Docs/ → NEW: Guides/
-OLD: Templates/ → REMOVED (deprecated)
+# In Claude Code, test commands
+--brainstorm           # Activates brainstorming mode
+--delegate             # Auto-selects best agent
+/sc:analyze            # Analysis command available
 ```
 
-#### 🔧 **New Components**
-- **`CLAUDE.md`**: Project-specific instructions for Claude Code
-- **`CODEOWNERS`**: Maintainer assignment (@NomenAK @mithun50)
-- **Enhanced MCP Integration**: Better API key management for servers
-- **PyPI Infrastructure**: Complete packaging for pip distribution
+### Essential First Commands
 
-### Version 4.0.6 - Stability Improvements
-- Fixed component validation using `.superclaude-metadata.json`
-- Synchronized all component versions to 4.0.6
-- Improved agent filename validation system
+| Task | Command |
+|------|---------|
+| Explore ideas | `--brainstorm` |
+| Complex task | `--task-manage` |
+| Find code | `--delegate` |
+| Deep analysis | `--think 3` |
+| Save tokens | `--uc` |
 
-### Key Features Since v4.0.0
-#### 🤖 **14 Specialized Agents**
-| Agent | Domain | Expertise |
-|-------|--------|-----------|
-| `backend-architect` | Server Architecture | APIs, databases, scalability |
-| `frontend-architect` | UI/UX Development | Components, accessibility, frameworks |
-| `security-engineer` | Security & Compliance | Vulnerability assessment, OWASP |
-| `performance-engineer` | Optimization | Bottlenecks, profiling, efficiency |
-| `quality-engineer` | Testing & QA | Coverage, edge cases, validation |
-| `devops-architect` | Infrastructure | CI/CD, deployment, monitoring |
-| `refactoring-expert` | Code Quality | Technical debt, patterns, cleanup |
-| `root-cause-analyst` | Debugging | Error investigation, systematic analysis |
-| `requirements-analyst` | Project Planning | PRD analysis, scope definition |
-| `learning-guide` | Education | Tutorials, documentation, mentoring |
-| `socratic-mentor` | Teaching | Interactive learning, concept exploration |
-| `python-expert` | Python Development | Advanced Python patterns, best practices |
-| `general-purpose` | Multi-domain | Exploration, unknown scope operations |
-| `technical-writer` | Documentation | API docs, user guides, specifications |
+---
 
-#### 🎭 **5 Behavioral Modes**
-1. **Brainstorming Mode** (`--brainstorm`) - Collaborative requirement discovery
-2. **Introspection Mode** (`--introspect`) - Meta-cognitive analysis and self-reflection
-3. **Task Management Mode** (`--task-manage`) - Multi-step operation coordination
-4. **Token Efficiency Mode** (`--uc`) - Context optimization and compression
-5. **Orchestration Mode** (`--orchestrate`) - Intelligent tool selection and routing
+## 🏗️ Architecture
 
-#### 🛠️ **6 MCP Servers**
-- **Magic**: UI component generation from 21st.dev patterns
-- **Sequential**: Complex multi-step reasoning and analysis
-- **Serena**: Semantic code understanding and project memory
-- **Morphllm**: Pattern-based bulk code editing with Fast Apply
-- **Playwright**: Browser automation and E2E testing
-- **Context7**: Framework documentation and official patterns
-
-#### 💻 **21 Slash Commands**
-All commands now use `/sc:` namespace to prevent conflicts:
-```
-/sc:analyze    /sc:build      /sc:cleanup    /sc:design     /sc:document
-/sc:estimate   /sc:explain    /sc:git        /sc:improve    /sc:index
-/sc:load       /sc:spawn      /sc:task       /sc:test       /sc:troubleshoot
-/sc:brainstorm /sc:reflect    /sc:save       /sc:select-tool /sc:implement
-/sc:enhance
-```
-
-## 📋 Core Components
-
-### Framework Structure (v4.0.8)
+### Component Architecture
 
 ```
-SuperClaude Framework/
-├── CLAUDE.md                    # Project-specific Claude Code instructions
-├── README.md                    # This comprehensive guide
-├── CHANGELOG.md                 # Complete version history
-├── CODEOWNERS                   # Maintainer assignments
-├── SuperClaude/                 # Python package for CLI tools
-│   ├── __main__.py             # Entry point for SuperClaude command
-│   └── ...                     # Package modules
-├── setup/                       # Installation and management system
+┌─────────────────────────────────────────────────────┐
+│                   SuperClaude Core                   │
+│                    (~3KB baseline)                   │
+├─────────────────────────────────────────────────────┤
+│                  Conditional Loading                 │
+│         Components load only when triggered          │
+├──────────┬──────────┬──────────┬──────────┬────────┤
+│  Agents  │   MCP    │  Modes   │ Commands │ Flags  │
+│   (14)   │   (6)    │   (5)    │   (21)   │  (8)   │
+├──────────┴──────────┴──────────┴──────────┴────────┤
+│                  Agentic Loop Engine                 │
+│         Quality Scoring & Auto-Iteration             │
+└─────────────────────────────────────────────────────┘
+```
+
+### Loading Strategy
+
+| Component | Trigger | Token Cost |
+|-----------|---------|------------|
+| Baseline | Always | ~3,000 |
+| Agents | `--delegate` or `Task()` | +1,500 |
+| MCP Servers | Server usage | +500 each |
+| Modes | Flag usage | +300 each |
+| Full Framework | All features | ~15,000 |
+
+---
+
+## 📦 Core Components
+
+### Framework Structure
+
+```
+SuperClaude_Framework/
+├── SuperClaude/                # Python package
+│   ├── Agents/                 # 14 core + 100+ extended agents
+│   ├── Commands/               # 21 slash commands
+│   ├── Core/                   # Framework essentials
+│   ├── MCP/                    # Server configurations
+│   └── Modes/                  # Behavioral modes
+├── setup/                      # Installation system
 │   ├── cli/                    # Command-line interface
-│   ├── core/                   # Core installation logic
-│   ├── services/               # File management, settings
-│   └── utils/                  # UI, logging, updater utilities
-└── Guides/                     # Documentation (renamed from Docs/)
-    ├── README.md               # Getting started guide
-    ├── Installation.md         # Detailed installation instructions
-    └── Reference/              # Technical references
-
-Installed Components (~/.claude/):
-├── CLAUDE.md                   # Entry point with conditional loading
-├── CLAUDE_CORE.md              # Essential components (~27KB)
-├── CLAUDE_EXTENDED.md          # Full component catalog (on-demand)
-├── QUICKSTART.md               # Practical scenarios and workflows
-├── CHEATSHEET.md               # Quick command reference
-├── FLAGS.md                    # 8 essential behavioral flags
-├── PRINCIPLES.md               # Engineering philosophy
-├── RULES_CRITICAL.md           # Critical & Important rules only
-├── WORKFLOWS.md                # Complete execution patterns
-├── AGENTS.md                   # 14 specialized agents + quality framework
-├── MODE_*.md                   # 5 behavioral modes
-├── MCP_*.md                    # MCP server documentation
-└── commands/sc/                # 21 slash commands with /sc: namespace
+│   ├── components/             # Component installers
+│   └── utils/                  # Utilities & updater
+├── Docs/                       # Documentation
+└── ~/.claude/                  # Installed location
+    ├── CLAUDE.md               # Entry point
+    ├── CLAUDE_MINIMAL.md       # Core components
+    ├── commands/sc/            # Command files
+    └── *.md                    # Component files
 ```
 
-### Dynamic Loading System
+---
 
-SuperClaude v4.0.8 implements intelligent conditional loading for optimal performance:
+## 🤖 Agent System
 
-- **Baseline Load**: ~27KB essential components (CLAUDE_CORE.md)
-- **Trigger-Based Loading**: Components load automatically when their features are needed
-- **Memory Optimization**: 67% reduction from previous versions
-- **Full Compatibility**: All features remain available when required
+### 14 Core Specialized Agents
 
-### Behavioral Modes
-- **Brainstorming**: Collaborative discovery (`--brainstorm`)
-- **Task Management**: Multi-step operations (`--task-manage`)
-- **Token Efficiency**: Context optimization (`--uc`)
-- **Introspection**: Self-analysis (`--introspect`)
-- **Orchestration**: Tool optimization (auto-activated)
+| Agent | Domain | Use Case |
+|-------|--------|----------|
+| **general-purpose** | Multi-domain | Unknown scope, exploration |
+| **backend-architect** | Server Architecture | APIs, databases, scalability |
+| **frontend-architect** | UI/UX Development | Components, accessibility |
+| **python-expert** | Python Development | Advanced patterns, best practices |
+| **security-engineer** | Security | Vulnerability assessment, OWASP |
+| **performance-engineer** | Optimization | Bottlenecks, profiling |
+| **quality-engineer** | Testing & QA | Coverage, edge cases |
+| **devops-architect** | Infrastructure | CI/CD, deployment |
+| **refactoring-expert** | Code Quality | Technical debt, cleanup |
+| **root-cause-analyst** | Debugging | Error investigation |
+| **requirements-analyst** | Planning | PRD analysis, scope |
+| **technical-writer** | Documentation | API docs, guides |
+| **learning-guide** | Education | Tutorials, mentoring |
+| **socratic-mentor** | Teaching | Interactive learning |
 
-## 🎯 Essential Flags (Only 8!)
+### Extended Agent Categories (100+ Agents)
 
-| Flag | Purpose | When to Use |
-|------|---------|-------------|
-| `--brainstorm` | Explore requirements | Vague requests |
-| `--task-manage` | Track multi-step work | >3 steps |
-| `--think [1-3]` | Analysis depth | 1=quick, 3=deep |
-| `--delegate` | Auto-select best agent | Unknown scope |
-| `--loop` | Iterate until quality ≥70 | Improvements needed |
-| `--safe-mode` | Production safety | Critical operations |
-| `--uc` | Save tokens | High context usage |
-| `--tools [name]` | Enable specific MCP | Tool-specific needs |
+1. **Core Development** - UI, mobile, microservices, GraphQL
+2. **Language Specialists** - Python, JS, Rust, Go, etc.
+3. **Infrastructure** - Cloud, Kubernetes, Terraform
+4. **Quality & Security** - Testing, auditing, compliance
+5. **Data & AI** - ML, data engineering, LLM architecture
+6. **Developer Experience** - Tooling, CLI, refactoring
+7. **Specialized Domains** - Blockchain, IoT, FinTech
+8. **Business & Product** - PM, technical writing, UX
+9. **Meta-Orchestration** - Multi-agent coordination
+10. **Research & Analysis** - Market research, competitive analysis
 
-## 🚀 Quick Start Examples
+### Using Agents
 
-### Most Common Scenarios
-
-#### "I need to build something new"
 ```bash
---brainstorm                # Explore requirements
---task-manage              # Plan implementation  
---delegate                 # Auto-select best tools
-```
-
-#### "My code is broken"
-```bash
---think 2                  # Analyze the issue
---delegate                 # Uses root-cause-analyst
---test                     # Verify fixes
-```
-
-#### "I need a UI component"
-```bash
---tools magic              # Or use /ui command
-# Creates modern, accessible components
-```
-
-#### "I want to improve code"
-```bash
---delegate                 # Uses refactoring-expert
---loop                     # Iterate until quality ≥70
-```
-
-## 🛠️ Unified Tool Reference
-
-### Task Agents (Auto-Selected with `--delegate`)
-
-| Agent | Use Case |
-|-------|----------|
-| **general-purpose** | Unknown scope, exploration |
-| **root-cause-analyst** | Debugging, error investigation |
-| **refactoring-expert** | Code improvements, cleanup |
-| **quality-engineer** | Test coverage, quality metrics |
-| **technical-writer** | Documentation generation |
-| **performance-engineer** | Optimization, bottlenecks |
-| **frontend-architect** | UI/UX implementation |
-| **backend-architect** | API design, server patterns |
-| **security-engineer** | Security audits, compliance |
-
-### MCP Servers (Enable with `--tools [name]`)
-
-| Server | Purpose |
-|--------|---------|
-| **magic** | UI components from 21st.dev |
-| **deepwiki** | Framework documentation |
-| **sequential** | Complex analysis & reasoning |
-| **serena** | Symbol operations, project memory |
-| **morphllm** | Pattern-based bulk edits |
-| **playwright** | Browser testing & automation |
-
-## 🔄 Agentic Loop Implementation
-
-SuperClaude implements the powerful **Agentic Loop pattern** for automatic quality-driven iteration. This ensures all outputs meet high standards through intelligent feedback loops.
-
-### How It Works
-
-The framework uses a three-agent architecture inspired by [this agentic loop design](https://gist.github.com/RchGrav/438eafd62d58f3914f8d569769d0ebb3):
-
-1. **Orchestrator** (Atlas) - Coordinates the workflow
-   - Activated by `--orchestrate` or `--task-manage`
-   - Decides task delegation and parallelism
-   - Manages context sharing across agents
-
-2. **Specialist** (Mercury) - Executes the actual work
-   - 15+ specialized agents (refactoring-expert, root-cause-analyst, etc.)
-   - Can run in parallel for multi-file operations
-   - Receives shared context for consistency
-
-3. **Evaluator** (Apollo) - Grades output quality
-   - Automatic 0-100 scoring on all outputs
-   - Provides specific feedback for improvements
-   - Triggers iteration if score < threshold
-
-### Using the Agentic Loop
-
-#### Basic Usage
-```bash
-# Automatic quality iteration
---loop                    # Iterates until quality ≥ 70
-
-# Custom quality threshold (like TARGET_SCORE in the gist)
---loop --quality 90      # Iterate until quality ≥ 90
-
-# Control iterations
---loop --iterations 5    # Maximum 5 attempts
-```
-
-#### Direct Agent Delegation
-```bash
-# Auto-select best agent (Orchestrator decides)
+# Auto-select best agent
 --delegate
 
-# Specify agent directly
-Task(refactoring-expert)   # Specific specialist
-Task(general-purpose)      # Multi-disciplinary (like Mercury)
-```
+# Specific agent selection
+Task(refactoring-expert)
 
-#### Parallel Execution
-```bash
-# For multi-file operations (N parallel specialists)
+# Multiple agents in parallel
 --delegate --concurrency 3
-
-# Each specialist gets:
-# - Same shared context
-# - Specific file/task allocation
-# - Independent quality evaluation
 ```
 
-### Context Preservation
+---
 
-Every delegation maintains shared context (like context.md in the original):
+## 🛠️ MCP Servers
 
-```yaml
-context:
-  goal: "High-level objective"
-  constraints: ["requirements", "limitations"]
-  prior_work: {agent_1: "output", agent_2: "results"}
-  quality_criteria: {min_score: 70, required: [...]}
-  iteration_history: ["attempt_1", "feedback_1", ...]
-```
+### Available Servers
 
-### Example Workflows
+| Server | Purpose | When to Use |
+|--------|---------|-------------|
+| **filesystem** | Secure file operations | File management, I/O operations |
+| **fetch** | Web content retrieval | Documentation, API data |
+| **deepwiki** | Framework documentation | Library patterns, best practices |
+| **sequential** | Complex reasoning | Multi-step analysis, debugging |
+| **playwright** | Browser automation | E2E testing, UI validation |
+| **serena** | Semantic analysis | Code understanding, memory |
 
-#### Debug Complex Issue
-```bash
---think --delegate --loop
-
-# Flow:
-1. Orchestrator analyzes problem
-2. Delegates to root-cause-analyst
-3. Evaluates output (score: 55/100)
-4. Auto-iterates with feedback: "Need deeper stack trace analysis"
-5. Re-runs with enhanced context
-6. New score: 88/100 → Accept
-```
-
-#### Refactor with Quality Gates
-```bash
-"Refactor authentication module" --loop --quality 85
-
-# Flow:
-1. Task(refactoring-expert) executes
-2. Score: 72/100 (issues: "high complexity remains")
-3. Auto-iterate with specific feedback
-4. Score: 91/100 → Accept
-```
-
-#### Parallel Multi-File Operation
-```bash
-"Update all API endpoints" --delegate --concurrency 3
-
-# Flow:
-1. Orchestrator identifies 3 file groups
-2. Spawns 3 parallel specialists
-3. Each evaluated independently
-4. All must reach quality ≥ 70
-5. Consolidates results
-```
-
-### Quality Feedback Loop
-
-The automatic iteration includes:
-- **Specific Issues**: What exactly needs improvement
-- **Concrete Fixes**: How to address each issue
-- **Context Enhancement**: Additional information for next attempt
-- **Priority Ranking**: Which issues are most critical
-
-### Advanced Control
+### MCP Configuration
 
 ```bash
-# Maximum quality for production
---safe-mode --loop --quality 95
+# Enable specific server
+--tools sequential
 
-# Deep analysis with iteration
---think 3 --delegate --loop
+# Multiple servers
+--tools "sequential,playwright"
 
-# Efficient large operations
---task-manage --uc --loop
+# All servers
+--all-mcp
+
+# Disable MCP
+--no-mcp
 ```
 
-## 📊 Quality Scoring System
+---
 
-Every output is automatically evaluated:
+## 🎭 Behavioral Modes
+
+### 5 Intelligent Modes
+
+| Mode | Flag | Purpose | Triggers |
+|------|------|---------|----------|
+| **Brainstorming** | `--brainstorm` | Collaborative discovery | Vague requests, exploration |
+| **Task Management** | `--task-manage` | Multi-step coordination | >3 steps, complex scope |
+| **Token Efficiency** | `--uc` | Context optimization | High usage, large operations |
+| **Introspection** | `--introspect` | Self-analysis | Error recovery, reflection |
+| **Orchestration** | Auto | Tool optimization | Multi-tool operations |
+
+### Mode Examples
+
+```bash
+# Explore requirements
+--brainstorm
+
+# Complex project management
+--task-manage --delegate
+
+# Compressed output
+--uc --loop
+
+# Deep self-analysis
+--introspect --think 3
+```
+
+---
+
+## 💻 Command Reference
+
+### 21 Slash Commands
+
+#### Core Development
+- `/sc:analyze` - Code analysis and review
+- `/sc:build` - Build and compile operations
+- `/sc:implement` - Feature implementation
+- `/sc:refactor` - Code improvement
+- `/sc:test` - Testing and validation
+
+#### Documentation & Design
+- `/sc:document` - Generate documentation
+- `/sc:explain` - Code explanation
+- `/sc:design` - Architecture design
+- `/sc:estimate` - Time/effort estimation
+
+#### Workflow Management
+- `/sc:task` - Task management
+- `/sc:spawn` - Parallel execution
+- `/sc:brainstorm` - Interactive discovery
+- `/sc:load` - Session loading
+- `/sc:save` - Session saving
+
+#### Quality & Maintenance
+- `/sc:cleanup` - Code cleanup
+- `/sc:improve` - Enhancement
+- `/sc:troubleshoot` - Problem solving
+- `/sc:git` - Version control
+
+#### Utilities
+- `/sc:index` - Code indexing
+- `/sc:select-tool` - Tool selection
+- `/sc:reflect` - Self-reflection
+
+---
+
+## 🔄 Agentic Loop
+
+### Quality-Driven Iteration Pattern
+
+The Agentic Loop implements automatic quality improvement through three-agent architecture:
+
+```
+┌──────────────┐     ┌──────────────┐     ┌──────────────┐
+│ Orchestrator │────▶│  Specialist  │────▶│  Evaluator   │
+│   (Atlas)    │     │  (Mercury)   │     │   (Apollo)   │
+└──────────────┘     └──────────────┘     └──────────────┘
+       │                                           │
+       │                                           │
+       └───────────── Iterate if <70 ─────────────┘
+```
+
+### Quality Scoring
 
 | Score | Action | Description |
 |-------|--------|-------------|
@@ -392,451 +340,414 @@ Every output is automatically evaluated:
 | **70-89** | ⚠️ Review | Acceptable with notes |
 | **<70** | 🔄 Auto-retry | Automatic iteration |
 
-Quality dimensions:
-- **Correctness** (40%): Does it solve the problem?
-- **Completeness** (30%): All requirements met?
-- **Code Quality** (20%): Best practices followed?
-- **Performance** (10%): Efficient implementation?
+### Using the Loop
 
-## 🔄 The 5-Step Workflow
+```bash
+# Basic iteration
+--loop                    # Iterate until ≥70
 
-```
-1. Check     → git status (always start here)
-2. Plan      → Use flags based on task type
-3. Execute   → Tools auto-selected or use --delegate
-4. Validate  → Quality score evaluated automatically
-5. Iterate   → Auto-retry if quality < 70
+# Custom threshold
+--loop --quality 90       # Iterate until ≥90
+
+# Limited iterations
+--loop --iterations 5     # Max 5 attempts
 ```
 
-## 💡 Power Combinations
+### Quality Dimensions
+- **Correctness** (40%) - Solves the problem
+- **Completeness** (30%) - All requirements met
+- **Code Quality** (20%) - Best practices
+- **Performance** (10%) - Efficiency
+
+---
+
+## 🚩 Flags & Options
+
+### 8 Essential Flags
+
+| Flag | Purpose | Usage |
+|------|---------|-------|
+| `--brainstorm` | Explore requirements | Vague requests |
+| `--task-manage` | Track multi-step work | Complex tasks |
+| `--think [1-3]` | Analysis depth | 1=quick, 3=deep |
+| `--delegate` | Auto-select agent | Unknown scope |
+| `--loop` | Quality iteration | Improvements |
+| `--safe-mode` | Production safety | Critical ops |
+| `--uc` | Token efficiency | Save context |
+| `--tools [name]` | Enable MCP | Specific tools |
+
+### Advanced Options
+
+```bash
+# Parallel execution
+--concurrency 3
+
+# Analysis depth
+--think-hard         # Deep analysis (~10K tokens)
+--ultrathink         # Maximum depth (~32K tokens)
+
+# Validation
+--validate           # Pre-execution checks
+--test               # Run tests after
+
+# Update control
+--auto-update        # Automatic updates
+--no-update-check    # Skip update checks
+```
+
+---
+
+## 📚 Usage Examples
+
+### Common Workflows
+
+#### New Feature Development
+```bash
+# Complete feature workflow
+--brainstorm                # Explore requirements
+--task-manage              # Plan implementation
+--delegate                 # Find existing code
+--test                     # Validate everything
+```
+
+#### Debug Complex Issue
+```bash
+# Deep debugging
+--think 3 --delegate       # Analyze and investigate
+--loop                     # Iterate until fixed
+--test                     # Verify solution
+```
+
+#### Refactor Legacy Code
+```bash
+# Safe refactoring
+--delegate                 # Use refactoring-expert
+--safe-mode               # Maximum safety
+--loop --quality 85       # High quality threshold
+```
+
+#### UI Component Creation
+```bash
+# Modern UI development
+--tools fetch            # Or use /ui command
+--delegate               # Frontend-architect
+--test                   # Validate accessibility
+```
+
+### Power Combinations
 
 ```bash
 # Maximum analysis
---think 3 --delegate
+--think 3 --delegate --loop
 
-# Safe production changes
---safe-mode --loop
+# Safe production changes  
+--safe-mode --loop --validate
 
 # Efficient large operations
---task-manage --uc
+--task-manage --uc --delegate
 
-# Complete feature development
---brainstorm --task-manage --test
+# Complete feature with quality
+--brainstorm --task-manage --loop --test
 ```
 
-## 📖 Command Reference
+---
 
-### Core Commands
+## ⚡ Performance & Optimization
 
-| Command | Purpose | Example |
-|---------|---------|---------|
-| `/sc:analyze` | Code analysis | `/sc:analyze --focus security` |
-| `/sc:document` | Generate docs | `/sc:document --type api` |
-| `/sc:refactor` | Improve code | `/sc:refactor --preserve tests` |
-| `/sc:test` | Run tests | `/sc:test --coverage 90` |
-| `/sc:debug` | Debug issues | `/sc:debug --delegate` |
+### Token Usage Optimization
 
-### UI/UX Commands
+| Scenario | Before | After | Reduction |
+|----------|--------|-------|-----------|
+| Baseline | 30,000 | 3,000 | 90% |
+| With flags | 30,000 | 8,000 | 73% |
+| Full framework | 30,000 | 15,000 | 50% |
 
-| Command | Purpose | Example |
-|---------|---------|---------|
-| `/ui` | Create UI component | `/ui login-form` |
-| `/21` | Search 21st.dev | `/21 data-table` |
-| `/logo` | Get company logos | `/logo github --format svg` |
+### Loading Performance
 
-## ✅ Golden Rules
+- **Startup**: 67% faster initialization
+- **Memory**: 67% reduction in baseline usage
+- **Context**: More room for actual work
+- **Efficiency**: True conditional loading
 
-### Always Do
-- ✅ Start with `git status`
-- ✅ Use TodoWrite for >3 steps
-- ✅ Work on feature branches
-- ✅ Let quality scores guide iteration
+### Resource Zones
 
-### Never Do
-- ❌ Work on main/master
-- ❌ Skip failing tests
-- ❌ Leave TODO comments
-- ❌ Add features not requested
+- **🟢 Green (0-75%)** - Full capabilities
+- **🟡 Yellow (75-85%)** - Efficiency mode
+- **🔴 Red (85%+)** - Essential only
 
-## 🎓 Getting Started
+---
 
-### Beginner Path
-1. Start with `--brainstorm` for any new task
-2. Use `--delegate` to auto-select tools
-3. Let quality scores guide your work
+## 🔧 Installation
 
-### Intermediate Path
-1. Learn the 8 essential flags
-2. Understand Task agents and MCP servers
-3. Use power combinations for efficiency
+### Requirements
 
-### Advanced Path
-1. Master flag combinations
-2. Optimize with `--uc` for large operations
-3. Create custom workflows with command chaining
+- Python 3.8+
+- Claude Code Desktop
+- Internet connection for MCP servers
 
-## 📁 Installation
+### Installation Methods
 
-### 🚀 Quick Install - 2 Minutes (Recommended)
-
-SuperClaude v4.0.8 features a streamlined installation process:
-
+#### PyPI (Recommended)
 ```bash
-# Method 1: Direct from PyPI (Coming Soon)
 pip install SuperClaude
 SuperClaude install
+```
 
-# Method 2: From Source (Current)
+#### From Source
+```bash
+git clone https://github.com/SuperClaude-Org/SuperClaude_Framework.git
 cd SuperClaude_Framework
 pip install -e ".[dev]"
 SuperClaude install
 ```
 
-**Installation completes in under 2 minutes** with automatic verification and testing.
-
-### 📦 Installation Options
+#### Installation Profiles
 
 ```bash
-# Interactive installation (recommended)
-SuperClaude install                    # Guided setup with component selection
+# Quick installation (essentials only)
+SuperClaude install --profile quick
 
-# Quick installation
-SuperClaude install --profile quick    # Essential components only
+# Developer installation (all features)
+SuperClaude install --profile dev
 
-# Developer installation  
-SuperClaude install --profile dev      # Full framework with all agents
-
-# Custom installation
-SuperClaude install --components core,agents,mcp  # Specific components
+# Custom components
+SuperClaude install --components core,agents,mcp
 
 # Preview installation
-SuperClaude install --dry-run          # See what will be installed
+SuperClaude install --dry-run
 ```
 
-### 🔄 Update Management
-
-SuperClaude v4.0.8 includes intelligent update management:
+### Update Management
 
 ```bash
 # Check for updates
-SuperClaude update --check             # Show available updates
+SuperClaude update --check
 
 # Interactive update
-SuperClaude update                     # Select components to update
+SuperClaude update
 
 # Automatic update
-SuperClaude update --auto-update       # Update all without prompting
-
-# Component-specific update  
-SuperClaude update --components agents,mcp  # Update specific components
+SuperClaude update --auto-update
 
 # Backup before update
-SuperClaude update --backup            # Create backup automatically
+SuperClaude update --backup
 ```
 
-#### 🚨 Automatic Update Notifications
-- **Smart Detection**: Checks PyPI/NPM once every 24 hours
-- **Visual Banners**: Colored notifications show available versions
-- **Non-Intrusive**: 2-second timeout prevents delays
-- **Environment Control**: Set `SUPERCLAUDE_AUTO_UPDATE=true` for auto-updates
-
-#### 🛡️ Safety Features
-- **Automatic Backups**: Creates restore points before major updates
-- **Rollback Support**: Easy rollback if updates cause issues
-- **Component Validation**: Verifies integrity after updates
-- **Migration Logic**: Handles breaking changes automatically
-
-### 🗂️ Complete Management Suite
+### Environment Variables
 
 ```bash
-# Backup current installation
-SuperClaude backup                     # Create timestamped backup
+# Enable automatic updates
+export SUPERCLAUDE_AUTO_UPDATE=true
 
-# Restore from backup
-SuperClaude backup --restore latest    # Restore most recent backup
-
-# Uninstall completely
-SuperClaude uninstall                  # Remove all components safely
-
-# Reinstall specific components
-SuperClaude install --reinstall --components agents
+# Skip update checks
+export SUPERCLAUDE_NO_UPDATE_CHECK=true
 ```
 
-### ✅ Verify Installation
+---
 
-After installation, verify everything works correctly:
+## 👨‍💻 Development Guide
 
-```bash
-# Check SuperClaude version
-SuperClaude --version                  # Should show v4.0.8
+### Creating Custom Agents
 
-# Verify framework installation
-SuperClaude install --check            # Validate all components
+```markdown
+# custom-agent.md
+Agent: custom-specialist
+Domain: Your Domain
+Expertise: Specific skills
 
-# Test core functionality (in Claude Code)
---brainstorm                          # Should activate brainstorming mode
---loop                                # Should enable quality iteration  
---delegate                            # Should auto-select agents
-/sc:analyze                           # Should show analysis command
+## Capabilities
+- Capability 1
+- Capability 2
+
+## Tools
+- Preferred tools
 ```
 
-**Expected Results:**
-- All commands execute without errors
-- Framework components load correctly
-- No missing dependencies or broken links
-- Update checking works (may show available updates)
+### Adding Custom Commands
 
-### 🆘 Troubleshooting
+```markdown
+# ~/.claude/commands/sc/custom.md
+Command: /sc:custom
+Purpose: Your command purpose
 
-Common installation issues and solutions:
+## Usage
+/sc:custom [options]
+
+## Examples
+/sc:custom --flag value
+```
+
+### Custom Behavioral Modes
+
+```markdown
+# MODE_Custom.md
+# Custom Mode
+
+## Activation Triggers
+- Specific keywords
+- Flag: --custom
+
+## Behavioral Changes
+- Changed behavior 1
+- Changed behavior 2
+```
+
+### Framework Extension
+
+```python
+# Custom component installer
+from setup.components import BaseComponent
+
+class CustomComponent(BaseComponent):
+    def install(self):
+        # Installation logic
+        pass
+```
+
+---
+
+## 🔍 Troubleshooting
+
+### Common Issues
 
 | Issue | Solution |
 |-------|----------|
 | `SuperClaude command not found` | Run `pip install -e ".[dev]"` again |
-| `Framework not loading` | Check `ls ~/.claude/*.md` shows files |
-| `Commands not working` | Verify `/sc:` commands in `~/.claude/commands/sc/` |
-| `Update checks failing` | Check internet connection and PyPI access |
-| `Permission errors` | Use `--user` flag: `pip install -e ".[dev]" --user` |
+| Framework not loading | Check `ls ~/.claude/*.md` |
+| Commands not working | Verify `/sc:` commands in `~/.claude/commands/sc/` |
+| Update checks failing | Check internet and PyPI access |
+| MCP servers not working | Run `SuperClaude install --components mcp` |
 
-For more help:
-- Check `CLAUDE.md` for troubleshooting steps  
-- Review `Guides/Installation.md` for detailed instructions
-- Create an issue on [GitHub](https://github.com/SuperClaude-Org/SuperClaude_Framework/issues)
-
-### 📦 Alternative: Manual Installation
-
-If you prefer manual control or the pip install doesn't work:
+### Diagnostic Commands
 
 ```bash
-# Clone or navigate to the framework
-cd SuperClaude_Framework
-
-# Copy all framework files to Claude's config directory
-cp -r SuperClaude/Core/* ~/.claude/
-cp -r SuperClaude/Modes/* ~/.claude/
-cp -r SuperClaude/MCP/* ~/.claude/
-
-# Create the entry point file
-cat > ~/.claude/CLAUDE.md << 'EOF'
-# SuperClaude Entry Point
-
-# Quick Start
-@QUICKSTART.md
-@CHEATSHEET.md
-
-# Core Framework
-@FLAGS.md
-@PRINCIPLES.md
-@RULES.md
-@OPERATIONS.md
-
-# Tool & Agent Reference
-@TOOLS.md
-@AGENTS.md
-@AGENTS_EXTENDED.md
-
-# Behavioral Modes
-@MODE_CORE.md
-@MODE_EXECUTION.md
-
-# MCP Configurations
-@MCP_Task.md
-@MCP_Sequential.md
-@MCP_Magic.md
-EOF
-```
-
-## 🔧 Customization
-
-### Adjust Quality Thresholds
-Edit quality scoring in `AGENTS.md`:
-```yaml
-quality_criteria:
-  min_score: 70  # Change to 80 for higher standards
-  auto_iterate: true
-```
-
-### Add Custom Flags
-Extend `FLAGS.md` with your own:
-```markdown
-**--custom-flag**
-- Trigger: Your specific needs
-- Behavior: What it does
-```
-
-### Create New Modes
-Add `MODE_YourMode.md` files for custom behaviors.
-
-## 🆘 Getting Help
-
-### Quick Help
-- **Lost?** → Use `--brainstorm`
-- **Complex task?** → Use `--task-manage`
-- **Unknown files?** → Use `--delegate`
-- **Need analysis?** → Use `--think 2`
-- **High context?** → Use `--uc`
-
-### Command Help
-```bash
-/help                    # General help
-/help [command]         # Command-specific help
-/feedback               # Report issues
-```
-
-## 📊 What's Been Simplified
-
-### Before (v1.0)
-- 50+ flags with complex formulas
-- 10,000+ words of documentation
-- Scattered agent information
-- Redundant quality systems
-- Complex mathematical triggers
-
-### After (v2.0)
-- 8 essential flags only
-- 4,500 words total
-- Unified TOOLS.md reference
-- Single quality system
-- Simple decision tables
-
-## 🚦 Migration Guide
-
-### Upgrading to v4.0.8
-
-The framework automatically handles most migrations, but be aware of these changes:
-
-#### Command Changes (v4.0.7+)
-```bash
-# OLD commands (automatically migrated)
-/analyze     → /sc:analyze
-/build       → /sc:build  
-/improve     → /sc:improve
-
-# NEW commands (v4.0.7+)
-/sc:implement    # Feature implementation
-/sc:enhance      # Code enhancement
-/sc:brainstorm   # Interactive discovery
-```
-
-#### Directory Structure Changes
-```bash
-# Automatic migration handles these:
-OLD: ~/.claude/commands/analyze.md
-NEW: ~/.claude/commands/sc/analyze.md
-
-OLD: Docs/ directory  
-NEW: Guides/ directory (source only)
-```
-
-#### Component Loading Changes (v4.0.8)
-- **CLAUDE_CORE.md**: Essential components only (~27KB)
-- **CLAUDE_EXTENDED.md**: Full framework (loads on-demand)
-- **Conditional Loading**: Components load automatically when needed
-
-#### Update Process
-```bash
-# Automatic update (recommended)
-SuperClaude update
-
-# Manual migration check
+# Check installation
 SuperClaude install --check
 
-# Backup before major updates
-SuperClaude backup
-SuperClaude update --backup
+# Verify components
+SuperClaude --version
+
+# Test framework (in Claude Code)
+--brainstorm
+--delegate
+/sc:analyze
+
+# Check MCP servers
+SuperClaude install --check-mcp
 ```
 
-### Breaking Changes Summary
-
-| Version | Breaking Changes | Migration Action |
-|---------|------------------|------------------|
-| **v4.0.8** | Dynamic loading system | Automatic (no action needed) |  
-| **v4.0.7** | `/sc:` command namespace | Automatic migration on install |
-| **v4.0.7** | 14-agent restructure | Update agent references in scripts |
-| **v4.0.6** | Metadata file changes | Automatic validation update |
-
-### Compatibility
-- **Python 3.8+**: All recent Python versions supported
-- **Claude Code**: Works with all current Claude Code versions  
-- **MCP Servers**: Backward compatible with all MCP integrations
-- **Custom Extensions**: Check for `/sc:` namespace conflicts
-
-## 💾 Backup Your Configuration
+### Performance Issues
 
 ```bash
-# Backup current setup
-cd ~/Desktop/SuperClaude_Framework
-git checkout -b v2-simplified
-git add .
-git commit -m "feat: SuperClaude v2.0 simplified"
-git push origin v2-simplified
+# High token usage
+--uc                    # Enable compression
+--safe-mode            # Conservative mode
+
+# Slow responses
+--no-mcp              # Disable MCP servers
+--concurrency 1       # Reduce parallelism
 ```
-
-## 📚 Learn More
-
-- **QUICKSTART.md**: Practical scenarios and examples
-- **CHEATSHEET.md**: Instant command reference
-- **TOOLS.md**: Complete tool and agent catalog
-- **PRINCIPLES.md**: Engineering philosophy
-- **RULES.md**: Core workflow rules
-
-## 🎉 Key Benefits of v2.0
-
-1. **Faster Onboarding**: Start productive in minutes, not hours
-2. **Clearer Decisions**: Simple tables and decision trees
-3. **Less Cognitive Load**: 55% less to remember
-4. **Same Power**: All features preserved, just simplified
-5. **Better Performance**: Reduced token usage
 
 ---
 
-## 🔗 Project Information
+## 🤝 Contributing
 
-### 📊 Repository Details
-- **Current Version**: v4.0.8 (January 2025)
-- **License**: MIT License 
+We welcome contributions! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+
+### Development Setup
+
+```bash
+# Clone repository
+git clone https://github.com/SuperClaude-Org/SuperClaude_Framework.git
+cd SuperClaude_Framework
+
+# Install in development mode
+pip install -e ".[dev]"
+
+# Run tests
+pytest tests/
+
+# Check code quality
+ruff check .
+black --check .
+```
+
+### Areas for Contribution
+
+- 🤖 New specialized agents
+- 🛠️ MCP server integrations
+- 📚 Documentation improvements
+- 🐛 Bug fixes and optimizations
+- 🌍 Internationalization
+- 🧪 Test coverage
+
+---
+
+## 💬 Support
+
+### Getting Help
+
+- **Documentation**: `Docs/` directory
+- **Issues**: [GitHub Issues](https://github.com/SuperClaude-Org/SuperClaude_Framework/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/SuperClaude-Org/SuperClaude_Framework/discussions)
+- **Quick Help**: Use `--brainstorm` in Claude Code
+
+### Resources
+
+- [Installation Guide](Docs/Getting-Started/installation.md)
+- [User Guide](Docs/User-Guide/README.md)
+- [Developer Guide](Docs/Developer-Guide/README.md)
+- [API Reference](Docs/Reference/README.md)
+- [Examples Cookbook](Docs/Reference/examples-cookbook.md)
+
+---
+
+## 📊 Project Information
+
+### Statistics
+
+- **Current Version**: 4.0.9 (January 2025)
+- **License**: MIT
 - **Language**: Python 3.8+
-- **Package Manager**: pip, pipx, npm, yarn supported
 - **Installation Time**: < 2 minutes
-- **Memory Usage**: ~27KB baseline (67% reduction)
+- **Memory Usage**: ~3KB baseline (67% reduction)
+- **Commits**: 600+
+- **Agents**: 14 core + 100+ extended
+- **Commands**: 21 specialized
+- **MCP Servers**: 6 integrated
 
-### 👥 Maintainers
+### Maintainers
+
 - **Anton Knoery** ([@NomenAK](https://github.com/NomenAK)) - Lead Developer
 - **Mithun Gowda B** ([@mithun50](https://github.com/mithun50)) - Core Contributor
 
-### 🌐 Links
-- **GitHub Repository**: [SuperClaude-Org/SuperClaude_Framework](https://github.com/SuperClaude-Org/SuperClaude_Framework)
-- **PyPI Package**: [SuperClaude](https://pypi.org/project/SuperClaude/) (Coming Soon)
-- **Issue Tracker**: [GitHub Issues](https://github.com/SuperClaude-Org/SuperClaude_Framework/issues)
-- **Documentation**: See `Guides/` directory
-- **NPM Package**: Alternative installation method
+### Links
 
-### 🏆 Key Achievements
-- **600+ commits** of continuous development
-- **14 specialized agents** for domain expertise  
-- **21 slash commands** for comprehensive workflow coverage
-- **6 MCP servers** for advanced functionality integration
-- **5 behavioral modes** for intelligent workflow adaptation
-- **Automatic quality scoring** with iterative improvement (Agentic Loop)
+- **Repository**: [GitHub](https://github.com/SuperClaude-Org/SuperClaude_Framework)
+- **PyPI Package**: [SuperClaude](https://pypi.org/project/SuperClaude/)
+- **Documentation**: [Docs](https://github.com/SuperClaude-Org/SuperClaude_Framework/tree/main/Docs)
+- **Changelog**: [CHANGELOG.md](CHANGELOG.md)
 
-### 📈 Version History
-- **v4.0.8** (Jan 2025): Version sync, PyPI ready, documentation enhanced
-- **v4.0.7** (Jan 2025): Automatic updates, 14 agents, `/sc:` namespace
-- **v4.0.6** (Aug 2025): Component validation improvements  
-- **v4.0.4** (Aug 2025): Agent system, behavioral modes, MCP integration
-- **v3.0.0** (Jul 2025): Initial unified framework release
+### Acknowledgments
 
-### 🙏 Acknowledgments
-- **Claude Code Team** for the amazing development environment
-- **Anthropic** for Claude AI capabilities
-- **MCP Community** for server integrations
-- **Open Source Contributors** for ideas and feedback
-- **21st.dev** for UI component patterns (Magic MCP)
+- **Claude Code Team** - Amazing development environment
+- **Anthropic** - Claude AI capabilities
+- **MCP Community** - Server integrations
+- **Open Source Contributors** - Ideas and feedback
+- **21st.dev** - UI component patterns
 
 ---
 
-*SuperClaude Framework v4.0.8 - AI-Enhanced Development for Claude Code*  
-*Powered by Intelligent Agents • Dynamic Loading • Quality-Driven Iteration*  
-*Installation takes less than 2 minutes • Updates automatically • Scales efficiently*
+<div align="center">
 
-**Copyright © 2025 SuperClaude-Org • MIT License • Made with ❤️ for developers**
+**SuperClaude Framework v4.0.9**
+
+*AI-Enhanced Development for Claude Code*
+
+*Powered by Intelligent Agents • Dynamic Loading • Quality-Driven Iteration*
+
+**Copyright © 2025 SuperClaude-Org • MIT License**
+
+Made with ❤️ for developers
+
+</div>
