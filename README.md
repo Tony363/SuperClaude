@@ -31,6 +31,7 @@
 - [Flags & Options](#-flags--options)
 - [Usage Examples](#-usage-examples)
 - [Performance](#-performance--optimization)
+- [Zen MCP Multi-Model](#-zen-mcp-multi-model-orchestration)
 - [Development Guide](#-development-guide)
 - [Troubleshooting](#-troubleshooting)
 - [Contributing](#-contributing)
@@ -46,7 +47,7 @@ SuperClaude is a comprehensive AI-enhanced development framework designed specif
 
 - **🤖 14 Core Agents + 100+ Extended Agents** - Specialized domain experts for every development need
 - **🎭 5 Behavioral Modes** - Intelligent workflow adaptation based on task context
-- **🛠️ 6 MCP Server Integrations** - Advanced capabilities through Model Context Protocol
+- **🛠️ 7 MCP Server Integrations** - Advanced capabilities including multi-model orchestration
 - **💻 21 Slash Commands** - Comprehensive workflow coverage with `/sc:` namespace
 - **🔄 Agentic Loop Pattern** - Automatic quality-driven iteration (0-100 scoring)
 - **⚡ 67% Token Reduction** - Optimized from 30K to 10K tokens through conditional loading
@@ -55,6 +56,13 @@ SuperClaude is a comprehensive AI-enhanced development framework designed specif
 ---
 
 ## ✨ What's New in 4.0.9
+
+### 🎯 Zen MCP Multi-Model Orchestration (NEW)
+- **Multi-Model Consensus** - Coordinate decisions across multiple AI models
+- **Production Validation** - `--zen-review` for critical deployment verification
+- **Deep Analysis** - `--thinkdeep` for multi-angle problem solving
+- **API Key Management** - Automated setup script for multiple model providers
+- **Integration Testing** - Comprehensive validation script for Zen MCP setup
 
 ### 🔧 MCP Installer Improvements
 - Fixed critical bugs in MCP installation and update process
@@ -230,6 +238,7 @@ Task(refactoring-expert)
 | **sequential** | Complex reasoning | Multi-step analysis, debugging |
 | **playwright** | Browser automation | E2E testing, UI validation |
 | **serena** | Semantic analysis | Code understanding, memory |
+| **zen** | Multi-model orchestration | Consensus decisions, production validation |
 
 ### MCP Configuration
 
@@ -239,6 +248,12 @@ Task(refactoring-expert)
 
 # Multiple servers
 --tools "sequential,playwright"
+
+# Zen MCP multi-model orchestration
+--zen                    # Enable multi-model coordination
+--consensus              # Multi-model consensus decisions
+--zen-review             # Production validation with multiple models
+--thinkdeep              # Deep multi-angle analysis
 
 # All servers
 --all-mcp
@@ -363,7 +378,7 @@ The Agentic Loop implements automatic quality improvement through three-agent ar
 
 ## 🚩 Flags & Options
 
-### 8 Essential Flags
+### Essential Flags
 
 | Flag | Purpose | Usage |
 |------|---------|-------|
@@ -375,6 +390,10 @@ The Agentic Loop implements automatic quality improvement through three-agent ar
 | `--safe-mode` | Production safety | Critical ops |
 | `--uc` | Token efficiency | Save context |
 | `--tools [name]` | Enable MCP | Specific tools |
+| `--zen` | Multi-model orchestration | Complex decisions |
+| `--consensus` | Multi-model agreement | Critical choices |
+| `--zen-review` | Production validation | Deployment safety |
+| `--thinkdeep` | Multi-angle analysis | Complex problems |
 
 ### Advanced Options
 
@@ -434,6 +453,22 @@ The Agentic Loop implements automatic quality improvement through three-agent ar
 --test                   # Validate accessibility
 ```
 
+#### Critical Decision Making
+```bash
+# Multi-model consensus for important choices
+--consensus              # Get agreement from multiple models
+--think 3                # Deep analysis first
+--zen-review             # Production-grade validation
+```
+
+#### Production Deployment Validation
+```bash
+# Comprehensive production safety checks
+--zen-review             # Multi-model validation
+--safe-mode              # Maximum safety protocols
+--test                   # Run all tests
+```
+
 ### Power Combinations
 
 ```bash
@@ -448,6 +483,15 @@ The Agentic Loop implements automatic quality improvement through three-agent ar
 
 # Complete feature with quality
 --brainstorm --task-manage --loop --test
+
+# Multi-model consensus for critical decisions
+--consensus --think 3 --zen
+
+# Production deployment validation
+--zen-review --safe-mode --test
+
+# Complex debugging with multi-model analysis
+--thinkdeep --delegate --loop
 ```
 
 ---
@@ -474,6 +518,107 @@ The Agentic Loop implements automatic quality improvement through three-agent ar
 - **🟢 Green (0-75%)** - Full capabilities
 - **🟡 Yellow (75-85%)** - Efficiency mode
 - **🔴 Red (85%+)** - Essential only
+
+---
+
+## 🎯 Zen MCP Multi-Model Orchestration
+
+### Overview
+
+Zen MCP enables coordination across multiple AI models for enhanced decision-making, consensus building, and production validation. Perfect for critical decisions requiring multiple perspectives.
+
+### Supported Models
+
+| Provider | Models | API Key Required |
+|----------|--------|------------------|
+| **OpenAI** | GPT-4, GPT-3.5 | `OPENAI_API_KEY` |
+| **Anthropic** | Claude-3 family | `ANTHROPIC_API_KEY` |
+| **Google** | Gemini Pro/Ultra | `GEMINI_API_KEY` |
+| **X.AI** | Grok models | `GROK_API_KEY` |
+| **OpenRouter** | Multiple models | `OPENROUTER_API_KEY` |
+
+### Quick Setup
+
+```bash
+# 1. Run the automated setup script
+./scripts/setup_zen_api_keys.sh
+
+# 2. Test the integration
+./scripts/test_zen_integration.sh
+
+# 3. Restart Claude Desktop
+
+# 4. Test in Claude Code
+--zen "Analyze this architecture decision"
+```
+
+### API Key Configuration
+
+The setup script automatically configures your environment:
+
+```bash
+# Option 1: Interactive setup (recommended)
+./scripts/setup_zen_api_keys.sh
+
+# Option 2: Manual setup
+export OPENAI_API_KEY="your-key-here"
+export ANTHROPIC_API_KEY="your-key-here"  
+export GEMINI_API_KEY="your-key-here"
+export GROK_API_KEY="your-key-here"
+export OPENROUTER_API_KEY="your-key-here"
+```
+
+### Usage Patterns
+
+#### Multi-Model Consensus
+```bash
+# Get agreement from multiple models on critical decisions
+--consensus "Should we migrate to microservices architecture?"
+
+# Deep analysis with multiple perspectives  
+--thinkdeep "Why is our system experiencing latency issues?"
+```
+
+#### Production Validation
+```bash
+# Validate deployment readiness with multiple models
+--zen-review "Review this production deployment checklist"
+
+# Architecture review with consensus
+--consensus --think 3 "Evaluate this database schema design"
+```
+
+#### Enhanced Problem Solving
+```bash
+# Complex debugging with multi-model coordination
+--thinkdeep --delegate "Debug this intermittent connection issue"
+
+# Strategic planning with consensus
+--consensus --brainstorm "Plan our technical debt reduction strategy"
+```
+
+### Integration Validation
+
+Run the test script to verify your setup:
+
+```bash
+./scripts/test_zen_integration.sh
+```
+
+Expected output:
+- ✅ Configuration files present
+- ✅ API keys configured (minimum: OpenAI + Gemini)
+- ✅ Zen MCP server installed
+- ✅ SuperClaude Framework integration
+
+### Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| API keys not found | Run `./scripts/setup_zen_api_keys.sh` |
+| Zen flags not working | Restart Claude Desktop, check installation |
+| Models not responding | Verify API keys are valid and have credits |
+| Integration test fails | Check Claude Desktop config and restart |
 
 ---
 
@@ -617,6 +762,8 @@ class CustomComponent(BaseComponent):
 | Commands not working | Verify `/sc:` commands in `~/.claude/commands/sc/` |
 | Update checks failing | Check internet and PyPI access |
 | MCP servers not working | Run `SuperClaude install --components mcp` |
+| Zen MCP not working | Run `./scripts/setup_zen_api_keys.sh` and restart Claude Desktop |
+| Multi-model flags not recognized | Check Zen MCP installation with `./scripts/test_zen_integration.sh` |
 
 ### Diagnostic Commands
 
@@ -634,6 +781,9 @@ SuperClaude --version
 
 # Check MCP servers
 SuperClaude install --check-mcp
+
+# Test Zen MCP integration
+./scripts/test_zen_integration.sh
 ```
 
 ### Performance Issues
@@ -714,7 +864,7 @@ black --check .
 - **Commits**: 600+
 - **Agents**: 14 core + 100+ extended
 - **Commands**: 21 specialized
-- **MCP Servers**: 6 integrated
+- **MCP Servers**: 7 integrated (including Zen multi-model)
 
 ### Maintainers
 
