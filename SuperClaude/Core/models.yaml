@@ -1,0 +1,119 @@
+# SuperClaude Framework Model Configuration
+# Central configuration for model routing and preferences
+
+version: 1
+
+defaults:
+  think_levels:
+    "1":
+      analysis_token_budget: 5000
+      preferred_model: fast
+      description: "Quick analysis for simple tasks"
+    "2":
+      analysis_token_budget: 15000
+      preferred_model: standard
+      description: "Standard depth for moderate complexity"
+    "3":
+      analysis_token_budget: 50000
+      preferred_model: deep
+      description: "Maximum depth with GPT-5 for complex reasoning"
+  
+  fallbacks:
+    # Ordered preference lists for each tier
+    fast: [gpt-4o-mini, claude-opus-4.1, claude-3.5-sonnet]
+    standard: [gpt-5, claude-opus-4.1, gpt-4o]
+    deep: [gpt-5, claude-opus-4.1, gpt-4.1]
+
+tasks:
+  # Introspection: Meta-cognitive analysis
+  introspection:
+    tier: deep
+    preferred: gpt-5
+    fallbacks: [claude-opus-4.1, gpt-4.1]
+    token_budget: 50000
+    description: "Deep self-reflection and reasoning optimization"
+  
+  # Planning: Strategic task planning
+  planning:
+    tier: deep
+    preferred: gpt-5
+    fallbacks: [claude-opus-4.1, gpt-4.1]
+    token_budget: 50000
+    description: "Complex multi-step planning and strategy"
+  
+  # Thinkdeep: Multi-angle analysis via Zen MCP
+  thinkdeep:
+    tier: deep
+    preferred: gpt-5
+    fallbacks: [claude-opus-4.1]
+    token_budget: 50000
+    description: "Systematic investigation and hypothesis testing"
+  
+  # Debug: Root cause analysis
+  debug:
+    tier: deep
+    preferred: gpt-5
+    fallbacks: [claude-opus-4.1, gpt-4.1]
+    token_budget: 50000
+    description: "Complex debugging and root cause analysis"
+  
+  # Consensus: Multi-model agreement
+  consensus:
+    ensemble: [gpt-5, claude-opus-4.1, gpt-4.1]
+    quorum: 2
+    token_budget_per_model: 30000
+    description: "Multi-model validation and consensus building"
+  
+  # Code Review: Systematic code analysis
+  codereview:
+    tier: deep
+    preferred: gpt-5
+    fallbacks: [claude-opus-4.1]
+    token_budget: 50000
+    description: "Comprehensive code quality analysis"
+  
+  # Default: Standard operations
+  default:
+    tier: standard
+    preferred: gpt-4o
+    fallbacks: [claude-opus-4.1, claude-3.5-sonnet]
+    token_budget: 15000
+
+limits:
+  # Cost and resource guardrails
+  max_cost_usd_per_run: 3.00
+  max_tokens_per_run: 50000
+  default_fallback: claude-opus-4.1
+  
+  # Optional deny list (models to exclude)
+  deny_models: []
+  
+  # Rate limit backoff (seconds)
+  backoff_window: 60
+  
+  # Context window limits by model
+  context_windows:
+    gpt-5: 400000
+    claude-opus-4.1: 200000
+    gpt-4.1: 1000000
+    gpt-4o: 128000
+    gpt-4o-mini: 128000
+    claude-3.5-sonnet: 200000
+
+overrides:
+  # Environment variable overrides
+  # SC_FORCE_MODEL: Force specific model
+  # SC_DEFAULT_THINK_LEVEL: Default think level (1-3)
+  # SC_DISABLE_GPT5: Disable GPT-5 (force fallback)
+  # SC_MAX_TOKENS: Override max token limit
+  
+  # CLI flag overrides
+  # --model <id>: Force specific model
+  # --deny-model <id>: Exclude specific model
+  # --tokens <n>: Override token budget
+  # --think <1-3>: Set think level
+
+metadata:
+  last_updated: "2025-01-17"
+  framework_version: "5.0"
+  description: "Model routing configuration for SuperClaude Framework with GPT-5 priority and Claude Opus 4.1 fallback"

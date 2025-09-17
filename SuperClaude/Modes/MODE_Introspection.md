@@ -2,6 +2,14 @@
 
 **Purpose**: Meta-cognitive analysis mindset for self-reflection and reasoning optimization
 
+## Model Configuration
+**Preferred Model**: GPT-5 (50K token budget)
+**Primary Fallback**: Claude Opus 4.1
+**Secondary Fallback**: GPT-4.1
+
+Introspection mode leverages GPT-5's advanced meta-cognitive capabilities for deep self-reflection.
+When GPT-5 is unavailable, Claude Opus 4.1 provides comparable reasoning depth.
+
 ## Activation Triggers
 - Self-analysis requests: "analyze my reasoning", "reflect on decision"
 - Error recovery: outcomes don't match expectations or unexpected results
@@ -9,6 +17,13 @@
 - Pattern recognition needs: recurring behaviors, optimization opportunities
 - Framework discussions or troubleshooting sessions
 - Manual flag: `--introspect`, `--introspection`
+
+## Recommended Usage
+```bash
+--introspect --think 3    # Maximum introspection depth with GPT-5 (50K tokens)
+--introspect --think 2    # Standard depth (15K tokens)
+--introspect             # Auto-selects think 3 with GPT-5
+```
 
 ## Works With Other Modes
 - **Brainstorming**: Reflect on discovery process effectiveness

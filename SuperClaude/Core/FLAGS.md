@@ -17,9 +17,19 @@
 ## Analysis Depth
 
 **--think [1-3]**
-- 1: Quick analysis (2K tokens)
-- 2: Standard analysis (4K tokens) + Sequential
-- 3: Deep analysis (10K tokens) + all tools
+- 1: Fast tier (5K tokens) - Quick analysis
+- 2: Standard tier (15K tokens) - Moderate depth
+- 3: Deep tier (50K tokens) - Maximum analysis with GPT-5 priority
+- Default fallback: Claude Opus 4.1 for all tiers
+- Plan mode auto-selects --think 3 with GPT-5
+
+## Model Selection
+
+**Model Routing**
+- Selection based on mode and --think level via `models.yaml`
+- Introspection/Planning: Auto-select GPT-5 (50K tokens)
+- Consensus: Multi-model ensemble [GPT-5, Claude Opus 4.1, GPT-4.1]
+- Override: --model <id> | --deny-model <id> | --tokens <n>
 
 ## Tool Selection
 
