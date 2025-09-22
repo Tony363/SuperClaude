@@ -7,15 +7,17 @@
 ### Tool-Specific Configuration
 
 **thinkdeep**
-- **Preferred Model**: GPT-5 (50K tokens)
+- **Preferred Model**: GPT-5 (50K tokens) / Gemini-2.5-pro (>400K tokens)
 - **Primary Fallback**: Claude Opus 4.1
+- **Context Routing**: Auto-switches to Gemini-2.5-pro for long context scenarios
 - **Purpose**: Multi-angle analysis and hypothesis testing
 - **Usage**: `--thinkdeep` or via mcp__zen__thinkdeep
 
 **consensus**
-- **Ensemble**: [GPT-5, Claude Opus 4.1, GPT-4.1]
+- **Ensemble**: [GPT-5, Claude Opus 4.1, GPT-4.1] / [Gemini-2.5-pro, GPT-4.1, GPT-5] (>400K tokens)
 - **Quorum**: 2 models must agree
-- **Token Budget**: 30K per model (90K total)
+- **Token Budget**: 30K per model (90K total) / 200K per model for long context
+- **Context Routing**: Switches ensemble composition for long context scenarios
 - **Purpose**: Multi-model validation and agreement
 - **Usage**: `--consensus` or via mcp__zen__consensus
 
@@ -121,6 +123,24 @@ SC_DISABLE_GPT5=true --thinkdeep  # Uses Opus 4.1
 
 # Quick review with standard depth
 --zen-review --think 2
+
+# Large codebase review with Gemini-2.5-pro (auto-triggered)
+--zen-review --extended-context --bulk-analysis
+```
+
+### Long Context Operations
+```bash
+# Bulk file analysis (auto-switches to Gemini-2.5-pro)
+--thinkdeep --bulk-analysis src/ docs/ tests/
+
+# Extended documentation processing
+--consensus --extended-context --think 3
+
+# Large codebase architecture review
+--zen-review --extended-context "Analyze entire codebase architecture"
+
+# Force Gemini for long context
+--model gemini-2.5-pro --thinkdeep
 ```
 
 ## Integration with Modes
@@ -177,11 +197,34 @@ export SC_DEFAULT_THINK_LEVEL=3
 4. **Leverage fallbacks** - Opus 4.1 provides excellent alternative
 5. **Batch operations** when using consensus for efficiency
 
+## Context-Aware Model Routing
+
+The framework intelligently routes requests based on context size and complexity:
+
+### Standard Operations (≤400K tokens)
+**Primary Chain**: GPT-5 → Claude Opus 4.1 → GPT-4.1
+- Most deep thinking, planning, and analysis operations
+- Optimized for reasoning quality and response speed
+
+### Long Context Ingestion (>400K tokens)
+**Primary Chain**: Gemini-2.5-pro → GPT-4.1 → GPT-5 (chunked)
+- Bulk file analysis (>50 files)
+- Large codebase reviews
+- Extended documentation processing
+- Multi-file batch operations
+
+### Automatic Triggers for Long Context Mode
+- Total token count exceeds 400K
+- File count exceeds 50 in single operation
+- Explicit flags: `--extended-context`, `--bulk-analysis`
+- Large document processing (single files >200K tokens)
+
 ## Model Capabilities Matrix
 
 | Model | Reasoning | Speed | Cost | Context | Best For |
 |-------|-----------|-------|------|---------|----------|
 | GPT-5 | ⭐⭐⭐⭐⭐ | ⭐⭐⭐ | $$$ | 400K | Deep thinking, planning |
+| Gemini-2.5-pro | ⭐⭐⭐⭐ | ⭐⭐⭐ | $$ | 2M | **Long context ingestion, bulk analysis** |
 | Claude Opus 4.1 | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ | $$ | 200K | Fallback, validation |
 | GPT-4.1 | ⭐⭐⭐⭐ | ⭐⭐⭐ | $$ | 1M | Large context tasks |
 | GPT-4o | ⭐⭐⭐⭐ | ⭐⭐⭐⭐ | $ | 128K | Standard operations |

@@ -53,8 +53,11 @@ echo ""
 
 echo "2. API Keys"
 echo "-----------"
-test_condition "GEMINI_API_KEY set" "[ -n \"\$GEMINI_API_KEY\" ]"
-test_condition "OPENAI_API_KEY set" "[ -n \"\$OPENAI_API_KEY\" ]"
+echo "🔴 CRITICAL for long context operations:"
+test_condition "GEMINI_API_KEY set (2M context)" "[ -n \"\$GEMINI_API_KEY\" ]"
+echo ""
+echo "🟡 ESSENTIAL for standard operations:"
+test_condition "OPENAI_API_KEY set (GPT-5)" "[ -n \"\$OPENAI_API_KEY\" ]"
 
 # Optional API keys (warn if not set)
 echo -n "Testing: ANTHROPIC_API_KEY set... "
@@ -118,6 +121,14 @@ if [ $tests_failed -eq 0 ]; then
     echo "  • Consensus decisions with --consensus"
     echo "  • Production validation with --zen-review"
     echo "  • Deep analysis with --thinkdeep"
+    echo ""
+    echo "Context-aware model routing enabled:"
+    echo "  • Standard ops (≤400K): GPT-5 → Claude Opus 4.1 → GPT-4.1"
+    echo "  • Long context (>400K): Gemini-2.5-pro → GPT-4.1 → GPT-5"
+    echo ""
+    echo "Long context examples:"
+    echo "  • --zen-review --extended-context (bulk codebase analysis)"
+    echo "  • --thinkdeep --bulk-analysis src/ docs/ (multi-file processing)"
 else
     echo -e "${RED}⚠️  Some tests failed. Please review the configuration.${NC}"
     echo ""
