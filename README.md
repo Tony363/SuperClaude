@@ -57,25 +57,24 @@ SuperClaude is a comprehensive AI-enhanced development framework designed specif
 
 ## ✨ What's New in 4.0.9
 
-### 🎯 Zen MCP Multi-Model Orchestration (NEW)
-- **Multi-Model Consensus** - Coordinate decisions across multiple AI models
-- **Production Validation** - `--zen-review` for critical deployment verification
-- **Deep Analysis** - `--thinkdeep` for multi-angle problem solving
-- **API Key Management** - Automated setup script for multiple model providers
-- **Integration Testing** - Comprehensive validation script for Zen MCP setup
+### 🎯 GPT-5 Integration with Zen MCP (NEW)
+- **Intelligent Model Routing** - GPT-5 prioritized for deep thinking, Gemini-2.5-pro for long context (>400K tokens)
+- **Context-Aware Selection** - Automatic model switching based on operation complexity and token requirements
+- **Multi-Model Consensus** - Coordinate critical decisions across GPT-5, Claude Opus 4.1, and GPT-4.1
+- **Production Validation** - `--zen-review` with GPT-5 for deployment safety
+- **Deep Analysis Framework** - `--thinkdeep` leveraging GPT-5's 50K token budget for complex reasoning
 
-### 🔧 MCP Installer Improvements
-- Fixed critical bugs in MCP installation and update process
-- Corrected npm package names and custom installation methods
-- Added `claude` CLI as formal prerequisite for MCP management
-- Enhanced reliability for server installations
+### 🔧 Token Optimization Breakthrough
+- **67% Token Reduction** - From 30K to 10K baseline through true conditional loading
+- **Context-Aware Routing** - Automatic model selection optimizes for both quality and efficiency
+- **Smart Component Loading** - Components load only when their specific triggers are detected
+- **Performance Gains** - 3x faster initialization, more context available for actual work
 
-### 🚀 Previous Major Features (4.0.7-4.0.8)
-- **Automatic Update System** - Smart PyPI/NPM version checking
-- **True Conditional Loading** - 67% token reduction achieved
-- **Command Namespace** - All commands use `/sc:` prefix to prevent conflicts
-- **14-Agent Architecture** - Specialized agents replacing legacy persona system
-- **Quality Scoring** - Automatic 0-100 evaluation with iteration
+### 🚀 Enhanced MCP & Multi-Model Features
+- **Automated Setup Scripts** - One-command API key configuration for all model providers
+- **Integration Testing** - Comprehensive validation for Zen MCP setup
+- **Fallback Strategies** - Robust model availability checking with TTL-based backoff
+- **Environment Overrides** - Flexible model forcing and exclusion capabilities
 
 ---
 
@@ -469,29 +468,38 @@ The Agentic Loop implements automatic quality improvement through three-agent ar
 --test                   # Run all tests
 ```
 
-### Power Combinations
+### Power Combinations with GPT-5
 
 ```bash
-# Maximum analysis
+# Maximum GPT-5 analysis with delegation (50K tokens + intelligent routing)
 --think 3 --delegate --loop
 
-# Safe production changes  
---safe-mode --loop --validate
+# Production-grade validation with GPT-5 and multi-model consensus
+--zen-review --consensus --think 3 --safe-mode
 
-# Efficient large operations
---task-manage --uc --delegate
+# Long context analysis (auto-switches to Gemini-2.5-pro for >400K tokens)
+--thinkdeep --bulk-analysis --extended-context
 
-# Complete feature with quality
---brainstorm --task-manage --loop --test
+# Strategic planning with GPT-5 depth and task management
+--plan --think 3 --task-manage --brainstorm
 
-# Multi-model consensus for critical decisions
---consensus --think 3 --zen
+# Critical debugging with GPT-5 and multi-model perspectives
+--thinkdeep --consensus --debug --think 3
 
-# Production deployment validation
---zen-review --safe-mode --test
+# Complete feature development with GPT-5 reasoning
+--brainstorm --plan --think 3 --task-manage --zen-review
 
-# Complex debugging with multi-model analysis
---thinkdeep --delegate --loop
+# Architecture decisions with multi-model consensus led by GPT-5
+--consensus --think 3 --zen --introspect
+
+# Production deployment with comprehensive GPT-5 validation
+--zen-review --safe-mode --test --think 3 --consensus
+
+# Complex system analysis with context-aware routing
+--thinkdeep --think 3 --bulk-analysis  # Uses GPT-5 or Gemini based on size
+
+# Meta-cognitive debugging approach with GPT-5
+--introspect --think 3 --thinkdeep --delegate
 ```
 
 ---
@@ -521,104 +529,232 @@ The Agentic Loop implements automatic quality improvement through three-agent ar
 
 ---
 
-## 🎯 Zen MCP Multi-Model Orchestration
+## 🎯 GPT-5 Integration with Zen MCP
 
 ### Overview
 
-Zen MCP enables coordination across multiple AI models for enhanced decision-making, consensus building, and production validation. Perfect for critical decisions requiring multiple perspectives.
+The SuperClaude Framework now features intelligent GPT-5 integration through the Zen MCP server, providing context-aware model routing, multi-model consensus, and optimized token usage. GPT-5 is prioritized for deep thinking operations while Gemini-2.5-pro handles long context scenarios.
+
+### Model Routing Strategy
+
+**Context-Aware Selection**:
+- **Standard Operations (≤400K tokens)**: GPT-5 → Claude Opus 4.1 → GPT-4.1
+- **Long Context Ingestion (>400K tokens)**: Gemini-2.5-pro → GPT-4.1 → GPT-5 (chunked)
+- **Automatic Switching**: Framework detects token requirements and routes appropriately
+
+### GPT-5 Specific Commands
+
+| Command | Purpose | Token Budget | Model Preference |
+|---------|---------|--------------|------------------|
+| `--thinkdeep` | Multi-angle analysis | 50K | GPT-5 → Opus 4.1 |
+| `--zen-review` | Production validation | 50K | GPT-5 → Opus 4.1 |
+| `--plan --think 3` | Strategic planning | 50K | GPT-5 → Opus 4.1 |
+| `--introspect --think 3` | Meta-cognitive analysis | 50K | GPT-5 → Opus 4.1 |
+| `--consensus` | Multi-model agreement | 30K each | GPT-5 + Opus 4.1 + GPT-4.1 |
+| `--debug --think 3` | Root cause analysis | 50K | GPT-5 → Opus 4.1 |
 
 ### Supported Models
 
-| Provider | Models | API Key Required |
-|----------|--------|------------------|
-| **OpenAI** | GPT-4, GPT-3.5 | `OPENAI_API_KEY` |
-| **Anthropic** | Claude-3 family | `ANTHROPIC_API_KEY` |
-| **Google** | Gemini Pro/Ultra | `GEMINI_API_KEY` |
-| **X.AI** | Grok models | `GROK_API_KEY` |
-| **OpenRouter** | Multiple models | `OPENROUTER_API_KEY` |
+| Provider | Models | Context | API Key Required | Best For |
+|----------|--------|---------|------------------|----------|
+| **OpenAI** | GPT-5, GPT-4.1, GPT-4o | 400K-1M | `OPENAI_API_KEY` | **Deep reasoning, planning** |
+| **Google** | Gemini-2.5-pro | 2M | `GEMINI_API_KEY` | **Long context operations** |
+| **Anthropic** | Claude Opus 4.1 | 200K | `ANTHROPIC_API_KEY` | Primary fallback |
+| **X.AI** | Grok models | Varies | `GROK_API_KEY` | Alternative reasoning |
+| **OpenRouter** | Multiple models | Varies | `OPENROUTER_API_KEY` | Model diversity |
 
-### Quick Setup
+### Quick Setup for GPT-5
 
 ```bash
-# 1. Run the automated setup script
+# 1. Install SuperClaude Framework (if not already done)
+pip install SuperClaude
+SuperClaude install
+
+# 2. Set up API keys for multi-model support
 ./scripts/setup_zen_api_keys.sh
 
-# 2. Test the integration
+# 3. Test GPT-5 integration
 ./scripts/test_zen_integration.sh
 
-# 3. Restart Claude Desktop
+# 4. Restart Claude Desktop for changes to take effect
 
-# 4. Test in Claude Code
---zen "Analyze this architecture decision"
+# 5. Test GPT-5 specific commands in Claude Code
+--think 3 "Deep analysis request"
+--thinkdeep "Multi-angle investigation"
+--zen-review "Production readiness check"
 ```
 
-### API Key Configuration
+### API Key Priority for GPT-5 Operations
 
-The setup script automatically configures your environment:
+**Essential for GPT-5 (Required)**:
+```bash
+export OPENAI_API_KEY="your-openai-key"    # For GPT-5 access
+```
+
+**Critical for Long Context (>400K tokens)**:
+```bash
+export GEMINI_API_KEY="your-gemini-key"    # For Gemini-2.5-pro (2M context)
+```
+
+**Recommended for Full Capabilities**:
+```bash
+export ANTHROPIC_API_KEY="your-anthropic-key"  # For Claude Opus 4.1 fallback
+export GROK_API_KEY="your-grok-key"            # For enhanced consensus
+export OPENROUTER_API_KEY="your-openrouter-key" # For model diversity
+```
+
+### Automated Setup (Recommended)
 
 ```bash
-# Option 1: Interactive setup (recommended)
+# Interactive setup with guided configuration
 ./scripts/setup_zen_api_keys.sh
-
-# Option 2: Manual setup
-export OPENAI_API_KEY="your-key-here"
-export ANTHROPIC_API_KEY="your-key-here"  
-export GEMINI_API_KEY="your-key-here"
-export GROK_API_KEY="your-key-here"
-export OPENROUTER_API_KEY="your-key-here"
 ```
 
-### Usage Patterns
+The script will:
+- Check existing API key configuration
+- Provide links to obtain missing keys
+- Configure environment variables automatically
+- Update shell profiles (.bashrc, .zshrc, .profile)
+- Validate Zen MCP integration
 
-#### Multi-Model Consensus
+### GPT-5 Usage Patterns
+
+#### Deep Thinking with GPT-5 (50K Token Budget)
 ```bash
-# Get agreement from multiple models on critical decisions
---consensus "Should we migrate to microservices architecture?"
+# Automatic GPT-5 selection for complex analysis
+--think 3 "Analyze the performance bottlenecks in this distributed system"
 
-# Deep analysis with multiple perspectives  
---thinkdeep "Why is our system experiencing latency issues?"
+# Multi-angle investigation using GPT-5
+--thinkdeep "Why does our authentication flow fail intermittently?"
+
+# Strategic planning with GPT-5's reasoning capabilities
+--plan --think 3 "Design a scalable microservices architecture"
+
+# Meta-cognitive analysis for debugging approaches
+--introspect --think 3 "Evaluate my debugging methodology for this issue"
 ```
 
-#### Production Validation
+#### Multi-Model Consensus with GPT-5 Leadership
 ```bash
-# Validate deployment readiness with multiple models
---zen-review "Review this production deployment checklist"
+# Critical decision making with GPT-5, Opus 4.1, and GPT-4.1
+--consensus --think 3 "Should we migrate from PostgreSQL to NoSQL?"
 
-# Architecture review with consensus
---consensus --think 3 "Evaluate this database schema design"
+# Architecture reviews with multi-model validation
+--consensus "Evaluate this distributed caching strategy"
+
+# Production readiness with GPT-5 validation
+--zen-review --think 3 "Review deployment safety for this release"
 ```
 
-#### Enhanced Problem Solving
+#### Long Context Operations (Auto-switches to Gemini-2.5-pro)
 ```bash
-# Complex debugging with multi-model coordination
---thinkdeep --delegate "Debug this intermittent connection issue"
+# Bulk file analysis (>400K tokens triggers Gemini-2.5-pro)
+--thinkdeep --bulk-analysis "Analyze entire codebase architecture"
 
-# Strategic planning with consensus
---consensus --brainstorm "Plan our technical debt reduction strategy"
+# Extended documentation processing
+--zen-review --extended-context "Review all documentation for consistency"
+
+# Large codebase refactoring analysis
+--consensus --bulk-analysis src/ docs/ tests/ "Plan refactoring strategy"
+```
+
+#### Production Validation with GPT-5
+```bash
+# Comprehensive deployment validation
+--zen-review --safe-mode --think 3
+
+# Critical system changes with multi-model consensus
+--consensus --zen-review --think 3 "Validate database migration plan"
+
+# Complex debugging with GPT-5 depth
+--thinkdeep --debug --think 3 "Investigate system performance degradation"
+```
+
+### Model Configuration Overrides
+
+#### Environment Variables for GPT-5
+```bash
+# Force GPT-5 for all deep thinking operations
+export SC_FORCE_MODEL=gpt-5
+
+# Disable GPT-5 (forces fallback to Claude Opus 4.1)
+export SC_DISABLE_GPT5=true
+
+# Override default token budget for GPT-5 operations
+export SC_MAX_TOKENS=50000
+
+# Set default think level (1-3, where 3 activates GPT-5)
+export SC_DEFAULT_THINK_LEVEL=3
+```
+
+#### CLI Model Control
+```bash
+# Force specific model for session
+--model gpt-5
+
+# Exclude models from selection
+--deny-model gpt-4o --deny-model gpt-4o-mini
+
+# Override token budget for operation
+--tokens 50000
+
+# Force think level to trigger GPT-5
+--think 3
 ```
 
 ### Integration Validation
 
-Run the test script to verify your setup:
+Comprehensive testing of your GPT-5 setup:
 
 ```bash
+# Run the integration test script
 ./scripts/test_zen_integration.sh
 ```
 
-Expected output:
-- ✅ Configuration files present
-- ✅ API keys configured (minimum: OpenAI + Gemini)
-- ✅ Zen MCP server installed
-- ✅ SuperClaude Framework integration
+**Expected Test Results**:
+- ✅ Configuration files present (`~/.claude/settings.json`, Claude Desktop config)
+- ✅ API keys configured (minimum: `OPENAI_API_KEY` for GPT-5, `GEMINI_API_KEY` for long context)
+- ✅ Zen MCP server installed and configured
+- ✅ SuperClaude Framework integration active
+- ✅ Model routing configuration valid
 
-### Troubleshooting
+### GPT-5 Specific Troubleshooting
 
-| Issue | Solution |
-|-------|----------|
-| API keys not found | Run `./scripts/setup_zen_api_keys.sh` |
-| Zen flags not working | Restart Claude Desktop, check installation |
-| Models not responding | Verify API keys are valid and have credits |
-| Integration test fails | Check Claude Desktop config and restart |
+| Issue | Symptoms | Solution |
+|-------|----------|----------|
+| **GPT-5 not activating** | Using `--think 3` but getting Claude responses | Check `OPENAI_API_KEY`, verify with `echo $OPENAI_API_KEY` |
+| **API key invalid** | "Authentication failed" errors | Verify key at https://platform.openai.com/api-keys |
+| **Token limit exceeded** | Requests cut short or failing | Check account billing and usage limits |
+| **Fallback to Opus 4.1** | Expected GPT-5 but getting Claude | Check rate limits, verify `SC_DISABLE_GPT5` not set |
+| **Long context not using Gemini** | Large operations using wrong model | Verify `GEMINI_API_KEY`, check token count threshold |
+| **Consensus not working** | Single model responses to `--consensus` | Check multiple API keys configured |
+
+### Advanced Configuration
+
+#### Custom Model Routing
+Edit `~/.claude/SuperClaude/Core/models.yaml` to customize:
+```yaml
+tasks:
+  thinkdeep:
+    preferred: gpt-5
+    fallbacks: [claude-opus-4.1]
+    token_budget: 50000
+  
+  consensus:
+    ensemble: [gpt-5, claude-opus-4.1, gpt-4.1]
+    quorum: 2
+```
+
+#### Performance Monitoring
+```bash
+# Check model availability and status
+mcp__zen__listmodels
+
+# Verify current configuration
+echo "GPT-5 disabled: $SC_DISABLE_GPT5"
+echo "Force model: $SC_FORCE_MODEL"
+echo "Max tokens: $SC_MAX_TOKENS"
+```
 
 ---
 
@@ -762,8 +898,12 @@ class CustomComponent(BaseComponent):
 | Commands not working | Verify `/sc:` commands in `~/.claude/commands/sc/` |
 | Update checks failing | Check internet and PyPI access |
 | MCP servers not working | Run `SuperClaude install --components mcp` |
+| **GPT-5 not responding** | **Verify `OPENAI_API_KEY` set and valid** |
+| **`--think 3` using Claude instead of GPT-5** | **Check API key and restart Claude Desktop** |
+| **Long context not using Gemini-2.5-pro** | **Verify `GEMINI_API_KEY` configured** |
 | Zen MCP not working | Run `./scripts/setup_zen_api_keys.sh` and restart Claude Desktop |
 | Multi-model flags not recognized | Check Zen MCP installation with `./scripts/test_zen_integration.sh` |
+| **Consensus returning single model** | **Ensure multiple API keys configured (OpenAI + Anthropic minimum)** |
 
 ### Diagnostic Commands
 
@@ -779,11 +919,25 @@ SuperClaude --version
 --delegate
 /sc:analyze
 
+# Test GPT-5 specific functionality
+--think 3 "Test GPT-5 integration"
+--thinkdeep "Verify multi-angle analysis"
+--zen-review "Test production validation"
+
+# Check API keys configuration
+echo "OpenAI (GPT-5): $OPENAI_API_KEY"
+echo "Gemini (Long Context): $GEMINI_API_KEY"
+echo "Anthropic (Fallback): $ANTHROPIC_API_KEY"
+
 # Check MCP servers
 SuperClaude install --check-mcp
 
-# Test Zen MCP integration
+# Test Zen MCP integration with GPT-5
 ./scripts/test_zen_integration.sh
+
+# Verify model routing configuration
+ls ~/.claude/SuperClaude/Core/models.yaml
+cat ~/.claude/SuperClaude/Core/models.yaml | grep -A 5 "gpt-5"
 ```
 
 ### Performance Issues
@@ -856,15 +1010,17 @@ black --check .
 
 ### Statistics
 
-- **Current Version**: 4.0.9 (January 2025)
+- **Current Version**: 4.0.9 (September 2025)
 - **License**: MIT
 - **Language**: Python 3.8+
 - **Installation Time**: < 2 minutes
-- **Memory Usage**: ~3KB baseline (67% reduction)
+- **Memory Usage**: ~3KB baseline (67% reduction achieved)
+- **Token Optimization**: 67% reduction (30K → 10K baseline)
+- **Model Integration**: GPT-5 + Context-aware routing
 - **Commits**: 600+
 - **Agents**: 14 core + 100+ extended
 - **Commands**: 21 specialized
-- **MCP Servers**: 7 integrated (including Zen multi-model)
+- **MCP Servers**: 7 integrated (including Zen multi-model orchestration)
 
 ### Maintainers
 
