@@ -20,16 +20,16 @@ defaults:
   
   fallbacks:
     # Ordered preference lists for each tier
-    fast: [gpt-4o-mini, claude-opus-4.1, claude-3.5-sonnet]
-    standard: [gpt-5, claude-opus-4.1, gpt-4o]
-    deep: [gpt-5, claude-opus-4.1, gpt-4.1]
+    fast: [grok-code-fast-1, claude-opus-4.1]
+    standard: [gpt-5, claude-opus-4.1, grok-code-fast-1]
+    deep: [gpt-5, claude-opus-4.1, grok-code-fast-1]
 
 tasks:
   # Long Context Ingestion: For scenarios requiring >400K tokens
   long_context_ingestion:
     tier: deep
     preferred: gemini-2.5-pro
-    fallbacks: [gpt-4.1, gpt-5]
+    fallbacks: [claude-sonnet-4.5, gpt-5]
     token_budget: 2000000
     context_threshold: 400000
     triggers:
@@ -114,6 +114,7 @@ limits:
     gpt-4o-mini: 128000
     claude-3.5-sonnet: 200000
     gemini-2.5-pro: 2000000
+    grok-code-fast-1: 128000
 
 overrides:
   # Environment variable overrides
