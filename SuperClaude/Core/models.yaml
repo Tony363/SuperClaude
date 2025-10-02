@@ -20,9 +20,9 @@ defaults:
   
   fallbacks:
     # Ordered preference lists for each tier
-    fast: [grok-code-fast-1, claude-opus-4.1]
-    standard: [gpt-5, claude-opus-4.1, grok-code-fast-1]
-    deep: [gpt-5, claude-opus-4.1, grok-code-fast-1]
+    fast: [grok-code-fast-1, claude-sonnet-4.5, claude-opus-4.1]
+    standard: [gpt-5, claude-opus-4.1, claude-sonnet-4.5, grok-code-fast-1]
+    deep: [gpt-5, claude-opus-4.1, claude-sonnet-4.5]
 
 tasks:
   # Long Context Ingestion: For scenarios requiring >400K tokens
@@ -82,15 +82,39 @@ tasks:
   codereview:
     tier: deep
     preferred: gpt-5
-    fallbacks: [claude-opus-4.1]
+    fallbacks: [claude-opus-4.1, claude-sonnet-4.5]
     token_budget: 50000
     description: "Comprehensive code quality analysis"
-  
+
+  # Quick Validation: Fast checks and simple analysis
+  quick_validation:
+    tier: fast
+    preferred: grok-code-fast-1
+    fallbacks: [claude-sonnet-4.5, claude-opus-4.1]
+    token_budget: 5000
+    description: "Rapid validation, formatting, and simple refactoring"
+
+  # Syntax Check: Ultra-fast code validation
+  syntax_check:
+    tier: fast
+    preferred: grok-code-fast-1
+    fallbacks: [gpt-4o-mini, claude-sonnet-4.5]
+    token_budget: 2000
+    description: "Quick syntax validation and linting"
+
+  # Documentation Generation: Fast doc creation
+  quick_docs:
+    tier: fast
+    preferred: grok-code-fast-1
+    fallbacks: [claude-sonnet-4.5, gpt-4o]
+    token_budget: 5000
+    description: "Quick documentation and comment generation"
+
   # Default: Standard operations
   default:
     tier: standard
     preferred: gpt-4o
-    fallbacks: [claude-opus-4.1, claude-3.5-sonnet]
+    fallbacks: [claude-opus-4.1, claude-sonnet-4.5]
     token_budget: 15000
 
 limits:
@@ -109,6 +133,7 @@ limits:
   context_windows:
     gpt-5: 400000
     claude-opus-4.1: 200000
+    claude-sonnet-4.5: 200000
     gpt-4.1: 1000000
     gpt-4o: 128000
     gpt-4o-mini: 128000
