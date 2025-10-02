@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-4.0.9-blue)
+![Version](https://img.shields.io/badge/version-5.0.0-blue)
 ![Python](https://img.shields.io/badge/python-3.8%2B-green)
 ![License](https://img.shields.io/badge/license-MIT-purple)
 ![Framework](https://img.shields.io/badge/framework-AI--Enhanced-orange)
@@ -18,7 +18,7 @@
 ## 📑 Table of Contents
 
 - [Overview](#-overview)
-- [What's New](#-whats-new-in-409)
+- [What's New](#-whats-new-in-500)
 - [Quick Start](#-quick-start)
 - [Architecture](#-architecture)
 - [Core Components](#-core-components)
@@ -31,6 +31,7 @@
 - [Flags & Options](#-flags--options)
 - [Usage Examples](#-usage-examples)
 - [Performance](#-performance--optimization)
+- [Model Configuration](#-model-configuration-system)
 - [Zen MCP Multi-Model](#-zen-mcp-multi-model-orchestration)
 - [Development Guide](#-development-guide)
 - [Troubleshooting](#-troubleshooting)
@@ -55,26 +56,27 @@ SuperClaude is a comprehensive AI-enhanced development framework designed specif
 
 ---
 
-## ✨ What's New in 4.0.9
+## ✨ What's New in 5.0.0
 
-### 🎯 GPT-5 Integration with Zen MCP (NEW)
-- **Intelligent Model Routing** - GPT-5 prioritized for deep thinking, Gemini-2.5-pro for long context (>400K tokens)
-- **Context-Aware Selection** - Automatic model switching based on operation complexity and token requirements
-- **Multi-Model Consensus** - Coordinate critical decisions across GPT-5, Claude Opus 4.1, and GPT-4.1
-- **Production Validation** - `--zen-review` with GPT-5 for deployment safety
-- **Deep Analysis Framework** - `--thinkdeep` leveraging GPT-5's 50K token budget for complex reasoning
+### 🧠 Intelligent Model Configuration System (NEW)
+- **Centralized Model Routing** - New `models.yaml` configuration for comprehensive model preferences and fallback chains
+- **Think Level Intelligence** - Three-tier analysis system (1-3) with automatic token budgets and model selection
+- **Context-Aware Routing** - Automatic switching between GPT-5 (standard) and Gemini-2.5-pro (>400K tokens)
+- **Task-Specific Preferences** - Dedicated model routing for introspection, planning, debugging, consensus, and code review
+- **Smart Fallback Chains** - GPT-5 → Claude Opus 4.1 → alternative models with availability checking
 
-### 🔧 Token Optimization Breakthrough
-- **67% Token Reduction** - From 30K to 10K baseline through true conditional loading
-- **Context-Aware Routing** - Automatic model selection optimizes for both quality and efficiency
-- **Smart Component Loading** - Components load only when their specific triggers are detected
-- **Performance Gains** - 3x faster initialization, more context available for actual work
+### 🎯 Enhanced Zen MCP Multi-Model Orchestration
+- **Tool-Specific Model Preferences** - Each Zen tool (thinkdeep, consensus, planner, debug, codereview, precommit) has optimized model routing
+- **Long Context Automation** - Automatic Gemini-2.5-pro activation for bulk analysis (>400K tokens or >50 files)
+- **Ensemble Intelligence** - Consensus operations coordinate multiple models (GPT-5 + Claude Opus 4.1 + GPT-4.1) with quorum validation
+- **Extended Token Budgets** - 50K tokens for deep thinking operations, 30K per model for consensus
+- **Flexible Overrides** - Environment variables and CLI flags for model forcing, exclusion, and budget control
 
-### 🚀 Enhanced MCP & Multi-Model Features
-- **Automated Setup Scripts** - One-command API key configuration for all model providers
-- **Integration Testing** - Comprehensive validation for Zen MCP setup
-- **Fallback Strategies** - Robust model availability checking with TTL-based backoff
-- **Environment Overrides** - Flexible model forcing and exclusion capabilities
+### 📚 Comprehensive Documentation Updates
+- **Extended Agents Guide** - New 100+ agent documentation at `Docs/User-Guide/EXTENDED_AGENTS_GUIDE.md`
+- **Model Configuration Reference** - Complete `models.yaml` documentation with task-specific routing
+- **Setup Automation** - Enhanced scripts for Zen API key configuration and integration testing
+- **Best Practices** - Model selection guidelines and performance optimization strategies
 
 ---
 
@@ -98,7 +100,7 @@ SuperClaude install
 
 ```bash
 # Check version
-SuperClaude --version  # Should show 4.0.9
+SuperClaude --version  # Should show 5.0.0
 
 # In Claude Code, test commands
 --brainstorm           # Activates brainstorming mode
@@ -529,29 +531,56 @@ The Agentic Loop implements automatic quality improvement through three-agent ar
 
 ---
 
-## 🎯 GPT-5 Integration with Zen MCP
+## 🎯 Model Configuration System
 
 ### Overview
 
-The SuperClaude Framework now features intelligent GPT-5 integration through the Zen MCP server, providing context-aware model routing, multi-model consensus, and optimized token usage. GPT-5 is prioritized for deep thinking operations while Gemini-2.5-pro handles long context scenarios.
+The SuperClaude Framework features a centralized model configuration system (`models.yaml`) that intelligently routes requests to the optimal AI model based on task complexity, token requirements, and context size. The system prioritizes GPT-5 for deep reasoning while leveraging Gemini-2.5-pro's 2M context window for bulk operations.
 
-### Model Routing Strategy
+### Configuration Architecture
 
-**Context-Aware Selection**:
-- **Standard Operations (≤400K tokens)**: GPT-5 → Claude Opus 4.1 → GPT-4.1
-- **Long Context Ingestion (>400K tokens)**: Gemini-2.5-pro → GPT-4.1 → GPT-5 (chunked)
-- **Automatic Switching**: Framework detects token requirements and routes appropriately
+The `models.yaml` file at `SuperClaude/Core/models.yaml` defines:
+- **Think Levels (1-3)**: Analysis depth with corresponding token budgets (5K, 15K, 50K)
+- **Fallback Chains**: Ordered model preferences for fast/standard/deep tiers
+- **Task-Specific Routing**: Dedicated model preferences for specialized operations
+- **Cost Guardrails**: Token limits, budget caps, and rate limit handling
+- **Context Thresholds**: Automatic model switching based on operation size
 
-### GPT-5 Specific Commands
+### Think Level Intelligence
 
-| Command | Purpose | Token Budget | Model Preference |
-|---------|---------|--------------|------------------|
-| `--thinkdeep` | Multi-angle analysis | 50K | GPT-5 → Opus 4.1 |
-| `--zen-review` | Production validation | 50K | GPT-5 → Opus 4.1 |
-| `--plan --think 3` | Strategic planning | 50K | GPT-5 → Opus 4.1 |
-| `--introspect --think 3` | Meta-cognitive analysis | 50K | GPT-5 → Opus 4.1 |
-| `--consensus` | Multi-model agreement | 30K each | GPT-5 + Opus 4.1 + GPT-4.1 |
-| `--debug --think 3` | Root cause analysis | 50K | GPT-5 → Opus 4.1 |
+| Level | Token Budget | Preferred Model | Best For |
+|-------|--------------|-----------------|----------|
+| **Level 1** | 5K | grok-code-fast-1 → Opus 4.1 | Quick analysis, simple tasks |
+| **Level 2** | 15K | GPT-5 → Opus 4.1 → Grok | Standard complexity, moderate depth |
+| **Level 3** | 50K | GPT-5 → Opus 4.1 → Grok | Complex reasoning, strategic planning |
+
+### Context-Aware Model Routing
+
+**Standard Operations (≤400K tokens)**:
+- **Primary Chain**: GPT-5 → Claude Opus 4.1 → Grok Code Fast-1
+- **Use Cases**: Deep thinking, planning, debugging, code review
+- **Token Budget**: 5K-50K depending on think level
+
+**Long Context Ingestion (>400K tokens)**:
+- **Primary Chain**: Gemini-2.5-pro → Claude Sonnet 4.5 → GPT-5 (chunked)
+- **Use Cases**: Bulk file analysis, large codebase review, extended documentation
+- **Token Budget**: Up to 2M tokens
+- **Automatic Triggers**: >50 files, >400K total tokens, `--bulk-analysis` or `--extended-context` flags
+
+### Task-Specific Model Routing
+
+The framework automatically selects optimal models for specialized tasks:
+
+| Task Type | Preferred Model | Fallback Chain | Token Budget | Description |
+|-----------|----------------|----------------|--------------|-------------|
+| **introspection** | GPT-5 | Opus 4.1 → GPT-4.1 | 50K | Meta-cognitive analysis and reasoning optimization |
+| **planning** | GPT-5 | Opus 4.1 → GPT-4.1 | 50K | Strategic multi-step planning |
+| **thinkdeep** | GPT-5 | Opus 4.1 | 50K | Systematic investigation via Zen MCP |
+| **debug** | GPT-5 | Opus 4.1 → GPT-4.1 | 50K | Root cause analysis and debugging |
+| **consensus** | Ensemble | [GPT-5, Opus 4.1, GPT-4.1] | 30K each | Multi-model validation (quorum: 2) |
+| **codereview** | GPT-5 | Opus 4.1 | 50K | Comprehensive code quality analysis |
+| **long_context_ingestion** | Gemini-2.5-pro | Sonnet 4.5 → GPT-5 | 2M | Bulk operations >400K tokens |
+| **default** | gpt-4o | Opus 4.1 → Sonnet 3.5 | 15K | Standard operations |
 
 ### Supported Models
 
@@ -670,36 +699,61 @@ The script will:
 --thinkdeep --debug --think 3 "Investigate system performance degradation"
 ```
 
-### Model Configuration Overrides
+### Configuration Overrides
 
-#### Environment Variables for GPT-5
+The framework supports flexible configuration through environment variables and CLI flags:
+
+#### Environment Variables
 ```bash
-# Force GPT-5 for all deep thinking operations
+# Force specific model globally
 export SC_FORCE_MODEL=gpt-5
 
-# Disable GPT-5 (forces fallback to Claude Opus 4.1)
+# Disable specific models (force fallback)
 export SC_DISABLE_GPT5=true
 
-# Override default token budget for GPT-5 operations
+# Override token budget limits
 export SC_MAX_TOKENS=50000
 
-# Set default think level (1-3, where 3 activates GPT-5)
+# Set default think level (1-3)
 export SC_DEFAULT_THINK_LEVEL=3
 ```
 
-#### CLI Model Control
+#### CLI Flags
 ```bash
-# Force specific model for session
+# Force model for current session
 --model gpt-5
 
-# Exclude models from selection
+# Exclude specific models from selection
 --deny-model gpt-4o --deny-model gpt-4o-mini
 
 # Override token budget for operation
 --tokens 50000
 
-# Force think level to trigger GPT-5
+# Set think level (1=quick, 2=standard, 3=deep)
 --think 3
+```
+
+#### Custom Model Configuration
+
+Edit `~/.claude/SuperClaude/Core/models.yaml` to customize routing:
+
+```yaml
+tasks:
+  thinkdeep:
+    tier: deep
+    preferred: gpt-5
+    fallbacks: [claude-opus-4.1]
+    token_budget: 50000
+
+  consensus:
+    ensemble: [gpt-5, claude-opus-4.1, gpt-4.1]
+    quorum: 2
+    token_budget_per_model: 30000
+
+limits:
+  max_cost_usd_per_run: 3.00
+  max_tokens_per_run: 50000
+  default_fallback: claude-opus-4.1
 ```
 
 ### Integration Validation
@@ -729,21 +783,37 @@ Comprehensive testing of your GPT-5 setup:
 | **Long context not using Gemini** | Large operations using wrong model | Verify `GEMINI_API_KEY`, check token count threshold |
 | **Consensus not working** | Single model responses to `--consensus` | Check multiple API keys configured |
 
-### Advanced Configuration
+### Model Selection Best Practices
 
-#### Custom Model Routing
-Edit `~/.claude/SuperClaude/Core/models.yaml` to customize:
-```yaml
-tasks:
-  thinkdeep:
-    preferred: gpt-5
-    fallbacks: [claude-opus-4.1]
-    token_budget: 50000
-  
-  consensus:
-    ensemble: [gpt-5, claude-opus-4.1, gpt-4.1]
-    quorum: 2
-```
+#### When to Use Each Model
+
+**GPT-5 (Deep Reasoning)**:
+- Complex architectural decisions
+- Strategic planning and design
+- Root cause analysis for difficult bugs
+- Meta-cognitive introspection
+- Code review requiring deep understanding
+- Use: `--think 3` or task-specific flags
+
+**Gemini-2.5-pro (Long Context)**:
+- Bulk file analysis (>50 files)
+- Large codebase reviews (>400K tokens)
+- Extended documentation processing
+- Multi-file refactoring analysis
+- Use: `--bulk-analysis` or `--extended-context`
+
+**Claude Opus 4.1 (Balanced)**:
+- Reliable fallback for all operations
+- Standard code implementation
+- Documentation generation
+- General development tasks
+- Use: Default or fallback when GPT-5 unavailable
+
+**Grok Code Fast-1 (Speed)**:
+- Quick analysis and simple tasks
+- Rapid iteration and prototyping
+- Code formatting and linting
+- Use: `--think 1` for fast operations
 
 #### Performance Monitoring
 ```bash
@@ -751,9 +821,119 @@ tasks:
 mcp__zen__listmodels
 
 # Verify current configuration
-echo "GPT-5 disabled: $SC_DISABLE_GPT5"
+cat ~/.claude/SuperClaude/Core/models.yaml
+
+# Check environment overrides
 echo "Force model: $SC_FORCE_MODEL"
+echo "GPT-5 disabled: $SC_DISABLE_GPT5"
 echo "Max tokens: $SC_MAX_TOKENS"
+echo "Think level: $SC_DEFAULT_THINK_LEVEL"
+```
+
+---
+
+## 🎯 Zen MCP Multi-Model Orchestration
+
+### Overview
+
+The Zen MCP server provides intelligent multi-model orchestration capabilities, enabling consensus-based decision making, deep multi-angle analysis, and production-grade validation. Version 5.0 introduces tool-specific model preferences and automatic context-aware routing.
+
+### Zen MCP Tools
+
+| Tool | Purpose | Preferred Model | Token Budget | Usage |
+|------|---------|----------------|--------------|-------|
+| **thinkdeep** | Multi-angle analysis | GPT-5 → Opus 4.1 | 50K | `--thinkdeep` or `mcp__zen__thinkdeep` |
+| **consensus** | Multi-model agreement | Ensemble [GPT-5, Opus 4.1, GPT-4.1] | 30K each | `--consensus` |
+| **planner** | Strategic planning | GPT-5 → Opus 4.1 | 50K | `--plan` |
+| **debug** | Root cause analysis | GPT-5 → Opus 4.1 → GPT-4.1 | 50K | `--debug` |
+| **codereview** | Code quality analysis | GPT-5 → Opus 4.1 | 50K | `--zen-review` |
+| **precommit** | Pre-commit validation | GPT-5 → Opus 4.1 | 50K | `--precommit` |
+| **challenge** | Critical thinking | GPT-5 → Opus 4.1 | Variable | Auto-triggered |
+
+### Consensus Operations
+
+Multi-model consensus requires agreement from at least 2 models in the ensemble:
+
+```bash
+# Standard consensus (3 models)
+--consensus "Should we migrate to microservices architecture?"
+
+# Consensus with deep thinking
+--consensus --think 3 "Evaluate database sharding strategy"
+
+# Production decision validation
+--consensus --zen-review "Approve deployment plan"
+```
+
+**Ensemble Composition**:
+- **Primary**: GPT-5 (50K token deep reasoning)
+- **Validator**: Claude Opus 4.1 (balanced verification)
+- **Arbiter**: GPT-4.1 (additional perspective)
+
+**Quorum**: Minimum 2 models must agree for consensus
+
+### Deep Analysis with Thinkdeep
+
+Multi-angle systematic investigation combining hypothesis generation, testing, and validation:
+
+```bash
+# Standard thinkdeep analysis
+--thinkdeep "Why is authentication failing intermittently?"
+
+# Extended context analysis (auto-switches to Gemini-2.5-pro if >400K tokens)
+--thinkdeep --bulk-analysis "Analyze entire codebase for performance issues"
+
+# Combined with delegation
+--thinkdeep --delegate "Investigate complex memory leak"
+```
+
+### Long Context Handling
+
+When operations exceed 400K tokens or involve >50 files, the framework automatically switches to Gemini-2.5-pro:
+
+```bash
+# Triggers Gemini-2.5-pro for 2M context window
+--thinkdeep --bulk-analysis src/ docs/ tests/
+
+# Explicit long context mode
+--consensus --extended-context "Review all documentation"
+
+# Large codebase analysis
+--zen-review --bulk-analysis "Comprehensive security audit"
+```
+
+### Fallback Strategy
+
+Each Zen tool has a defined fallback chain for high availability:
+
+1. **Primary Model**: Attempt preferred model (typically GPT-5)
+2. **First Fallback**: Switch to Claude Opus 4.1 (equivalent depth)
+3. **Second Fallback**: Use GPT-4.1 or other available models
+4. **Degradation**: Single model mode if ensemble unavailable
+5. **Emergency**: Ultimate fallback to Claude Opus 4.1
+
+**Availability Checking**:
+- TTL-based backoff: 60 seconds for failed models
+- Rate limit detection: Auto-switch on 429 errors
+- Cost monitoring: Fallback when approaching budget limits
+
+### Integration Examples
+
+```bash
+# Critical architecture decision
+--consensus --think 3 --plan "Design event-driven architecture"
+
+# Production deployment validation
+--zen-review --safe-mode --test --think 3
+
+# Complex debugging session
+--thinkdeep --debug --think 3 --introspect
+
+# Comprehensive code review
+--zen-review --consensus --think 3
+
+# Strategic planning with validation
+--plan --think 3 --consensus --task-manage
 ```
 
 ---
@@ -1010,17 +1190,19 @@ black --check .
 
 ### Statistics
 
-- **Current Version**: 4.0.9 (September 2025)
+- **Current Version**: 5.0.0 (October 2025)
 - **License**: MIT
 - **Language**: Python 3.8+
 - **Installation Time**: < 2 minutes
 - **Memory Usage**: ~3KB baseline (67% reduction achieved)
 - **Token Optimization**: 67% reduction (30K → 10K baseline)
-- **Model Integration**: GPT-5 + Context-aware routing
+- **Model Integration**: Intelligent routing with models.yaml configuration
+- **Supported Models**: GPT-5, Gemini-2.5-pro, Claude Opus 4.1, GPT-4.1, Grok Code Fast-1
 - **Commits**: 600+
 - **Agents**: 14 core + 100+ extended
 - **Commands**: 21 specialized
 - **MCP Servers**: 7 integrated (including Zen multi-model orchestration)
+- **Think Levels**: 3 tiers (5K, 15K, 50K token budgets)
 
 ### Maintainers
 
@@ -1046,11 +1228,11 @@ black --check .
 
 <div align="center">
 
-**SuperClaude Framework v4.0.9**
+**SuperClaude Framework v5.0.0**
 
 *AI-Enhanced Development for Claude Code*
 
-*Powered by Intelligent Agents • Dynamic Loading • Quality-Driven Iteration*
+*Powered by Intelligent Model Routing • Dynamic Loading • Quality-Driven Iteration*
 
 **Copyright © 2025 SuperClaude-Org • MIT License**
 
