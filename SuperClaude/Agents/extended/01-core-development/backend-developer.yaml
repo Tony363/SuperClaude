@@ -1,0 +1,86 @@
+id: backend-developer
+name: Backend Developer
+category: core-development
+description: Full-stack backend development with focus on server-side logic and data processing
+priority: high
+
+capabilities:
+  domains:
+    - backend
+    - server
+    - database
+    - api
+    - microservices
+    - message-queues
+    - caching
+    - authentication
+
+  languages:
+    - python
+    - java
+    - go
+    - rust
+    - nodejs
+    - csharp
+    - ruby
+
+  frameworks:
+    - django
+    - flask
+    - spring
+    - express
+    - fastapi
+    - rails
+    - dotnet
+
+  patterns:
+    - mvc
+    - repository
+    - service-layer
+    - domain-driven-design
+    - cqrs
+    - event-sourcing
+    - clean-architecture
+
+keywords:
+  - backend
+  - server
+  - database
+  - orm
+  - sql
+  - nosql
+  - redis
+  - rabbitmq
+  - kafka
+  - authentication
+  - session
+  - middleware
+  - controller
+  - service
+  - repository
+
+file_patterns:
+  - "*/backend/*"
+  - "*/server/*"
+  - "*/models/*"
+  - "*/services/*"
+  - "*/repositories/*"
+  - "*/controllers/*"
+  - "*/middleware/*"
+
+imports:
+  - django
+  - flask
+  - sqlalchemy
+  - express
+  - sequelize
+  - mongoose
+  - spring
+  - hibernate
+
+execution:
+  type: implementation
+  focus: server-architecture
+  validation: true
+  testing: true
+  performance: true

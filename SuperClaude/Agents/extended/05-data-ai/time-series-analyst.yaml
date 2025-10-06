@@ -1,0 +1,37 @@
+id: time-series-analyst
+name: Time Series Analyst
+category: data_ai
+description: Time series analysis and forecasting
+priority: medium
+capabilities:
+  domains:
+  - time-series
+  - forecasting
+  - anomaly-detection
+  languages:
+  - python
+  - r
+  frameworks: &id001
+  - prophet
+  - statsmodels
+  - arima
+  - lstm
+  patterns: []
+keywords:
+- time series analyst
+- anomaly-detection
+- series
+- r
+- analyst
+- python
+- forecasting
+- time
+- time-series
+file_patterns:
+- '*.py'
+imports: *id001
+execution:
+  type: specialized
+  focus: time-series
+  validation: true
+  testing: true

@@ -1,0 +1,39 @@
+id: data-engineer
+name: Data Engineer
+category: data_ai
+description: Data pipelines, ETL, and data infrastructure
+priority: medium
+capabilities:
+  domains:
+  - data
+  - etl
+  - pipelines
+  - warehousing
+  languages:
+  - python
+  - sql
+  - scala
+  frameworks: &id001
+  - spark
+  - airflow
+  - kafka
+  - dbt
+  patterns: []
+keywords:
+- pipelines
+- engineer
+- etl
+- warehousing
+- python
+- data
+- scala
+- sql
+- data engineer
+file_patterns:
+- '*.py'
+imports: *id001
+execution:
+  type: specialized
+  focus: data
+  validation: true
+  testing: true

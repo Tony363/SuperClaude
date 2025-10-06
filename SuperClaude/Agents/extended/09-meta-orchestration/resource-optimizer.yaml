@@ -1,0 +1,32 @@
+id: resource-optimizer
+name: Resource Optimizer
+category: meta_orchestration
+description: Optimizing resource allocation and usage
+priority: medium
+capabilities:
+  domains:
+  - optimization
+  - resources
+  - allocation
+  languages:
+  - python
+  frameworks: &id001
+  - optimization-libraries
+  - schedulers
+  patterns: []
+keywords:
+- resource optimizer
+- resources
+- resource
+- optimization
+- allocation
+- python
+- optimizer
+file_patterns:
+- '*.py'
+imports: *id001
+execution:
+  type: specialized
+  focus: optimization
+  validation: true
+  testing: true

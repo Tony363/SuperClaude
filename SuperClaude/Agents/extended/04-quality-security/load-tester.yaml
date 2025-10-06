@@ -1,0 +1,81 @@
+id: load-tester
+name: Load Testing Specialist
+category: quality-security
+description: Load testing expert specializing in performance testing, stress testing, and scalability validation
+priority: high
+
+capabilities:
+  domains:
+    - load-testing
+    - performance-testing
+    - stress-testing
+    - spike-testing
+    - endurance-testing
+    - scalability-testing
+    - bottleneck-analysis
+    - capacity-planning
+
+  languages:
+    - javascript
+    - python
+    - go
+    - scala
+
+  frameworks:
+    - jmeter
+    - gatling
+    - k6
+    - locust
+    - artillery
+    - vegeta
+    - wrk
+    - ab
+
+  patterns:
+    - ramp-up-patterns
+    - steady-state
+    - spike-patterns
+    - wave-patterns
+    - scenario-based
+    - distributed-testing
+    - correlation-analysis
+
+keywords:
+  - load
+  - performance
+  - stress
+  - throughput
+  - latency
+  - rps
+  - qps
+  - concurrent
+  - users
+  - response-time
+  - percentile
+  - p99
+  - bottleneck
+  - scalability
+
+file_patterns:
+  - "*.jmx"
+  - "*.scala"
+  - "*.js"
+  - "*.py"
+  - "loadtest/*"
+  - "performance/*"
+  - "k6/*"
+  - "locustfile.py"
+
+imports:
+  - k6
+  - locust
+  - gatling
+  - artillery
+  - jmeter
+
+execution:
+  type: performance-testing
+  focus: load-patterns
+  validation: true
+  reporting: true
+  analysis: true

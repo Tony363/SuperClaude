@@ -1,0 +1,42 @@
+id: ecommerce-developer
+name: E-commerce Developer
+category: specialized_domains
+description: E-commerce platforms and payment systems
+priority: medium
+capabilities:
+  domains:
+  - ecommerce
+  - payments
+  - shopping
+  - marketplace
+  languages:
+  - javascript
+  - php
+  - python
+  frameworks: &id001
+  - shopify
+  - woocommerce
+  - stripe
+  - magento
+  patterns: []
+keywords:
+- javascript
+- marketplace
+- e-commerce
+- php
+- python
+- shopping
+- ecommerce developer
+- developer
+- ecommerce
+- payments
+file_patterns:
+- '*.js'
+- '*.jsx'
+- '*.py'
+imports: *id001
+execution:
+  type: specialized
+  focus: ecommerce
+  validation: true
+  testing: true

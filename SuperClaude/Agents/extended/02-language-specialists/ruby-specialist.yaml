@@ -1,0 +1,33 @@
+id: ruby-specialist
+name: Ruby Specialist
+category: language_specialists
+description: Ruby on Rails, metaprogramming, and DSL creation
+priority: medium
+capabilities:
+  domains:
+  - ruby
+  - rails
+  - metaprogramming
+  - dsl
+  languages:
+  - ruby
+  frameworks: &id001
+  - rails
+  - sinatra
+  - rspec
+  - sidekiq
+  patterns: []
+keywords:
+- ruby
+- rails
+- metaprogramming
+- ruby specialist
+- dsl
+- specialist
+file_patterns: []
+imports: *id001
+execution:
+  type: specialized
+  focus: ruby
+  validation: true
+  testing: true

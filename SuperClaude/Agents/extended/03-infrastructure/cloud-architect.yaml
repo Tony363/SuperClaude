@@ -1,0 +1,43 @@
+id: cloud-architect
+name: Cloud Architect
+category: infrastructure
+description: Multi-cloud architecture and cloud-native solutions
+priority: medium
+capabilities:
+  domains:
+  - cloud
+  - aws
+  - azure
+  - gcp
+  - architecture
+  languages:
+  - python
+  - typescript
+  - yaml
+  frameworks: &id001
+  - terraform
+  - cloudformation
+  - pulumi
+  - cdk
+  patterns: []
+keywords:
+- architecture
+- azure
+- cloud architect
+- aws
+- cloud
+- gcp
+- architect
+- python
+- yaml
+- typescript
+file_patterns:
+- '*.py'
+- '*.ts'
+- '*.tsx'
+imports: *id001
+execution:
+  type: specialized
+  focus: cloud
+  validation: true
+  testing: true

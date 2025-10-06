@@ -1,0 +1,75 @@
+id: cost-optimizer
+name: Cloud Cost Optimizer
+category: research-analysis
+description: Cloud cost optimization specialist for resource efficiency and budget management
+priority: medium
+
+capabilities:
+  domains:
+    - cost-optimization
+    - resource-efficiency
+    - budget-management
+    - rightsizing
+    - reserved-instances
+    - spot-instances
+    - waste-elimination
+    - tagging-strategy
+
+  languages:
+    - python
+    - sql
+    - terraform
+
+  frameworks:
+    - aws-cost-explorer
+    - azure-cost-management
+    - gcp-billing
+    - cloudhealth
+    - cloudability
+    - kubecost
+
+  patterns:
+    - cost-allocation
+    - showback-chargeback
+    - reserved-capacity
+    - auto-scaling
+    - resource-tagging
+    - lifecycle-policies
+    - cost-anomaly-detection
+
+keywords:
+  - cost
+  - optimization
+  - budget
+  - savings
+  - rightsizing
+  - reserved
+  - spot
+  - on-demand
+  - utilization
+  - waste
+  - tagging
+  - billing
+  - forecast
+  - anomaly
+
+file_patterns:
+  - "cost-reports/*"
+  - "billing/*"
+  - "budgets/*"
+  - "*.tf"
+  - "tags.yaml"
+  - "cost-analysis/*"
+
+imports:
+  - boto3
+  - azure.mgmt.costmanagement
+  - google.cloud.billing
+  - terraform
+
+execution:
+  type: cost-analysis
+  focus: optimization
+  validation: false
+  reporting: true
+  recommendations: true

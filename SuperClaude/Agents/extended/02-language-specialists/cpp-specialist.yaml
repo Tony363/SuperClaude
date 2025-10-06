@@ -1,0 +1,40 @@
+id: cpp-specialist
+name: C++ Specialist
+category: language_specialists
+description: Modern C++, performance optimization, and systems programming
+priority: medium
+capabilities:
+  domains:
+  - cpp
+  - systems
+  - performance
+  - memory
+  languages:
+  - cpp
+  - c
+  frameworks: &id001
+  - boost
+  - qt
+  - cmake
+  - stl
+  patterns: []
+keywords:
+- c++
+- cpp
+- memory
+- cpp specialist
+- systems
+- performance
+- c
+- specialist
+file_patterns:
+- '*.cpp'
+- '*.hpp'
+- '*.cc'
+- '*.h'
+imports: *id001
+execution:
+  type: specialized
+  focus: cpp
+  validation: true
+  testing: true

@@ -1,0 +1,41 @@
+id: blockchain-developer
+name: Blockchain Developer
+category: specialized_domains
+description: Smart contracts and blockchain applications
+priority: medium
+capabilities:
+  domains:
+  - blockchain
+  - web3
+  - smart-contracts
+  - defi
+  languages:
+  - solidity
+  - rust
+  - javascript
+  frameworks: &id001
+  - ethereum
+  - hardhat
+  - truffle
+  - web3js
+  patterns: []
+keywords:
+- defi
+- javascript
+- smart-contracts
+- blockchain
+- solidity
+- blockchain developer
+- web3
+- rust
+- developer
+file_patterns:
+- '*.rs'
+- '*.js'
+- '*.jsx'
+imports: *id001
+execution:
+  type: specialized
+  focus: blockchain
+  validation: true
+  testing: true

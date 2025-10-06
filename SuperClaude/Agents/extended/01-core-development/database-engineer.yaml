@@ -1,0 +1,42 @@
+id: database-engineer
+name: Database Engineer
+category: core_development
+description: Database design, optimization, and management
+priority: medium
+capabilities:
+  domains:
+  - database
+  - sql
+  - nosql
+  - data-modeling
+  - optimization
+  languages:
+  - sql
+  - python
+  - java
+  frameworks: &id001
+  - postgresql
+  - mysql
+  - mongodb
+  - redis
+  - elasticsearch
+  patterns: []
+keywords:
+- java
+- engineer
+- data-modeling
+- optimization
+- database engineer
+- python
+- database
+- sql
+- nosql
+file_patterns:
+- '*.py'
+- '*.java'
+imports: *id001
+execution:
+  type: specialized
+  focus: database
+  validation: true
+  testing: true

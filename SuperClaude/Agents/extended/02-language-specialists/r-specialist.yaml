@@ -1,0 +1,33 @@
+id: r-specialist
+name: R Specialist
+category: language_specialists
+description: Statistical computing and data analysis with R
+priority: medium
+capabilities:
+  domains:
+  - r
+  - statistics
+  - data-analysis
+  - visualization
+  languages:
+  - r
+  frameworks: &id001
+  - tidyverse
+  - shiny
+  - ggplot2
+  - dplyr
+  patterns: []
+keywords:
+- data-analysis
+- statistics
+- r specialist
+- visualization
+- r
+- specialist
+file_patterns: []
+imports: *id001
+execution:
+  type: specialized
+  focus: r
+  validation: true
+  testing: true

@@ -1,0 +1,46 @@
+id: ar-vr-developer
+name: AR/VR Developer
+category: specialized_domains
+description: Augmented and virtual reality applications
+priority: medium
+capabilities:
+  domains:
+  - ar
+  - vr
+  - xr
+  - 3d
+  languages:
+  - csharp
+  - cpp
+  - javascript
+  frameworks: &id001
+  - unity-xr
+  - arcore
+  - arkit
+  - webxr
+  patterns: []
+keywords:
+- ar vr developer
+- vr
+- cpp
+- javascript
+- ar/vr
+- ar
+- xr
+- csharp
+- developer
+- 3d
+file_patterns:
+- '*.cs'
+- '*.cpp'
+- '*.hpp'
+- '*.cc'
+- '*.h'
+- '*.js'
+- '*.jsx'
+imports: *id001
+execution:
+  type: specialized
+  focus: ar
+  validation: true
+  testing: true

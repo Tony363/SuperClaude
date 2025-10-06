@@ -1,0 +1,31 @@
+id: developer-advocate
+name: Developer Advocate
+category: business_product
+description: Developer relations and community
+priority: medium
+capabilities:
+  domains:
+  - devrel
+  - community
+  - evangelism
+  languages:
+  - multiple
+  frameworks: &id001
+  - community-tools
+  - content-creation
+  patterns: []
+keywords:
+- evangelism
+- multiple
+- devrel
+- developer advocate
+- advocate
+- developer
+- community
+file_patterns: []
+imports: *id001
+execution:
+  type: specialized
+  focus: devrel
+  validation: true
+  testing: true

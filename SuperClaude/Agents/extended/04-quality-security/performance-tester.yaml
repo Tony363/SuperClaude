@@ -1,0 +1,40 @@
+id: performance-tester
+name: Performance Tester
+category: quality_security
+description: Load testing, performance analysis, and optimization
+priority: medium
+capabilities:
+  domains:
+  - performance
+  - load-testing
+  - stress-testing
+  languages:
+  - python
+  - java
+  - javascript
+  frameworks: &id001
+  - jmeter
+  - gatling
+  - k6
+  - locust
+  patterns: []
+keywords:
+- javascript
+- load-testing
+- tester
+- python
+- stress-testing
+- java
+- performance
+- performance tester
+file_patterns:
+- '*.py'
+- '*.java'
+- '*.js'
+- '*.jsx'
+imports: *id001
+execution:
+  type: specialized
+  focus: performance
+  validation: true
+  testing: true

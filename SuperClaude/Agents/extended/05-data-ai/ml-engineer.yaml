@@ -1,0 +1,39 @@
+id: ml-engineer
+name: Machine Learning Engineer
+category: data_ai
+description: ML model development, training, and deployment
+priority: medium
+capabilities:
+  domains:
+  - ml
+  - ai
+  - deep-learning
+  - mlops
+  languages:
+  - python
+  - r
+  frameworks: &id001
+  - tensorflow
+  - pytorch
+  - scikit-learn
+  - mlflow
+  patterns: []
+keywords:
+- ml engineer
+- ml
+- ai
+- engineer
+- learning
+- mlops
+- machine
+- r
+- python
+- deep-learning
+file_patterns:
+- '*.py'
+imports: *id001
+execution:
+  type: specialized
+  focus: ml
+  validation: true
+  testing: true

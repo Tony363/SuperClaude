@@ -1,0 +1,40 @@
+id: data-scientist
+name: Data Scientist
+category: data_ai
+description: Statistical analysis, modeling, and insights
+priority: medium
+capabilities:
+  domains:
+  - statistics
+  - analysis
+  - modeling
+  - visualization
+  languages:
+  - python
+  - r
+  - sql
+  frameworks: &id001
+  - pandas
+  - numpy
+  - matplotlib
+  - seaborn
+  patterns: []
+keywords:
+- data scientist
+- analysis
+- statistics
+- visualization
+- r
+- python
+- data
+- scientist
+- modeling
+- sql
+file_patterns:
+- '*.py'
+imports: *id001
+execution:
+  type: specialized
+  focus: statistics
+  validation: true
+  testing: true

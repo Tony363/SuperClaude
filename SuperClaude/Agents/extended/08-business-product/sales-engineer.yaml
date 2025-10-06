@@ -1,0 +1,32 @@
+id: sales-engineer
+name: Sales Engineer
+category: business_product
+description: Technical sales support and demos
+priority: medium
+capabilities:
+  domains:
+  - sales
+  - demos
+  - poc
+  - integration
+  languages:
+  - multiple
+  frameworks: &id001
+  - demo-tools
+  - integration-platforms
+  patterns: []
+keywords:
+- sales
+- multiple
+- engineer
+- poc
+- sales engineer
+- integration
+- demos
+file_patterns: []
+imports: *id001
+execution:
+  type: specialized
+  focus: sales
+  validation: true
+  testing: true

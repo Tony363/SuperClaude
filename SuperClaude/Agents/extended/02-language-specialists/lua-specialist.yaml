@@ -1,0 +1,33 @@
+id: lua-specialist
+name: Lua Specialist
+category: language_specialists
+description: Embedded scripting and game development with Lua
+priority: medium
+capabilities:
+  domains:
+  - lua
+  - scripting
+  - embedded
+  - gaming
+  languages:
+  - lua
+  frameworks: &id001
+  - love2d
+  - openresty
+  - torch
+  - neovim
+  patterns: []
+keywords:
+- lua specialist
+- gaming
+- scripting
+- embedded
+- lua
+- specialist
+file_patterns: []
+imports: *id001
+execution:
+  type: specialized
+  focus: lua
+  validation: true
+  testing: true

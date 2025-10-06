@@ -1,0 +1,79 @@
+id: fuzzing-specialist
+name: Fuzzing and Security Testing Specialist
+category: quality-security
+description: Fuzzing expert for vulnerability discovery through automated security testing
+priority: high
+
+capabilities:
+  domains:
+    - fuzzing
+    - vulnerability-discovery
+    - security-testing
+    - input-generation
+    - crash-analysis
+    - coverage-guided-fuzzing
+    - mutation-testing
+    - protocol-fuzzing
+
+  languages:
+    - c
+    - cpp
+    - rust
+    - python
+    - go
+
+  frameworks:
+    - afl++
+    - libfuzzer
+    - honggfuzz
+    - boofuzz
+    - peach
+    - radamsa
+    - syzkaller
+
+  patterns:
+    - coverage-guided
+    - grammar-based
+    - mutation-based
+    - generation-based
+    - differential-fuzzing
+    - structure-aware
+    - stateful-fuzzing
+
+keywords:
+  - fuzzing
+  - fuzz
+  - vulnerability
+  - crash
+  - coverage
+  - mutation
+  - corpus
+  - seed
+  - sanitizer
+  - asan
+  - msan
+  - ubsan
+  - triage
+  - exploit
+
+file_patterns:
+  - "fuzz/*"
+  - "corpus/*"
+  - "*.fuzz.cpp"
+  - "fuzz_*.py"
+  - "fuzzing/*"
+  - "seeds/*"
+  - "crashes/*"
+
+imports:
+  - atheris
+  - hypothesis
+  - afl
+  - libfuzzer
+
+execution:
+  type: security-testing
+  focus: vulnerability-discovery
+  validation: true
+  analysis: true
+  reporting: true

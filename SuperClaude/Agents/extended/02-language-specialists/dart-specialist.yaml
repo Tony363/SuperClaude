@@ -1,0 +1,33 @@
+id: dart-specialist
+name: Dart Specialist
+category: language_specialists
+description: Flutter development and Dart programming
+priority: medium
+capabilities:
+  domains:
+  - dart
+  - flutter
+  - mobile
+  - cross-platform
+  languages:
+  - dart
+  frameworks: &id001
+  - flutter
+  - dart-sdk
+  - provider
+  - bloc
+  patterns: []
+keywords:
+- flutter
+- dart
+- dart specialist
+- cross-platform
+- mobile
+- specialist
+file_patterns: []
+imports: *id001
+execution:
+  type: specialized
+  focus: dart
+  validation: true
+  testing: true

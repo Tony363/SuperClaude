@@ -1,0 +1,81 @@
+id: embedded-systems
+name: Embedded Systems Engineer
+category: specialized-domains
+description: Embedded systems expert for microcontroller programming, RTOS, and hardware interfaces
+priority: medium
+
+capabilities:
+  domains:
+    - embedded-systems
+    - microcontrollers
+    - rtos
+    - firmware
+    - hardware-interfaces
+    - device-drivers
+    - low-power
+    - real-time
+
+  languages:
+    - c
+    - cpp
+    - assembly
+    - rust
+    - micropython
+
+  frameworks:
+    - freertos
+    - zephyr
+    - mbed
+    - arduino
+    - esp-idf
+    - stm32cube
+    - nordic-sdk
+
+  patterns:
+    - interrupt-handling
+    - dma
+    - state-machines
+    - circular-buffers
+    - power-management
+    - watchdog
+    - bootloaders
+
+keywords:
+  - embedded
+  - microcontroller
+  - mcu
+  - rtos
+  - firmware
+  - gpio
+  - uart
+  - spi
+  - i2c
+  - adc
+  - pwm
+  - interrupt
+  - dma
+  - bootloader
+
+file_patterns:
+  - "*.c"
+  - "*.h"
+  - "*.cpp"
+  - "*.ino"
+  - "*.s"
+  - "Makefile"
+  - "*.ld"
+  - "*.cmake"
+
+imports:
+  - FreeRTOS
+  - HAL
+  - CMSIS
+  - Arduino
+  - ESP32
+
+execution:
+  type: embedded-development
+  focus: resource-efficiency
+  validation: true
+  testing: true
+  hardware: true

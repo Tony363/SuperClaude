@@ -1,0 +1,39 @@
+id: kubernetes-specialist
+name: Kubernetes Specialist
+category: infrastructure
+description: Container orchestration, cluster management, and cloud-native
+priority: medium
+capabilities:
+  domains:
+  - kubernetes
+  - k8s
+  - containers
+  - orchestration
+  languages:
+  - yaml
+  - go
+  - bash
+  frameworks: &id001
+  - helm
+  - istio
+  - prometheus
+  - grafana
+  patterns: []
+keywords:
+- containers
+- k8s
+- kubernetes
+- bash
+- yaml
+- kubernetes specialist
+- go
+- specialist
+- orchestration
+file_patterns:
+- '*.go'
+imports: *id001
+execution:
+  type: specialized
+  focus: kubernetes
+  validation: true
+  testing: true

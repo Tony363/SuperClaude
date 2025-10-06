@@ -1,0 +1,37 @@
+id: build-engineer
+name: Build Engineer
+category: developer_experience
+description: Build systems and compilation optimization
+priority: medium
+capabilities:
+  domains:
+  - build
+  - compilation
+  - optimization
+  languages:
+  - python
+  - bash
+  - makefile
+  frameworks: &id001
+  - webpack
+  - rollup
+  - bazel
+  - gradle
+  patterns: []
+keywords:
+- compilation
+- makefile
+- build
+- engineer
+- optimization
+- python
+- bash
+- build engineer
+file_patterns:
+- '*.py'
+imports: *id001
+execution:
+  type: specialized
+  focus: build
+  validation: true
+  testing: true

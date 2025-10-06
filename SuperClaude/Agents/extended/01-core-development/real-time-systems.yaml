@@ -1,0 +1,48 @@
+id: real-time-systems
+name: Real-Time Systems Developer
+category: core_development
+description: WebSockets, streaming, and real-time communication systems
+priority: medium
+capabilities:
+  domains:
+  - realtime
+  - websockets
+  - streaming
+  - pubsub
+  languages:
+  - javascript
+  - go
+  - rust
+  - python
+  frameworks: &id001
+  - socket.io
+  - signalr
+  - webrtc
+  - kafka
+  - rabbitmq
+  patterns: []
+keywords:
+- websockets
+- javascript
+- real time systems
+- systems
+- real-time
+- pubsub
+- realtime
+- python
+- streaming
+- rust
+- developer
+- go
+file_patterns:
+- '*.js'
+- '*.jsx'
+- '*.go'
+- '*.rs'
+- '*.py'
+imports: *id001
+execution:
+  type: specialized
+  focus: realtime
+  validation: true
+  testing: true

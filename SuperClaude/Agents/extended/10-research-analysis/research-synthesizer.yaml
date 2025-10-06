@@ -1,0 +1,34 @@
+id: research-synthesizer
+name: Research Synthesizer
+category: research_analysis
+description: Synthesizing research from multiple sources
+priority: medium
+capabilities:
+  domains:
+  - research
+  - synthesis
+  - analysis
+  - summary
+  languages:
+  - python
+  frameworks: &id001
+  - nlp
+  - text-mining
+  - knowledge-graphs
+  patterns: []
+keywords:
+- synthesizer
+- analysis
+- research synthesizer
+- summary
+- synthesis
+- research
+- python
+file_patterns:
+- '*.py'
+imports: *id001
+execution:
+  type: specialized
+  focus: research
+  validation: true
+  testing: true

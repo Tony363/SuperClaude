@@ -1,0 +1,46 @@
+id: iot-engineer
+name: IoT Engineer
+category: specialized_domains
+description: Internet of Things and embedded systems
+priority: medium
+capabilities:
+  domains:
+  - iot
+  - embedded
+  - sensors
+  - mqtt
+  languages:
+  - c
+  - cpp
+  - python
+  - rust
+  frameworks: &id001
+  - arduino
+  - raspberry-pi
+  - mqtt
+  - lwm2m
+  patterns: []
+keywords:
+- iot
+- embedded
+- cpp
+- engineer
+- mqtt
+- python
+- iot engineer
+- sensors
+- c
+- rust
+file_patterns:
+- '*.cpp'
+- '*.hpp'
+- '*.cc'
+- '*.h'
+- '*.py'
+- '*.rs'
+imports: *id001
+execution:
+  type: specialized
+  focus: iot
+  validation: true
+  testing: true

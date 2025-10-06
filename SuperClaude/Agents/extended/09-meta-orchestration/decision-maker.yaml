@@ -1,0 +1,32 @@
+id: decision-maker
+name: Decision Making Agent
+category: meta_orchestration
+description: Strategic decision support and analysis
+priority: medium
+capabilities:
+  domains:
+  - decision
+  - strategy
+  - analysis
+  languages:
+  - python
+  frameworks: &id001
+  - decision-trees
+  - optimization
+  patterns: []
+keywords:
+- agent
+- analysis
+- decision maker
+- decision
+- making
+- python
+- strategy
+file_patterns:
+- '*.py'
+imports: *id001
+execution:
+  type: specialized
+  focus: decision
+  validation: true
+  testing: true

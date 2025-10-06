@@ -1,0 +1,36 @@
+id: kotlin-specialist
+name: Kotlin Specialist
+category: language_specialists
+description: Android development, Kotlin Multiplatform, and coroutines
+priority: medium
+capabilities:
+  domains:
+  - kotlin
+  - android
+  - multiplatform
+  - coroutines
+  languages:
+  - kotlin
+  - java
+  frameworks: &id001
+  - android
+  - ktor
+  - compose
+  - coroutines
+  patterns: []
+keywords:
+- kotlin
+- multiplatform
+- kotlin specialist
+- coroutines
+- java
+- android
+- specialist
+file_patterns:
+- '*.java'
+imports: *id001
+execution:
+  type: specialized
+  focus: kotlin
+  validation: true
+  testing: true

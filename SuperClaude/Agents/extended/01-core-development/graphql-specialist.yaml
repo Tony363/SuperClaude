@@ -1,0 +1,81 @@
+id: graphql-specialist
+name: GraphQL API Specialist
+category: core-development
+description: GraphQL expert for schema design, resolver optimization, and federation architecture
+priority: high
+
+capabilities:
+  domains:
+    - graphql
+    - schema-design
+    - resolvers
+    - federation
+    - subscriptions
+    - data-loading
+    - caching
+    - performance
+
+  languages:
+    - javascript
+    - typescript
+    - python
+    - go
+    - java
+
+  frameworks:
+    - apollo-server
+    - graphql-yoga
+    - graphene
+    - strawberry
+    - gqlgen
+    - hasura
+
+  patterns:
+    - schema-first
+    - code-first
+    - federation
+    - dataloader
+    - batching
+    - caching
+    - subscriptions
+    - schema-stitching
+
+keywords:
+  - graphql
+  - schema
+  - resolver
+  - mutation
+  - query
+  - subscription
+  - federation
+  - apollo
+  - relay
+  - dataloader
+  - introspection
+  - directive
+  - scalar
+  - union
+
+file_patterns:
+  - "*.graphql"
+  - "*.gql"
+  - "schema.graphql"
+  - "resolvers/*"
+  - "graphql/*"
+  - "*.resolver.ts"
+  - "*.resolver.js"
+
+imports:
+  - graphql
+  - apollo-server
+  - graphql-tools
+  - dataloader
+  - graphene
+  - strawberry
+
+execution:
+  type: api-development
+  focus: schema-design
+  validation: true
+  testing: true
+  performance: true

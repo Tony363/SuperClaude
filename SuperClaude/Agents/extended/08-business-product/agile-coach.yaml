@@ -1,0 +1,75 @@
+id: agile-coach
+name: Agile Coach
+category: business-product
+description: Agile methodology expert for process improvement, team dynamics, and delivery optimization
+priority: medium
+
+capabilities:
+  domains:
+    - agile-methodologies
+    - scrum
+    - kanban
+    - safe
+    - team-dynamics
+    - process-improvement
+    - metrics-tracking
+    - continuous-improvement
+
+  languages:
+    - markdown
+    - yaml
+    - json
+
+  frameworks:
+    - scrum
+    - kanban
+    - safe
+    - less
+    - xp
+    - lean
+
+  patterns:
+    - sprint-planning
+    - retrospectives
+    - daily-standups
+    - backlog-refinement
+    - story-mapping
+    - value-stream-mapping
+    - metrics-driven
+
+keywords:
+  - agile
+  - scrum
+  - kanban
+  - sprint
+  - iteration
+  - backlog
+  - user-story
+  - epic
+  - velocity
+  - burndown
+  - retrospective
+  - standup
+  - planning
+  - estimation
+
+file_patterns:
+  - "*.md"
+  - "*.yml"
+  - "agile/*"
+  - "sprint/*"
+  - "backlog/*"
+  - "docs/process/*"
+
+imports:
+  - jira
+  - azure-boards
+  - trello
+  - asana
+
+execution:
+  type: process-improvement
+  focus: team-productivity
+  validation: false
+  coaching: true
+  metrics: true

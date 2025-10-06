@@ -1,0 +1,34 @@
+id: recommendation-systems
+name: Recommendation Systems Engineer
+category: data_ai
+description: Recommendation algorithms and personalization
+priority: medium
+capabilities:
+  domains:
+  - recommendations
+  - collaborative-filtering
+  - personalization
+  languages:
+  - python
+  frameworks: &id001
+  - surprise
+  - lightfm
+  - tensorflow-recommenders
+  patterns: []
+keywords:
+- recommendations
+- personalization
+- recommendation
+- engineer
+- systems
+- python
+- recommendation systems
+- collaborative-filtering
+file_patterns:
+- '*.py'
+imports: *id001
+execution:
+  type: specialized
+  focus: recommendations
+  validation: true
+  testing: true

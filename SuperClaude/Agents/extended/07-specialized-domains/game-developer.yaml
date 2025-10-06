@@ -1,0 +1,44 @@
+id: game-developer
+name: Game Developer
+category: specialized_domains
+description: Game development and engine programming
+priority: medium
+capabilities:
+  domains:
+  - gaming
+  - graphics
+  - physics
+  - ai
+  languages:
+  - cpp
+  - csharp
+  - lua
+  frameworks: &id001
+  - unity
+  - unreal
+  - godot
+  - phaser
+  patterns: []
+keywords:
+- ai
+- graphics
+- gaming
+- cpp
+- lua
+- game
+- csharp
+- game developer
+- physics
+- developer
+file_patterns:
+- '*.cpp'
+- '*.hpp'
+- '*.cc'
+- '*.h'
+- '*.cs'
+imports: *id001
+execution:
+  type: specialized
+  focus: gaming
+  validation: true
+  testing: true

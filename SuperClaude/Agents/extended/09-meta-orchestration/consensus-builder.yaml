@@ -1,0 +1,31 @@
+id: consensus-builder
+name: Consensus Builder
+category: meta_orchestration
+description: Building consensus from multiple perspectives
+priority: medium
+capabilities:
+  domains:
+  - consensus
+  - voting
+  - aggregation
+  languages:
+  - python
+  frameworks: &id001
+  - voting-systems
+  - consensus-algorithms
+  patterns: []
+keywords:
+- consensus
+- aggregation
+- python
+- builder
+- voting
+- consensus builder
+file_patterns:
+- '*.py'
+imports: *id001
+execution:
+  type: specialized
+  focus: consensus
+  validation: true
+  testing: true

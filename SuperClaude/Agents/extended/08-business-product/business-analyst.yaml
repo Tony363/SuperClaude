@@ -1,0 +1,37 @@
+id: business-analyst
+name: Business Analyst
+category: business_product
+description: Business requirements and process optimization
+priority: medium
+capabilities:
+  domains:
+  - business
+  - requirements
+  - process
+  - analysis
+  languages:
+  - sql
+  - python
+  frameworks: &id001
+  - bpmn
+  - uml
+  - excel
+  - tableau
+  patterns: []
+keywords:
+- analysis
+- business analyst
+- business
+- process
+- analyst
+- python
+- sql
+- requirements
+file_patterns:
+- '*.py'
+imports: *id001
+execution:
+  type: specialized
+  focus: business
+  validation: true
+  testing: true

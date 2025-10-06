@@ -1,0 +1,33 @@
+id: scala-specialist
+name: Scala Specialist
+category: language_specialists
+description: Functional programming, Akka, and big data with Scala
+priority: medium
+capabilities:
+  domains:
+  - scala
+  - functional
+  - akka
+  - spark
+  languages:
+  - scala
+  frameworks: &id001
+  - akka
+  - play
+  - spark
+  - cats
+  patterns: []
+keywords:
+- spark
+- functional
+- akka
+- scala specialist
+- scala
+- specialist
+file_patterns: []
+imports: *id001
+execution:
+  type: specialized
+  focus: scala
+  validation: true
+  testing: true

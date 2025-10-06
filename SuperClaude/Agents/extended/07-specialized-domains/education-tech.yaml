@@ -1,0 +1,39 @@
+id: education-tech
+name: EdTech Developer
+category: specialized_domains
+description: Educational technology and learning platforms
+priority: medium
+capabilities:
+  domains:
+  - edtech
+  - lms
+  - e-learning
+  - assessment
+  languages:
+  - javascript
+  - python
+  frameworks: &id001
+  - moodle
+  - canvas
+  - scorm
+  - xapi
+  patterns: []
+keywords:
+- e-learning
+- javascript
+- assessment
+- education tech
+- python
+- edtech
+- developer
+- lms
+file_patterns:
+- '*.js'
+- '*.jsx'
+- '*.py'
+imports: *id001
+execution:
+  type: specialized
+  focus: edtech
+  validation: true
+  testing: true

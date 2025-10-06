@@ -1,0 +1,34 @@
+id: trend-forecaster
+name: Trend Forecasting Specialist
+category: research_analysis
+description: Technology and market trend forecasting
+priority: medium
+capabilities:
+  domains:
+  - forecasting
+  - trends
+  - prediction
+  languages:
+  - python
+  - r
+  frameworks: &id001
+  - forecasting-models
+  - time-series
+  patterns: []
+keywords:
+- trends
+- trend forecaster
+- trend
+- r
+- prediction
+- python
+- forecasting
+- specialist
+file_patterns:
+- '*.py'
+imports: *id001
+execution:
+  type: specialized
+  focus: forecasting
+  validation: true
+  testing: true

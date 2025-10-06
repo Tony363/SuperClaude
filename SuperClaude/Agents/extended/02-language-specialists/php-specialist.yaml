@@ -1,0 +1,33 @@
+id: php-specialist
+name: PHP Specialist
+category: language_specialists
+description: Modern PHP, Laravel, and web application development
+priority: medium
+capabilities:
+  domains:
+  - php
+  - web
+  - laravel
+  - symfony
+  languages:
+  - php
+  frameworks: &id001
+  - laravel
+  - symfony
+  - wordpress
+  - composer
+  patterns: []
+keywords:
+- symfony
+- php specialist
+- web
+- php
+- laravel
+- specialist
+file_patterns: []
+imports: *id001
+execution:
+  type: specialized
+  focus: php
+  validation: true
+  testing: true

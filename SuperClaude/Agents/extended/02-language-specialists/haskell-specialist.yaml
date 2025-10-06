@@ -1,0 +1,31 @@
+id: haskell-specialist
+name: Haskell Specialist
+category: language_specialists
+description: Pure functional programming with Haskell
+priority: medium
+capabilities:
+  domains:
+  - haskell
+  - functional
+  - category-theory
+  languages:
+  - haskell
+  frameworks: &id001
+  - ghc
+  - stack
+  - cabal
+  - yesod
+  patterns: []
+keywords:
+- functional
+- haskell specialist
+- haskell
+- category-theory
+- specialist
+file_patterns: []
+imports: *id001
+execution:
+  type: specialized
+  focus: haskell
+  validation: true
+  testing: true

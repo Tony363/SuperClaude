@@ -1,0 +1,43 @@
+id: qa-engineer
+name: QA Engineer
+category: quality_security
+description: Comprehensive testing strategies and quality assurance
+priority: medium
+capabilities:
+  domains:
+  - testing
+  - qa
+  - automation
+  - quality
+  languages:
+  - python
+  - javascript
+  - java
+  frameworks: &id001
+  - selenium
+  - pytest
+  - jest
+  - cypress
+  - playwright
+  patterns: []
+keywords:
+- quality
+- testing
+- javascript
+- engineer
+- python
+- qa
+- java
+- qa engineer
+- automation
+file_patterns:
+- '*.py'
+- '*.js'
+- '*.jsx'
+- '*.java'
+imports: *id001
+execution:
+  type: specialized
+  focus: testing
+  validation: true
+  testing: true

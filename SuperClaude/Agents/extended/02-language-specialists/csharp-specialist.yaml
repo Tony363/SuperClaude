@@ -1,0 +1,37 @@
+id: csharp-specialist
+name: C# Specialist
+category: language_specialists
+description: .NET ecosystem, enterprise applications, and game development
+priority: medium
+capabilities:
+  domains:
+  - csharp
+  - dotnet
+  - enterprise
+  - gaming
+  languages:
+  - csharp
+  - fsharp
+  frameworks: &id001
+  - dotnet
+  - aspnet
+  - entity-framework
+  - unity
+  patterns: []
+keywords:
+- gaming
+- c#
+- csharp specialist
+- fsharp
+- csharp
+- enterprise
+- specialist
+- dotnet
+file_patterns:
+- '*.cs'
+imports: *id001
+execution:
+  type: specialized
+  focus: csharp
+  validation: true
+  testing: true

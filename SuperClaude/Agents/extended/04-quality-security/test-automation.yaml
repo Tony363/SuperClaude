@@ -1,0 +1,43 @@
+id: test-automation
+name: Test Automation Engineer
+category: quality_security
+description: Automated testing frameworks and continuous testing
+priority: medium
+capabilities:
+  domains:
+  - automation
+  - testing
+  - e2e
+  - integration
+  languages:
+  - python
+  - javascript
+  - java
+  frameworks: &id001
+  - selenium
+  - appium
+  - testcafe
+  - robot
+  patterns: []
+keywords:
+- testing
+- javascript
+- engineer
+- e2e
+- integration
+- python
+- test automation
+- java
+- automation
+- test
+file_patterns:
+- '*.py'
+- '*.js'
+- '*.jsx'
+- '*.java'
+imports: *id001
+execution:
+  type: specialized
+  focus: automation
+  validation: true
+  testing: true

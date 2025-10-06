@@ -1,0 +1,36 @@
+id: data-privacy-officer
+name: Data Privacy Officer
+category: business_product
+description: Data privacy and compliance
+priority: medium
+capabilities:
+  domains:
+  - privacy
+  - gdpr
+  - compliance
+  - data-protection
+  languages:
+  - sql
+  - python
+  frameworks: &id001
+  - privacy-tools
+  - compliance-frameworks
+  patterns: []
+keywords:
+- data privacy officer
+- gdpr
+- compliance
+- python
+- data
+- privacy
+- sql
+- data-protection
+- officer
+file_patterns:
+- '*.py'
+imports: *id001
+execution:
+  type: specialized
+  focus: privacy
+  validation: true
+  testing: true

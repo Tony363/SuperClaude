@@ -1,0 +1,35 @@
+id: llm-specialist
+name: LLM Specialist
+category: data_ai
+description: Large language models and prompt engineering
+priority: medium
+capabilities:
+  domains:
+  - llm
+  - nlp
+  - prompt-engineering
+  - fine-tuning
+  languages:
+  - python
+  frameworks: &id001
+  - openai
+  - anthropic
+  - langchain
+  - llamaindex
+  patterns: []
+keywords:
+- nlp
+- fine-tuning
+- llm
+- python
+- prompt-engineering
+- llm specialist
+- specialist
+file_patterns:
+- '*.py'
+imports: *id001
+execution:
+  type: specialized
+  focus: llm
+  validation: true
+  testing: true

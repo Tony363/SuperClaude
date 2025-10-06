@@ -1,0 +1,36 @@
+id: terraform-specialist
+name: Terraform Specialist
+category: infrastructure
+description: Infrastructure as Code with Terraform
+priority: medium
+capabilities:
+  domains:
+  - iac
+  - terraform
+  - infrastructure
+  - automation
+  languages:
+  - hcl
+  - python
+  frameworks: &id001
+  - terraform
+  - terragrunt
+  - atlantis
+  patterns: []
+keywords:
+- terraform specialist
+- terraform
+- infrastructure
+- python
+- iac
+- hcl
+- automation
+- specialist
+file_patterns:
+- '*.py'
+imports: *id001
+execution:
+  type: specialized
+  focus: iac
+  validation: true
+  testing: true

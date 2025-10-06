@@ -1,0 +1,41 @@
+id: computer-vision
+name: Computer Vision Engineer
+category: data_ai
+description: Image processing and computer vision
+priority: medium
+capabilities:
+  domains:
+  - cv
+  - image-processing
+  - object-detection
+  languages:
+  - python
+  - cpp
+  frameworks: &id001
+  - opencv
+  - yolo
+  - detectron
+  - mediapipe
+  patterns: []
+keywords:
+- cpp
+- cv
+- engineer
+- object-detection
+- computer vision
+- python
+- image-processing
+- computer
+- vision
+file_patterns:
+- '*.py'
+- '*.cpp'
+- '*.hpp'
+- '*.cc'
+- '*.h'
+imports: *id001
+execution:
+  type: specialized
+  focus: cv
+  validation: true
+  testing: true

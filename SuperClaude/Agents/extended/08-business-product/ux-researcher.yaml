@@ -1,0 +1,38 @@
+id: ux-researcher
+name: UX Researcher
+category: business_product
+description: User research and usability testing
+priority: medium
+capabilities:
+  domains:
+  - ux
+  - research
+  - usability
+  - analytics
+  languages:
+  - javascript
+  - python
+  frameworks: &id001
+  - hotjar
+  - fullstory
+  - mixpanel
+  patterns: []
+keywords:
+- researcher
+- ux researcher
+- javascript
+- analytics
+- research
+- python
+- usability
+- ux
+file_patterns:
+- '*.js'
+- '*.jsx'
+- '*.py'
+imports: *id001
+execution:
+  type: specialized
+  focus: ux
+  validation: true
+  testing: true

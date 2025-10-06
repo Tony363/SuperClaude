@@ -1,0 +1,38 @@
+id: docker-specialist
+name: Docker Specialist
+category: infrastructure
+description: Containerization, Docker, and container security
+priority: medium
+capabilities:
+  domains:
+  - docker
+  - containers
+  - containerization
+  - security
+  languages:
+  - dockerfile
+  - yaml
+  - bash
+  frameworks: &id001
+  - docker
+  - docker-compose
+  - buildkit
+  - containerd
+  patterns: []
+keywords:
+- containers
+- security
+- docker
+- containerization
+- docker specialist
+- dockerfile
+- yaml
+- bash
+- specialist
+file_patterns: []
+imports: *id001
+execution:
+  type: specialized
+  focus: docker
+  validation: true
+  testing: true

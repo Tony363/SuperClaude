@@ -1,0 +1,33 @@
+id: perl-specialist
+name: Perl Specialist
+category: language_specialists
+description: Text processing, system administration, and web development
+priority: medium
+capabilities:
+  domains:
+  - perl
+  - regex
+  - scripting
+  - web
+  languages:
+  - perl
+  frameworks: &id001
+  - mojolicious
+  - catalyst
+  - dancer
+  - cpan
+  patterns: []
+keywords:
+- perl
+- scripting
+- regex
+- perl specialist
+- web
+- specialist
+file_patterns: []
+imports: *id001
+execution:
+  type: specialized
+  focus: perl
+  validation: true
+  testing: true

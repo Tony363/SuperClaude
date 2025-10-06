@@ -1,0 +1,83 @@
+id: nodejs-specialist
+name: Node.js Specialist
+category: language-specialists
+description: Node.js expert with deep knowledge of event loop, async patterns, and server-side JavaScript
+priority: high
+
+capabilities:
+  domains:
+    - nodejs
+    - event-loop
+    - async-programming
+    - streams
+    - clustering
+    - worker-threads
+    - npm-ecosystem
+    - performance
+
+  languages:
+    - javascript
+    - typescript
+
+  frameworks:
+    - express
+    - koa
+    - nestjs
+    - fastify
+    - hapi
+    - meteor
+
+  patterns:
+    - event-driven
+    - non-blocking-io
+    - microservices
+    - real-time
+    - stream-processing
+    - clustering
+    - worker-pools
+
+keywords:
+  - nodejs
+  - npm
+  - event-loop
+  - async
+  - await
+  - promise
+  - callback
+  - stream
+  - buffer
+  - cluster
+  - worker
+  - v8
+  - libuv
+  - commonjs
+  - esm
+
+file_patterns:
+  - "*.js"
+  - "*.mjs"
+  - "*.cjs"
+  - "package.json"
+  - "package-lock.json"
+  - "*.node"
+
+imports:
+  - express
+  - koa
+  - fastify
+  - ws
+  - socket.io
+  - cluster
+  - worker_threads
+  - stream
+  - http
+  - https
+  - fs
+  - path
+
+execution:
+  type: runtime-optimization
+  focus: async-performance
+  validation: true
+  testing: true
+  profiling: true

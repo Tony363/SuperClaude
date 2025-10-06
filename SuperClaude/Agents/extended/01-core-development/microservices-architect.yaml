@@ -1,0 +1,44 @@
+id: microservices-architect
+name: Microservices Architect
+category: core_development
+description: Design and implementation of microservices architectures
+priority: medium
+capabilities:
+  domains:
+  - microservices
+  - distributed-systems
+  - service-mesh
+  - api-gateway
+  languages:
+  - go
+  - java
+  - python
+  - rust
+  frameworks: &id001
+  - kubernetes
+  - istio
+  - consul
+  - spring-cloud
+  patterns: []
+keywords:
+- api-gateway
+- service-mesh
+- distributed-systems
+- architect
+- python
+- microservices architect
+- rust
+- java
+- go
+- microservices
+file_patterns:
+- '*.go'
+- '*.java'
+- '*.py'
+- '*.rs'
+imports: *id001
+execution:
+  type: specialized
+  focus: microservices
+  validation: true
+  testing: true

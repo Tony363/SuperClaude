@@ -1,0 +1,41 @@
+id: sre-engineer
+name: Site Reliability Engineer
+category: infrastructure
+description: Reliability, observability, and incident management
+priority: medium
+capabilities:
+  domains:
+  - sre
+  - reliability
+  - observability
+  - monitoring
+  languages:
+  - python
+  - go
+  - bash
+  frameworks: &id001
+  - prometheus
+  - grafana
+  - datadog
+  - pagerduty
+  patterns: []
+keywords:
+- sre
+- reliability
+- sre engineer
+- engineer
+- bash
+- observability
+- python
+- monitoring
+- go
+- site
+file_patterns:
+- '*.py'
+- '*.go'
+imports: *id001
+execution:
+  type: specialized
+  focus: sre
+  validation: true
+  testing: true

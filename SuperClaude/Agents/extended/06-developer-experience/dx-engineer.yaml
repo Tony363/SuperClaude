@@ -1,0 +1,43 @@
+id: dx-engineer
+name: Developer Experience Engineer
+category: developer_experience
+description: Developer tools, productivity, and workflow optimization
+priority: medium
+capabilities:
+  domains:
+  - dx
+  - tooling
+  - productivity
+  - automation
+  languages:
+  - typescript
+  - python
+  - go
+  frameworks: &id001
+  - vscode
+  - cli-tools
+  - sdk-design
+  patterns: []
+keywords:
+- productivity
+- dx engineer
+- engineer
+- go
+- experience
+- python
+- tooling
+- developer
+- automation
+- typescript
+- dx
+file_patterns:
+- '*.ts'
+- '*.tsx'
+- '*.py'
+- '*.go'
+imports: *id001
+execution:
+  type: specialized
+  focus: dx
+  validation: true
+  testing: true

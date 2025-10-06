@@ -1,0 +1,40 @@
+id: package-maintainer
+name: Package Maintainer
+category: developer_experience
+description: Package management and distribution
+priority: medium
+capabilities:
+  domains:
+  - packages
+  - dependencies
+  - versioning
+  languages:
+  - javascript
+  - python
+  - ruby
+  frameworks: &id001
+  - npm
+  - pip
+  - gem
+  - cargo
+  patterns: []
+keywords:
+- packages
+- javascript
+- maintainer
+- package
+- package maintainer
+- dependencies
+- python
+- versioning
+- ruby
+file_patterns:
+- '*.js'
+- '*.jsx'
+- '*.py'
+imports: *id001
+execution:
+  type: specialized
+  focus: packages
+  validation: true
+  testing: true

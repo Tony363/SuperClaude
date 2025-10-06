@@ -1,0 +1,34 @@
+id: elixir-specialist
+name: Elixir Specialist
+category: language_specialists
+description: Concurrent, fault-tolerant applications with Elixir
+priority: medium
+capabilities:
+  domains:
+  - elixir
+  - erlang
+  - otp
+  - phoenix
+  languages:
+  - elixir
+  - erlang
+  frameworks: &id001
+  - phoenix
+  - nerves
+  - otp
+  - ecto
+  patterns: []
+keywords:
+- elixir specialist
+- phoenix
+- otp
+- elixir
+- erlang
+- specialist
+file_patterns: []
+imports: *id001
+execution:
+  type: specialized
+  focus: elixir
+  validation: true
+  testing: true

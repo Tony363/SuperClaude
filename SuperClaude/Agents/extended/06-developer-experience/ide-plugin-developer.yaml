@@ -1,0 +1,38 @@
+id: ide-plugin-developer
+name: IDE Plugin Developer
+category: developer_experience
+description: IDE extensions and editor plugins
+priority: medium
+capabilities:
+  domains:
+  - ide
+  - plugins
+  - extensions
+  - editor
+  languages:
+  - typescript
+  - java
+  frameworks: &id001
+  - vscode-api
+  - intellij-platform
+  patterns: []
+keywords:
+- ide
+- java
+- editor
+- plugins
+- extensions
+- plugin
+- developer
+- ide plugin developer
+- typescript
+file_patterns:
+- '*.ts'
+- '*.tsx'
+- '*.java'
+imports: *id001
+execution:
+  type: specialized
+  focus: ide
+  validation: true
+  testing: true

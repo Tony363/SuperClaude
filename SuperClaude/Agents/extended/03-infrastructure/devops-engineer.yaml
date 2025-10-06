@@ -1,0 +1,40 @@
+id: devops-engineer
+name: DevOps Engineer
+category: infrastructure
+description: CI/CD pipelines, automation, and infrastructure management
+priority: medium
+capabilities:
+  domains:
+  - devops
+  - cicd
+  - automation
+  - monitoring
+  languages:
+  - python
+  - bash
+  - yaml
+  frameworks: &id001
+  - jenkins
+  - gitlab-ci
+  - github-actions
+  - terraform
+  - ansible
+  patterns: []
+keywords:
+- engineer
+- devops engineer
+- cicd
+- bash
+- python
+- devops
+- yaml
+- monitoring
+- automation
+file_patterns:
+- '*.py'
+imports: *id001
+execution:
+  type: specialized
+  focus: devops
+  validation: true
+  testing: true

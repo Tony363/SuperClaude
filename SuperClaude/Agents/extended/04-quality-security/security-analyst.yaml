@@ -1,0 +1,39 @@
+id: security-analyst
+name: Security Analyst
+category: quality_security
+description: Security assessment, vulnerability analysis, and threat modeling
+priority: medium
+capabilities:
+  domains:
+  - security
+  - vulnerability
+  - pentesting
+  - threat-modeling
+  languages:
+  - python
+  - bash
+  - ruby
+  frameworks: &id001
+  - metasploit
+  - burp
+  - owasp
+  - nmap
+  patterns: []
+keywords:
+- security analyst
+- pentesting
+- threat-modeling
+- ruby
+- vulnerability
+- analyst
+- python
+- bash
+- security
+file_patterns:
+- '*.py'
+imports: *id001
+execution:
+  type: specialized
+  focus: security
+  validation: true
+  testing: true

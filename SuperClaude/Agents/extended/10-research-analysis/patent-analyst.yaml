@@ -1,0 +1,34 @@
+id: patent-analyst
+name: Patent Analyst
+category: research_analysis
+description: Patent research and intellectual property
+priority: medium
+capabilities:
+  domains:
+  - patents
+  - ip
+  - research
+  - analysis
+  languages:
+  - python
+  frameworks: &id001
+  - patent-databases
+  - nlp-tools
+  patterns: []
+keywords:
+- analysis
+- patent
+- patents
+- ip
+- analyst
+- research
+- python
+- patent analyst
+file_patterns:
+- '*.py'
+imports: *id001
+execution:
+  type: specialized
+  focus: patents
+  validation: true
+  testing: true

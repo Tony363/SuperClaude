@@ -1,0 +1,35 @@
+id: ai-architect
+name: AI Architect
+category: data_ai
+description: AI system design and architecture
+priority: medium
+capabilities:
+  domains:
+  - ai
+  - architecture
+  - llm
+  - nlp
+  languages:
+  - python
+  frameworks: &id001
+  - transformers
+  - langchain
+  - openai
+  - huggingface
+  patterns: []
+keywords:
+- ai architect
+- architecture
+- ai
+- nlp
+- llm
+- architect
+- python
+file_patterns:
+- '*.py'
+imports: *id001
+execution:
+  type: specialized
+  focus: ai
+  validation: true
+  testing: true

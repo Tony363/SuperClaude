@@ -1,0 +1,33 @@
+id: technology-scout
+name: Technology Scout
+category: research_analysis
+description: Emerging technology identification and evaluation
+priority: medium
+capabilities:
+  domains:
+  - technology
+  - innovation
+  - trends
+  - evaluation
+  languages:
+  - python
+  frameworks: &id001
+  - research-tools
+  - trend-analysis
+  patterns: []
+keywords:
+- evaluation
+- trends
+- technology scout
+- python
+- scout
+- technology
+- innovation
+file_patterns:
+- '*.py'
+imports: *id001
+execution:
+  type: specialized
+  focus: technology
+  validation: true
+  testing: true

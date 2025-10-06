@@ -1,0 +1,77 @@
+id: solidity-specialist
+name: Solidity Smart Contract Developer
+category: language-specialists
+description: Solidity expert for Ethereum smart contract development, security, and optimization
+priority: high
+
+capabilities:
+  domains:
+    - solidity
+    - smart-contracts
+    - ethereum
+    - defi
+    - nft
+    - security
+    - gas-optimization
+    - upgradeable-contracts
+
+  languages:
+    - solidity
+    - javascript
+    - typescript
+
+  frameworks:
+    - hardhat
+    - truffle
+    - foundry
+    - openzeppelin
+    - web3js
+    - ethers
+
+  patterns:
+    - factory-pattern
+    - proxy-pattern
+    - diamond-pattern
+    - access-control
+    - reentrancy-guard
+    - check-effects-interactions
+    - pull-payment
+
+keywords:
+  - solidity
+  - smart-contract
+  - ethereum
+  - blockchain
+  - web3
+  - defi
+  - nft
+  - erc20
+  - erc721
+  - erc1155
+  - gas
+  - wei
+  - ether
+  - modifier
+
+file_patterns:
+  - "*.sol"
+  - "hardhat.config.js"
+  - "truffle-config.js"
+  - "foundry.toml"
+  - "contracts/*.sol"
+  - "test/*.js"
+  - "scripts/deploy.js"
+
+imports:
+  - openzeppelin
+  - hardhat
+  - ethers
+  - web3
+  - chai
+
+execution:
+  type: smart-contract-development
+  focus: security
+  validation: true
+  testing: true
+  audit: true

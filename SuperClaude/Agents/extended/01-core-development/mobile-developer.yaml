@@ -1,0 +1,45 @@
+id: mobile-developer
+name: Mobile Developer
+category: core_development
+description: Native and cross-platform mobile application development
+priority: medium
+capabilities:
+  domains:
+  - mobile
+  - ios
+  - android
+  - cross-platform
+  languages:
+  - swift
+  - kotlin
+  - java
+  - dart
+  - javascript
+  frameworks: &id001
+  - react-native
+  - flutter
+  - swiftui
+  - jetpack-compose
+  patterns: []
+keywords:
+- developer
+- dart
+- mobile developer
+- javascript
+- ios
+- cross-platform
+- mobile
+- swift
+- java
+- android
+- kotlin
+file_patterns:
+- '*.java'
+- '*.js'
+- '*.jsx'
+imports: *id001
+execution:
+  type: specialized
+  focus: mobile
+  validation: true
+  testing: true

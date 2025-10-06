@@ -1,0 +1,38 @@
+id: security-operations
+name: Security Operations Engineer
+category: infrastructure
+description: Infrastructure security and compliance
+priority: medium
+capabilities:
+  domains:
+  - security
+  - compliance
+  - scanning
+  - hardening
+  languages:
+  - python
+  - bash
+  frameworks: &id001
+  - vault
+  - trivy
+  - falco
+  - opensca
+  patterns: []
+keywords:
+- compliance
+- engineer
+- hardening
+- security operations
+- scanning
+- python
+- operations
+- bash
+- security
+file_patterns:
+- '*.py'
+imports: *id001
+execution:
+  type: specialized
+  focus: security
+  validation: true
+  testing: true

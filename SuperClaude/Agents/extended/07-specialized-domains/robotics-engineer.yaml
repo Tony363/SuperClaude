@@ -1,0 +1,41 @@
+id: robotics-engineer
+name: Robotics Engineer
+category: specialized_domains
+description: Robotics and autonomous systems
+priority: medium
+capabilities:
+  domains:
+  - robotics
+  - ros
+  - autonomous
+  - control
+  languages:
+  - cpp
+  - python
+  frameworks: &id001
+  - ros
+  - ros2
+  - gazebo
+  - moveit
+  patterns: []
+keywords:
+- autonomous
+- cpp
+- engineer
+- robotics
+- robotics engineer
+- control
+- python
+- ros
+file_patterns:
+- '*.cpp'
+- '*.hpp'
+- '*.cc'
+- '*.h'
+- '*.py'
+imports: *id001
+execution:
+  type: specialized
+  focus: robotics
+  validation: true
+  testing: true

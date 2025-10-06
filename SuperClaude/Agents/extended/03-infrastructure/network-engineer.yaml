@@ -1,0 +1,38 @@
+id: network-engineer
+name: Network Engineer
+category: infrastructure
+description: Network architecture, security, and optimization
+priority: medium
+capabilities:
+  domains:
+  - networking
+  - tcp-ip
+  - security
+  - load-balancing
+  languages:
+  - python
+  - bash
+  frameworks: &id001
+  - nginx
+  - haproxy
+  - istio
+  - envoy
+  patterns: []
+keywords:
+- security
+- engineer
+- network
+- networking
+- python
+- load-balancing
+- bash
+- tcp-ip
+- network engineer
+file_patterns:
+- '*.py'
+imports: *id001
+execution:
+  type: specialized
+  focus: networking
+  validation: true
+  testing: true

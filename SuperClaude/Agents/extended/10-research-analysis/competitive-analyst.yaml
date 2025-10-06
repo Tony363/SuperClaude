@@ -1,0 +1,33 @@
+id: competitive-analyst
+name: Competitive Intelligence Analyst
+category: research_analysis
+description: Competitor analysis and strategic insights
+priority: medium
+capabilities:
+  domains:
+  - competitive
+  - intelligence
+  - strategy
+  languages:
+  - python
+  - sql
+  frameworks: &id001
+  - bi-tools
+  - data-mining
+  patterns: []
+keywords:
+- competitive analyst
+- analyst
+- intelligence
+- python
+- sql
+- competitive
+- strategy
+file_patterns:
+- '*.py'
+imports: *id001
+execution:
+  type: specialized
+  focus: competitive
+  validation: true
+  testing: true

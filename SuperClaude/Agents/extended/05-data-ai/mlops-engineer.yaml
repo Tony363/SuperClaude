@@ -1,0 +1,37 @@
+id: mlops-engineer
+name: MLOps Engineer
+category: data_ai
+description: ML operations and model deployment
+priority: medium
+capabilities:
+  domains:
+  - mlops
+  - deployment
+  - monitoring
+  - versioning
+  languages:
+  - python
+  - yaml
+  frameworks: &id001
+  - mlflow
+  - kubeflow
+  - seldon
+  - bentoml
+  patterns: []
+keywords:
+- versioning
+- deployment
+- engineer
+- mlops
+- python
+- yaml
+- mlops engineer
+- monitoring
+file_patterns:
+- '*.py'
+imports: *id001
+execution:
+  type: specialized
+  focus: mlops
+  validation: true
+  testing: true

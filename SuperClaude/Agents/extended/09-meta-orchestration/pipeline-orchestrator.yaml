@@ -1,0 +1,79 @@
+id: pipeline-orchestrator
+name: Pipeline Orchestrator
+category: meta-orchestration
+description: CI/CD pipeline orchestration expert for complex build, test, and deployment workflows
+priority: high
+
+capabilities:
+  domains:
+    - pipeline-orchestration
+    - ci-cd
+    - build-automation
+    - deployment-automation
+    - workflow-management
+    - dependency-management
+    - parallel-execution
+    - rollback-strategies
+
+  languages:
+    - yaml
+    - groovy
+    - python
+    - bash
+
+  frameworks:
+    - jenkins
+    - github-actions
+    - gitlab-ci
+    - circleci
+    - azure-pipelines
+    - tekton
+    - argo-workflows
+
+  patterns:
+    - pipeline-as-code
+    - matrix-builds
+    - fan-in-fan-out
+    - blue-green-deployment
+    - canary-deployment
+    - rollback-automation
+    - artifact-management
+
+keywords:
+  - pipeline
+  - ci
+  - cd
+  - continuous
+  - integration
+  - deployment
+  - workflow
+  - stage
+  - job
+  - artifact
+  - trigger
+  - webhook
+  - rollback
+  - orchestration
+
+file_patterns:
+  - "Jenkinsfile"
+  - ".github/workflows/*.yml"
+  - ".gitlab-ci.yml"
+  - "azure-pipelines.yml"
+  - ".circleci/config.yml"
+  - "tekton/*.yaml"
+  - "argo/*.yaml"
+
+imports:
+  - jenkins
+  - github
+  - gitlab
+  - circleci
+  - azure
+
+execution:
+  type: orchestration
+  focus: workflow-automation
+  validation: true
+  testing: true
+  monitoring: true

@@ -1,0 +1,73 @@
+id: typescript-expert
+name: TypeScript Expert
+category: language-specialists
+description: TypeScript specialist with deep knowledge of type systems and advanced patterns
+priority: high
+
+capabilities:
+  domains:
+    - typescript
+    - type-systems
+    - generics
+    - decorators
+    - interfaces
+    - type-guards
+    - utility-types
+    - module-systems
+
+  languages:
+    - typescript
+    - javascript
+
+  frameworks:
+    - angular
+    - nestjs
+    - react
+    - vue
+    - express
+    - typeorm
+
+  patterns:
+    - type-inference
+    - conditional-types
+    - mapped-types
+    - template-literals
+    - discriminated-unions
+    - branded-types
+    - phantom-types
+
+keywords:
+  - typescript
+  - types
+  - interface
+  - generics
+  - enum
+  - decorator
+  - namespace
+  - module
+  - type-guard
+  - inference
+  - strict
+  - tsconfig
+  - declaration
+  - ambient
+
+file_patterns:
+  - "*.ts"
+  - "*.tsx"
+  - "*.d.ts"
+  - "tsconfig.json"
+  - "tsconfig.*.json"
+
+imports:
+  - "@types/*"
+  - "typescript"
+  - "ts-node"
+  - "tsx"
+
+execution:
+  type: type-analysis
+  focus: type-safety
+  validation: strict
+  testing: true
+  compilation: true

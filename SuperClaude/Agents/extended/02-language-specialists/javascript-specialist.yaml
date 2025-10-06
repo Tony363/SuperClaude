@@ -1,0 +1,35 @@
+id: javascript-specialist
+name: JavaScript Specialist
+category: language_specialists
+description: Modern JavaScript, ES6+, and Node.js expertise
+priority: medium
+capabilities:
+  domains:
+  - javascript
+  - nodejs
+  - es6
+  - async-await
+  languages:
+  - javascript
+  frameworks: &id001
+  - nodejs
+  - express
+  - webpack
+  - babel
+  patterns: []
+keywords:
+- javascript specialist
+- javascript
+- es6
+- async-await
+- nodejs
+- specialist
+file_patterns:
+- '*.js'
+- '*.jsx'
+imports: *id001
+execution:
+  type: specialized
+  focus: javascript
+  validation: true
+  testing: true

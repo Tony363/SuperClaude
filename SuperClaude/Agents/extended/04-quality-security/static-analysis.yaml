@@ -1,0 +1,33 @@
+id: static-analysis
+name: Static Analysis Engineer
+category: quality_security
+description: Code analysis, linting, and quality metrics
+priority: medium
+capabilities:
+  domains:
+  - static-analysis
+  - linting
+  - metrics
+  languages:
+  - multiple
+  frameworks: &id001
+  - sonarqube
+  - codeclimate
+  - semgrep
+  patterns: []
+keywords:
+- linting
+- analysis
+- multiple
+- engineer
+- static analysis
+- static
+- static-analysis
+- metrics
+file_patterns: []
+imports: *id001
+execution:
+  type: specialized
+  focus: static-analysis
+  validation: true
+  testing: true

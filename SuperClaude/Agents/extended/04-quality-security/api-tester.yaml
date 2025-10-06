@@ -1,0 +1,39 @@
+id: api-tester
+name: API Testing Specialist
+category: quality_security
+description: API testing, contract testing, and validation
+priority: medium
+capabilities:
+  domains:
+  - api-testing
+  - contract-testing
+  - validation
+  languages:
+  - javascript
+  - python
+  frameworks: &id001
+  - postman
+  - newman
+  - pact
+  - rest-assured
+  patterns: []
+keywords:
+- testing
+- validation
+- javascript
+- api-testing
+- api tester
+- contract-testing
+- api
+- python
+- specialist
+file_patterns:
+- '*.js'
+- '*.jsx'
+- '*.py'
+imports: *id001
+execution:
+  type: specialized
+  focus: api-testing
+  validation: true
+  testing: true

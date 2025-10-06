@@ -1,0 +1,40 @@
+id: data-analyst
+name: Data Analyst
+category: data_ai
+description: Business intelligence and data visualization
+priority: medium
+capabilities:
+  domains:
+  - analytics
+  - bi
+  - visualization
+  - reporting
+  languages:
+  - python
+  - sql
+  - r
+  frameworks: &id001
+  - tableau
+  - powerbi
+  - looker
+  - metabase
+  patterns: []
+keywords:
+- data analyst
+- reporting
+- visualization
+- analytics
+- bi
+- r
+- analyst
+- data
+- python
+- sql
+file_patterns:
+- '*.py'
+imports: *id001
+execution:
+  type: specialized
+  focus: analytics
+  validation: true
+  testing: true

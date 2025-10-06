@@ -1,0 +1,37 @@
+id: monitoring-specialist
+name: Monitoring Specialist
+category: infrastructure
+description: System monitoring, alerting, and observability
+priority: medium
+capabilities:
+  domains:
+  - monitoring
+  - observability
+  - metrics
+  - logging
+  languages:
+  - python
+  - promql
+  frameworks: &id001
+  - prometheus
+  - grafana
+  - elk
+  - datadog
+  patterns: []
+keywords:
+- monitoring specialist
+- observability
+- metrics
+- python
+- logging
+- monitoring
+- specialist
+- promql
+file_patterns:
+- '*.py'
+imports: *id001
+execution:
+  type: specialized
+  focus: monitoring
+  validation: true
+  testing: true

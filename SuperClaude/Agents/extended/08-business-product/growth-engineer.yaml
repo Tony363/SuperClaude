@@ -1,0 +1,38 @@
+id: growth-engineer
+name: Growth Engineer
+category: business_product
+description: Growth hacking and conversion optimization
+priority: medium
+capabilities:
+  domains:
+  - growth
+  - analytics
+  - ab-testing
+  - conversion
+  languages:
+  - javascript
+  - python
+  frameworks: &id001
+  - segment
+  - amplitude
+  - optimizely
+  patterns: []
+keywords:
+- growth
+- javascript
+- engineer
+- ab-testing
+- analytics
+- python
+- conversion
+- growth engineer
+file_patterns:
+- '*.js'
+- '*.jsx'
+- '*.py'
+imports: *id001
+execution:
+  type: specialized
+  focus: growth
+  validation: true
+  testing: true

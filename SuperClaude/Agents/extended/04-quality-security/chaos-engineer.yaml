@@ -1,0 +1,36 @@
+id: chaos-engineer
+name: Chaos Engineering Specialist
+category: quality_security
+description: Resilience testing and failure injection
+priority: medium
+capabilities:
+  domains:
+  - chaos
+  - resilience
+  - failure-testing
+  languages:
+  - python
+  - go
+  frameworks: &id001
+  - chaos-monkey
+  - litmus
+  - gremlin
+  patterns: []
+keywords:
+- engineering
+- chaos engineer
+- failure-testing
+- resilience
+- chaos
+- python
+- go
+- specialist
+file_patterns:
+- '*.py'
+- '*.go'
+imports: *id001
+execution:
+  type: specialized
+  focus: chaos
+  validation: true
+  testing: true

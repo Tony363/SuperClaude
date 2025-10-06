@@ -1,0 +1,37 @@
+id: product-manager
+name: Technical Product Manager
+category: business_product
+description: Product strategy and technical requirements
+priority: medium
+capabilities:
+  domains:
+  - product
+  - requirements
+  - roadmap
+  - metrics
+  languages:
+  - sql
+  - python
+  frameworks: &id001
+  - jira
+  - analytics
+  - a-b-testing
+  patterns: []
+keywords:
+- technical
+- product manager
+- product
+- roadmap
+- metrics
+- python
+- manager
+- sql
+- requirements
+file_patterns:
+- '*.py'
+imports: *id001
+execution:
+  type: specialized
+  focus: product
+  validation: true
+  testing: true

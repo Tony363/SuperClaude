@@ -23,13 +23,13 @@ try:
         try:
             __version__ = (Path(__file__).parent.parent / "VERSION").read_text().strip()
         except Exception:
-            __version__ = "4.1.0"  # Fallback
+            __version__ = "6.0.0-alpha"  # Fallback
 except ImportError:
     # Python < 3.8, fall back to VERSION file
     try:
         __version__ = (Path(__file__).parent.parent / "VERSION").read_text().strip()
     except Exception:
-        __version__ = "4.1.0"  # Fallback
+        __version__ = "6.0.0-alpha"  # Fallback
 
 __author__ = "NomenAK, Mithun Gowda B"
 __email__ = "anton.knoery@gmail.com"

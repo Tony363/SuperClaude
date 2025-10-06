@@ -1,0 +1,32 @@
+id: multi-agent-coordinator
+name: Multi-Agent Coordinator
+category: meta_orchestration
+description: Orchestrating multiple agents for complex tasks
+priority: medium
+capabilities:
+  domains:
+  - orchestration
+  - coordination
+  - delegation
+  languages:
+  - python
+  frameworks: &id001
+  - agent-frameworks
+  - workflow-engines
+  patterns: []
+keywords:
+- multi agent coordinator
+- multi-agent
+- coordination
+- python
+- delegation
+- coordinator
+- orchestration
+file_patterns:
+- '*.py'
+imports: *id001
+execution:
+  type: specialized
+  focus: orchestration
+  validation: true
+  testing: true

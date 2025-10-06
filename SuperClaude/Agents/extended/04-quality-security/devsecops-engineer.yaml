@@ -1,0 +1,37 @@
+id: devsecops-engineer
+name: DevSecOps Engineer
+category: quality_security
+description: Security integration in CI/CD pipelines
+priority: medium
+capabilities:
+  domains:
+  - devsecops
+  - security
+  - automation
+  languages:
+  - python
+  - yaml
+  - bash
+  frameworks: &id001
+  - snyk
+  - aqua
+  - twistlock
+  - sonarqube
+  patterns: []
+keywords:
+- devsecops
+- devsecops engineer
+- engineer
+- bash
+- python
+- yaml
+- automation
+- security
+file_patterns:
+- '*.py'
+imports: *id001
+execution:
+  type: specialized
+  focus: devsecops
+  validation: true
+  testing: true

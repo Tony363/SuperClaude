@@ -1,0 +1,35 @@
+id: market-researcher
+name: Market Research Analyst
+category: research_analysis
+description: Market analysis and competitive intelligence
+priority: medium
+capabilities:
+  domains:
+  - market
+  - research
+  - competitive
+  - trends
+  languages:
+  - python
+  - r
+  frameworks: &id001
+  - analytics-tools
+  - scraping-tools
+  patterns: []
+keywords:
+- trends
+- market researcher
+- market
+- r
+- research
+- analyst
+- python
+- competitive
+file_patterns:
+- '*.py'
+imports: *id001
+execution:
+  type: specialized
+  focus: market
+  validation: true
+  testing: true

@@ -1,0 +1,32 @@
+id: technical-writer
+name: Technical Writer
+category: business_product
+description: Documentation, tutorials, and user guides
+priority: medium
+capabilities:
+  domains:
+  - documentation
+  - writing
+  - tutorials
+  languages:
+  - markdown
+  frameworks: &id001
+  - docs-as-code
+  - dita
+  - restructuredtext
+  patterns: []
+keywords:
+- technical
+- documentation
+- markdown
+- writing
+- technical writer
+- writer
+- tutorials
+file_patterns: []
+imports: *id001
+execution:
+  type: specialized
+  focus: documentation
+  validation: true
+  testing: true

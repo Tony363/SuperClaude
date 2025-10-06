@@ -1,0 +1,31 @@
+id: quality-controller
+name: Quality Controller
+category: meta_orchestration
+description: Quality assurance and validation
+priority: medium
+capabilities:
+  domains:
+  - quality
+  - validation
+  - verification
+  languages:
+  - python
+  frameworks: &id001
+  - quality-frameworks
+  - validation-tools
+  patterns: []
+keywords:
+- quality
+- validation
+- python
+- quality controller
+- verification
+- controller
+file_patterns:
+- '*.py'
+imports: *id001
+execution:
+  type: specialized
+  focus: quality
+  validation: true
+  testing: true

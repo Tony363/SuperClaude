@@ -1,0 +1,34 @@
+id: workflow-orchestrator
+name: Workflow Orchestrator
+category: meta_orchestration
+description: Managing complex workflows and pipelines
+priority: medium
+capabilities:
+  domains:
+  - workflow
+  - orchestration
+  - automation
+  languages:
+  - python
+  - yaml
+  frameworks: &id001
+  - airflow
+  - prefect
+  - temporal
+  patterns: []
+keywords:
+- orchestrator
+- python
+- yaml
+- workflow
+- automation
+- workflow orchestrator
+- orchestration
+file_patterns:
+- '*.py'
+imports: *id001
+execution:
+  type: specialized
+  focus: workflow
+  validation: true
+  testing: true

@@ -1,0 +1,30 @@
+id: refactoring-specialist
+name: Refactoring Specialist
+category: developer_experience
+description: Code refactoring and technical debt reduction
+priority: medium
+capabilities:
+  domains:
+  - refactoring
+  - clean-code
+  - technical-debt
+  languages:
+  - multiple
+  frameworks: &id001
+  - refactoring-tools
+  - ast-manipulation
+  patterns: []
+keywords:
+- multiple
+- refactoring
+- refactoring specialist
+- technical-debt
+- clean-code
+- specialist
+file_patterns: []
+imports: *id001
+execution:
+  type: specialized
+  focus: refactoring
+  validation: true
+  testing: true

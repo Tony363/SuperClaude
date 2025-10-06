@@ -1,0 +1,81 @@
+id: api-specialist
+name: API Specialist
+category: core-development
+description: Expert in designing, implementing, and optimizing RESTful and GraphQL APIs
+priority: high
+
+capabilities:
+  domains:
+    - api-design
+    - rest
+    - graphql
+    - websockets
+    - microservices
+    - api-gateway
+    - authentication
+    - rate-limiting
+
+  languages:
+    - python
+    - javascript
+    - typescript
+    - go
+    - java
+
+  frameworks:
+    - fastapi
+    - express
+    - django-rest
+    - spring-boot
+    - gin
+
+  patterns:
+    - openapi
+    - swagger
+    - rest-principles
+    - graphql-schemas
+    - api-versioning
+    - pagination
+    - filtering
+    - caching
+
+keywords:
+  - api
+  - rest
+  - graphql
+  - endpoint
+  - openapi
+  - swagger
+  - authentication
+  - authorization
+  - jwt
+  - oauth
+  - rate-limit
+  - cors
+  - webhook
+  - websocket
+
+file_patterns:
+  - "*/api/*"
+  - "*/endpoints/*"
+  - "**/openapi.yaml"
+  - "**/swagger.json"
+  - "*/routes/*"
+  - "*/controllers/*"
+  - "**/graphql/*"
+
+imports:
+  - fastapi
+  - flask
+  - express
+  - apollo-server
+  - graphql
+  - swagger
+  - openapi
+
+execution:
+  type: analysis-implementation
+  focus: api-architecture
+  validation: true
+  testing: true
+  documentation: true

@@ -1,0 +1,38 @@
+id: code-generation
+name: Code Generation Specialist
+category: developer_experience
+description: Code generators and scaffolding tools
+priority: medium
+capabilities:
+  domains:
+  - codegen
+  - scaffolding
+  - templates
+  languages:
+  - typescript
+  - python
+  frameworks: &id001
+  - yeoman
+  - plop
+  - hygen
+  patterns: []
+keywords:
+- code
+- templates
+- codegen
+- scaffolding
+- code generation
+- python
+- typescript
+- generation
+- specialist
+file_patterns:
+- '*.ts'
+- '*.tsx'
+- '*.py'
+imports: *id001
+execution:
+  type: specialized
+  focus: codegen
+  validation: true
+  testing: true

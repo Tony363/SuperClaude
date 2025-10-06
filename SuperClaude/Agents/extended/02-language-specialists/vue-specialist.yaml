@@ -1,0 +1,41 @@
+id: vue-specialist
+name: Vue Specialist
+category: language_specialists
+description: Vue 3, Composition API, and Vue ecosystem
+priority: medium
+capabilities:
+  domains:
+  - vue
+  - frontend
+  - composition-api
+  - vuex
+  languages:
+  - javascript
+  - typescript
+  frameworks: &id001
+  - vue
+  - nuxt
+  - vuex
+  - pinia
+  - vite
+  patterns: []
+keywords:
+- javascript
+- typescript
+- vuex
+- vue
+- vue specialist
+- frontend
+- composition-api
+- specialist
+file_patterns:
+- '*.js'
+- '*.jsx'
+- '*.ts'
+- '*.tsx'
+imports: *id001
+execution:
+  type: specialized
+  focus: vue
+  validation: true
+  testing: true

@@ -1,0 +1,31 @@
+id: solutions-architect
+name: Solutions Architect
+category: business_product
+description: Enterprise solutions and integrations
+priority: medium
+capabilities:
+  domains:
+  - enterprise
+  - integration
+  - architecture
+  languages:
+  - multiple
+  frameworks: &id001
+  - enterprise-patterns
+  - integration-patterns
+  patterns: []
+keywords:
+- architecture
+- solutions
+- multiple
+- solutions architect
+- integration
+- architect
+- enterprise
+file_patterns: []
+imports: *id001
+execution:
+  type: specialized
+  focus: enterprise
+  validation: true
+  testing: true

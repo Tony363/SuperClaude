@@ -1,0 +1,40 @@
+id: angular-specialist
+name: Angular Specialist
+category: language_specialists
+description: Angular framework, RxJS, and enterprise frontend
+priority: medium
+capabilities:
+  domains:
+  - angular
+  - frontend
+  - rxjs
+  - enterprise
+  languages:
+  - typescript
+  - javascript
+  frameworks: &id001
+  - angular
+  - rxjs
+  - ngrx
+  - angular-material
+  patterns: []
+keywords:
+- javascript
+- typescript
+- rxjs
+- angular specialist
+- frontend
+- angular
+- enterprise
+- specialist
+file_patterns:
+- '*.ts'
+- '*.tsx'
+- '*.js'
+- '*.jsx'
+imports: *id001
+execution:
+  type: specialized
+  focus: angular
+  validation: true
+  testing: true

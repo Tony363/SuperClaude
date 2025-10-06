@@ -1,0 +1,36 @@
+id: api-designer
+name: API Designer
+category: developer_experience
+description: API design, versioning, and documentation
+priority: medium
+capabilities:
+  domains:
+  - api-design
+  - rest
+  - graphql
+  - grpc
+  languages:
+  - yaml
+  - json
+  frameworks: &id001
+  - openapi
+  - asyncapi
+  - graphql-schema
+  patterns: []
+keywords:
+- designer
+- graphql
+- api designer
+- api
+- grpc
+- yaml
+- json
+- rest
+- api-design
+file_patterns: []
+imports: *id001
+execution:
+  type: specialized
+  focus: api-design
+  validation: true
+  testing: true

@@ -1,0 +1,35 @@
+id: go-specialist
+name: Go Specialist
+category: language_specialists
+description: Concurrent programming, microservices, and cloud-native Go
+priority: medium
+capabilities:
+  domains:
+  - golang
+  - concurrency
+  - microservices
+  - cloud-native
+  languages:
+  - go
+  frameworks: &id001
+  - gin
+  - echo
+  - fiber
+  - grpc
+  patterns: []
+keywords:
+- go specialist
+- concurrency
+- microservices
+- specialist
+- cloud-native
+- go
+- golang
+file_patterns:
+- '*.go'
+imports: *id001
+execution:
+  type: specialized
+  focus: golang
+  validation: true
+  testing: true

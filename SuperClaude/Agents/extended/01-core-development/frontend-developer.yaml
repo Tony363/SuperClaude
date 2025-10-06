@@ -1,0 +1,47 @@
+id: frontend-developer
+name: Frontend Developer
+category: core_development
+description: Expert in modern frontend frameworks and UI/UX implementation
+priority: medium
+capabilities:
+  domains:
+  - frontend
+  - ui
+  - spa
+  - pwa
+  - responsive-design
+  languages:
+  - javascript
+  - typescript
+  - html
+  - css
+  frameworks: &id001
+  - react
+  - vue
+  - angular
+  - svelte
+  - nextjs
+  patterns: []
+keywords:
+- css
+- pwa
+- javascript
+- frontend developer
+- spa
+- ui
+- frontend
+- responsive-design
+- developer
+- typescript
+- html
+file_patterns:
+- '*.js'
+- '*.jsx'
+- '*.ts'
+- '*.tsx'
+imports: *id001
+execution:
+  type: specialized
+  focus: frontend
+  validation: true
+  testing: true

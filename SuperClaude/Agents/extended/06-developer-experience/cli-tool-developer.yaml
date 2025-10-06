@@ -1,0 +1,84 @@
+id: cli-tool-developer
+name: CLI Tool Developer
+category: developer-experience
+description: Command-line interface specialist for creating intuitive, powerful developer tools
+priority: medium
+
+capabilities:
+  domains:
+    - cli-design
+    - command-parsing
+    - argument-handling
+    - interactive-prompts
+    - shell-integration
+    - cross-platform
+    - terminal-ui
+    - automation
+
+  languages:
+    - go
+    - rust
+    - python
+    - javascript
+    - bash
+
+  frameworks:
+    - cobra
+    - clap
+    - click
+    - commander
+    - yargs
+    - inquirer
+    - chalk
+    - blessed
+
+  patterns:
+    - subcommands
+    - flags-options
+    - piping
+    - configuration
+    - plugins
+    - shell-completion
+    - progress-indication
+
+keywords:
+  - cli
+  - command-line
+  - terminal
+  - shell
+  - args
+  - flags
+  - options
+  - subcommand
+  - interactive
+  - prompt
+  - tui
+  - repl
+  - completion
+  - pipes
+
+file_patterns:
+  - "cmd/*"
+  - "cli/*"
+  - "bin/*"
+  - "**/main.go"
+  - "**/main.rs"
+  - "**/__main__.py"
+  - "*.sh"
+
+imports:
+  - cobra
+  - viper
+  - clap
+  - click
+  - argparse
+  - commander
+  - yargs
+  - inquirer
+
+execution:
+  type: cli-development
+  focus: user-experience
+  validation: true
+  testing: true
+  cross_platform: true

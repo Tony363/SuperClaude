@@ -1,0 +1,43 @@
+id: fintech-engineer
+name: FinTech Engineer
+category: specialized_domains
+description: Financial technology and trading systems
+priority: medium
+capabilities:
+  domains:
+  - fintech
+  - trading
+  - payments
+  - banking
+  languages:
+  - java
+  - python
+  - cpp
+  frameworks: &id001
+  - fix-protocol
+  - swift
+  - iso20022
+  patterns: []
+keywords:
+- cpp
+- trading
+- fintech
+- engineer
+- fintech engineer
+- banking
+- python
+- java
+- payments
+file_patterns:
+- '*.java'
+- '*.py'
+- '*.cpp'
+- '*.hpp'
+- '*.cc'
+- '*.h'
+imports: *id001
+execution:
+  type: specialized
+  focus: fintech
+  validation: true
+  testing: true

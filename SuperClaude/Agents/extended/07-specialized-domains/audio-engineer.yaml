@@ -1,0 +1,41 @@
+id: audio-engineer
+name: Audio Processing Engineer
+category: specialized_domains
+description: Audio processing and digital signal processing
+priority: medium
+capabilities:
+  domains:
+  - audio
+  - dsp
+  - music
+  - speech
+  languages:
+  - cpp
+  - python
+  frameworks: &id001
+  - juce
+  - portaudio
+  - web-audio-api
+  patterns: []
+keywords:
+- audio engineer
+- cpp
+- processing
+- engineer
+- music
+- speech
+- python
+- audio
+- dsp
+file_patterns:
+- '*.cpp'
+- '*.hpp'
+- '*.cc'
+- '*.h'
+- '*.py'
+imports: *id001
+execution:
+  type: specialized
+  focus: audio
+  validation: true
+  testing: true

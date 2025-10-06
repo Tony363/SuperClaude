@@ -1,0 +1,34 @@
+id: rust-specialist
+name: Rust Specialist
+category: language_specialists
+description: Systems programming with Rust, memory safety, and concurrency
+priority: medium
+capabilities:
+  domains:
+  - rust
+  - systems
+  - memory-safety
+  - concurrency
+  languages:
+  - rust
+  frameworks: &id001
+  - tokio
+  - actix
+  - rocket
+  - serde
+  patterns: []
+keywords:
+- concurrency
+- rust specialist
+- specialist
+- systems
+- rust
+- memory-safety
+file_patterns:
+- '*.rs'
+imports: *id001
+execution:
+  type: specialized
+  focus: rust
+  validation: true
+  testing: true

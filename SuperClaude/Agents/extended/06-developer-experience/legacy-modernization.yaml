@@ -1,0 +1,30 @@
+id: legacy-modernization
+name: Legacy Modernization Specialist
+category: developer_experience
+description: Modernizing legacy systems and migrations
+priority: medium
+capabilities:
+  domains:
+  - legacy
+  - migration
+  - modernization
+  languages:
+  - multiple
+  frameworks: &id001
+  - strangler-fig
+  - event-sourcing
+  patterns: []
+keywords:
+- multiple
+- modernization
+- legacy modernization
+- migration
+- legacy
+- specialist
+file_patterns: []
+imports: *id001
+execution:
+  type: specialized
+  focus: legacy
+  validation: true
+  testing: true

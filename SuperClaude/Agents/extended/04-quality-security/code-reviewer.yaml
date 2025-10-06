@@ -1,0 +1,34 @@
+id: code-reviewer
+name: Code Review Specialist
+category: quality_security
+description: Code quality, best practices, and technical debt analysis
+priority: medium
+capabilities:
+  domains:
+  - code-review
+  - quality
+  - best-practices
+  languages:
+  - multiple
+  frameworks: &id001
+  - sonarqube
+  - eslint
+  - pylint
+  - rubocop
+  patterns: []
+keywords:
+- quality
+- code
+- code reviewer
+- multiple
+- best-practices
+- code-review
+- review
+- specialist
+file_patterns: []
+imports: *id001
+execution:
+  type: specialized
+  focus: code-review
+  validation: true
+  testing: true

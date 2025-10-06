@@ -1,0 +1,36 @@
+id: java-specialist
+name: Java Specialist
+category: language_specialists
+description: Enterprise Java, Spring ecosystem, and JVM optimization
+priority: medium
+capabilities:
+  domains:
+  - java
+  - jvm
+  - enterprise
+  - spring
+  languages:
+  - java
+  - kotlin
+  frameworks: &id001
+  - spring-boot
+  - spring-cloud
+  - hibernate
+  - maven
+  patterns: []
+keywords:
+- kotlin
+- jvm
+- java specialist
+- spring
+- java
+- enterprise
+- specialist
+file_patterns:
+- '*.java'
+imports: *id001
+execution:
+  type: specialized
+  focus: java
+  validation: true
+  testing: true

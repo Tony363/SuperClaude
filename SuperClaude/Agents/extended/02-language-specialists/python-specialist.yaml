@@ -1,0 +1,35 @@
+id: python-specialist
+name: Python Specialist
+category: language_specialists
+description: Advanced Python patterns, async programming, and optimization
+priority: medium
+capabilities:
+  domains:
+  - python
+  - async
+  - metaclasses
+  - decorators
+  languages:
+  - python
+  frameworks: &id001
+  - asyncio
+  - django
+  - fastapi
+  - pandas
+  - numpy
+  patterns: []
+keywords:
+- python specialist
+- decorators
+- async
+- python
+- metaclasses
+- specialist
+file_patterns:
+- '*.py'
+imports: *id001
+execution:
+  type: specialized
+  focus: python
+  validation: true
+  testing: true

@@ -1,0 +1,40 @@
+id: big-data-engineer
+name: Big Data Engineer
+category: data_ai
+description: Large-scale data processing and distributed computing
+priority: medium
+capabilities:
+  domains:
+  - big-data
+  - distributed
+  - streaming
+  languages:
+  - scala
+  - java
+  - python
+  frameworks: &id001
+  - spark
+  - hadoop
+  - flink
+  - storm
+  patterns: []
+keywords:
+- engineer
+- big-data
+- big
+- distributed
+- python
+- data
+- scala
+- java
+- streaming
+- big data engineer
+file_patterns:
+- '*.java'
+- '*.py'
+imports: *id001
+execution:
+  type: specialized
+  focus: big-data
+  validation: true
+  testing: true

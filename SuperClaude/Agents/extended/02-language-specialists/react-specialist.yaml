@@ -1,0 +1,41 @@
+id: react-specialist
+name: React Specialist
+category: language_specialists
+description: React ecosystem, hooks, state management, and optimization
+priority: medium
+capabilities:
+  domains:
+  - react
+  - frontend
+  - hooks
+  - state-management
+  languages:
+  - javascript
+  - typescript
+  frameworks: &id001
+  - react
+  - nextjs
+  - gatsby
+  - redux
+  - mobx
+  patterns: []
+keywords:
+- state-management
+- frontend
+- react
+- javascript
+- typescript
+- hooks
+- react specialist
+- specialist
+file_patterns:
+- '*.js'
+- '*.jsx'
+- '*.ts'
+- '*.tsx'
+imports: *id001
+execution:
+  type: specialized
+  focus: react
+  validation: true
+  testing: true

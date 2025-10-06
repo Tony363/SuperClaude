@@ -1,0 +1,33 @@
+id: meta-learner
+name: Meta Learning Agent
+category: meta_orchestration
+description: Learning from agent interactions and outcomes
+priority: medium
+capabilities:
+  domains:
+  - meta-learning
+  - adaptation
+  - improvement
+  languages:
+  - python
+  frameworks: &id001
+  - ml-frameworks
+  - reinforcement-learning
+  patterns: []
+keywords:
+- agent
+- adaptation
+- meta-learning
+- meta
+- learning
+- improvement
+- python
+- meta learner
+file_patterns:
+- '*.py'
+imports: *id001
+execution:
+  type: specialized
+  focus: meta-learning
+  validation: true
+  testing: true

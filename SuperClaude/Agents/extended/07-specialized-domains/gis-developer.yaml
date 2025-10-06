@@ -1,0 +1,39 @@
+id: gis-developer
+name: GIS Developer
+category: specialized_domains
+description: Geographic information systems and mapping
+priority: medium
+capabilities:
+  domains:
+  - gis
+  - mapping
+  - geospatial
+  - location
+  languages:
+  - python
+  - javascript
+  frameworks: &id001
+  - postgis
+  - leaflet
+  - mapbox
+  - qgis
+  patterns: []
+keywords:
+- gis
+- geospatial
+- javascript
+- gis developer
+- location
+- mapping
+- python
+- developer
+file_patterns:
+- '*.py'
+- '*.js'
+- '*.jsx'
+imports: *id001
+execution:
+  type: specialized
+  focus: gis
+  validation: true
+  testing: true

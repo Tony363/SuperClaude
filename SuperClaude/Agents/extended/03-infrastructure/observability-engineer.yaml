@@ -1,0 +1,80 @@
+id: observability-engineer
+name: Observability Engineer
+category: infrastructure
+description: Observability expert for distributed tracing, metrics, logging, and system monitoring
+priority: high
+
+capabilities:
+  domains:
+    - observability
+    - distributed-tracing
+    - metrics
+    - logging
+    - monitoring
+    - alerting
+    - apm
+    - sre
+
+  languages:
+    - go
+    - python
+    - yaml
+    - promql
+
+  frameworks:
+    - prometheus
+    - grafana
+    - elastic-stack
+    - datadog
+    - new-relic
+    - jaeger
+    - opentelemetry
+    - fluentd
+
+  patterns:
+    - golden-signals
+    - red-method
+    - use-method
+    - distributed-tracing
+    - structured-logging
+    - metric-aggregation
+    - alert-fatigue-reduction
+
+keywords:
+  - observability
+  - monitoring
+  - metrics
+  - logs
+  - traces
+  - spans
+  - prometheus
+  - grafana
+  - alerting
+  - slo
+  - sli
+  - dashboard
+  - telemetry
+  - instrumentation
+
+file_patterns:
+  - "prometheus.yml"
+  - "*.dashboard.json"
+  - "alerts/*.yml"
+  - "grafana/*.json"
+  - "logging/*.yaml"
+  - "monitoring/*"
+  - "otel-config.yaml"
+
+imports:
+  - prometheus_client
+  - opentelemetry
+  - elastic
+  - datadog
+  - grafana
+
+execution:
+  type: observability
+  focus: system-insights
+  validation: true
+  monitoring: true
+  alerting: true

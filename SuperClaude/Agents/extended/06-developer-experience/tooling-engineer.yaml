@@ -1,0 +1,40 @@
+id: tooling-engineer
+name: Tooling Engineer
+category: developer_experience
+description: Development tools and automation
+priority: medium
+capabilities:
+  domains:
+  - tooling
+  - cli
+  - automation
+  - sdk
+  languages:
+  - go
+  - rust
+  - typescript
+  frameworks: &id001
+  - cli-frameworks
+  - sdk-tools
+  patterns: []
+keywords:
+- engineer
+- go
+- tooling engineer
+- rust
+- typescript
+- tooling
+- automation
+- sdk
+- cli
+file_patterns:
+- '*.go'
+- '*.rs'
+- '*.ts'
+- '*.tsx'
+imports: *id001
+execution:
+  type: specialized
+  focus: tooling
+  validation: true
+  testing: true

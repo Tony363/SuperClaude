@@ -1,0 +1,40 @@
+id: healthcare-engineer
+name: Healthcare Engineer
+category: specialized_domains
+description: Healthcare systems and medical software
+priority: medium
+capabilities:
+  domains:
+  - healthcare
+  - hl7
+  - fhir
+  - medical
+  languages:
+  - java
+  - python
+  - csharp
+  frameworks: &id001
+  - hl7
+  - fhir
+  - dicom
+  patterns: []
+keywords:
+- java
+- engineer
+- healthcare engineer
+- csharp
+- python
+- fhir
+- healthcare
+- hl7
+- medical
+file_patterns:
+- '*.java'
+- '*.py'
+- '*.cs'
+imports: *id001
+execution:
+  type: specialized
+  focus: healthcare
+  validation: true
+  testing: true

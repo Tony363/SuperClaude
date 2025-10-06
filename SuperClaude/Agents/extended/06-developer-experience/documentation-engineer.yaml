@@ -1,0 +1,39 @@
+id: documentation-engineer
+name: Documentation Engineer
+category: developer_experience
+description: Technical documentation and developer guides
+priority: medium
+capabilities:
+  domains:
+  - documentation
+  - api-docs
+  - tutorials
+  languages:
+  - markdown
+  - python
+  - javascript
+  frameworks: &id001
+  - docusaurus
+  - mkdocs
+  - sphinx
+  - swagger
+  patterns: []
+keywords:
+- documentation
+- markdown
+- javascript
+- engineer
+- documentation engineer
+- python
+- tutorials
+- api-docs
+file_patterns:
+- '*.py'
+- '*.js'
+- '*.jsx'
+imports: *id001
+execution:
+  type: specialized
+  focus: documentation
+  validation: true
+  testing: true

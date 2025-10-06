@@ -1,0 +1,43 @@
+id: cli-developer
+name: CLI Developer
+category: core_development
+description: Command-line interface and developer tools
+priority: medium
+capabilities:
+  domains:
+  - cli
+  - tools
+  - automation
+  - scripting
+  languages:
+  - python
+  - go
+  - rust
+  - bash
+  frameworks: &id001
+  - click
+  - cobra
+  - clap
+  - argparse
+  patterns: []
+keywords:
+- tools
+- cli developer
+- scripting
+- go
+- bash
+- python
+- rust
+- developer
+- automation
+- cli
+file_patterns:
+- '*.py'
+- '*.go'
+- '*.rs'
+imports: *id001
+execution:
+  type: specialized
+  focus: cli
+  validation: true
+  testing: true

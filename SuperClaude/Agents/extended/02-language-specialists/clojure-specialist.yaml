@@ -1,0 +1,35 @@
+id: clojure-specialist
+name: Clojure Specialist
+category: language_specialists
+description: Functional programming on the JVM with Clojure
+priority: medium
+capabilities:
+  domains:
+  - clojure
+  - functional
+  - lisp
+  - jvm
+  languages:
+  - clojure
+  - clojurescript
+  frameworks: &id001
+  - ring
+  - compojure
+  - reagent
+  - re-frame
+  patterns: []
+keywords:
+- functional
+- clojure
+- jvm
+- lisp
+- clojure specialist
+- clojurescript
+- specialist
+file_patterns: []
+imports: *id001
+execution:
+  type: specialized
+  focus: clojure
+  validation: true
+  testing: true

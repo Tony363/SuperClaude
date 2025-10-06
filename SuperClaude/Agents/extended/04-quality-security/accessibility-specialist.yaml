@@ -1,0 +1,40 @@
+id: accessibility-specialist
+name: Accessibility Specialist
+category: quality_security
+description: Web accessibility and WCAG compliance
+priority: medium
+capabilities:
+  domains:
+  - accessibility
+  - wcag
+  - a11y
+  - usability
+  languages:
+  - javascript
+  - html
+  - css
+  frameworks: &id001
+  - axe
+  - wave
+  - lighthouse
+  - nvda
+  patterns: []
+keywords:
+- css
+- a11y
+- wcag
+- javascript
+- accessibility
+- accessibility specialist
+- usability
+- specialist
+- html
+file_patterns:
+- '*.js'
+- '*.jsx'
+imports: *id001
+execution:
+  type: specialized
+  focus: accessibility
+  validation: true
+  testing: true

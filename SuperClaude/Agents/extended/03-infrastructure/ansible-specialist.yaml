@@ -1,0 +1,77 @@
+id: ansible-specialist
+name: Ansible Automation Specialist
+category: infrastructure
+description: Ansible expert for infrastructure automation, configuration management, and orchestration
+priority: high
+
+capabilities:
+  domains:
+    - ansible
+    - automation
+    - configuration-management
+    - orchestration
+    - idempotency
+    - inventory-management
+    - role-based-automation
+    - playbooks
+
+  languages:
+    - yaml
+    - python
+    - jinja2
+
+  frameworks:
+    - ansible-core
+    - ansible-tower
+    - awx
+    - molecule
+    - ansible-galaxy
+
+  patterns:
+    - declarative-automation
+    - idempotent-operations
+    - role-composition
+    - inventory-patterns
+    - vault-encryption
+    - dynamic-inventory
+    - callback-plugins
+
+keywords:
+  - ansible
+  - playbook
+  - role
+  - task
+  - handler
+  - inventory
+  - vault
+  - galaxy
+  - module
+  - plugin
+  - facts
+  - variables
+  - template
+  - automation
+
+file_patterns:
+  - "*.yml"
+  - "*.yaml"
+  - "ansible.cfg"
+  - "inventory/*"
+  - "group_vars/*"
+  - "host_vars/*"
+  - "roles/*/tasks/*.yml"
+  - "playbooks/*.yml"
+
+imports:
+  - ansible
+  - ansible.builtin
+  - community.general
+  - ansible.posix
+  - ansible.windows
+
+execution:
+  type: automation
+  focus: idempotency
+  validation: true
+  testing: true
+  dry_run: true

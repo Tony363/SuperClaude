@@ -1,0 +1,83 @@
+id: etl-engineer
+name: ETL Pipeline Engineer
+category: data-ai
+description: ETL expert specializing in data pipeline design, transformation logic, and data integration
+priority: high
+
+capabilities:
+  domains:
+    - etl
+    - data-pipelines
+    - data-transformation
+    - data-integration
+    - batch-processing
+    - stream-processing
+    - data-quality
+    - orchestration
+
+  languages:
+    - python
+    - sql
+    - scala
+    - java
+
+  frameworks:
+    - apache-airflow
+    - apache-spark
+    - apache-beam
+    - dbt
+    - luigi
+    - prefect
+    - dagster
+    - apache-nifi
+
+  patterns:
+    - extract-transform-load
+    - elt
+    - change-data-capture
+    - slowly-changing-dimensions
+    - data-vault
+    - lambda-architecture
+    - medallion-architecture
+
+keywords:
+  - etl
+  - elt
+  - pipeline
+  - transformation
+  - extraction
+  - loading
+  - orchestration
+  - workflow
+  - dag
+  - batch
+  - streaming
+  - incremental
+  - cdc
+  - data-quality
+
+file_patterns:
+  - "*.sql"
+  - "dags/*.py"
+  - "transforms/*.sql"
+  - "pipelines/*.py"
+  - "workflows/*.yaml"
+  - "dbt/*"
+  - "airflow/*"
+
+imports:
+  - airflow
+  - pyspark
+  - beam
+  - dbt
+  - pandas
+  - sqlalchemy
+  - prefect
+  - dagster
+
+execution:
+  type: data-processing
+  focus: pipeline-orchestration
+  validation: true
+  testing: true
+  monitoring: true

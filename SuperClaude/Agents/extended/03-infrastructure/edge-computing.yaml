@@ -1,0 +1,44 @@
+id: edge-computing
+name: Edge Computing Specialist
+category: infrastructure
+description: Edge infrastructure and distributed computing
+priority: medium
+capabilities:
+  domains:
+  - edge
+  - iot
+  - distributed
+  - 5g
+  languages:
+  - rust
+  - go
+  - cpp
+  frameworks: &id001
+  - k3s
+  - openfaas
+  - kubeedge
+  patterns: []
+keywords:
+- iot
+- cpp
+- 5g
+- edge computing
+- edge
+- distributed
+- computing
+- rust
+- go
+- specialist
+file_patterns:
+- '*.rs'
+- '*.go'
+- '*.cpp'
+- '*.hpp'
+- '*.cc'
+- '*.h'
+imports: *id001
+execution:
+  type: specialized
+  focus: edge
+  validation: true
+  testing: true

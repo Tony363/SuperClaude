@@ -1,0 +1,35 @@
+id: nlp-engineer
+name: NLP Engineer
+category: data_ai
+description: Natural language processing and text analysis
+priority: medium
+capabilities:
+  domains:
+  - nlp
+  - text-analysis
+  - sentiment
+  - ner
+  languages:
+  - python
+  frameworks: &id001
+  - spacy
+  - nltk
+  - transformers
+  - bert
+  patterns: []
+keywords:
+- nlp
+- engineer
+- text-analysis
+- sentiment
+- nlp engineer
+- python
+- ner
+file_patterns:
+- '*.py'
+imports: *id001
+execution:
+  type: specialized
+  focus: nlp
+  validation: true
+  testing: true

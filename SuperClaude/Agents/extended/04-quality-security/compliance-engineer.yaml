@@ -1,0 +1,35 @@
+id: compliance-engineer
+name: Compliance Engineer
+category: quality_security
+description: Regulatory compliance and security standards
+priority: medium
+capabilities:
+  domains:
+  - compliance
+  - gdpr
+  - hipaa
+  - pci-dss
+  languages:
+  - python
+  - sql
+  frameworks: &id001
+  - compliance-tools
+  - audit-frameworks
+  patterns: []
+keywords:
+- gdpr
+- pci-dss
+- compliance
+- compliance engineer
+- engineer
+- hipaa
+- python
+- sql
+file_patterns:
+- '*.py'
+imports: *id001
+execution:
+  type: specialized
+  focus: compliance
+  validation: true
+  testing: true

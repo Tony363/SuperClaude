@@ -1,0 +1,33 @@
+id: customer-success
+name: Customer Success Engineer
+category: business_product
+description: Customer onboarding and technical support
+priority: medium
+capabilities:
+  domains:
+  - support
+  - onboarding
+  - troubleshooting
+  languages:
+  - multiple
+  frameworks: &id001
+  - zendesk
+  - intercom
+  - freshdesk
+  patterns: []
+keywords:
+- troubleshooting
+- customer
+- multiple
+- engineer
+- support
+- success
+- onboarding
+- customer success
+file_patterns: []
+imports: *id001
+execution:
+  type: specialized
+  focus: support
+  validation: true
+  testing: true

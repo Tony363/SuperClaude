@@ -1,0 +1,35 @@
+id: swift-specialist
+name: Swift Specialist
+category: language_specialists
+description: iOS development, SwiftUI, and Apple ecosystem
+priority: medium
+capabilities:
+  domains:
+  - swift
+  - ios
+  - macos
+  - swiftui
+  languages:
+  - swift
+  - objective-c
+  frameworks: &id001
+  - swiftui
+  - uikit
+  - combine
+  - coredata
+  patterns: []
+keywords:
+- macos
+- swift specialist
+- swiftui
+- objective-c
+- ios
+- swift
+- specialist
+file_patterns: []
+imports: *id001
+execution:
+  type: specialized
+  focus: swift
+  validation: true
+  testing: true

@@ -1,0 +1,39 @@
+id: platform-engineer
+name: Platform Engineer
+category: infrastructure
+description: Internal developer platforms and tooling
+priority: medium
+capabilities:
+  domains:
+  - platform
+  - tooling
+  - developer-experience
+  languages:
+  - go
+  - python
+  - typescript
+  frameworks: &id001
+  - backstage
+  - crossplane
+  - kubevela
+  patterns: []
+keywords:
+- platform engineer
+- engineer
+- platform
+- python
+- developer-experience
+- tooling
+- go
+- typescript
+file_patterns:
+- '*.go'
+- '*.py'
+- '*.ts'
+- '*.tsx'
+imports: *id001
+execution:
+  type: specialized
+  focus: platform
+  validation: true
+  testing: true

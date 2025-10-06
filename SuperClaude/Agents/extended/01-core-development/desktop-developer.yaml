@@ -1,0 +1,48 @@
+id: desktop-developer
+name: Desktop Application Developer
+category: core_development
+description: Cross-platform desktop application development
+priority: medium
+capabilities:
+  domains:
+  - desktop
+  - gui
+  - cross-platform
+  languages:
+  - python
+  - javascript
+  - csharp
+  - cpp
+  frameworks: &id001
+  - electron
+  - tauri
+  - pyqt
+  - wpf
+  - gtk
+  patterns: []
+keywords:
+- application
+- cpp
+- javascript
+- gui
+- cross-platform
+- python
+- csharp
+- developer
+- desktop developer
+- desktop
+file_patterns:
+- '*.py'
+- '*.js'
+- '*.jsx'
+- '*.cs'
+- '*.cpp'
+- '*.hpp'
+- '*.cc'
+- '*.h'
+imports: *id001
+execution:
+  type: specialized
+  focus: desktop
+  validation: true
+  testing: true

@@ -1,0 +1,50 @@
+id: full-stack-developer
+name: Full Stack Developer
+category: core_development
+description: End-to-end application development across frontend and backend
+priority: medium
+capabilities:
+  domains:
+  - fullstack
+  - frontend
+  - backend
+  - database
+  - deployment
+  languages:
+  - javascript
+  - python
+  - typescript
+  - sql
+  frameworks: &id001
+  - nextjs
+  - django
+  - express
+  - react
+  - postgresql
+  patterns: []
+keywords:
+- deployment
+- javascript
+- sql
+- database
+- full stack developer
+- python
+- full
+- frontend
+- backend
+- stack
+- developer
+- fullstack
+- typescript
+file_patterns:
+- '*.js'
+- '*.jsx'
+- '*.py'
+- '*.ts'
+- '*.tsx'
+imports: *id001
+execution:
+  type: specialized
+  focus: fullstack
+  validation: true
+  testing: true

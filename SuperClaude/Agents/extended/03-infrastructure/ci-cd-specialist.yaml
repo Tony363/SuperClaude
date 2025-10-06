@@ -1,0 +1,39 @@
+id: ci-cd-specialist
+name: CI/CD Specialist
+category: infrastructure
+description: Continuous integration and deployment pipelines
+priority: medium
+capabilities:
+  domains:
+  - cicd
+  - automation
+  - testing
+  - deployment
+  languages:
+  - yaml
+  - groovy
+  - bash
+  frameworks: &id001
+  - jenkins
+  - gitlab
+  - circleci
+  - argocd
+  patterns: []
+keywords:
+- ci/cd
+- testing
+- deployment
+- groovy
+- cicd
+- bash
+- yaml
+- ci cd specialist
+- automation
+- specialist
+file_patterns: []
+imports: *id001
+execution:
+  type: specialized
+  focus: cicd
+  validation: true
+  testing: true

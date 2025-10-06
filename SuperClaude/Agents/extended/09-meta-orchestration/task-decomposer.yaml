@@ -1,0 +1,32 @@
+id: task-decomposer
+name: Task Decomposer
+category: meta_orchestration
+description: Breaking down complex tasks into subtasks
+priority: medium
+capabilities:
+  domains:
+  - task-analysis
+  - decomposition
+  - planning
+  languages:
+  - python
+  frameworks: &id001
+  - task-frameworks
+  - planning-tools
+  patterns: []
+keywords:
+- task decomposer
+- task-analysis
+- task
+- decomposition
+- decomposer
+- planning
+- python
+file_patterns:
+- '*.py'
+imports: *id001
+execution:
+  type: specialized
+  focus: task-analysis
+  validation: true
+  testing: true

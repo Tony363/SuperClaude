@@ -1,0 +1,38 @@
+id: penetration-tester
+name: Penetration Tester
+category: quality_security
+description: Ethical hacking and security testing
+priority: medium
+capabilities:
+  domains:
+  - pentesting
+  - ethical-hacking
+  - vulnerability
+  languages:
+  - python
+  - bash
+  - powershell
+  frameworks: &id001
+  - kali
+  - metasploit
+  - nmap
+  - wireshark
+  patterns: []
+keywords:
+- penetration tester
+- pentesting
+- tester
+- ethical-hacking
+- vulnerability
+- powershell
+- python
+- bash
+- penetration
+file_patterns:
+- '*.py'
+imports: *id001
+execution:
+  type: specialized
+  focus: pentesting
+  validation: true
+  testing: true
