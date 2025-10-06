@@ -23,13 +23,8 @@ current_dir = Path(__file__).parent
 project_root = current_dir.parent
 setup_dir = project_root / "setup"
 
-# Insert the setup directory at the beginning of sys.path
-if setup_dir.exists():
-    sys.path.insert(0, str(setup_dir.parent))
-else:
-    print(f"Warning: Setup directory not found at {setup_dir}")
-    sys.exit(1)
-
+# Default install directory
+DEFAULT_INSTALL_DIR = Path.home() / ".claude"
 
 # Try to import utilities from the setup package
 try:
@@ -40,6 +35,20 @@ try:
     from setup.utils.logger import setup_logging, get_logger, LogLevel
     from setup import DEFAULT_INSTALL_DIR
 except ImportError:
+    # If imports fail, try adding setup directory to path
+    if setup_dir.exists():
+        sys.path.insert(0, str(setup_dir.parent))
+        try:
+            from setup.utils.ui import (
+                display_header, display_info, display_success, display_error,
+                display_warning, Colors
+            )
+            from setup.utils.logger import setup_logging, get_logger, LogLevel
+            from setup import DEFAULT_INSTALL_DIR
+        except ImportError:
+            # Still failing, use fallbacks
+            pass
+
     # Provide minimal fallback functions and constants if imports fail
     class Colors:
         RED = YELLOW = GREEN = CYAN = RESET = ""

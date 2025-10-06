@@ -13,11 +13,24 @@ Usage:
 
 from pathlib import Path
 
-# Read version from VERSION file
+# Use importlib.metadata for version (Python 3.8+)
 try:
-    __version__ = (Path(__file__).parent.parent / "VERSION").read_text().strip()
-except Exception:
-    __version__ = "4.0.9"  # Fallback
+    from importlib.metadata import version, PackageNotFoundError
+    try:
+        __version__ = version("SuperClaude")
+    except PackageNotFoundError:
+        # Not installed as package, try VERSION file
+        try:
+            __version__ = (Path(__file__).parent.parent / "VERSION").read_text().strip()
+        except Exception:
+            __version__ = "4.0.9"  # Fallback
+except ImportError:
+    # Python < 3.8, fall back to VERSION file
+    try:
+        __version__ = (Path(__file__).parent.parent / "VERSION").read_text().strip()
+    except Exception:
+        __version__ = "4.0.9"  # Fallback
+
 __author__ = "NomenAK, Mithun Gowda B"
 __email__ = "anton.knoery@gmail.com"
 __license__ = "MIT"
