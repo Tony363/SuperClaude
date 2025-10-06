@@ -1,0 +1,195 @@
+# SuperClaude Framework Model Configuration
+# This file configures AI models for the Multi-Model Router
+
+version: 1.0.0
+
+# Model configurations
+models:
+  gpt-5:
+    provider: openai
+    api_key_env: OPENAI_API_KEY
+    endpoint: https://api.openai.com/v1
+    version: gpt-5
+    temperature_default: 0.7
+    max_tokens_default: 50000
+    rate_limit_rpm: 50
+    rate_limit_tpm: 2000000
+    supports_streaming: true
+    supports_functions: true
+    timeout_seconds: 300
+    retry_attempts: 3
+
+  gpt-4.1:
+    provider: openai
+    api_key_env: OPENAI_API_KEY
+    endpoint: https://api.openai.com/v1
+    version: gpt-4.1
+    temperature_default: 0.7
+    max_tokens_default: 50000
+    rate_limit_rpm: 100
+    rate_limit_tpm: 1000000
+    supports_streaming: true
+    supports_functions: true
+    timeout_seconds: 300
+    retry_attempts: 3
+
+  gpt-4o:
+    provider: openai
+    api_key_env: OPENAI_API_KEY
+    endpoint: https://api.openai.com/v1
+    version: gpt-4o
+    temperature_default: 0.7
+    max_tokens_default: 4096
+    rate_limit_rpm: 500
+    rate_limit_tpm: 1000000
+    supports_streaming: true
+    supports_functions: true
+    timeout_seconds: 120
+    retry_attempts: 3
+
+  gpt-4o-mini:
+    provider: openai
+    api_key_env: OPENAI_API_KEY
+    endpoint: https://api.openai.com/v1
+    version: gpt-4o-mini
+    temperature_default: 0.7
+    max_tokens_default: 4096
+    rate_limit_rpm: 500
+    rate_limit_tpm: 500000
+    supports_streaming: true
+    supports_functions: true
+    timeout_seconds: 60
+    retry_attempts: 3
+
+  claude-opus-4.1:
+    provider: anthropic
+    api_key_env: ANTHROPIC_API_KEY
+    endpoint: https://api.anthropic.com/v1
+    version: claude-opus-4-1-20250805
+    temperature_default: 0.7
+    max_tokens_default: 4096
+    rate_limit_rpm: 100
+    rate_limit_tpm: 400000
+    supports_streaming: true
+    supports_functions: true
+    timeout_seconds: 120
+    retry_attempts: 3
+
+  gemini-2.5-pro:
+    provider: google
+    api_key_env: GOOGLE_API_KEY
+    endpoint: https://generativelanguage.googleapis.com/v1beta
+    version: gemini-2.5-pro
+    temperature_default: 0.7
+    max_tokens_default: 8192
+    rate_limit_rpm: 60
+    rate_limit_tpm: 2000000
+    supports_streaming: true
+    supports_functions: true
+    timeout_seconds: 300
+    retry_attempts: 3
+
+  grok-4:
+    provider: xai
+    api_key_env: XAI_API_KEY
+    endpoint: https://api.x.ai/v1
+    version: grok-4
+    temperature_default: 0.7
+    max_tokens_default: 8192
+    rate_limit_rpm: 100
+    rate_limit_tpm: 500000
+    supports_streaming: true
+    supports_functions: true
+    timeout_seconds: 120
+    retry_attempts: 3
+
+  grok-code-fast-1:
+    provider: xai
+    api_key_env: XAI_API_KEY
+    endpoint: https://api.x.ai/v1
+    version: grok-code-fast-1
+    temperature_default: 0.5
+    max_tokens_default: 4096
+    rate_limit_rpm: 200
+    rate_limit_tpm: 500000
+    supports_streaming: true
+    supports_functions: true
+    timeout_seconds: 60
+    retry_attempts: 3
+
+# Environment-specific overrides
+environment:
+  development:
+    gpt-5:
+      temperature_default: 0.8
+      max_tokens_default: 10000
+    claude-opus-4.1:
+      temperature_default: 0.8
+
+  production:
+    gpt-5:
+      temperature_default: 0.5
+      retry_attempts: 5
+    claude-opus-4.1:
+      temperature_default: 0.5
+      retry_attempts: 5
+
+  testing:
+    gpt-5:
+      max_tokens_default: 1000
+      timeout_seconds: 30
+    claude-opus-4.1:
+      max_tokens_default: 1000
+      timeout_seconds: 30
+
+# Routing preferences
+routing:
+  default_model: claude-opus-4.1
+  fallback_chain:
+    - gpt-5
+    - gpt-4.1
+    - gpt-4o
+
+  task_preferences:
+    deep_thinking:
+      - gpt-5
+      - claude-opus-4.1
+      - gemini-2.5-pro
+
+    consensus:
+      - gpt-5
+      - claude-opus-4.1
+      - gpt-4.1
+      - gpt-4o
+
+    long_context:
+      - gemini-2.5-pro
+      - gpt-4.1
+      - gpt-5
+
+    quick_task:
+      - gpt-4o-mini
+      - grok-code-fast-1
+      - gpt-4o
+
+    code_analysis:
+      - grok-4
+      - grok-code-fast-1
+      - gpt-5
+
+    standard:
+      - gpt-4o
+      - claude-opus-4.1
+      - gpt-5
+
+# Token budgets by think level
+token_budgets:
+  level_1: 5000
+  level_2: 15000
+  level_3: 50000
+
+# Cost tiers (for estimation)
+cost_tiers:
+  '$': 0.001     # per 1K tokens
+  '$$': 0.01     # per 1K tokens
+  '$$$': 0.02    # per 1K tokens

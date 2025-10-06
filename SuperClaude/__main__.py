@@ -87,6 +87,14 @@ def create_global_parser() -> argparse.ArgumentParser:
     global_parser.add_argument("--auto-update", action="store_true",
                                help="Automatically install updates without prompting")
 
+    # Agent system flags
+    global_parser.add_argument("--delegate", action="store_true",
+                               help="Automatically delegate to the best agent for the task")
+    global_parser.add_argument("--suggest-agents", action="store_true",
+                               help="Show top 5 recommended agents for the task")
+    global_parser.add_argument("--agent", type=str, metavar="NAME",
+                               help="Specify a particular agent to use")
+
     return global_parser
 
 
@@ -146,7 +154,8 @@ def get_operation_modules() -> Dict[str, str]:
         "install": "Install SuperClaude framework components",
         "update": "Update existing SuperClaude installation",
         "uninstall": "Remove SuperClaude installation",
-        "backup": "Backup and restore operations"
+        "backup": "Backup and restore operations",
+        "agent": "Interact with the agent system"
     }
 
 

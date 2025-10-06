@@ -6,6 +6,59 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [5.0.0-alpha] - 2025-10-06
+
+### Added
+- **Agent System (60% complete)**
+  - Core infrastructure: BaseAgent, AgentRegistry, AgentSelector, AgentLoader
+  - Agent discovery from 141 markdown definitions (15 core, 126 extended)
+  - Context-based agent selection with multi-factor scoring
+  - Dynamic agent loading with LRU cache (10 agents, 1hr TTL)
+  - Generic markdown agent execution for all discovered agents
+  - 5 core Python implementations: GeneralPurposeAgent, RootCauseAnalyst, RefactoringExpert, TechnicalWriter, PerformanceEngineer
+  - CLI integration with --delegate flag and agent subcommand
+  - Agent tests with comprehensive validation
+
+### Changed
+- Encoding handling in AgentMarkdownParser with UTF-8/latin-1 fallback
+- Agent selection now returns scored list instead of single agent
+- Parser validation improvements for agent configuration
+
+### Fixed
+- UTF-8 decode errors for 6 Extended agent markdown files
+- Agent discovery now finds all 141 agents (previously 135)
+- Registry methods aligned with test expectations
+
+### In Development
+- Agent delegation depth protection
+- Agent execution history tracking
+- Advanced agent coordination features
+- Full CLI integration with agent selection UI
+
+## [4.1.0] - 2025-10-06
+
+### Added
+- Comprehensive VALIDATION_REPORT.md documenting framework status
+- ROADMAP.md with realistic implementation timeline
+- Improved version handling using importlib.metadata with fallbacks
+- Better error messages for missing dependencies
+
+### Changed
+- Version updated from 4.0.9 to 4.1.0 across all files
+- README.md now accurately reflects current capabilities (v4.1.0)
+- Removed misleading v6.0.0 feature claims from documentation
+
+### Fixed
+- CLI robustness: No longer hard exits when setup directory is missing
+- Version detection now uses multiple fallback methods
+- Import errors handled gracefully with informative messages
+
+### Documentation
+- Added clear beta status warning to README
+- Created honest assessment of current vs planned features
+- Established transparent roadmap for v5.0 and v6.0 releases
+
 ## [4.0.9] - 2025-09-05
 ### Fixed
 - **MCP Installer:** Addressed several critical bugs in the MCP installation and update process to improve reliability.

@@ -1,10 +1,10 @@
 # SuperClaude Framework
 
-> ⚠️ **IMPORTANT NOTICE**: This project is currently in **BETA** (v4.0.9). Many features described in our roadmap are not yet implemented. See [ROADMAP.md](ROADMAP.md) for planned features and timeline.
+> ⚠️ **IMPORTANT NOTICE**: This project is currently in **BETA** (v4.1.0). Agent system partially implemented. See [ROADMAP.md](ROADMAP.md) for planned features and timeline.
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-4.0.9-blue)
+![Version](https://img.shields.io/badge/version-4.1.0-blue)
 ![Python](https://img.shields.io/badge/python-3.8%2B-green)
 ![License](https://img.shields.io/badge/license-MIT-purple)
 ![Status](https://img.shields.io/badge/status-beta-yellow)
@@ -36,21 +36,32 @@ SuperClaude is an AI-enhanced development framework for Claude Code that provide
 
 ## Current Features
 
-### ✅ Implemented (v4.0.9)
+### ✅ Implemented (v4.1.0)
 
 - **📦 Python Package Structure** - Installable via pip with CLI entry point
 - **🔧 Installation System** - Basic setup, update, uninstall, and backup commands
-- **📁 Modular Architecture** - Organized structure for future agent and MCP integrations
+- **📁 Modular Architecture** - Organized structure for agent and MCP integrations
 - **🖥️ CLI Framework** - Subcommand system with logging and configuration support
 - **📝 Configuration Templates** - MCP server configurations for common services
+- **🧪 Testing Framework** - pytest suite with 16+ passing tests
+- **📊 Version Management** - Robust version handling with multiple fallbacks
 
-### 🚧 In Development
+### 🚧 In Development (v5.0.0-alpha)
 
-These features are partially implemented but not yet functional:
+These features are partially implemented:
 
-- Basic agent system structure (directories created, no agents implemented)
-- MCP configuration files (templates only, no integration)
-- Command system scaffolding (structure only)
+- **🤖 Agent System** (60% complete):
+  - ✅ Agent discovery from 135+ markdown definitions
+  - ✅ Context-based agent selection with scoring
+  - ✅ Generic agent execution for markdown configs
+  - ✅ Dynamic loading with LRU cache
+  - ⚠️ 1/5 core Python agents implemented
+  - ⚠️ CLI integration pending
+- **📋 Dynamic Loading**:
+  - ✅ TRIGGERS.json configuration system
+  - ⚠️ Not yet integrated with CLI
+- **🔌 MCP Integration**: Templates ready, integration pending
+- **📝 Command System**: Structure created, implementation pending
 
 ## Installation
 
@@ -63,7 +74,7 @@ These features are partially implemented but not yet functional:
 
 ```bash
 pip install SuperClaude
-SuperClaude --version  # Should show 4.0.9
+SuperClaude --version  # Should show 4.1.0
 ```
 
 ### From Source

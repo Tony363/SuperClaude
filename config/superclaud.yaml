@@ -1,0 +1,305 @@
+# SuperClaude Framework Main Configuration
+# Version 6.0.0
+
+version: 6.0.0
+name: SuperClaude Framework
+
+# Framework modes
+modes:
+  default: normal
+  available:
+    - normal
+    - brainstorming
+    - introspection
+    - task_management
+    - token_efficiency
+    - orchestration
+
+# Agent system configuration
+agents:
+  max_delegation_depth: 5
+  circular_detection: true
+  parallel_execution: true
+  default_timeout: 300
+
+  # Core agents (always available)
+  core:
+    - general-purpose
+    - root-cause-analyst
+    - refactoring-expert
+    - technical-writer
+    - performance-engineer
+    - quality-engineer
+    - security-engineer
+    - system-architect
+    - backend-architect
+    - frontend-architect
+    - devops-architect
+    - python-expert
+    - requirements-analyst
+    - socratic-mentor
+
+  # Extended agents (loaded on demand)
+  extended_path: SuperClaude/Agents/extended
+
+# Command system configuration
+commands:
+  prefix: "/sc:"
+  discovery_path: SuperClaude/Commands
+  cache_ttl: 3600
+  parallel_execution: true
+
+  # Command categories
+  categories:
+    - workflow
+    - analysis
+    - implementation
+    - testing
+    - documentation
+    - optimization
+
+# Dynamic loading configuration
+dynamic_loading:
+  enabled: true
+  max_cache_size: 10
+  default_ttl: 3600
+  load_time_target: 0.1
+
+  # Component priorities
+  priorities:
+    agents: high
+    commands: high
+    mcp_servers: medium
+    modes: medium
+    quality: low
+
+# Quality scoring configuration
+quality:
+  enabled: true
+  default_threshold: 70.0
+  max_iterations: 5
+
+  # Quality dimensions and weights
+  dimensions:
+    correctness: 0.25
+    completeness: 0.15
+    clarity: 0.15
+    efficiency: 0.10
+    maintainability: 0.10
+    security: 0.10
+    documentation: 0.10
+    testing: 0.05
+
+# Worktree management configuration
+worktree:
+  enabled: true
+  base_dir: .worktrees
+  max_worktrees: 10
+  cleanup_age_days: 7
+  integration_branch: integration
+
+  # Validation requirements
+  validation:
+    run_tests: true
+    check_conflicts: true
+    require_clean: true
+
+# MCP server configuration
+mcp_servers:
+  enabled: true
+  timeout: 300
+  retry_attempts: 3
+
+  servers:
+    magic:
+      enabled: true
+      frameworks:
+        - react
+        - vue
+        - angular
+        - svelte
+        - vanilla
+
+    sequential:
+      enabled: true
+      max_steps: 20
+      min_confidence: 0.7
+
+    serena:
+      enabled: true
+      memory_prefix: "sc_"
+      persistence: true
+
+    playwright:
+      enabled: true
+      browser: chromium
+      headless: true
+
+    zen:
+      enabled: true
+      models:
+        - gpt-5
+        - claude-opus-4.1
+        - gemini-2.5-pro
+
+    context7:
+      enabled: false  # Not implemented yet
+
+# Logging configuration
+logging:
+  level: INFO
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  file: logs/superclaud.log
+  rotate: true
+  max_bytes: 10485760  # 10MB
+  backup_count: 5
+
+# Performance settings
+performance:
+  max_parallel_operations: 15
+  batch_size: 10
+  cache_enabled: true
+  lazy_loading: true
+
+# Security settings
+security:
+  validate_inputs: true
+  sanitize_outputs: true
+  max_file_size: 52428800  # 50MB
+  allowed_file_extensions:
+    - .py
+    - .js
+    - .ts
+    - .jsx
+    - .tsx
+    - .java
+    - .go
+    - .rs
+    - .cpp
+    - .c
+    - .h
+    - .md
+    - .txt
+    - .json
+    - .yaml
+    - .yml
+    - .toml
+    - .xml
+    - .html
+    - .css
+    - .scss
+    - .sass
+
+# Development settings
+development:
+  debug: false
+  verbose: false
+  profile: false
+  test_mode: false
+
+# Token optimization settings
+token_optimization:
+  enabled: true
+  compression_level: medium
+  symbol_mode: auto
+  abbreviations: true
+
+  # Token budgets
+  budgets:
+    analysis: 10000
+    implementation: 20000
+    documentation: 5000
+    testing: 15000
+
+# Behavioral triggers
+triggers:
+  # Mode triggers
+  mode_triggers:
+    brainstorming:
+      - "explore"
+      - "brainstorm"
+      - "figure out"
+      - "not sure"
+      - "thinking about"
+
+    introspection:
+      - "analyze my reasoning"
+      - "reflect"
+      - "self-analysis"
+      - "meta-cognitive"
+
+    task_management:
+      - ">3 steps"
+      - "complex task"
+      - "multi-step"
+      - "orchestrate"
+
+    token_efficiency:
+      - "--uc"
+      - "save tokens"
+      - "compress"
+      - ">75% context"
+
+    orchestration:
+      - "parallel"
+      - "coordinate"
+      - "multi-tool"
+      - "optimize"
+
+  # Agent triggers
+  agent_triggers:
+    root-cause-analyst:
+      - "debug"
+      - "error"
+      - "broken"
+      - "not working"
+
+    refactoring-expert:
+      - "refactor"
+      - "improve code"
+      - "clean up"
+      - "technical debt"
+
+    performance-engineer:
+      - "slow"
+      - "optimize"
+      - "performance"
+      - "bottleneck"
+
+    security-engineer:
+      - "security"
+      - "vulnerability"
+      - "authentication"
+      - "authorization"
+
+# Workflow definitions
+workflows:
+  default_workflow:
+    - analyze
+    - plan
+    - implement
+    - test
+    - document
+
+  debug_workflow:
+    - reproduce
+    - analyze
+    - isolate
+    - fix
+    - verify
+
+  feature_workflow:
+    - requirements
+    - design
+    - implement
+    - test
+    - integrate
+    - document
+
+# Environment variables
+environment:
+  SUPERCLAUD_ENV: ${SUPERCLAUD_ENV:-development}
+  SUPERCLAUD_HOME: ${SUPERCLAUD_HOME:-~/.superclaud}
+  SUPERCLAUD_CONFIG: ${SUPERCLAUD_CONFIG:-config/superclaud.yaml}
+  SUPERCLAUD_MODELS: ${SUPERCLAUD_MODELS:-config/models.yaml}
+  SUPERCLAUD_LOG_LEVEL: ${SUPERCLAUD_LOG_LEVEL:-INFO}
