@@ -23,7 +23,7 @@ SuperClaude is an advanced AI orchestration framework that transforms Claude Cod
 - **🌳 Worktree Manager**: Git automation for parallel feature development
 - **🤝 Consensus Builder**: Multi-model validation and agreement mechanisms
 - **🎨 6 Behavioral Modes**: Context-aware operational modes
-- **🔌 5 MCP Integrations**: Magic UI, Sequential thinking, Serena memory, Playwright, Zen
+- **🔌 6 MCP Integrations**: Magic UI, Sequential thinking, Serena memory, Playwright, Zen, Deepwiki
 
 ### 🚧 In Development
 - Production deployment features
@@ -62,9 +62,18 @@ graph TB
     end
 
     subgraph "Integration Layer"
-        MCP[MCP Servers<br/>5 integrations]
+        MCP[MCP Servers<br/>6 integrations]
         APC[API Clients<br/>4 providers]
         TF[Test Framework<br/>Integration tests]
+    end
+
+    subgraph "MCP Server Details"
+        MAGIC[Magic UI]
+        SEQ[Sequential]
+        SERENA[Serena]
+        PLAY[Playwright]
+        ZEN[Zen]
+        DEEP[Deepwiki]
     end
 
     subgraph "Storage Layer"
@@ -94,6 +103,13 @@ graph TB
     MR --> APC
     AC --> TF
 
+    MCP --> MAGIC
+    MCP --> SEQ
+    MCP --> SERENA
+    MCP --> PLAY
+    MCP --> ZEN
+    MCP --> DEEP
+
     DL --> CACHE
     WM --> STATE
     API --> CONFIG
@@ -109,6 +125,7 @@ graph TB
     style AC fill:#e0f2f1
     style WM fill:#f1f8e9
     style CB fill:#fce4ec
+    style DEEP fill:#90caf9
 ```
 
 ## 🚀 Quick Start
@@ -308,6 +325,7 @@ Dimensions (100 points total):
 | **Serena** | Project Memory | `/sc:load`, `/sc:save` | Session persistence, symbols |
 | **Playwright** | Browser Automation | `--play`, `--e2e` | E2E testing, visual validation |
 | **Zen** | Multi-model Orchestration | `--zen`, `--consensus` | Consensus building, validation |
+| **Deepwiki** | Documentation Repository | `--docs`, `/docs` | Library docs, API references, code examples |
 
 ## 🌳 Worktree Manager
 
@@ -464,11 +482,43 @@ pytest tests/
 
 ## 📚 Documentation
 
+### 🎯 Essential Understanding
+**SuperClaude is a Context Framework for Claude Code** - it installs behavioral instruction files that Claude Code reads to enhance its capabilities.
+
+#### How It Works
+1. **Installation**: Python CLI installs context files to `~/.claude/`
+2. **Commands**: Type `/sc:analyze` → Claude Code reads `analyze.md` instruction file
+3. **Behavior**: Claude adopts behaviors defined in context files
+4. **Result**: Enhanced development workflows through context switching
+
+### 📖 Documentation Structure
+
 - **[User Guide](Docs/User-Guide/)** - Complete usage documentation
+  - [Commands Guide](Docs/User-Guide/commands.md) - Master all 22 `/sc:` commands
+  - [Agents Guide](Docs/User-Guide/agents.md) - 142 domain specialists
+  - [Flags Guide](Docs/User-Guide/flags.md) - Command behavior modification
+  - [Modes Guide](Docs/User-Guide/modes.md) - 6 behavioral modes
+  - [MCP Servers Guide](Docs/User-Guide/mcp-servers.md) - 6 enhanced capabilities
+
 - **[API Reference](Docs/Reference/)** - Detailed API documentation
+  - [Examples Cookbook](Docs/Reference/examples-cookbook.md) - Practical usage patterns
+  - [Troubleshooting](Docs/Reference/troubleshooting.md) - Common issues and solutions
+  - [Common Issues](Docs/Reference/common-issues.md) - Quick fixes
+
 - **[Developer Guide](Docs/Developer-Guide/)** - Architecture and development
+  - [Technical Architecture](Docs/Developer-Guide/technical-architecture.md) - System design
+  - [Contributing](Docs/Developer-Guide/contributing-code.md) - Development workflow
+
 - **[Examples](examples/)** - Code examples and patterns
-- **[Troubleshooting](Docs/Reference/troubleshooting.md)** - Common issues and solutions
+
+### 🔑 Key Concepts
+
+**Framework Components**:
+- **22 Commands** (`/sc:*`) - Workflow automation patterns
+- **142 Agents** - Domain specialists (15 core + 127 extended)
+- **6 Behavioral Modes** - Context modification patterns
+- **6 MCP Servers** - External tool integrations
+- **8 AI Models** - Multi-model orchestration
 
 ## 🆘 Support
 
@@ -493,7 +543,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - **Total Agents**: 142 (15 core + 127 extended)
 - **Commands**: 22 comprehensive workflow commands
 - **AI Models**: 8 with intelligent routing
-- **MCP Servers**: 5 integrated
+- **MCP Servers**: 6 integrated (Magic, Sequential, Serena, Playwright, Zen, Deepwiki)
 - **Quality Dimensions**: 8 evaluation criteria
 - **Behavioral Modes**: 6 context-aware modes
 - **Lines of Code**: ~20,000+
