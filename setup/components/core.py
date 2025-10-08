@@ -4,6 +4,7 @@ Core component for SuperClaude framework files installation
 
 from typing import Dict, List, Tuple, Optional, Any
 from pathlib import Path
+from datetime import datetime
 import shutil
 
 from ..core.base import Component
@@ -48,7 +49,7 @@ class CoreComponent(Component):
         """Install core component"""
         self.logger.info("Installing SuperClaude core framework files...")
 
-        return super()._install(config);
+        return super()._install(config)
 
     def _post_install(self) -> bool:
         # Create or update metadata with corruption recovery
@@ -64,8 +65,6 @@ class CoreComponent(Component):
                 except (json.JSONDecodeError, IOError) as e:
                     self.logger.warning(f"Corrupted metadata detected: {e}")
                     # Backup corrupted file
-                    import shutil
-                    from datetime import datetime
                     backup_path = metadata_file.with_suffix(f'.json.corrupted.{datetime.now().strftime("%Y%m%d_%H%M%S")}')
                     shutil.move(str(metadata_file), str(backup_path))
                     self.logger.info(f"Corrupted metadata backed up to: {backup_path.name}")
@@ -143,7 +142,7 @@ class CoreComponent(Component):
             except Exception as e:
                 self.logger.warning(f"Could not update metadata: {e}")
             
-            self.logger.success(f"Core component uninstalled ({removed_count} files removed)")
+            self.logger.info(f"✓ Core component uninstalled ({removed_count} files removed)")
             return True
             
         except Exception as e:
@@ -190,7 +189,7 @@ class CoreComponent(Component):
                     except Exception:
                         pass  # Ignore cleanup errors
                 
-                self.logger.success(f"Core component updated to version {target_version}")
+                self.logger.info(f"✓ Core component updated to version {target_version}")
             else:
                 # Restore from backup on failure
                 self.logger.warning("Update failed, restoring from backup...")

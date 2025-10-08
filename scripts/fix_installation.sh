@@ -21,6 +21,15 @@ METADATA_FILE="$CLAUDE_DIR/.superclaude-metadata.json"
 SETTINGS_FILE="$CLAUDE_DIR/settings.json"
 BACKUP_DIR="$CLAUDE_DIR/backups/$(date +%Y%m%d_%H%M%S)"
 
+# Detect repository root dynamically
+detect_repo_root() {
+    local current_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    local repo_root="$(cd "$current_dir/.." && pwd)"
+    echo "$repo_root"
+}
+
+REPO_ROOT="$(detect_repo_root)"
+
 # Parse arguments
 BACKUP=false
 VERBOSE=false
@@ -157,19 +166,19 @@ clean_metadata() {
 verify_superclaude() {
     print_info "Verifying SuperClaude installation..."
 
-    # Check if SuperClaude command exists
-    if command -v SuperClaude &> /dev/null; then
-        print_success "SuperClaude command found: $(which SuperClaude)"
+    # Check if superclaude command exists
+    if command -v superclaude &> /dev/null; then
+        print_success "superclaude command found: $(which superclaude)"
 
         # Try to get version
-        if SuperClaude --version &> /dev/null; then
-            version=$(SuperClaude --version 2>&1 || echo "unknown")
-            print_success "SuperClaude version: $version"
+        if superclaude --version &> /dev/null; then
+            version=$(superclaude --version 2>&1 || echo "unknown")
+            print_success "superclaude version: $version"
         else
-            print_warning "Could not determine SuperClaude version"
+            print_warning "Could not determine superclaude version"
         fi
     else
-        print_error "SuperClaude command not found in PATH"
+        print_error "superclaude command not found in PATH"
         echo "  You may need to run: pip install -e ."
         return 1
     fi
@@ -188,9 +197,9 @@ verify_superclaude() {
 run_installation() {
     print_info "Running SuperClaude installation..."
 
-    if command -v SuperClaude &> /dev/null; then
+    if command -v superclaude &> /dev/null; then
         # Run installation with force flag
-        if SuperClaude install --force --yes; then
+        if superclaude install --force --yes; then
             print_success "Installation completed successfully!"
             return 0
         else
@@ -199,9 +208,9 @@ run_installation() {
             return 1
         fi
     else
-        print_error "SuperClaude command not available"
+        print_error "superclaude command not available"
         print_info "Please install SuperClaude first:"
-        echo "  cd /home/tony/Desktop/SuperClaude_Framework"
+        echo "  cd $REPO_ROOT"
         echo "  pip install -e ."
         return 1
     fi
@@ -227,7 +236,7 @@ main() {
 
         # Step 4: Ask to run installation
         echo -e "${BLUE}Ready to reinstall SuperClaude${NC}"
-        read -p "Run 'SuperClaude install --force' now? (Y/n): " -n 1 -r
+        read -p "Run 'superclaude install --force' now? (Y/n): " -n 1 -r
         echo
 
         if [[ ! $REPLY =~ ^[Nn]$ ]]; then
@@ -237,14 +246,14 @@ main() {
             print_info "Skipping installation"
             echo ""
             echo "To complete the fix, run:"
-            echo "  SuperClaude install --force"
+            echo "  superclaude install --force"
         fi
     else
         echo ""
         print_error "SuperClaude verification failed"
         echo ""
         echo "Please ensure SuperClaude is installed:"
-        echo "  1. cd /home/tony/Desktop/SuperClaude_Framework"
+        echo "  1. cd $REPO_ROOT"
         echo "  2. pip install -e ."
         echo "  3. Run this script again"
     fi
@@ -268,8 +277,8 @@ main() {
     echo "Fix script completed!"
     echo ""
     echo "If you still have issues:"
-    echo "  1. Run: SuperClaude clean --all"
-    echo "  2. Run: SuperClaude install --force"
+    echo "  1. Run: superclaude clean --all"
+    echo "  2. Run: superclaude install --force"
     echo "  3. Check logs: ~/.claude/logs/"
 }
 

@@ -14,8 +14,6 @@ long_description = (this_directory / "README.md").read_text(encoding='utf-8')
 # Read requirements
 requirements = [
     'pyyaml>=6.0',
-    'pytest>=7.0',
-    'pytest-asyncio>=0.21.0',
     'aiofiles>=23.0',
     'python-dotenv>=1.0',
     'rich>=13.0',  # For enhanced terminal output
@@ -32,6 +30,8 @@ requirements = [
 
 # Development requirements
 dev_requirements = [
+    'pytest>=7.0',
+    'pytest-asyncio>=0.21.0',
     'black>=23.0',
     'flake8>=6.0',
     'mypy>=1.0',
@@ -89,13 +89,14 @@ setup(
 
     entry_points={
         'console_scripts': [
-            'superclaud=SuperClaude.__main__:main',
+            'superclaude=SuperClaude.__main__:main',
+            'SuperClaude=SuperClaude.__main__:main',
             'sc=SuperClaude.__main__:main',
         ],
     },
 
     classifiers=[
-        'Development Status :: 4 - Beta',
+        'Development Status :: 3 - Alpha',
         'Intended Audience :: Developers',
         'Topic :: Software Development :: Libraries :: Application Frameworks',
         'Topic :: Scientific/Engineering :: Artificial Intelligence',

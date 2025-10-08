@@ -10,7 +10,6 @@ import argparse
 import json
 import shutil
 from pathlib import Path
-from typing import Optional, List, Dict, Any
 from datetime import datetime
 
 from setup.utils.ui import (
@@ -129,8 +128,6 @@ class CleanCommand:
 
         try:
             log_files = list(log_dir.glob('*.log*'))
-            total_size = sum(f.stat().st_size for f in log_files if f.is_file())
-            size_mb = total_size / (1024 * 1024)
 
             if self.args.keep_recent:
                 # Keep logs from last 7 days
@@ -140,6 +137,10 @@ class CleanCommand:
                 old_logs = log_files
 
             if old_logs:
+                # Calculate size based on files actually being deleted
+                total_size = sum(f.stat().st_size for f in old_logs if f.is_file())
+                size_mb = total_size / (1024 * 1024)
+
                 if not self.dry_run:
                     for log_file in old_logs:
                         log_file.unlink()
@@ -325,6 +326,12 @@ Examples:
 
     # Options
     options_group = parser.add_argument_group('options')
+    options_group.add_argument('--install-dir', type=Path, default=Path.home() / '.claude',
+                             help='Target install directory (default: ~/.claude)')
+    options_group.add_argument('--dry-run', action='store_true',
+                             help='Preview actions without making changes')
+    options_group.add_argument('--force', action='store_true',
+                             help='Force cleaning of valid metadata files')
     options_group.add_argument('--keep-recent', action='store_true',
                              help='Keep logs from last 7 days')
     options_group.add_argument('--validate', action='store_true',
