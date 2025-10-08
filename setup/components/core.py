@@ -51,12 +51,30 @@ class CoreComponent(Component):
         return super()._install(config);
 
     def _post_install(self) -> bool:
-        # Create or update metadata
+        # Create or update metadata with corruption recovery
         try:
+            # Check for corrupted metadata and recover if needed
+            metadata_file = self.install_dir / '.superclaude-metadata.json'
+            if metadata_file.exists():
+                try:
+                    import json
+                    with open(metadata_file, 'r') as f:
+                        json.load(f)
+                    self.logger.debug("Existing metadata is valid")
+                except (json.JSONDecodeError, IOError) as e:
+                    self.logger.warning(f"Corrupted metadata detected: {e}")
+                    # Backup corrupted file
+                    import shutil
+                    from datetime import datetime
+                    backup_path = metadata_file.with_suffix(f'.json.corrupted.{datetime.now().strftime("%Y%m%d_%H%M%S")}')
+                    shutil.move(str(metadata_file), str(backup_path))
+                    self.logger.info(f"Corrupted metadata backed up to: {backup_path.name}")
+
+            # Update metadata with framework configuration
             metadata_mods = self.get_metadata_modifications()
             self.settings_manager.update_metadata(metadata_mods)
             self.logger.info("Updated metadata with framework configuration")
-            
+
             # Add component registration to metadata
             self.settings_manager.add_component_registration("core", {
                 "version": __version__,
@@ -65,13 +83,16 @@ class CoreComponent(Component):
             })
 
             self.logger.info("Updated metadata with core component registration")
-            
+
             # Migrate any existing SuperClaude data from settings.json
             if self.settings_manager.migrate_superclaude_data():
                 self.logger.info("Migrated existing SuperClaude data from settings.json")
+
         except Exception as e:
             self.logger.error(f"Failed to update metadata: {e}")
-            return False
+            # Don't fail installation for metadata issues - log warning and continue
+            self.logger.warning("Installation continuing without metadata update. Run 'SuperClaude clean --metadata' if issues persist.")
+            # Return True to allow installation to complete
 
         # Create additional directories for other components
         additional_dirs = ["commands", "backups", "logs"]

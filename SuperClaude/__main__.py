@@ -155,6 +155,7 @@ def get_operation_modules() -> Dict[str, str]:
         "update": "Update existing SuperClaude installation",
         "uninstall": "Remove SuperClaude installation",
         "backup": "Backup and restore operations",
+        "clean": "Clean corrupted metadata, cache, and temporary files",
         "agent": "Interact with the agent system"
     }
 

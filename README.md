@@ -15,7 +15,7 @@ SuperClaude is an advanced AI orchestration framework that transforms Claude Cod
 ## 🎯 Key Features
 
 ### ✅ Implemented (v6.0.0-alpha)
-- **🤖 142 Specialized Agents**: 15 core + 127 extended agents across 10 domains
+- **🤖 131 Specialized Agents**: 15 core + 116 extended agents across 10 domains
 - **🎯 22 Commands**: Comprehensive `/sc:*` command system for workflow automation
 - **🧠 8 AI Models**: Intelligent routing with GPT-5, Claude Opus 4.1, Gemini 2.5 Pro, and more
 - **🔄 Dynamic Loading**: LRU cache with TTL for optimal performance
@@ -49,7 +49,7 @@ graph TB
 
     subgraph "Intelligence Layer"
         MR[Model Router<br/>8 AI models]
-        AS[Agent System<br/>142 agents]
+        AS[Agent System<br/>131 agents]
         CB[Consensus Builder<br/>Multi-model voting]
         QS[Quality Scorer<br/>8 dimensions]
     end
@@ -238,7 +238,7 @@ Essential agents for common development tasks:
 - `learning-guide` - Educational support
 - `socratic-mentor` - Guided learning
 
-### Extended Agents (127 across 10 categories)
+### Extended Agents (116 across 10 categories)
 
 | Category | Count | Focus Areas |
 |----------|-------|-------------|
@@ -352,9 +352,9 @@ if validation['ready']:
 ```
 SuperClaude_Framework/
 ├── SuperClaude/
-│   ├── Agents/              # 142 agent definitions
+│   ├── Agents/              # 131 agent definitions
 │   │   ├── core/            # 15 core agents
-│   │   └── extended/        # 127 extended agents (10 categories)
+│   │   └── extended/        # 116 extended agents (10 categories)
 │   ├── Commands/            # 22 command handlers
 │   ├── Config/              # Configuration files
 │   │   ├── models.yaml      # AI model configurations
@@ -410,7 +410,7 @@ agents:
     count: 15
     cache_ttl: 3600
   extended:
-    count: 127
+    count: 116
     categories: 10
 ```
 
@@ -428,7 +428,7 @@ dimensions:
 
 ### v6.0.0-alpha (Current)
 - ✅ Core infrastructure complete
-- ✅ 142 agents implemented
+- ✅ 131 agents implemented
 - ✅ Model router with 8 AI models
 - ✅ Quality scoring system
 - ✅ Worktree manager
@@ -495,7 +495,7 @@ pytest tests/
 
 - **[User Guide](Docs/User-Guide/)** - Complete usage documentation
   - [Commands Guide](Docs/User-Guide/commands.md) - Master all 22 `/sc:` commands
-  - [Agents Guide](Docs/User-Guide/agents.md) - 142 domain specialists
+  - [Agents Guide](Docs/User-Guide/agents.md) - 131 domain specialists
   - [Flags Guide](Docs/User-Guide/flags.md) - Command behavior modification
   - [Modes Guide](Docs/User-Guide/modes.md) - 6 behavioral modes
   - [MCP Servers Guide](Docs/User-Guide/mcp-servers.md) - 6 enhanced capabilities
@@ -515,7 +515,7 @@ pytest tests/
 
 **Framework Components**:
 - **22 Commands** (`/sc:*`) - Workflow automation patterns
-- **142 Agents** - Domain specialists (15 core + 127 extended)
+- **131 Agents** - Domain specialists (15 core + 116 extended)
 - **6 Behavioral Modes** - Context modification patterns
 - **6 MCP Servers** - External tool integrations
 - **8 AI Models** - Multi-model orchestration
@@ -540,7 +540,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 📊 Statistics
 
-- **Total Agents**: 142 (15 core + 127 extended)
+- **Total Agents**: 131 (15 core + 116 extended)
 - **Commands**: 22 comprehensive workflow commands
 - **AI Models**: 8 with intelligent routing
 - **MCP Servers**: 6 integrated (Magic, Sequential, Serena, Playwright, Zen, Deepwiki)
