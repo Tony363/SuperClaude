@@ -110,7 +110,6 @@ class IntegrationTestRunner:
         self.test_results: List[TestResult] = []
         self.component_registry: Dict[str, Any] = {}
         self.metrics_collector = MetricsCollector()
-
     def register_suite(self, suite: IntegrationTestSuite):
         """Register a test suite."""
         self.test_suites[suite.id] = suite
@@ -619,3 +618,8 @@ def create_test_case(
 
 # Backwards-compatible aliases expected by some tests
 TestRunner = IntegrationTestRunner
+
+# Prevent pytest from collecting helper classes that share the "Test" prefix
+TestCase.__test__ = False  # type: ignore[attr-defined]
+IntegrationTestSuite.__test__ = False  # type: ignore[attr-defined]
+IntegrationTestRunner.__test__ = False  # type: ignore[attr-defined]

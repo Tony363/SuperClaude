@@ -368,7 +368,7 @@ SuperClaude_Framework/
 │   ├── APIClients/          # Model provider clients
 │   ├── MCP/                 # MCP integrations
 │   ├── Coordination/        # Agent coordination
-│   ├── Monitoring/          # Performance monitoring
+│   ├── Monitoring/          # Performance monitoring + JSONL/SQLite sinks
 │   └── Testing/             # Test framework
 ├── examples/                # Usage examples
 ├── tests/                   # Test suite
