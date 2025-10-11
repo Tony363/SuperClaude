@@ -1,7 +1,7 @@
 """
 Extended Agent Loader for SuperClaude Framework
 
-This module provides dynamic loading and management of 127 specialized agents
+This module provides dynamic loading and management of 116 specialized agents
 with lazy loading, intelligent caching, and category-based organization.
 """
 
@@ -65,7 +65,7 @@ class MatchScore:
 
 class ExtendedAgentLoader:
     """
-    Advanced agent loader for 141-agent system with intelligent selection.
+    Advanced agent loader for 131-agent system with intelligent selection.
 
     Features:
     - Lazy loading of agent definitions from YAML
@@ -637,6 +637,15 @@ class ExtendedAgentLoader:
         stats['top_accessed_agents'] = dict(top_agents)
 
         return stats
+
+    def load_all_agents(self) -> Dict[str, Any]:
+        """Load all agents into memory and return a mapping of id->agent instance."""
+        loaded: Dict[str, Any] = {}
+        for agent_id in list(self._agent_metadata.keys()):
+            agent = self.load_agent(agent_id)
+            if agent:
+                loaded[agent_id] = agent
+        return loaded
 
     def explain_selection(
         self,

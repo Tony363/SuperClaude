@@ -8,7 +8,7 @@ The SuperClaude Agent System (v5.0.0-alpha) provides a modular framework for spe
 
 ### ✅ Implemented
 - Core infrastructure (BaseAgent, Registry, Selector, Loader)
-- Agent discovery from 141 markdown definitions
+- Agent discovery from 131 markdown definitions
 - Context-based selection with multi-factor scoring
 - Dynamic loading with LRU cache
 - Generic markdown agent execution
@@ -68,25 +68,28 @@ if best_agent_name:
 
 ## Available Agents
 
-### Core Agents (5 Implemented)
-1. **general-purpose** - Default agent with delegation capabilities
-2. **root-cause-analyst** - Systematic debugging and investigation
-3. **refactoring-expert** - Code quality improvement
-4. **technical-writer** - Documentation generation
-5. **performance-engineer** - Performance optimization
+### Core Agents (15 Implemented)
+- **general-purpose** – Default delegate with intelligent routing
+- **root-cause-analyst** – Systematic debugging and investigation
+- **refactoring-expert** – Code quality improvement
+- **technical-writer** – Documentation generation
+- **performance-engineer** – Performance optimization
+- **system-architect** – End-to-end architectural guidance
+- **backend-architect** – API, services, and data design
+- **frontend-architect** – UI architecture and implementation
+- **security-engineer** – Threat modelling and mitigation
+- **devops-architect** – Delivery pipelines and infrastructure
+- **python-expert** – Advanced Python patterns and tooling
+- **quality-engineer** – Testing strategy and coverage planning
+- **requirements-analyst** – Requirements clarification and validation
+- **socratic-mentor** – Guided discovery through strategic questioning
+- **learning-guide** – Progressive instruction and practice design
 
-### Extended Agents (126 Available)
-- system-architect
-- backend-architect
-- frontend-architect
-- security-engineer
-- devops-architect
-- python-expert
-- quality-engineer
-- requirements-analyst
-- socratic-mentor
-- learning-guide
-- ... and 116 more specialized agents
+### Extended Agents (116 Markdown-Ready)
+- Ten specialization domains with 116 curated personas
+- Coverage spans application, platform, data, business, and research roles
+- Each agent defined in `SuperClaude/Agents/Extended/<category>/`
+- Additional YAML-only prototypes live under `SuperClaude/Agents/extended/` for future expansion
 
 ## Agent Selection
 

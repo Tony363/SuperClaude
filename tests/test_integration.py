@@ -10,11 +10,18 @@ import sys
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from SuperClaude.Core.agent_loader import AgentLoader
-from SuperClaude.Core.command_registry import CommandRegistry
-from SuperClaude.Core.model_router import ModelRouter
-from SuperClaude.Core.quality_scorer import QualityScorer
-from SuperClaude.Agents.ExtendedAgentLoader import ExtendedAgentLoader
+from SuperClaude.Agents.loader import AgentLoader
+from SuperClaude.Commands.registry import CommandRegistry
+from SuperClaude.ModelRouter.router import ModelRouter
+from SuperClaude.Quality.quality_scorer import QualityScorer
+from SuperClaude.Agents.extended_loader import ExtendedAgentLoader
+from SuperClaude.MCP import (
+    MagicIntegration,
+    SequentialIntegration,
+    SerenaIntegration,
+    PlaywrightIntegration,
+    ZenIntegration,
+)
 from SuperClaude.Testing.integration_framework import TestRunner, TestCase
 
 class TestCoreComponents(unittest.TestCase):
@@ -23,7 +30,7 @@ class TestCoreComponents(unittest.TestCase):
     def test_version(self):
         """Test version consistency"""
         from SuperClaude import __version__
-        self.assertEqual(__version__, "6.0.0-alpha")
+        self.assertEqual(__version__, "4.1.0")
 
     def test_agent_loader(self):
         """Test agent loading system"""
@@ -68,31 +75,26 @@ class TestMCPIntegrations(unittest.TestCase):
 
     def test_magic_integration(self):
         """Test Magic UI integration"""
-        from SuperClaude.MCP.magic_integration import MagicIntegration
         magic = MagicIntegration()
         self.assertIsNotNone(magic)
 
     def test_sequential_integration(self):
         """Test Sequential thinking integration"""
-        from SuperClaude.MCP.sequential_integration import SequentialIntegration
         sequential = SequentialIntegration()
         self.assertIsNotNone(sequential)
 
     def test_serena_integration(self):
         """Test Serena memory integration"""
-        from SuperClaude.MCP.serena_integration import SerenaIntegration
         serena = SerenaIntegration()
         self.assertIsNotNone(serena)
 
     def test_playwright_integration(self):
         """Test Playwright browser integration"""
-        from SuperClaude.MCP.playwright_integration import PlaywrightIntegration
         playwright = PlaywrightIntegration()
         self.assertIsNotNone(playwright)
 
     def test_zen_integration(self):
         """Test Zen multi-model integration"""
-        from SuperClaude.MCP.zen_integration import ZenIntegration
         zen = ZenIntegration()
         self.assertIsNotNone(zen)
 

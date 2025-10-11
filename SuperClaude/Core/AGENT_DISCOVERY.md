@@ -1,17 +1,17 @@
 # Agent Discovery & Liberal Usage System
 
 ## Overview
-The SuperClaude Framework now treats all 141 agents (15 core + 126 extended) as first-class citizens through a unified registry and intelligent selection system.
+The SuperClaude Framework now treats all 131 agents (15 core + 116 extended) as first-class citizens through a unified registry and intelligent selection system.
 
 ## Key Improvements
 
 ### 1. Unified Agent Registry
 - **Location**: `agent_registry.yaml`
-- **Contents**: All 141 agents with metadata
+- **Contents**: All 131 agents with metadata
 - **Benefits**: Single source of truth for agent capabilities
 
 ### 2. Enhanced --delegate Flag
-- Now searches ALL 141 agents, not just core 15
+- Now searches ALL 131 agents, not just core 15
 - Uses context-aware selection based on:
   - File extensions (`.rs` → rust-engineer)
   - Imports (`tensorflow` → ml-engineer)
@@ -46,7 +46,7 @@ python3 scripts/agent_discovery.py --suggest
 
 ### Automatic Selection (Recommended)
 ```bash
-# Let framework choose from all 141 agents
+# Let framework choose from all 131 agents
 --delegate
 
 # Framework detects:
@@ -83,15 +83,10 @@ Quality: 92/100 ✅
 - General purpose operations
 - Always available via simplified names
 
-### Priority 2: Extended Common (100+)
-- Specialized expertise
-- Language/framework specific
-- Domain specialists
-
-### Priority 3: Extended Specialized (10+)
-- Highly specialized domains
-- Niche technologies
-- Industry-specific
+### Priority 2: Extended Domains (116)
+- Specialized expertise across ten domains
+- Language/framework specific personas
+- Domain-focused problem solvers
 
 ## Context Detection Examples
 
@@ -182,10 +177,10 @@ Task(preferred-agent)
 ```
 
 ### Performance Concerns
-- Registry search: <10ms for 141 agents
+- Registry search: <10ms for 131 agents
 - With caching: <1ms for repeated selections
 - No noticeable impact on performance
 
 ---
 
-*The SuperClaude Framework now liberally uses all 141 agents to provide specialized expertise exactly when needed.*
+*The SuperClaude Framework now liberally uses all 131 agents to provide specialized expertise exactly when needed.*

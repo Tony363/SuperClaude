@@ -221,7 +221,16 @@ def main() -> int:
     try:
         parser, subparsers, global_parser = create_parser()
         operations = register_operation_parsers(subparsers, global_parser)
-        args = parser.parse_args()
+        try:
+            args = parser.parse_args()
+        except SystemExit as se:
+            # Convert invalid operation into graceful error path for tests
+            if se.code == 2 and len(sys.argv) > 1:
+                candidate = sys.argv[1]
+                if candidate not in operations:
+                    display_error(f"Unknown operation: '{candidate}'.")
+                    return 1
+            raise
         
         # Check for updates unless disabled
         if not args.quiet and not getattr(args, 'no_update_check', False):
@@ -294,4 +303,3 @@ def main() -> int:
 if __name__ == "__main__":
     sys.exit(main())
     
-

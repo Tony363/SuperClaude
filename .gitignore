@@ -105,6 +105,7 @@ CLAUDE.md
 # SuperClaude specific
 .serena/
 .superclaude/
+.superclaude_metrics/
 *.backup
 *.bak
 

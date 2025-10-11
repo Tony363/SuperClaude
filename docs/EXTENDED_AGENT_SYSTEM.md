@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Extended Agent System provides dynamic loading and intelligent management of 141 specialized agents (14 core + 127 extended) with advanced capability matching and performance optimization.
+The Extended Agent System provides dynamic loading and intelligent management of 131 specialized agents (15 core + 116 extended) with advanced capability matching and performance optimization. Markdown playbooks reside in `SuperClaude/Agents/Extended/`, while the loader ingests supplemental YAML metadata from `SuperClaude/Agents/extended/`. YAML entries without playbooks remain prototypes and are excluded from the live 116 count.
 
 ## Architecture
 
@@ -11,7 +11,7 @@ The Extended Agent System provides dynamic loading and intelligent management of
 ```
 ExtendedAgentLoader (Main Interface)
 ├── AgentMetadata Index (Lightweight, Always Loaded)
-│   ├── 141 agent definitions
+│   ├── 131 agent definitions
 │   ├── 10 category indexes
 │   └── Capability mappings
 ├── LRU Cache (Configurable Size)
@@ -43,7 +43,7 @@ Execution
 ## Agent Categories
 
 ### 1. Core Development (01-core-development)
-**Count:** ~10 agents
+**Count:** 11 agents
 **Focus:** Fundamental development patterns, APIs, mobile, microservices
 
 **Key Agents:**
@@ -56,7 +56,7 @@ Execution
 **Use When:** Building applications, designing APIs, mobile development
 
 ### 2. Language Specialists (02-language-specialists)
-**Count:** ~22 agents
+**Count:** 23 agents
 **Focus:** Language-specific expertise and frameworks
 
 **Key Agents:**
@@ -73,7 +73,7 @@ Execution
 **Use When:** Working with specific languages or frameworks
 
 ### 3. Infrastructure (03-infrastructure)
-**Count:** ~12 agents
+**Count:** 12 agents
 **Focus:** DevOps, cloud platforms, orchestration
 
 **Key Agents:**
@@ -86,7 +86,7 @@ Execution
 **Use When:** Infrastructure setup, cloud deployment, DevOps tasks
 
 ### 4. Quality & Security (04-quality-security)
-**Count:** ~12 agents
+**Count:** 12 agents
 **Focus:** Testing, security audits, code review, accessibility
 
 **Key Agents:**
@@ -99,7 +99,7 @@ Execution
 **Use When:** Security audits, test automation, code reviews
 
 ### 5. Data & AI (05-data-ai)
-**Count:** ~12 agents
+**Count:** 12 agents
 **Focus:** Machine learning, data engineering, LLM architecture
 
 **Key Agents:**
@@ -112,7 +112,7 @@ Execution
 **Use When:** ML projects, data pipelines, AI integration
 
 ### 6. Developer Experience (06-developer-experience)
-**Count:** ~10 agents
+**Count:** 10 agents
 **Focus:** DX optimization, tooling, refactoring, legacy modernization
 
 **Key Agents:**
@@ -125,7 +125,7 @@ Execution
 **Use When:** Improving developer workflows, modernizing codebases
 
 ### 7. Specialized Domains (07-specialized-domains)
-**Count:** ~11 agents
+**Count:** 11 agents
 **Focus:** Domain-specific expertise (blockchain, gaming, IoT, fintech)
 
 **Key Agents:**
@@ -138,7 +138,7 @@ Execution
 **Use When:** Specialized domain projects
 
 ### 8. Business & Product (08-business-product)
-**Count:** ~11 agents
+**Count:** 11 agents
 **Focus:** Business analysis, product management, content
 
 **Key Agents:**
@@ -151,7 +151,7 @@ Execution
 **Use When:** Business analysis, product planning, project management
 
 ### 9. Meta-Orchestration (09-meta-orchestration)
-**Count:** ~8 agents
+**Count:** 8 agents
 **Focus:** Multi-agent coordination, workflow orchestration
 
 **Key Agents:**
@@ -164,7 +164,7 @@ Execution
 **Use When:** Complex multi-agent workflows, orchestration
 
 ### 10. Research & Analysis (10-research-analysis)
-**Count:** ~6 agents
+**Count:** 6 agents
 **Focus:** Research, competitive analysis, market intelligence
 
 **Key Agents:**

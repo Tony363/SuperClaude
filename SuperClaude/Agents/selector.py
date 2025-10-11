@@ -217,7 +217,30 @@ class AgentSelector:
         if config.get('is_core', False):
             score += 0.05
 
+        # 7. Keyword-to-core-agent boost to ensure intuitive defaults
+        score += self._keyword_core_boost(config.get('name', ''), context_lower)
+
         return min(score, 1.0)
+
+    def _keyword_core_boost(self, agent_name: str, context_lower: str) -> float:
+        """Apply small heuristic boosts to ensure intuitive core agent matches."""
+        boosts = 0.0
+        try:
+            if agent_name == 'root-cause-analyst':
+                if any(k in context_lower for k in ['debug', 'bug', 'issue', 'error', 'problem', 'crash']):
+                    boosts += 0.5
+            elif agent_name == 'refactoring-expert':
+                if any(k in context_lower for k in ['refactor', 'clean up', 'improve code', 'restructure']):
+                    boosts += 0.5
+            elif agent_name == 'technical-writer':
+                if any(k in context_lower for k in ['write documentation', 'docs', 'documentation', 'explain']):
+                    boosts += 0.5
+            elif agent_name == 'performance-engineer':
+                if any(k in context_lower for k in ['performance', 'optimize', 'slow', 'speed up']):
+                    boosts += 0.5
+        except Exception:
+            pass
+        return boosts
 
     def _score_triggers(self, context: str, triggers: List[str]) -> float:
         """Score based on trigger keyword matches."""

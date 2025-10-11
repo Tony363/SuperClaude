@@ -10,14 +10,18 @@ import sys
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from SuperClaude.Core.agent_loader import AgentLoader
-from SuperClaude.Core.model_router import ModelRouter
-from SuperClaude.Core.quality_scorer import QualityScorer
+from SuperClaude.Agents.loader import AgentLoader
+from SuperClaude.ModelRouter.router import ModelRouter
+from SuperClaude.Quality.quality_scorer import QualityScorer
 from SuperClaude.Core.worktree_manager import WorktreeManager
-from SuperClaude.Agents.ExtendedAgentLoader import ExtendedAgentLoader
+from SuperClaude.Agents.extended_loader import ExtendedAgentLoader
 from SuperClaude.Coordination.agent_coordinator import AgentCoordinator
 from SuperClaude.Testing.integration_framework import TestRunner
 from SuperClaude.Monitoring.performance_monitor import PerformanceMonitor
+from SuperClaude.MCP import (
+    PlaywrightIntegration,
+    ZenIntegration,
+)
 
 async def workflow_feature_development():
     """Complete feature development workflow"""
@@ -108,8 +112,6 @@ async def workflow_debugging_complex_issue():
 
     # Step 1: Multi-angle analysis with Zen
     print("\nStep 1: Multi-Model Analysis")
-    from SuperClaude.MCP.zen_integration import ZenIntegration
-
     zen = ZenIntegration()
     analysis = await zen.deep_think(
         problem="Intermittent API slowdowns, 10x latency spikes every few hours",
@@ -152,8 +154,6 @@ async def workflow_debugging_complex_issue():
 
     # Step 4: Validate fix
     print("\nStep 4: Validation")
-    from SuperClaude.MCP.playwright_integration import PlaywrightIntegration
-
     playwright = PlaywrightIntegration()
     e2e_results = await playwright.run_e2e_tests(
         test_suite="performance",
@@ -178,8 +178,6 @@ async def workflow_large_codebase_refactoring():
 
     # Step 2: Plan refactoring strategy
     print("\nStep 2: Strategic Planning")
-    from SuperClaude.MCP.zen_integration import ZenIntegration
-
     zen = ZenIntegration()
     plan = await zen.plan(
         goal="Modernize codebase: migrate to microservices, add types, improve tests",
@@ -233,8 +231,6 @@ async def workflow_production_deployment():
 
     # Step 1: Pre-deployment validation
     print("\nStep 1: Pre-Deployment Validation")
-    from SuperClaude.MCP.zen_integration import ZenIntegration
-
     zen = ZenIntegration()
     review = await zen.code_review(
         path="/src",
@@ -286,7 +282,6 @@ async def workflow_production_deployment():
         # Deployment logic here
 
         # Run E2E tests
-        from SuperClaude.MCP.playwright_integration import PlaywrightIntegration
         playwright = PlaywrightIntegration()
 
         tests = await playwright.run_e2e_tests(

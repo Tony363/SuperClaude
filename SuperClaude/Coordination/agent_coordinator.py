@@ -105,6 +105,8 @@ class AgentCoordinator:
         self.completed_tasks: Dict[str, AgentResult] = {}
         self.delegation_graph = nx.DiGraph()
         self.execution_history: List[Dict[str, Any]] = []
+        # Expose available strategies for simple introspection/APIs
+        self.strategies = [s.value for s in CoordinationStrategy]
 
     def register_agent(self, agent_id: str, agent: Any, role: AgentRole = AgentRole.WORKER):
         """

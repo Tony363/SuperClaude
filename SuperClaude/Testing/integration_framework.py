@@ -44,16 +44,23 @@ class ComponentType(Enum):
 class TestCase:
     """Individual test case."""
 
-    id: str
-    name: str
-    component_type: ComponentType
-    components: List[str]  # Component IDs to test
-    test_function: Callable
+    id: str = ""
+    name: str = ""
+    description: str = ""
+    category: str = "general"
+    component_type: ComponentType = ComponentType.AGENT
+    components: List[str] = field(default_factory=list)  # Component IDs to test
+    test_function: Callable = lambda *a, **k: True
     dependencies: List[str] = field(default_factory=list)
     timeout_seconds: int = 30
     retry_count: int = 0
     tags: List[str] = field(default_factory=list)
     metadata: Dict[str, Any] = field(default_factory=dict)
+    status: str = "pending"
+
+    def __post_init__(self):
+        if not self.id and self.name:
+            self.id = self.name.lower().replace(" ", "_")
 
 
 @dataclass
@@ -609,3 +616,6 @@ def create_test_case(
         components=components or [],
         test_function=test_func
     )
+
+# Backwards-compatible aliases expected by some tests
+TestRunner = IntegrationTestRunner

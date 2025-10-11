@@ -92,11 +92,11 @@ class GoogleClient:
         }
     }
 
-    def __init__(self, config: Optional[GoogleConfig] = None):
+    def __init__(self, config: Optional[GoogleConfig] = None, api_key: Optional[str] = None):
         """Initialize Google client."""
         if not config:
             # Try to load from environment
-            api_key = os.getenv("GOOGLE_API_KEY")
+            api_key = api_key or os.getenv("GOOGLE_API_KEY")
             if not api_key:
                 raise ValueError("Google API key not provided")
 
@@ -105,6 +105,7 @@ class GoogleClient:
         self.config = config
         self.rate_limiter = RateLimiter(config.rate_limit_rpm, config.rate_limit_tpm)
         self.token_counter = TokenCounter()
+        self.provider = "google"
 
     async def complete(self, request: GeminiRequest) -> GeminiResponse:
         """

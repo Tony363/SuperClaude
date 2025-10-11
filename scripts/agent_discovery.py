@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 SuperClaude Agent Discovery Tool
-Helps find the right agent from 141 available agents based on context
+Helps find the right agent from 131 available agents based on context
 """
 
 import yaml

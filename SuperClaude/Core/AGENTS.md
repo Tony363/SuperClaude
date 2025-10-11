@@ -1,11 +1,11 @@
 # SuperClaude Agent Framework
 
 ## Core Concept
-Task agents are specialized sub-agents for complex operations. Use `--delegate` for automatic selection from ALL 141 agents (core + extended) or specify directly with `Task(agent-name)`.
+Task agents are specialized sub-agents for complex operations. Use `--delegate` for automatic selection from ALL 131 agents (core + extended) or specify directly with `Task(agent-name)`.
 
 ## 🚀 NEW: Unified Agent Registry
 All agents now searchable through single registry with intelligent selection:
-- **141 Total Agents**: 15 core + 126 extended specialists
+- **131 Total Agents**: 15 core + 116 extended specialists
 - **Smart Selection**: `--delegate` now searches ALL agents based on context
 - **Discovery Features**: Use `--suggest-agents` to see relevant specialists
 - **Registry Location**: `agent_registry.yaml` with metadata for all agents
@@ -58,7 +58,7 @@ The framework now detects context and suggests appropriate specialists:
 
 ### Let Framework Choose (Recommended)
 ```bash
-# Searches ALL 141 agents based on context
+# Searches ALL 131 agents based on context
 --delegate
 
 # See what agents would be selected
@@ -95,7 +95,7 @@ Task(Extended/02-language-specialists/rust-engineer)
 
 ## Extended Agent Categories
 
-The 126 extended agents are organized into specialized domains:
+The 116 extended agents are organized into specialized domains:
 
 - **01-core-development**: APIs, mobile, microservices, UI/UX
 - **02-language-specialists**: TypeScript, Rust, Go, React, Vue, Angular

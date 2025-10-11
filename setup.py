@@ -6,10 +6,36 @@ Install with: pip install -e .
 
 from setuptools import setup, find_packages
 from pathlib import Path
+from typing import List
 
 # Read README for long description
 this_directory = Path(__file__).parent
 long_description = (this_directory / "README.md").read_text(encoding='utf-8')
+
+
+def collect_package_files() -> List[str]:
+    """Collect non-Python data files that need to ship with the package."""
+    base_dir = this_directory / "SuperClaude"
+    patterns = [
+        "Commands/*.md",
+        "Agents/*.md",
+        "Agents/*.json",
+        "Agents/Extended/**/*.md",
+        "Agents/extended/**/*.yaml",
+        "Config/**/*.yaml",
+        "Config/**/*.yml",
+        "Core/*.yaml",
+        "Core/*.md",
+        "Modes/*.md",
+    ]
+
+    collected = set()
+    for pattern in patterns:
+        for path in base_dir.glob(pattern):
+            if path.is_file():
+                collected.add(str(path.relative_to(base_dir)))
+
+    return sorted(collected)
 
 # Read requirements
 requirements = [
@@ -62,11 +88,7 @@ setup(
     packages=find_packages(exclude=['tests', 'tests.*', 'docs', 'examples']),
 
     package_data={
-        'SuperClaude': [
-            'Commands/*.md',
-            'Agents/configs/*.yaml',
-            'Agents/extended/*.yaml',
-        ],
+        'SuperClaude': collect_package_files(),
     },
 
     include_package_data=True,

@@ -44,12 +44,12 @@
 ### 🎯 Achievements
 
 - Successfully implemented core agent infrastructure
-- 141 agents discoverable and executable
+- 131 agents discoverable and executable
 - Context-based selection algorithm working
 - Generic markdown agent enables all agents without Python implementations
 - CLI integration provides functional agent commands
 - Encoding issues resolved for all agent files
-- 5 core agents fully implemented with Python classes
+- 15 core agents fully implemented with Python classes
 
 ### 🚧 Remaining Work (40%)
 

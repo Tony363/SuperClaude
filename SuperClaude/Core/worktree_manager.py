@@ -36,8 +36,12 @@ class WorktreeManager:
         self.max_worktrees = max_worktrees
         self.state_file = self.worktree_dir / "state.json"
 
-        # Create worktree directory if it doesn't exist
-        self.worktree_dir.mkdir(exist_ok=True)
+        # Create repository and worktree directories if they don't exist
+        try:
+            self.repo_path.mkdir(parents=True, exist_ok=True)
+        except Exception:
+            pass
+        self.worktree_dir.mkdir(parents=True, exist_ok=True)
 
         # Load or initialize state
         self.state = self._load_state()

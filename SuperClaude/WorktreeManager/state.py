@@ -8,6 +8,7 @@ import json
 import logging
 from pathlib import Path
 from typing import Dict, Any, Optional, List
+import yaml
 from dataclasses import dataclass, asdict, field
 from datetime import datetime
 
@@ -55,6 +56,13 @@ class WorktreeStateManager:
         self.serena_client = serena_client
         self.states: Dict[str, WorktreeState] = {}
 
+        # Optionally enable Serena persistence by default
+        if self.serena_client is None:
+            try:
+                self._auto_init_serena()
+            except Exception as e:
+                logger.debug(f"Serena auto-init skipped: {e}")
+
         # Load existing state
         self.load_state()
 
@@ -91,6 +99,41 @@ class WorktreeStateManager:
 
         except Exception as e:
             logger.warning(f"Failed to load from Serena: {e}")
+
+    def _auto_init_serena(self) -> None:
+        """Best-effort initialization of Serena client when enabled in config."""
+        try:
+            # Read config/mcp.yaml
+            repo = self.repo_path if isinstance(self.repo_path, Path) else Path(self.repo_path or ".")
+            cfg_path = repo / "SuperClaude" / "Config" / "mcp.yaml"
+            cfg = {}
+            if cfg_path.exists():
+                with cfg_path.open("r", encoding="utf-8") as f:
+                    cfg = yaml.safe_load(f) or {}
+
+            enabled = (
+                cfg.get('integration', {})
+                   .get('coordination', {})
+                   .get('serena_persistence', True)
+            )
+            if not enabled:
+                return
+
+            # Create Serena integration and sync adapter
+            from SuperClaude.MCP import get_mcp_integration
+            from SuperClaude.MCP.serena_sync_adapter import SerenaSyncAdapter
+
+            servers_cfg = cfg.get('servers', {})
+            serena_cfg = servers_cfg.get('serena', {}) if isinstance(servers_cfg, dict) else {}
+            try:
+                integration = get_mcp_integration('serena', config=serena_cfg)
+            except TypeError:
+                integration = get_mcp_integration('serena')
+
+            self.serena_client = SerenaSyncAdapter(integration)
+            logger.info("Serena persistence enabled for WorktreeStateManager")
+        except Exception as e:
+            logger.debug(f"Serena auto-init error: {e}")
 
     def save_state(self) -> None:
         """Save state to disk and Serena."""

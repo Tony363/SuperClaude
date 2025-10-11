@@ -1,93 +1,65 @@
 """
 SuperClaude Framework MCP Server Integrations
 
-This module provides integrations with various MCP (Model Context Protocol) servers
-for enhanced capabilities including UI generation, multi-step reasoning,
-documentation fetching, browser automation, and multi-model orchestration.
+Provides integration factories and exports for MCP (Model Context Protocol)
+servers including UI generation (Magic), sequential reasoning, project memory
+(Serena), browser automation (Playwright), multi-model orchestration (Zen),
+and documentation (Deepwiki).
 """
 
-# Import MCP integrations
+from typing import Dict, Type, Any
+
+# Import MCP integrations with correct symbol names and aliases
 from .zen_integration import (
     ZenIntegration,
     ConsensusResult,
     ThinkingMode,
     ModelConfig,
-    ConsensusType
+    ConsensusType,
 )
 
 from .serena_integration import (
     SerenaIntegration,
-    SerenaSymbol,
-    SerenaMemory
+    SymbolInfo as SerenaSymbol,
+    SessionMemory as SerenaMemory,
 )
 
 from .playwright_integration import (
     PlaywrightIntegration,
-    BrowserAction,
-    PageSnapshot,
-    TestResult
+    TestResult,
 )
 
 from .deepwiki_integration import (
     DeepwikiIntegration,
     DeepwikiDocument,
     DeepwikiSearchResult,
-    DocumentationType
+    DocumentationType,
 )
 
-# Import from integrations subdirectory
 from .integrations.magic_integration import (
     MagicIntegration,
-    MagicComponent
+    MagicComponent,
 )
 
 from .integrations.sequential_integration import (
     SequentialIntegration,
-    ThinkingStep,
-    AnalysisResult
 )
 
 # Version info
 __version__ = "6.0.0-alpha"
 
-# Export all classes and functions
 __all__ = [
-    # Zen MCP
-    'ZenIntegration',
-    'ConsensusResult',
-    'ThinkingMode',
-    'ModelConfig',
-    'ConsensusType',
-
-    # Serena MCP
-    'SerenaIntegration',
-    'SerenaSymbol',
-    'SerenaMemory',
-
-    # Playwright MCP
-    'PlaywrightIntegration',
-    'BrowserAction',
-    'PageSnapshot',
-    'TestResult',
-
-    # Deepwiki MCP
-    'DeepwikiIntegration',
-    'DeepwikiDocument',
-    'DeepwikiSearchResult',
-    'DocumentationType',
-
-    # Magic MCP
-    'MagicIntegration',
-    'MagicComponent',
-
-    # Sequential MCP
+    'ZenIntegration', 'ConsensusResult', 'ThinkingMode', 'ModelConfig', 'ConsensusType',
+    'SerenaIntegration', 'SerenaSymbol', 'SerenaMemory',
+    'PlaywrightIntegration', 'TestResult',
+    'DeepwikiIntegration', 'DeepwikiDocument', 'DeepwikiSearchResult', 'DocumentationType',
+    'MagicIntegration', 'MagicComponent',
     'SequentialIntegration',
-    'ThinkingStep',
-    'AnalysisResult',
+    'get_mcp_integration',
 ]
 
 # MCP Server Registry
-MCP_SERVERS = {
+MCP_SERVERS: Dict[str, Type[Any]] = {
     'magic': MagicIntegration,
     'sequential': SequentialIntegration,
     'serena': SerenaIntegration,
@@ -97,21 +69,9 @@ MCP_SERVERS = {
 }
 
 def get_mcp_integration(server_name: str, **kwargs):
-    """
-    Factory function to get MCP integration instance.
-
-    Args:
-        server_name: Name of the MCP server
-        **kwargs: Additional arguments for the integration
-
-    Returns:
-        Instance of the requested MCP integration
-
-    Raises:
-        ValueError: If server_name is not recognized
-    """
-    if server_name not in MCP_SERVERS:
-        raise ValueError(f"Unknown MCP server: {server_name}. Available: {', '.join(MCP_SERVERS.keys())}")
-
-    integration_class = MCP_SERVERS[server_name]
-    return integration_class(**kwargs)
+    """Factory to create an MCP integration instance by server name."""
+    cls = MCP_SERVERS.get(server_name)
+    if not cls:
+        available = ', '.join(sorted(MCP_SERVERS.keys()))
+        raise ValueError(f"Unknown MCP server: {server_name}. Available: {available}")
+    return cls(**kwargs)

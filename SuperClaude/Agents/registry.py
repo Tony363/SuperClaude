@@ -161,7 +161,18 @@ class AgentRegistry:
             'root-cause-analyst': 'root_cause',
             'refactoring-expert': 'refactoring',
             'technical-writer': 'technical_writer',
-            'performance-engineer': 'performance'
+            'performance-engineer': 'performance',
+            # Additional core agents
+            'backend-architect': 'backend_architect',
+            'frontend-architect': 'frontend_architect',
+            'system-architect': 'system_architect',
+            'python-expert': 'python_expert',
+            'security-engineer': 'security',
+            'devops-architect': 'devops_architect',
+            'quality-engineer': 'quality',
+            'requirements-analyst': 'requirements_analyst',
+            'socratic-mentor': 'socratic_mentor',
+            'learning-guide': 'learning_guide',
         }
 
         loaded = 0

@@ -5,7 +5,7 @@ A modular agent framework for specialized task execution with
 context-aware selection and delegation capabilities.
 
 Features:
-- 141-agent system (14 core + 127 extended)
+- 130+ agents across core and extended categories
 - Intelligent agent selection with multi-criteria scoring
 - Lazy loading with LRU cache optimization
 - 10 specialized categories
@@ -33,7 +33,8 @@ from .core import (
     RootCauseAnalyst,
     RefactoringExpert,
     TechnicalWriter,
-    PerformanceEngineer
+    PerformanceEngineer,
+    LearningGuide
 )
 
 __all__ = [
@@ -58,7 +59,8 @@ __all__ = [
     'RootCauseAnalyst',
     'RefactoringExpert',
     'TechnicalWriter',
-    'PerformanceEngineer'
+    'PerformanceEngineer',
+    'LearningGuide'
 ]
 
 # Version information

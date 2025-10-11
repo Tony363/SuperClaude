@@ -11,12 +11,12 @@ import sys
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from SuperClaude.Core.agent_loader import AgentLoader
-from SuperClaude.Core.command_registry import CommandRegistry
-from SuperClaude.Core.model_router import ModelRouter
-from SuperClaude.Core.quality_scorer import QualityScorer
+from SuperClaude.Agents.loader import AgentLoader
+from SuperClaude.Commands.registry import CommandRegistry
+from SuperClaude.ModelRouter.router import ModelRouter
+from SuperClaude.Quality.quality_scorer import QualityScorer
 from SuperClaude.Core.worktree_manager import WorktreeManager
-from SuperClaude.Agents.ExtendedAgentLoader import ExtendedAgentLoader
+from SuperClaude.Agents.extended_loader import ExtendedAgentLoader
 
 async def example_agent_loading():
     """Example: Loading and using agents"""
@@ -144,9 +144,11 @@ async def example_mcp_integration():
     print("\n=== MCP Integration Example ===")
 
     # Import MCP integrations
-    from SuperClaude.MCP.magic_integration import MagicIntegration
-    from SuperClaude.MCP.sequential_integration import SequentialIntegration
-    from SuperClaude.MCP.zen_integration import ZenIntegration
+    from SuperClaude.MCP import (
+        MagicIntegration,
+        SequentialIntegration,
+        ZenIntegration,
+    )
 
     # Magic UI generation
     magic = MagicIntegration()

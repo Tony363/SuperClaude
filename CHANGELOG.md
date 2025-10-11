@@ -12,7 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - **Agent System (60% complete)**
   - Core infrastructure: BaseAgent, AgentRegistry, AgentSelector, AgentLoader
-  - Agent discovery from 141 markdown definitions (15 core, 126 extended)
+  - Agent discovery from 131 markdown definitions (15 core, 116 extended)
   - Context-based agent selection with multi-factor scoring
   - Dynamic agent loading with LRU cache (10 agents, 1hr TTL)
   - Generic markdown agent execution for all discovered agents
@@ -27,7 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - UTF-8 decode errors for 6 Extended agent markdown files
-- Agent discovery now finds all 141 agents (previously 135)
+- Agent discovery now finds all 131 agents (previously 135)
 - Registry methods aligned with test expectations
 
 ### In Development

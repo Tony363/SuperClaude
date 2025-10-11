@@ -243,15 +243,17 @@ Essential agents for common development tasks:
 | Category | Count | Focus Areas |
 |----------|-------|-------------|
 | **Core Development** | 11 | APIs, mobile, microservices, GraphQL |
-| **Language Specialists** | 25 | TypeScript, Rust, Go, Python, Java, etc. |
-| **Infrastructure** | 14 | DevOps, Kubernetes, cloud, observability |
-| **Quality & Security** | 14 | Testing, security, code review, fuzzing |
-| **Data & AI** | 13 | ML, data engineering, LLMs, ETL |
-| **Developer Experience** | 11 | DX, tooling, refactoring, CLI |
-| **Specialized Domains** | 12 | Blockchain, gaming, IoT, embedded |
+| **Language Specialists** | 23 | TypeScript, Rust, Go, Python, Java, etc. |
+| **Infrastructure** | 12 | DevOps, Kubernetes, cloud, observability |
+| **Quality & Security** | 12 | Testing, security, code review, fuzzing |
+| **Data & AI** | 12 | ML, data engineering, LLMs, ETL |
+| **Developer Experience** | 10 | DX, tooling, refactoring, CLI |
+| **Specialized Domains** | 11 | Blockchain, gaming, IoT, embedded |
 | **Business & Product** | 11 | PM, business analysis, agile |
-| **Meta-Orchestration** | 9 | Multi-agent coordination, pipelines |
-| **Research & Analysis** | 7 | Market research, cost optimization |
+| **Meta-Orchestration** | 8 | Multi-agent coordination, pipelines |
+| **Research & Analysis** | 6 | Market research, cost optimization |
+
+> **Directory Layout:** Markdown agent playbooks ship from `SuperClaude/Agents/Extended/`. The loader also consumes YAML metadata under `SuperClaude/Agents/extended/`; entries without matching Markdown files are treated as in-progress prototypes and are excluded from the 116 production agents until their playbooks are complete.
 
 ## 🧠 Model Router
 
@@ -390,6 +392,8 @@ pytest tests/test_integration.py -v
 # Performance benchmarks
 python benchmarks/run_benchmarks.py
 ```
+
+> **Pyenv Sandboxes:** If your environment blocks writes to `~/.pyenv/shims`, disable automatic rehashing before invoking pytest: `export PYENV_DISABLE_REHASH=1`.
 
 ## 🔧 Configuration
 

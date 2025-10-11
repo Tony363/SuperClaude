@@ -380,6 +380,61 @@ class QualityScorer:
             )
         }
 
+    # Simple convenience API expected by some tests
+    def calculate_score(self, scores: Dict[str, float]) -> Dict[str, Any]:
+        """Calculate overall quality score and suggested action from dimension scores.
+
+        Args:
+            scores: Mapping of dimension name -> score (0-100)
+
+        Returns:
+            Dict with 'overall', 'grade', and 'action'.
+        """
+        # Default weights mirroring README table
+        weights = {
+            'correctness': 0.25,
+            'completeness': 0.20,
+            'performance': 0.10,
+            'maintainability': 0.10,
+            'security': 0.10,
+            'scalability': 0.10,
+            'testability': 0.10,
+            'usability': 0.05,
+        }
+
+        # Weighted sum
+        overall = 0.0
+        total_weight = 0.0
+        for dim, w in weights.items():
+            if dim in scores:
+                overall += max(0.0, min(100.0, float(scores[dim]))) * w
+                total_weight += w
+
+        overall = overall / total_weight if total_weight > 0 else 0.0
+
+        # Grade and action
+        if overall >= 90:
+            grade = 'Excellent'
+            action = 'Auto-approve'
+        elif overall >= 70:
+            grade = 'Good'
+            action = 'Review recommended'
+        elif overall >= 50:
+            grade = 'Acceptable'
+            action = 'Improvements needed'
+        elif overall >= 30:
+            grade = 'Poor'
+            action = 'Major revision required'
+        else:
+            grade = 'Failing'
+            action = 'Complete rework needed'
+
+        return {
+            'overall': round(overall, 2),
+            'grade': grade,
+            'action': action,
+        }
+
     def _evaluate_correctness(self, output: Any, context: Dict[str, Any]) -> QualityMetric:
         """Evaluate correctness dimension."""
         score = 70.0  # Base score

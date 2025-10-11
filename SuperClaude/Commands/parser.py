@@ -37,7 +37,7 @@ class CommandParser:
 
     # Command patterns
     COMMAND_PATTERN = re.compile(r'/sc:(\w+)(?:\s+(.*))?')
-    FLAG_PATTERN = re.compile(r'--(\w+)(?:=([^\s]+))?')
+    FLAG_PATTERN = re.compile(r'--([A-Za-z0-9_-]+)(?:=([^\s]+))?')
     SHORT_FLAG_PATTERN = re.compile(r'-(\w)(?:\s+([^\s]+))?')
 
     # Parameter type validators
@@ -154,6 +154,9 @@ class CommandParser:
                         else:
                             # Boolean flag
                             flags[flag_name] = True
+                            # Also expose underscore alias for hyphenated flags
+                            if '-' in flag_name:
+                                flags[flag_name.replace('-', '_')] = True
 
             # Short flag (-f or -f value)
             elif token.startswith('-') and len(token) == 2:

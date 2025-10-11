@@ -1,7 +1,7 @@
 """
 Tests for Extended Agent Loader
 
-Comprehensive test suite for the 141-agent loading and selection system.
+Comprehensive test suite for the 131-agent loading and selection system.
 """
 
 import unittest

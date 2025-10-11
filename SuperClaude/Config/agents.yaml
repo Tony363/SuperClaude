@@ -3,7 +3,7 @@
 
 agents:
   core:
-    count: 14
+    count: 15
     directory: SuperClaude/Agents/core
     cache_ttl: 3600
     priority_order:
@@ -23,14 +23,14 @@ agents:
       - learning-guide
 
   extended:
-    count: 127
+    count: 116
     directory: SuperClaude/Agents/extended
     categories:
       01-core-development:
-        count: 8
+        count: 11
         priority: high
       02-language-specialists:
-        count: 22
+        count: 23
         priority: high
       03-infrastructure:
         count: 12
@@ -48,7 +48,7 @@ agents:
         count: 11
         priority: low
       08-business-product:
-        count: 10
+        count: 11
         priority: low
       09-meta-orchestration:
         count: 8

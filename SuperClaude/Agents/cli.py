@@ -2,7 +2,7 @@
 CLI Interface for Extended Agent System
 
 Provides command-line tools for exploring, testing, and managing
-the 141-agent system.
+the 131-agent system.
 """
 
 import sys

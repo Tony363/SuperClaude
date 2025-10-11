@@ -12,6 +12,9 @@ from datetime import datetime
 import json
 
 from .registry import CommandRegistry, CommandMetadata
+from ..MCP import get_mcp_integration
+import os
+import yaml
 from .parser import CommandParser, ParsedCommand
 
 logger = logging.getLogger(__name__)
@@ -175,18 +178,58 @@ class CommandExecutor:
         Args:
             context: Command execution context
         """
-        required_servers = context.metadata.mcp_servers
+        required_servers = context.metadata.mcp_servers or []
+
+        # Load MCP server config (best-effort)
+        mcp_config = {}
+        try:
+            # Resolve config path relative to package
+            base_dir = os.path.dirname(os.path.dirname(__file__))
+            cfg_path = os.path.join(base_dir, 'Config', 'mcp.yaml')
+            if os.path.exists(cfg_path):
+                with open(cfg_path, 'r', encoding='utf-8') as f:
+                    mcp_config = yaml.safe_load(f) or {}
+        except Exception as e:
+            logger.warning(f"Failed to load MCP config: {e}")
+
+        server_configs = (mcp_config.get('servers') or {}) if isinstance(mcp_config, dict) else {}
 
         for server_name in required_servers:
-            if server_name not in self.active_mcp_servers:
-                logger.info(f"Activating MCP server: {server_name}")
-                # TODO: Integrate with actual MCP server activation
-                # This would connect to the MCP server system
+            if server_name in self.active_mcp_servers:
+                context.mcp_servers.append(server_name)
+                continue
+
+            try:
+                cfg = server_configs.get(server_name, {}) if isinstance(server_configs, dict) else {}
+                # Instantiate the integration. Prefer passing config if accepted.
+                try:
+                    instance = get_mcp_integration(server_name, config=cfg)
+                except TypeError:
+                    instance = get_mcp_integration(server_name)
+
+                # Attempt basic initialization hooks if present
+                init = getattr(instance, 'initialize', None)
+                init_session = getattr(instance, 'initialize_session', None)
+                if callable(init):
+                    maybe = init()
+                    if hasattr(maybe, '__await__'):
+                        await maybe
+                if callable(init_session):
+                    maybe = init_session()  # often async for Serena-like
+                    if hasattr(maybe, '__await__'):
+                        await maybe
+
                 self.active_mcp_servers[server_name] = {
                     'status': 'active',
-                    'activated_at': datetime.now()
+                    'activated_at': datetime.now(),
+                    'instance': instance,
+                    'config': cfg,
                 }
                 context.mcp_servers.append(server_name)
+                logger.info(f"Activated MCP server: {server_name}")
+            except Exception as e:
+                # Don't fail the command for unknown/non-critical MCP servers; log and continue
+                logger.warning(f"Skipping MCP server '{server_name}': {e}")
 
     async def _load_agents(self, context: CommandContext) -> None:
         """

@@ -86,11 +86,11 @@ class AnthropicClient:
         }
     }
 
-    def __init__(self, config: Optional[AnthropicConfig] = None):
+    def __init__(self, config: Optional[AnthropicConfig] = None, api_key: Optional[str] = None):
         """Initialize Anthropic client."""
         if not config:
             # Try to load from environment
-            api_key = os.getenv("ANTHROPIC_API_KEY")
+            api_key = api_key or os.getenv("ANTHROPIC_API_KEY")
             if not api_key:
                 raise ValueError("Anthropic API key not provided")
 
@@ -99,6 +99,7 @@ class AnthropicClient:
         self.config = config
         self.rate_limiter = RateLimiter(config.rate_limit_rpm, config.rate_limit_tpm)
         self.token_counter = TokenCounter()
+        self.provider = "anthropic"
 
     async def complete(self, request: ClaudeRequest) -> ClaudeResponse:
         """

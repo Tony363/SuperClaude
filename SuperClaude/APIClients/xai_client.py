@@ -94,11 +94,11 @@ class XAIClient:
         }
     }
 
-    def __init__(self, config: Optional[XAIConfig] = None):
+    def __init__(self, config: Optional[XAIConfig] = None, api_key: Optional[str] = None):
         """Initialize X.AI client."""
         if not config:
             # Try to load from environment
-            api_key = os.getenv("XAI_API_KEY")
+            api_key = api_key or os.getenv("XAI_API_KEY")
             if not api_key:
                 raise ValueError("X.AI API key not provided")
 
@@ -107,6 +107,7 @@ class XAIClient:
         self.config = config
         self.rate_limiter = RateLimiter(config.rate_limit_rpm, config.rate_limit_tpm)
         self.token_counter = TokenCounter()
+        self.provider = "xai"
 
     async def complete(self, request: GrokRequest) -> GrokResponse:
         """

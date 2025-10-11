@@ -13,23 +13,22 @@ Usage:
 
 from pathlib import Path
 
-# Use importlib.metadata for version (Python 3.8+)
+# Prefer VERSION file in repo; fall back to installed package metadata
 try:
-    from importlib.metadata import version, PackageNotFoundError
+    version_file = Path(__file__).parent.parent / "VERSION"
+    if version_file.exists():
+        __version__ = version_file.read_text().strip()
+    else:
+        raise FileNotFoundError
+except Exception:
     try:
-        __version__ = version("SuperClaude")
-    except PackageNotFoundError:
-        # Not installed as package, try VERSION file
+        from importlib.metadata import version as _ver, PackageNotFoundError
         try:
-            __version__ = (Path(__file__).parent.parent / "VERSION").read_text().strip()
-        except Exception:
-            __version__ = "6.0.0-alpha"  # Fallback
-except ImportError:
-    # Python < 3.8, fall back to VERSION file
-    try:
-        __version__ = (Path(__file__).parent.parent / "VERSION").read_text().strip()
+            __version__ = _ver("SuperClaude")
+        except PackageNotFoundError:
+            __version__ = "6.0.0-alpha"
     except Exception:
-        __version__ = "6.0.0-alpha"  # Fallback
+        __version__ = "6.0.0-alpha"
 
 __author__ = "NomenAK, Mithun Gowda B"
 __email__ = "anton.knoery@gmail.com"

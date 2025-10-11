@@ -1,7 +1,7 @@
 """
 Extended Agent System Usage Examples
 
-Demonstrates various usage patterns for the 141-agent system.
+Demonstrates various usage patterns for the 131-agent system.
 """
 
 from SuperClaude.Agents.extended_loader import (
