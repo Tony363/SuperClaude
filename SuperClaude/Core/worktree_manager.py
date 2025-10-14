@@ -8,11 +8,17 @@ import os
 import json
 import subprocess
 import shutil
+import sys
+import time
+import re
+import shlex
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 from datetime import datetime, timedelta
 import hashlib
 import logging
+
+from SuperClaude.Quality.quality_scorer import QualityScorer
 
 logger = logging.getLogger(__name__)
 
@@ -45,6 +51,7 @@ class WorktreeManager:
 
         # Load or initialize state
         self.state = self._load_state()
+        self.quality_scorer = QualityScorer()
 
     def _load_state(self) -> Dict:
         """Load worktree state from JSON file."""
@@ -189,6 +196,190 @@ class WorktreeManager:
                 worktrees.append(line.split(" ", 1)[1])
         return worktrees
 
+    def _run_tests(self, worktree_path: Path) -> Dict[str, Any]:
+        """Run the project's test suite inside the worktree."""
+        command_str = os.environ.get("SUPERCLAUDE_WORKTREE_TEST_CMD")
+        command = shlex.split(command_str) if command_str else [
+            sys.executable, "-m", "pytest", "--maxfail=1", "-q"
+        ]
+        env = os.environ.copy()
+        env.setdefault("PYENV_DISABLE_REHASH", "1")
+
+        def _to_text(value: Optional[bytes]) -> str:
+            if value is None:
+                return ""
+            return value.decode("utf-8", errors="ignore") if isinstance(value, bytes) else value
+
+        start_time = time.time()
+        try:
+            result = subprocess.run(
+                command,
+                cwd=worktree_path,
+                capture_output=True,
+                text=True,
+                timeout=600,
+                env=env
+            )
+            stdout = result.stdout or ""
+            stderr = result.stderr or ""
+            duration = time.time() - start_time
+        except FileNotFoundError as exc:
+            return {
+                "passed": False,
+                "return_code": 127,
+                "stdout": "",
+                "stderr": str(exc),
+                "duration": 0.0,
+                "command": " ".join(command),
+                "errors": [str(exc)],
+                "tests_passed": 0,
+                "tests_failed": 0,
+                "tests_errored": 0,
+                "tests_skipped": 0,
+                "tests_collected": 0,
+                "pass_rate": 0.0,
+                "summary": None,
+                "coverage": None,
+            }
+        except subprocess.TimeoutExpired as exc:
+            stdout = _to_text(exc.stdout)
+            stderr = _to_text(exc.stderr)
+            duration = time.time() - start_time
+            summary = self._parse_test_summary(f"{stdout}\n{stderr}")
+            summary.update({
+                "passed": False,
+                "return_code": 124,
+                "stdout": stdout,
+                "stderr": stderr or "Test command timed out",
+                "duration": duration,
+                "command": " ".join(command),
+            })
+            summary.setdefault("errors", []).append("Test command timed out")
+            if summary.get("pass_rate") is None:
+                summary["pass_rate"] = 0.0
+            return summary
+
+        summary = self._parse_test_summary(f"{stdout}\n{stderr}")
+        passed = result.returncode == 0
+        if summary.get("pass_rate") is None:
+            summary["pass_rate"] = 1.0 if passed else 0.0
+
+        errors: List[str] = summary.get("errors", [])
+        if summary.get("tests_failed", 0):
+            errors.append(f"{summary['tests_failed']} test(s) failed")
+        if summary.get("tests_errored", 0):
+            errors.append(f"{summary['tests_errored']} test(s) errored")
+        if not passed and not errors and stderr.strip():
+            errors.append(stderr.strip().splitlines()[-1])
+
+        summary.update({
+            "passed": passed,
+            "return_code": result.returncode,
+            "stdout": stdout,
+            "stderr": stderr,
+            "duration": duration,
+            "command": " ".join(command),
+            "errors": errors,
+        })
+
+        return summary
+
+    def _parse_test_summary(self, output: str) -> Dict[str, Any]:
+        """Parse pytest summary output into structured metrics."""
+        summary: Dict[str, Any] = {
+            "tests_passed": 0,
+            "tests_failed": 0,
+            "tests_errored": 0,
+            "tests_skipped": 0,
+            "tests_collected": None,
+            "pass_rate": None,
+            "summary": None,
+            "coverage": None,
+        }
+
+        lines = output.splitlines()
+        summary_line = None
+        for line in lines:
+            stripped = line.strip()
+            if re.match(r"=+\s+.+\s+ =+", stripped):
+                summary_line = stripped
+        if summary_line:
+            summary["summary"] = summary_line
+
+        collected_match = re.search(r"collected\s+(\d+)\s+items?", output)
+        if collected_match:
+            summary["tests_collected"] = int(collected_match.group(1))
+
+        for count, label in re.findall(r"(\d+)\s+(passed|failed|errors?|skipped|xfailed|xpassed)", output):
+            value = int(count)
+            normalized = label.rstrip('s')
+            if normalized == "passed":
+                summary["tests_passed"] += value
+            elif normalized == "failed":
+                summary["tests_failed"] += value
+            elif normalized == "error":
+                summary["tests_errored"] += value
+            elif normalized == "skipped":
+                summary["tests_skipped"] += value
+            elif normalized == "xfailed":
+                summary["tests_skipped"] += value
+            elif normalized == "xpassed":
+                summary["tests_passed"] += value
+
+        executed = summary["tests_passed"] + summary["tests_failed"] + summary["tests_errored"]
+        if summary["tests_collected"] is None and executed:
+            summary["tests_collected"] = executed + summary["tests_skipped"]
+        if executed:
+            summary["pass_rate"] = summary["tests_passed"] / executed
+
+        coverage_match = re.search(r"coverage[:\s]+(\d+(?:\.\d+)?)%", output, re.IGNORECASE)
+        if not coverage_match:
+            coverage_match = re.search(r"TOTAL\s+\d+\s+\d+\s+\d+\s+\d+\s+(\d+(?:\.\d+)?)%", output)
+        if coverage_match:
+            try:
+                summary["coverage"] = float(coverage_match.group(1)) / 100.0
+            except (TypeError, ValueError):
+                summary["coverage"] = None
+
+        return summary
+
+    def _build_quality_context(
+        self,
+        test_results: Dict[str, Any],
+        validation: Dict[str, Any],
+        worktree_path: Path
+    ) -> Dict[str, Any]:
+        """Build context dictionary for quality scoring."""
+        pass_rate = test_results.get("pass_rate")
+        if pass_rate is None:
+            pass_rate = 1.0 if test_results.get("passed") else 0.0
+
+        tests_collected = test_results.get("tests_collected")
+        if tests_collected is None:
+            tests_collected = (
+                test_results.get("tests_passed", 0)
+                + test_results.get("tests_failed", 0)
+                + test_results.get("tests_errored", 0)
+            )
+
+        context: Dict[str, Any] = {
+            "test_results": {
+                "pass_rate": pass_rate,
+                "tests_collected": tests_collected,
+                "coverage": test_results.get("coverage"),
+                "summary": test_results.get("summary"),
+                "passed": test_results.get("passed", False),
+            },
+            "metrics": {},
+        }
+
+        duration = test_results.get("duration")
+        if isinstance(duration, (int, float)):
+            # Convert seconds to milliseconds for comparison against 1000ms target
+            context["metrics"]["response_time"] = duration * 1000.0
+
+        return context
+
     async def validate_worktree(self, worktree_id: str) -> Dict:
         """
         Validate a worktree is ready for merging.
@@ -227,14 +418,45 @@ class WorktreeManager:
             validation["has_conflicts"] = True
             validation["issues"].append("Merge conflicts detected")
 
-        # Run tests (mock for now - would integrate with test framework)
-        validation["tests_passed"] = True  # Assume tests pass
-        validation["quality_score"] = 85   # Mock quality score
+        # Run tests and capture detailed results
+        test_results = self._run_tests(worktree_path)
+        validation["test_results"] = test_results
+        validation["tests_passed"] = test_results.get("passed", False)
+
+        if not validation["tests_passed"]:
+            validation["issues"].append("Test suite failed")
+            if test_results.get("errors"):
+                validation["issues"].extend(test_results["errors"])
+
+        # Calculate quality score using quality scorer
+        quality_context = self._build_quality_context(test_results, validation, worktree_path)
+        output_summary = {
+            "success": validation["tests_passed"] and not validation["has_conflicts"],
+            "errors": test_results.get("errors", []),
+        }
+
+        assessment = self.quality_scorer.evaluate(output_summary, quality_context)
+        validation["quality_score"] = round(assessment.overall_score, 2)
+        validation["quality_threshold"] = self.quality_scorer.threshold
+        validation["quality_dimensions"] = {
+            metric.dimension.value: {
+                "score": round(metric.score, 2),
+                "issues": metric.issues,
+                "suggestions": metric.suggestions
+            }
+            for metric in assessment.metrics
+        }
+        validation["improvements"] = assessment.improvements_needed
+
+        if not assessment.passed:
+            validation["issues"].append("Quality threshold not met")
+            if assessment.improvements_needed:
+                validation["issues"].extend(assessment.improvements_needed[:3])
 
         # Determine if ready to merge
         validation["ready_to_merge"] = (
             validation["tests_passed"] and
-            validation["quality_score"] >= 70 and
+            validation["quality_score"] >= validation.get("quality_threshold", 70) and
             not validation["has_conflicts"] and
             len(validation["issues"]) == 0
         )
