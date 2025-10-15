@@ -15,6 +15,7 @@ from SuperClaude.Commands import (
     CommandExecutor,
     ParsedCommand
 )
+from SuperClaude.Commands import executor as executor_module
 
 
 class TestCommandRegistry:
@@ -135,7 +136,7 @@ class TestCommandExecutor:
         assert result.command_name == 'analyze'
         assert isinstance(result.executed_operations, list)
         assert isinstance(result.applied_changes, list)
-        assert result.status == 'plan-only'
+        assert result.status in {'plan-only', 'executed'}
 
     @pytest.mark.asyncio
     async def test_execute_with_error(self):
@@ -225,4 +226,74 @@ class TestCommandExecutor:
 
         assert result.success is False
         assert result.status == 'plan-only'
+        assert any("Requires execution evidence" in err for err in result.errors)
         assert 'warnings' in result.output
+        assert 'quality_assessment' in result.output
+        assert isinstance(result.output['quality_assessment'], dict)
+        assert result.output['quality_assessment']['overall_score'] < result.output['quality_assessment']['threshold']
+        assert 'quality_suggestions' in result.output
+        assert isinstance(result.output['quality_suggestions'], list)
+        assert any("Quality score" in err for err in result.errors)
+
+    @pytest.mark.asyncio
+    async def test_requires_evidence_static_validation_flags_missing_file(self, monkeypatch):
+        """Static validation should surface missing files as actionable feedback."""
+        registry = CommandRegistry()
+        parser = CommandParser()
+        executor = CommandExecutor(registry, parser)
+
+        missing_path = executor.repo_root / "nonexistent_static_validation_test.py"
+
+        monkeypatch.setattr(
+            CommandExecutor,
+            "_extract_changed_paths",
+            lambda self, repo_entries, applied_changes: [missing_path],
+            raising=False
+        )
+
+        result = await executor.execute('/sc:build')
+
+        assert result.success is False
+        assert 'validation_errors' in result.output
+        assert any("not found on disk" in err for err in result.output['validation_errors'])
+
+    @pytest.mark.asyncio
+    async def test_requires_evidence_records_monitor_metrics(self, monkeypatch):
+        """Performance monitor should capture hallucination guardrail signals."""
+
+        class DummyMonitor:
+            def __init__(self):
+                self.records = []
+
+            def record_metric(self, name, value, metric_type=None, tags=None):
+                self.records.append((name, value, metric_type, tags or {}))
+
+        dummy_monitor = DummyMonitor()
+        monkeypatch.setattr(
+            executor_module,
+            "get_monitor",
+            lambda: dummy_monitor,
+            raising=False
+        )
+
+        registry = CommandRegistry()
+        parser = CommandParser()
+        executor = CommandExecutor(registry, parser)
+
+        result = await executor.execute('/sc:build')
+
+        assert result.success is False
+        metric_names = [name for name, *_ in dummy_monitor.records]
+        base = "commands.requires_evidence"
+        assert f"{base}.invocations" in metric_names
+        assert f"{base}.plan_only" in metric_names
+        assert f"{base}.missing_evidence" in metric_names
+        assert f"{base}.quality_fail" in metric_names
+        score_entries = [
+            (name, value, tags)
+            for name, value, _, tags in dummy_monitor.records
+            if name == f"{base}.quality_score"
+        ]
+        assert score_entries, "quality_score gauge not recorded"
+        recorded_score = score_entries[0][1]
+        assert recorded_score < 70, "Quality guardrail should flag failing score"

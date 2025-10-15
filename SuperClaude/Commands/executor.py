@@ -8,7 +8,8 @@ import asyncio
 import logging
 import os
 import subprocess
-from dataclasses import dataclass, field
+import py_compile
+from dataclasses import dataclass, field, asdict
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Set
@@ -18,6 +19,8 @@ import yaml
 from .parser import CommandParser, ParsedCommand
 from .registry import CommandRegistry, CommandMetadata
 from ..MCP import get_mcp_integration
+from ..Quality.quality_scorer import QualityScorer, QualityAssessment
+from ..Monitoring.performance_monitor import get_monitor, MetricType
 
 logger = logging.getLogger(__name__)
 
@@ -81,6 +84,12 @@ class CommandExecutor:
             'on_error': []
         }
         self.repo_root = self._detect_repo_root()
+        self.quality_scorer = QualityScorer()
+        try:
+            self.monitor = get_monitor()
+        except Exception as exc:
+            logger.debug(f"Performance monitor unavailable: {exc}")
+            self.monitor = None
 
     def set_agent_loader(self, agent_loader) -> None:
         """
@@ -197,9 +206,83 @@ class CommandExecutor:
             context.results['status'] = derived_status
 
             requires_evidence = self._requires_execution_evidence(context.metadata)
+            quality_assessment: Optional[QualityAssessment] = None
+            static_issues: List[str] = []
+            changed_paths: List[Path] = []
+            context.results['requires_evidence'] = requires_evidence
+            context.results['missing_evidence'] = derived_status == 'plan-only' if requires_evidence else False
+
+            if requires_evidence:
+                changed_paths = self._extract_changed_paths(repo_change_entries, applied_changes)
+                if changed_paths:
+                    context.results['changed_files'] = [
+                        self._relative_to_repo_path(path) for path in changed_paths
+                    ]
+
+                static_issues = self._run_static_validation(changed_paths)
+                if static_issues:
+                    static_issues = self._deduplicate(static_issues)
+                    context.results['static_validation_errors'] = static_issues
+                    context.errors.extend(static_issues)
+                    if isinstance(output, dict):
+                        validation_errors = self._ensure_list(output, 'validation_errors')
+                        for issue in static_issues:
+                            if issue not in validation_errors:
+                                validation_errors.append(issue)
+
+                quality_assessment = self._evaluate_quality_gate(
+                    context,
+                    output,
+                    changed_paths,
+                    derived_status
+                )
+
+                if quality_assessment:
+                    serialized_assessment = self._serialize_assessment(quality_assessment)
+                    context.results['quality_assessment'] = serialized_assessment
+                    if isinstance(output, dict):
+                        output['quality_assessment'] = serialized_assessment
+
+                    suggestions = self.quality_scorer.get_improvement_suggestions(quality_assessment)
+                    context.results['quality_suggestions'] = suggestions
+                    if isinstance(output, dict):
+                        output['quality_suggestions'] = suggestions
+
+                    if not quality_assessment.passed:
+                        failure_msg = (
+                            f"Quality score {quality_assessment.overall_score:.1f} "
+                            f"(threshold {quality_assessment.threshold:.1f})"
+                        )
+                        context.errors.append(failure_msg)
+                        if isinstance(output, dict):
+                            warnings_list = self._ensure_list(output, 'warnings')
+                            if failure_msg not in warnings_list:
+                                warnings_list.append(failure_msg)
+                            for suggestion in suggestions[:3]:
+                                detail = f"Improve {suggestion.get('dimension', 'quality')} — {suggestion.get('suggestion', '')}"
+                                if detail.strip() and detail not in warnings_list:
+                                    warnings_list.append(detail)
+                else:
+                    if isinstance(output, dict):
+                        warnings_list = self._ensure_list(output, 'warnings')
+                        detail = context.results.get('quality_assessment_error')
+                        message = (
+                            f"Quality scoring unavailable: {detail}"
+                            if detail else
+                            "Quality scoring unavailable; unable to verify evidence."
+                        )
+                        if message not in warnings_list:
+                            warnings_list.append(message)
+
             success_flag = not bool(context.errors)
+
             if requires_evidence and derived_status == 'plan-only':
                 success_flag = False
+                missing_evidence_msg = (
+                    "Requires execution evidence but no repository changes were detected."
+                )
+                if missing_evidence_msg not in context.errors:
+                    context.errors.append(missing_evidence_msg)
                 if isinstance(output, dict):
                     warnings_list = self._ensure_list(output, 'warnings')
                     warning_msg = (
@@ -207,6 +290,19 @@ class CommandExecutor:
                     )
                     if warning_msg not in warnings_list:
                         warnings_list.append(warning_msg)
+                    if missing_evidence_msg not in warnings_list:
+                        warnings_list.append(missing_evidence_msg)
+
+            context.errors = self._deduplicate(context.errors)
+
+            self._record_requires_evidence_metrics(
+                parsed.name,
+                requires_evidence,
+                derived_status,
+                success_flag,
+                quality_assessment,
+                static_issues
+            )
 
             # Run post-execution hooks
             await self._run_hooks('post_execute', context)
@@ -608,6 +704,182 @@ class CommandExecutor:
                 stats.append(f"diff --stat ({label}): {self._truncate_output(output)}")
 
         return stats
+
+    def _extract_changed_paths(self, repo_entries: List[str], applied_changes: List[str]) -> List[Path]:
+        """Derive candidate file paths that were reported as changed."""
+        if not self.repo_root:
+            return []
+
+        candidates: List[str] = []
+
+        for entry in repo_entries:
+            parts = entry.split('\t')
+            if not parts:
+                continue
+            code = parts[0]
+            if code.startswith('??') and len(parts) >= 2:
+                candidates.append(parts[1])
+            elif (code.startswith('R') or code.startswith('C')) and len(parts) >= 3:
+                candidates.append(parts[2])
+            elif len(parts) >= 2:
+                candidates.append(parts[1])
+
+        for change in applied_changes:
+            tokens = change.split()
+            if not tokens:
+                continue
+            verb = tokens[0].lower()
+            if verb in {'add', 'modify', 'delete'} and len(tokens) >= 2:
+                candidates.append(tokens[-1])
+            elif verb in {'rename', 'copy'} and len(tokens) >= 3:
+                candidates.append(tokens[-1])
+
+        seen: Set[str] = set()
+        paths: List[Path] = []
+        for candidate in candidates:
+            candidate = candidate.strip()
+            if not candidate or candidate.startswith('diff'):
+                continue
+            if candidate in seen:
+                continue
+            seen.add(candidate)
+            path = (self.repo_root / candidate).resolve()
+            # Ensure we do not escape repo boundaries
+            try:
+                path.relative_to(self.repo_root)
+            except ValueError:
+                continue
+            paths.append(path)
+
+        return paths
+
+    def _run_static_validation(self, paths: List[Path]) -> List[str]:
+        """Run lightweight static validation on reported file changes."""
+        issues: List[str] = []
+        if not paths:
+            return issues
+
+        for path in paths:
+            rel_path = self._relative_to_repo_path(path)
+            if not path.exists():
+                issues.append(f"{rel_path}: file reported as changed but not found on disk")
+                continue
+
+            if path.suffix == '.py':
+                try:
+                    py_compile.compile(str(path), doraise=True)
+                except py_compile.PyCompileError as exc:
+                    message = getattr(exc, 'msg', str(exc))
+                    issues.append(f"{rel_path}: python syntax error — {message}")
+                except Exception as exc:
+                    issues.append(f"{rel_path}: python validation failed — {exc}")
+
+        return issues
+
+    def _relative_to_repo_path(self, path: Path) -> str:
+        """Convert absolute path to repo-relative string."""
+        if not self.repo_root:
+            return str(path)
+        try:
+            return str(path.relative_to(self.repo_root))
+        except ValueError:
+            return str(path)
+
+    def _serialize_assessment(self, assessment: QualityAssessment) -> Dict[str, Any]:
+        """Convert QualityAssessment dataclass into JSON-serializable dict."""
+        data = asdict(assessment)
+        data['timestamp'] = assessment.timestamp.isoformat()
+
+        metrics = data.get('metrics', [])
+        for metric in metrics:
+            dimension = metric.get('dimension')
+            if hasattr(dimension, 'value'):
+                metric['dimension'] = dimension.value
+
+        return data
+
+    def _evaluate_quality_gate(
+        self,
+        context: CommandContext,
+        output: Any,
+        changed_paths: List[Path],
+        status: str
+    ) -> Optional[QualityAssessment]:
+        """Run quality scoring against the command result."""
+        evaluation_context = dict(context.results)
+        evaluation_context['status'] = status
+        evaluation_context['changed_files'] = [
+            self._relative_to_repo_path(path) for path in changed_paths
+        ]
+
+        try:
+            return self.quality_scorer.evaluate(
+                output,
+                evaluation_context
+            )
+        except Exception as exc:
+            logger.warning(f"Quality scoring failed: {exc}")
+            context.results['quality_assessment_error'] = str(exc)
+            return None
+
+    def _record_requires_evidence_metrics(
+        self,
+        command_name: str,
+        requires_evidence: bool,
+        derived_status: str,
+        success: bool,
+        assessment: Optional[QualityAssessment],
+        static_issues: List[str]
+    ) -> None:
+        """Send telemetry for requires-evidence command outcomes."""
+        if not requires_evidence or not self.monitor:
+            return
+
+        tags = {
+            'command': command_name,
+            'status': derived_status
+        }
+
+        base = "commands.requires_evidence"
+        self.monitor.record_metric(f"{base}.invocations", 1, MetricType.COUNTER, tags)
+
+        if derived_status == 'plan-only':
+            self.monitor.record_metric(f"{base}.plan_only", 1, MetricType.COUNTER, tags)
+            self.monitor.record_metric(f"{base}.missing_evidence", 1, MetricType.COUNTER, tags)
+
+        if static_issues:
+            issue_tags = dict(tags)
+            issue_tags['issue_count'] = str(len(static_issues))
+            self.monitor.record_metric(
+                f"{base}.static_validation_fail",
+                len(static_issues),
+                MetricType.COUNTER,
+                issue_tags
+            )
+            self.monitor.record_metric(
+                f"{base}.static_issue_count",
+                len(static_issues),
+                MetricType.GAUGE,
+                issue_tags
+            )
+
+        if assessment:
+            score_tags = dict(tags)
+            score_tags['score'] = f"{assessment.overall_score:.1f}"
+            score_tags['threshold'] = f"{assessment.threshold:.1f}"
+            self.monitor.record_metric(
+                f"{base}.quality_score",
+                assessment.overall_score,
+                MetricType.GAUGE,
+                score_tags
+            )
+            metric_name = f"{base}.quality_pass" if assessment.passed else f"{base}.quality_fail"
+            self.monitor.record_metric(metric_name, 1, MetricType.COUNTER, score_tags)
+        else:
+            self.monitor.record_metric(f"{base}.quality_missing", 1, MetricType.COUNTER, tags)
+
+        outcome_metric = f"{base}.success" if success else f"{base}.failure"
+        self.monitor.record_metric(outcome_metric, 1, MetricType.COUNTER, tags)
 
     def _normalize_evidence_value(self, value: Any) -> List[str]:
         """Normalize evidence values into a flat list of strings."""
