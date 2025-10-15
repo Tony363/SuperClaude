@@ -247,55 +247,151 @@ class GeneralPurposeAgent(BaseAgent):
         self.logger.debug("Handling task directly")
 
         # Basic task handling logic
-        actions = []
+        planned_steps = []
         output_lines = []
 
         # Analyze task
-        actions.append("Analyzed task requirements")
+        planned_steps.append("Analyze task requirements")
         output_lines.append(f"# Task Analysis\n\nTask: {task}\n")
 
         # Determine approach based on keywords
         task_lower = task.lower()
 
         if any(word in task_lower for word in ['implement', 'create', 'build', 'develop']):
-            actions.append("Identified as implementation task")
+            planned_steps.append("Identify task as implementation work")
             output_lines.append("\n## Approach\nImplementation strategy required.\n")
             output_lines.append("\n## Steps\n1. Design component structure\n2. Implement core functionality\n3. Add error handling\n4. Create tests\n")
 
         elif any(word in task_lower for word in ['fix', 'debug', 'solve', 'issue']):
-            actions.append("Identified as debugging task")
+            planned_steps.append("Identify task as debugging work")
             output_lines.append("\n## Approach\nDebugging strategy required.\n")
             output_lines.append("\n## Steps\n1. Reproduce issue\n2. Identify root cause\n3. Implement fix\n4. Verify solution\n")
 
         elif any(word in task_lower for word in ['analyze', 'review', 'evaluate']):
-            actions.append("Identified as analysis task")
+            planned_steps.append("Identify task as analysis work")
             output_lines.append("\n## Approach\nAnalysis strategy required.\n")
             output_lines.append("\n## Steps\n1. Gather information\n2. Analyze patterns\n3. Draw conclusions\n4. Provide recommendations\n")
 
         else:
-            actions.append("Applied general problem-solving approach")
+            planned_steps.append("Apply general problem-solving approach")
             output_lines.append("\n## Approach\nGeneral problem-solving strategy.\n")
             output_lines.append("\n## Steps\n1. Understand requirements\n2. Plan approach\n3. Execute solution\n4. Validate results\n")
 
         # Add tools information
         if self.tools:
-            actions.append(f"Identified available tools: {', '.join(self.tools)}")
+            planned_steps.append(f"Identify available tools: {', '.join(self.tools)}")
             output_lines.append(f"\n## Available Tools\n{', '.join(self.tools)}\n")
 
         # Context information
         files = context.get('files', [])
         if files:
-            actions.append(f"Identified {len(files)} relevant files")
+            planned_steps.append(f"Review {len(files)} relevant files")
             output_lines.append(f"\n## Relevant Files\n")
             for file in files[:5]:  # List first 5
                 output_lines.append(f"- {file}\n")
 
+        executed_ops = self._extract_executed_operations(context)
+        warnings = []
+        success = False
+        status = 'plan-only'
+        actions_taken: List[str] = []
+
+        if executed_ops:
+            success = True
+            status = 'executed'
+            actions_taken.extend(executed_ops)
+        else:
+            warnings.append("No concrete repository operations were executed; providing plan-only guidance.")
+
         return {
-            'success': True,
-            'output': ''.join(output_lines),
-            'actions_taken': actions,
+            'success': success,
+            'status': status,
+            'output': self._render_direct_response(
+                task,
+                ''.join(output_lines),
+                planned_steps,
+                executed_ops
+            ),
+            'actions_taken': actions_taken,
+            'planned_actions': planned_steps,
+            'warnings': warnings,
             'errors': []
         }
+
+    def _extract_executed_operations(self, context: Dict[str, Any]) -> List[str]:
+        """
+        Extract evidence of executed work from context.
+
+        Args:
+            context: Execution context
+
+        Returns:
+            List of executed operations
+        """
+        executed: List[str] = []
+        candidate_keys = [
+            'executed_operations',
+            'applied_changes',
+            'files_modified',
+            'commands_run',
+            'diff_summary'
+        ]
+
+        for key in candidate_keys:
+            value = context.get(key)
+            if isinstance(value, list):
+                executed.extend(str(item) for item in value if item)
+            elif isinstance(value, dict):
+                for subkey, subvalue in value.items():
+                    if isinstance(subvalue, list):
+                        executed.extend(f"{subkey}: {item}" for item in subvalue if item)
+                    elif subvalue:
+                        executed.append(f"{subkey}: {subvalue}")
+            elif isinstance(value, str) and value.strip():
+                executed.append(value.strip())
+
+        return executed
+
+    def _render_direct_response(
+        self,
+        task: str,
+        analysis: str,
+        planned_steps: List[str],
+        executed_ops: List[str]
+    ) -> str:
+        """
+        Render the response combining analysis, plan, and execution evidence.
+
+        Args:
+            task: Task description
+            analysis: Narrative analysis text
+            planned_steps: Planned actions
+            executed_ops: Executed operations
+
+        Returns:
+            Response string
+        """
+        sections: List[str] = []
+        sections.append(f"# General Purpose Agent Summary\n\n**Task**: {task}\n")
+        sections.append(analysis)
+
+        if executed_ops:
+            sections.append("\n## Confirmed Execution\n")
+            for idx, op in enumerate(executed_ops, 1):
+                sections.append(f"{idx}. {op}\n")
+
+        if planned_steps:
+            sections.append("\n## Next Actions\n")
+            for idx, step in enumerate(planned_steps, 1):
+                sections.append(f"{idx}. {step}\n")
+
+        if not executed_ops:
+            sections.append(
+                "\n⚠️ No code changes were applied. Use the plan above to perform the work manually and "
+                "rerun validation once concrete changes exist.\n"
+            )
+
+        return ''.join(sections)
 
     def get_capabilities(self) -> List[str]:
         """

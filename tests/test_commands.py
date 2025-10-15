@@ -133,6 +133,9 @@ class TestCommandExecutor:
         result = await executor.execute('/sc:analyze')
         assert result.success == True
         assert result.command_name == 'analyze'
+        assert isinstance(result.executed_operations, list)
+        assert isinstance(result.applied_changes, list)
+        assert result.status == 'plan-only'
 
     @pytest.mark.asyncio
     async def test_execute_with_error(self):
@@ -156,7 +159,12 @@ class TestCommandExecutor:
         # Execute command chain
         commands = ['/sc:analyze', '/sc:implement', '/sc:test']
         results = await executor.execute_chain(commands)
-        assert len(results) == 3
+        assert len(results) == 2
+        assert results[0].success is True
+        assert results[0].status == 'plan-only'
+        assert results[1].command_name == 'implement'
+        assert results[1].success is False
+        assert results[1].status == 'plan-only'
 
     @pytest.mark.asyncio
     async def test_parallel_execution(self):
@@ -169,3 +177,7 @@ class TestCommandExecutor:
         commands = ['/sc:analyze --scope=file1', '/sc:analyze --scope=file2']
         results = await executor.execute_parallel(commands)
         assert len(results) == 2
+        for result in results:
+            assert isinstance(result.executed_operations, list)
+            assert isinstance(result.applied_changes, list)
+            assert result.status == 'plan-only'

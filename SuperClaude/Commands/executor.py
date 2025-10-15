@@ -6,16 +6,18 @@ Orchestrates command execution with agent and MCP server integration.
 
 import asyncio
 import logging
-from typing import Dict, Any, Optional, List, Callable
+import os
+import subprocess
 from dataclasses import dataclass, field
 from datetime import datetime
-import json
+from pathlib import Path
+from typing import Any, Callable, Dict, List, Optional, Set
 
+import yaml
+
+from .parser import CommandParser, ParsedCommand
 from .registry import CommandRegistry, CommandMetadata
 from ..MCP import get_mcp_integration
-import os
-import yaml
-from .parser import CommandParser, ParsedCommand
 
 logger = logging.getLogger(__name__)
 
@@ -43,6 +45,9 @@ class CommandResult:
     execution_time: float = 0.0
     mcp_servers_used: List[str] = field(default_factory=list)
     agents_used: List[str] = field(default_factory=list)
+    executed_operations: List[str] = field(default_factory=list)
+    applied_changes: List[str] = field(default_factory=list)
+    status: str = 'plan-only'
 
 
 class CommandExecutor:
@@ -75,6 +80,7 @@ class CommandExecutor:
             'post_execute': [],
             'on_error': []
         }
+        self.repo_root = self._detect_repo_root()
 
     def set_agent_loader(self, agent_loader) -> None:
         """
@@ -127,8 +133,61 @@ class CommandExecutor:
             # Select and load required agents
             await self._load_agents(context)
 
+            pre_change_snapshot = self._snapshot_repo_changes()
+
             # Execute command logic
             output = await self._execute_command_logic(context)
+
+            post_change_snapshot = self._snapshot_repo_changes()
+            repo_change_entries = self._diff_snapshots(pre_change_snapshot, post_change_snapshot)
+            repo_change_descriptions = [self._format_change_entry(entry) for entry in repo_change_entries]
+
+            executed_operations: List[str] = []
+            applied_changes: List[str] = []
+
+            if isinstance(output, dict):
+                executed_operations.extend(self._extract_output_evidence(output, 'executed_operations'))
+                executed_operations.extend(self._extract_output_evidence(output, 'actions_taken'))
+                executed_operations.extend(self._extract_output_evidence(output, 'commands_run'))
+                applied_changes.extend(self._extract_output_evidence(output, 'applied_changes'))
+                applied_changes.extend(self._extract_output_evidence(output, 'files_modified'))
+
+            executed_operations.extend(self._normalize_evidence_value(context.results.get('executed_operations')))
+            applied_changes.extend(self._normalize_evidence_value(context.results.get('applied_changes')))
+
+            executed_operations.extend(repo_change_descriptions)
+            applied_changes.extend(repo_change_descriptions)
+
+            executed_operations = self._deduplicate(executed_operations)
+            applied_changes = self._deduplicate(applied_changes)
+
+            derived_status = 'executed' if executed_operations or applied_changes else 'plan-only'
+
+            if isinstance(output, dict):
+                output['executed_operations'] = executed_operations
+                output['applied_changes'] = applied_changes
+
+                existing_status = output.get('status')
+                if existing_status and existing_status not in {'executed', 'plan-only', 'failed'}:
+                    output.setdefault('status_detail', existing_status)
+                if existing_status != 'failed':
+                    output['status'] = derived_status
+
+            context.results['executed_operations'] = executed_operations
+            context.results['applied_changes'] = applied_changes
+            context.results['status'] = derived_status
+
+            requires_evidence = self._requires_execution_evidence(context.metadata)
+            success_flag = not bool(context.errors)
+            if requires_evidence and derived_status == 'plan-only':
+                success_flag = False
+                if isinstance(output, dict):
+                    warnings_list = self._ensure_list(output, 'warnings')
+                    warning_msg = (
+                        "No concrete repository changes detected; returning plan-only status."
+                    )
+                    if warning_msg not in warnings_list:
+                        warnings_list.append(warning_msg)
 
             # Run post-execution hooks
             await self._run_hooks('post_execute', context)
@@ -138,13 +197,16 @@ class CommandExecutor:
 
             # Create result
             result = CommandResult(
-                success=not bool(context.errors),
+                success=success_flag,
                 command_name=parsed.name,
                 output=output,
                 errors=context.errors,
                 execution_time=execution_time,
                 mcp_servers_used=context.mcp_servers,
-                agents_used=context.agents
+                agents_used=context.agents,
+                executed_operations=executed_operations,
+                applied_changes=applied_changes,
+                status=derived_status
             )
 
             # Record in history
@@ -395,6 +457,169 @@ class CommandExecutor:
             })
 
         return steps
+
+    def _detect_repo_root(self) -> Optional[Path]:
+        """Locate the git repository root, if available."""
+        try:
+            current = Path.cwd().resolve()
+        except Exception:
+            return None
+
+        for candidate in [current, *current.parents]:
+            if (candidate / '.git').exists():
+                return candidate
+        return None
+
+    def _snapshot_repo_changes(self) -> Set[str]:
+        """Capture current git worktree changes for comparison."""
+        if not self.repo_root or not (self.repo_root / '.git').exists():
+            return set()
+
+        snapshot: Set[str] = set()
+        commands = [
+            ["git", "diff", "--name-status"],
+            ["git", "diff", "--name-status", "--cached"]
+        ]
+
+        for cmd in commands:
+            try:
+                result = subprocess.run(
+                    cmd,
+                    cwd=self.repo_root,
+                    capture_output=True,
+                    text=True,
+                    check=False
+                )
+            except Exception as exc:
+                logger.debug(f"Failed to run {' '.join(cmd)}: {exc}")
+                return set()
+
+            if result.returncode != 0:
+                continue
+
+            for line in result.stdout.splitlines():
+                entry = line.strip()
+                if entry:
+                    snapshot.add(entry)
+
+        try:
+            result = subprocess.run(
+                ["git", "ls-files", "--others", "--exclude-standard"],
+                cwd=self.repo_root,
+                capture_output=True,
+                text=True,
+                check=False
+            )
+            if result.returncode == 0:
+                for line in result.stdout.splitlines():
+                    path = line.strip()
+                    if path:
+                        snapshot.add(f"??\t{path}")
+        except Exception as exc:
+            logger.debug(f"Failed to list untracked files: {exc}")
+
+        return snapshot
+
+    def _diff_snapshots(self, before: Set[str], after: Set[str]) -> List[str]:
+        """Return new repo changes detected between snapshots."""
+        if not after:
+            return []
+        if not before:
+            return sorted(after)
+        return sorted(after - before)
+
+    def _format_change_entry(self, entry: str) -> str:
+        """Convert a git name-status entry into a human readable description."""
+        parts = entry.split('\t')
+        if not parts:
+            return entry
+
+        code = parts[0]
+        code_letter = code[0] if code else '?'
+
+        if code.startswith('??') and len(parts) >= 2:
+            return f"add {parts[1]}"
+
+        if code_letter == 'M' and len(parts) >= 2:
+            return f"modify {parts[1]}"
+
+        if code_letter == 'A' and len(parts) >= 2:
+            return f"add {parts[1]}"
+
+        if code_letter == 'D' and len(parts) >= 2:
+            return f"delete {parts[1]}"
+
+        if code_letter == 'R' and len(parts) >= 3:
+            return f"rename {parts[1]} -> {parts[2]}"
+
+        if code_letter == 'C' and len(parts) >= 3:
+            return f"copy {parts[1]} -> {parts[2]}"
+
+        if len(parts) >= 2:
+            return f"{code_letter.lower()} {parts[1]}"
+
+        return entry
+
+    def _normalize_evidence_value(self, value: Any) -> List[str]:
+        """Normalize evidence values into a flat list of strings."""
+        items: List[str] = []
+        if value is None:
+            return items
+
+        if isinstance(value, list):
+            for item in value:
+                items.extend(self._normalize_evidence_value(item))
+            return items
+
+        if isinstance(value, dict):
+            for key, subvalue in value.items():
+                sub_items = self._normalize_evidence_value(subvalue)
+                if sub_items:
+                    for sub_item in sub_items:
+                        items.append(f"{key}: {sub_item}")
+                else:
+                    items.append(f"{key}: {subvalue}")
+            return items
+
+        text = str(value).strip()
+        if text:
+            items.append(text)
+        return items
+
+    def _extract_output_evidence(self, output: Dict[str, Any], key: str) -> List[str]:
+        """Extract evidence from an output dictionary for a specific key."""
+        if key not in output:
+            return []
+        return self._normalize_evidence_value(output.get(key))
+
+    def _deduplicate(self, items: List[str]) -> List[str]:
+        """Remove duplicate evidence entries preserving order."""
+        seen: Set[str] = set()
+        deduped: List[str] = []
+        for item in items:
+            normalized = item.strip()
+            if not normalized or normalized in seen:
+                continue
+            seen.add(normalized)
+            deduped.append(normalized)
+        return deduped
+
+    def _ensure_list(self, container: Dict[str, Any], key: str) -> List[str]:
+        """Ensure a dictionary value is a list, normalizing if necessary."""
+        value = container.get(key)
+        if isinstance(value, list):
+            return value
+        if value is None:
+            container[key] = []
+            return container[key]
+        container[key] = [str(value)]
+        return container[key]
+
+    def _requires_execution_evidence(self, metadata: Optional[CommandMetadata]) -> bool:
+        """Determine if a command requires execution evidence to claim success."""
+        if not metadata:
+            return False
+        return metadata.name in {'implement'}
 
     async def _run_hooks(self, hook_type: str, context: CommandContext) -> None:
         """

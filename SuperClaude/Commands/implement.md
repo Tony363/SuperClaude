@@ -35,6 +35,7 @@ Key behaviors:
 - Framework-specific implementation via Context7 and Magic MCP integration
 - Systematic multi-component coordination via Sequential MCP
 - Comprehensive testing integration with Playwright for validation
+- Evidence-driven reporting — never claim code exists without showing diff + tests
 
 ## MCP Integration
 - **Context7 MCP**: Framework patterns and official documentation for React, Vue, Angular, Express
@@ -53,6 +54,13 @@ Key behaviors:
 - **Implementation Flow**: Requirements → code generation → validation → integration
 - **Multi-Persona Coordination**: Frontend + Backend + Security → comprehensive solutions
 - **Quality Integration**: Implementation → testing → documentation → validation
+
+## Implementation Guardrails
+- Start in analysis mode; produce a scoped plan before touching files.
+- Only mark implementation complete when you can reference concrete repo changes (filenames + key diff hunks) and the relevant test or lint results.
+- If tooling access is unavailable, return the plan + next actions and explicitly state that no code was written yet.
+- Prefer minimal viable change; skip speculative scaffolding.
+- Escalate to security persona before modifying auth, secrets, or permissions.
 
 ## Examples
 
@@ -75,6 +83,7 @@ Key behaviors:
 /sc:implement payment processing system --type feature --with-tests
 # Multi-persona coordination: architect, frontend, backend, security
 # Sequential MCP breaks down complex implementation steps
+# Return diff + tests or explicitly note pending work
 ```
 
 ### Framework-Specific Implementation

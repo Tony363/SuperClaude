@@ -51,7 +51,10 @@ class GenericMarkdownAgent(BaseAgent):
             'success': False,
             'output': '',
             'actions_taken': [],
-            'errors': []
+            'planned_actions': [],
+            'warnings': [],
+            'errors': [],
+            'status': 'plan-only'
         }
 
         try:
@@ -75,14 +78,26 @@ class GenericMarkdownAgent(BaseAgent):
 
             # Build execution plan based on key actions
             execution_plan = self._build_execution_plan(task, parameters)
+            result['planned_actions'] = execution_plan
 
-            # Execute the plan (simulation for generic agent)
-            for action in execution_plan:
-                result['actions_taken'].append(action)
+            executed_operations = self._extract_executed_operations(context)
 
-            # Generate output based on agent configuration
-            result['output'] = self._generate_output(task, execution_plan)
-            result['success'] = True
+            if executed_operations:
+                # Treat provided operations as evidence of execution
+                result['actions_taken'].extend(executed_operations)
+                result['output'] = self._generate_output(
+                    task,
+                    execution_plan,
+                    executed_operations
+                )
+                result['success'] = True
+                result['status'] = 'executed'
+            else:
+                # No concrete work performed; return plan-only guidance
+                result['warnings'].append(
+                    "No concrete file or command changes detected; returning plan-only guidance."
+                )
+                result['output'] = self._generate_plan_output(task, execution_plan)
 
             # Log execution
             self.log_execution(context, result)
@@ -215,55 +230,132 @@ class GenericMarkdownAgent(BaseAgent):
 
         return formatted
 
-    def _generate_output(self, task: str, actions: List[str]) -> str:
+    def _generate_output(
+        self,
+        task: str,
+        planned_actions: List[str],
+        executed_operations: List[str]
+    ) -> str:
         """
-        Generate output based on agent configuration.
+        Generate output summarizing both the plan and executed work.
 
         Args:
             task: Task description
-            actions: Actions taken
+            planned_actions: Planned steps
+            executed_operations: Concrete operations supplied in context
 
         Returns:
             Output string
         """
-        output_lines = []
+        output_lines: List[str] = []
 
-        # Header with agent identity
-        output_lines.append(f"# {self.name.replace('-', ' ').title()} Analysis")
+        output_lines.append(f"# {self.name.replace('-', ' ').title()} Summary")
         output_lines.append("")
-
-        # Task
         output_lines.append(f"**Task**: {task}")
         output_lines.append("")
 
-        # Mindset application
         if self.mindset:
             output_lines.append("## Approach")
             output_lines.append(self.mindset)
             output_lines.append("")
 
-        # Actions taken
-        if actions:
-            output_lines.append("## Actions Taken")
-            for i, action in enumerate(actions, 1):
+        if executed_operations:
+            output_lines.append("## Confirmed Execution")
+            for i, op in enumerate(executed_operations, 1):
+                output_lines.append(f"{i}. {op}")
+            output_lines.append("")
+
+        if planned_actions:
+            output_lines.append("## Remaining Plan")
+            for i, action in enumerate(planned_actions, 1):
                 output_lines.append(f"{i}. {action}")
             output_lines.append("")
 
-        # Expected outputs based on configuration
         if self.outputs:
-            output_lines.append("## Deliverables")
-            for output in self.outputs[:3]:  # Limit to first 3
-                # Extract the main output type (before colon if present)
+            output_lines.append("## Expected Deliverables")
+            for output in self.outputs[:3]:
                 output_type = output.split(':')[0].strip()
                 output_lines.append(f"- {output_type}")
             output_lines.append("")
 
-        # Tools used
         if self.tools:
-            output_lines.append("## Tools Applied")
-            output_lines.append(f"Utilized: {', '.join(self.tools)}")
+            output_lines.append("## Tools Suggested")
+            output_lines.append(f"Recommended: {', '.join(self.tools)}")
 
         return '\n'.join(output_lines)
+
+    def _generate_plan_output(self, task: str, planned_actions: List[str]) -> str:
+        """
+        Generate plan-only output when no execution evidence is present.
+
+        Args:
+            task: Task description
+            planned_actions: Planned steps
+
+        Returns:
+            Output string
+        """
+        output_lines: List[str] = []
+
+        output_lines.append(f"# {self.name.replace('-', ' ').title()} Plan")
+        output_lines.append("")
+        output_lines.append(f"**Task**: {task}")
+        output_lines.append("")
+
+        output_lines.append("⚠️ No concrete repository changes were executed by this agent. "
+                            "Below is a recommended plan for manual follow-up.")
+        output_lines.append("")
+
+        if planned_actions:
+            output_lines.append("## Proposed Steps")
+            for i, action in enumerate(planned_actions, 1):
+                output_lines.append(f"{i}. {action}")
+            output_lines.append("")
+
+        if self.tools:
+            output_lines.append("## Suggested Tools")
+            output_lines.append(f"Use: {', '.join(self.tools)}")
+
+        if self.outputs:
+            output_lines.append("## Expected Deliverables")
+            for output in self.outputs[:3]:
+                output_lines.append(f"- {output.split(':')[0].strip()}")
+
+        return '\n'.join(output_lines)
+
+    def _extract_executed_operations(self, context: Dict[str, Any]) -> List[str]:
+        """
+        Extract concrete operations from execution context.
+
+        Args:
+            context: Execution context
+
+        Returns:
+            List of executed operation descriptions
+        """
+        executed: List[str] = []
+        candidate_keys = [
+            'executed_operations',
+            'applied_changes',
+            'files_modified',
+            'commands_run',
+            'diff_summary'
+        ]
+
+        for key in candidate_keys:
+            value = context.get(key)
+            if isinstance(value, list):
+                executed.extend(str(item) for item in value if item)
+            elif isinstance(value, dict):
+                for subkey, subvalue in value.items():
+                    if isinstance(subvalue, list):
+                        executed.extend(f"{subkey}: {item}" for item in subvalue if item)
+                    elif subvalue:
+                        executed.append(f"{subkey}: {subvalue}")
+            elif isinstance(value, str) and value.strip():
+                executed.append(value.strip())
+
+        return executed
 
     def _matches_boundary(self, text: str, boundary: str) -> bool:
         """

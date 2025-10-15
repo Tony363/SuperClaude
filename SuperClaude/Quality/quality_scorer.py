@@ -485,7 +485,8 @@ class QualityScorer:
         issues = []
         suggestions = []
 
-        # Check for errors
+        # Check for errors and declared success
+        declared_success = False
         if isinstance(output, dict):
             if output.get('errors'):
                 score -= 30
@@ -494,12 +495,20 @@ class QualityScorer:
 
             if not output.get('success', True):
                 score -= 20
-                issues.append("Operation not successful")
+                issues.append("Operation not marked as successful")
+            else:
+                declared_success = True
 
         # Check for test results if available
         if 'test_results' in context:
             test_pass_rate = context['test_results'].get('pass_rate', 0)
             score = test_pass_rate * 100
+
+        execution_evidence = self._extract_execution_evidence(output, context)
+        if declared_success and not execution_evidence:
+            score = min(score, 40.0)
+            issues.append("Declared success without execution evidence")
+            suggestions.append("Share applied diffs, commands, or test logs before claiming success")
 
         return QualityMetric(
             dimension=QualityDimension.CORRECTNESS,
@@ -537,6 +546,22 @@ class QualityScorer:
             score -= 20
             issues.append("Contains TODO/FIXME comments")
             suggestions.append("Complete all TODO items")
+
+        execution_evidence = self._extract_execution_evidence(output, context)
+        planned_only = False
+        if isinstance(output, dict):
+            status = output.get('status', '')
+            if status == 'plan-only':
+                planned_only = True
+
+            planned_actions = output.get('planned_actions') or output.get('plan')
+            if planned_actions and not execution_evidence:
+                planned_only = True
+
+        if planned_only and not execution_evidence:
+            score = min(score, 25.0)
+            issues.append("Only a plan was produced; no concrete work verified")
+            suggestions.append("Execute the plan and capture diffs/tests before re-evaluating")
 
         return QualityMetric(
             dimension=QualityDimension.COMPLETENESS,
@@ -838,6 +863,82 @@ class QualityScorer:
         # Simple keyword matching
         keywords = requirement_lower.split()
         return all(keyword in output_str for keyword in keywords)
+
+    def _extract_execution_evidence(
+        self,
+        output: Any,
+        context: Dict[str, Any]
+    ) -> List[str]:
+        """
+        Collect any evidence that real work was performed.
+
+        Args:
+            output: Agent or command output
+            context: Quality evaluation context
+
+        Returns:
+            List of execution evidence descriptions
+        """
+
+        def collect(value: Any, prefix: Optional[str] = None) -> List[str]:
+            evidence: List[str] = []
+            label = f"{prefix}: " if prefix else ""
+
+            if isinstance(value, list):
+                for item in value:
+                    if item:
+                        evidence.append(f"{label}{item}")
+            elif isinstance(value, dict):
+                for subkey, subvalue in value.items():
+                    evidence.extend(collect(subvalue, f"{label}{subkey}" if not prefix else f"{label}{subkey}"))
+            elif isinstance(value, (str, int, float)) and str(value).strip():
+                evidence.append(f"{label}{value}")
+
+            return evidence
+
+        evidence: List[str] = []
+
+        if isinstance(output, dict):
+            for key in (
+                'actions_taken',
+                'executed_operations',
+                'applied_changes',
+                'files_modified',
+                'commands_run',
+                'diff_summary',
+                'evidence'
+            ):
+                if key in output:
+                    evidence.extend(collect(output[key], key))
+
+        # Context provided evidence
+        for key in (
+            'evidence',
+            'execution',
+            'diff_summary',
+            'applied_changes'
+        ):
+            if key in context:
+                evidence.extend(collect(context[key], key))
+
+        test_results = context.get('test_results', {})
+        if isinstance(test_results, dict):
+            passed = test_results.get('passed')
+            pass_rate = test_results.get('pass_rate')
+            if passed:
+                evidence.append("tests: suite passed")
+            if isinstance(pass_rate, (int, float)) and pass_rate > 0:
+                evidence.append(f"tests: pass rate {pass_rate * 100:.0f}%")
+
+        # Remove duplicates while keeping order
+        seen = set()
+        unique_evidence = []
+        for item in evidence:
+            if item not in seen:
+                seen.add(item)
+                unique_evidence.append(item)
+
+        return unique_evidence
 
     def _extract_functions(self, code: str) -> List[str]:
         """Extract function bodies from code."""
