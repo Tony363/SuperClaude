@@ -181,3 +181,48 @@ class TestCommandExecutor:
             assert isinstance(result.executed_operations, list)
             assert isinstance(result.applied_changes, list)
             assert result.status == 'plan-only'
+
+    @pytest.mark.asyncio
+    async def test_execute_with_tests_flag_runs_tests(self, monkeypatch):
+        """Ensure --with-tests triggers automated test execution."""
+        registry = CommandRegistry()
+        parser = CommandParser()
+        executor = CommandExecutor(registry, parser)
+
+        def fake_run_requested_tests(self, parsed):
+            return {
+                'command': 'pytest -q',
+                'passed': True,
+                'pass_rate': 1.0,
+                'stdout': 'collected 0 items',
+                'stderr': '',
+                'duration_s': 0.05,
+                'exit_code': 0
+            }
+
+        monkeypatch.setattr(
+            CommandExecutor,
+            "_run_requested_tests",
+            fake_run_requested_tests,
+            raising=False
+        )
+
+        result = await executor.execute('/sc:implement --with-tests')
+
+        assert result.success is True
+        assert result.status == 'executed'
+        assert any('pytest -q' in entry for entry in result.executed_operations)
+        assert 'test_results' in result.output
+
+    @pytest.mark.asyncio
+    async def test_build_command_requires_evidence(self):
+        """Commands marked requires_evidence should fail without proof."""
+        registry = CommandRegistry()
+        parser = CommandParser()
+        executor = CommandExecutor(registry, parser)
+
+        result = await executor.execute('/sc:build')
+
+        assert result.success is False
+        assert result.status == 'plan-only'
+        assert 'warnings' in result.output

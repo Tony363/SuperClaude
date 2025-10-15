@@ -5,6 +5,7 @@ category: workflow
 complexity: standard
 mcp-servers: [context7, sequential, magic, playwright]
 personas: [architect, frontend, backend, security, qa-specialist]
+requires_evidence: true
 ---
 
 # /sc:implement - Feature Implementation

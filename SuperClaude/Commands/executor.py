@@ -138,9 +138,19 @@ class CommandExecutor:
             # Execute command logic
             output = await self._execute_command_logic(context)
 
+            test_results = None
+            if self._should_run_tests(parsed):
+                test_results = self._run_requested_tests(parsed)
+                context.results['test_results'] = test_results
+                if isinstance(output, dict):
+                    output['test_results'] = test_results
+                if not test_results.get('passed', False):
+                    context.errors.append("Automated tests failed")
+
             post_change_snapshot = self._snapshot_repo_changes()
             repo_change_entries = self._diff_snapshots(pre_change_snapshot, post_change_snapshot)
             repo_change_descriptions = [self._format_change_entry(entry) for entry in repo_change_entries]
+            diff_stats = self._collect_diff_stats()
 
             executed_operations: List[str] = []
             applied_changes: List[str] = []
@@ -155,8 +165,17 @@ class CommandExecutor:
             executed_operations.extend(self._normalize_evidence_value(context.results.get('executed_operations')))
             applied_changes.extend(self._normalize_evidence_value(context.results.get('applied_changes')))
 
-            executed_operations.extend(repo_change_descriptions)
-            applied_changes.extend(repo_change_descriptions)
+            if repo_change_descriptions:
+                applied_changes.extend(repo_change_descriptions)
+            if diff_stats:
+                applied_changes.extend(diff_stats)
+
+            if test_results:
+                executed_operations.append(self._summarize_test_results(test_results))
+                if test_results.get('stdout'):
+                    executed_operations.append(f"tests stdout: {test_results['stdout']}")
+                if test_results.get('stderr'):
+                    executed_operations.append(f"tests stderr: {test_results['stderr']}")
 
             executed_operations = self._deduplicate(executed_operations)
             applied_changes = self._deduplicate(applied_changes)
@@ -560,6 +579,36 @@ class CommandExecutor:
 
         return entry
 
+    def _collect_diff_stats(self) -> List[str]:
+        """Collect diff statistics for working and staged changes."""
+        if not self.repo_root or not (self.repo_root / '.git').exists():
+            return []
+
+        stats: List[str] = []
+        commands = [
+            ("working", ["git", "diff", "--stat"]),
+            ("staged", ["git", "diff", "--stat", "--cached"])
+        ]
+
+        for label, cmd in commands:
+            try:
+                result = subprocess.run(
+                    cmd,
+                    cwd=self.repo_root,
+                    capture_output=True,
+                    text=True,
+                    check=False
+                )
+            except Exception as exc:
+                logger.debug(f"Failed to gather diff stats ({label}): {exc}")
+                continue
+
+            output = result.stdout.strip()
+            if output:
+                stats.append(f"diff --stat ({label}): {self._truncate_output(output)}")
+
+        return stats
+
     def _normalize_evidence_value(self, value: Any) -> List[str]:
         """Normalize evidence values into a flat list of strings."""
         items: List[str] = []
@@ -619,7 +668,100 @@ class CommandExecutor:
         """Determine if a command requires execution evidence to claim success."""
         if not metadata:
             return False
+        if metadata.requires_evidence:
+            return True
         return metadata.name in {'implement'}
+
+    def _should_run_tests(self, parsed: ParsedCommand) -> bool:
+        """Determine if automated tests should be executed."""
+
+        def _flag_enabled(value: Any) -> bool:
+            if isinstance(value, bool):
+                return value
+            if isinstance(value, (int, float)):
+                return value != 0
+            if isinstance(value, str):
+                return value.lower() in {'1', 'true', 'yes', 'on'}
+            return False
+
+        keys = ('with-tests', 'with_tests', 'run-tests', 'run_tests')
+
+        for key in keys:
+            if _flag_enabled(parsed.flags.get(key)):
+                return True
+            if _flag_enabled(parsed.parameters.get(key)):
+                return True
+
+        # Always run when invoking the dedicated test command.
+        return parsed.name == 'test'
+
+    def _run_requested_tests(self, parsed: ParsedCommand) -> Dict[str, Any]:
+        """Execute project tests and capture results."""
+        command = ["pytest", "-q"]
+        target = parsed.parameters.get('target')
+        if isinstance(target, str) and target.strip():
+            command.append(target.strip())
+
+        start = datetime.now()
+        try:
+            result = subprocess.run(
+                command,
+                cwd=str(self.repo_root or Path.cwd()),
+                capture_output=True,
+                text=True,
+                check=False
+            )
+        except FileNotFoundError as exc:
+            logger.warning(f"Test runner not available: {exc}")
+            return {
+                'command': ' '.join(command),
+                'passed': False,
+                'pass_rate': 0.0,
+                'stdout': '',
+                'stderr': str(exc),
+                'duration_s': 0.0,
+                'error': 'pytest_not_found'
+            }
+        except Exception as exc:
+            logger.error(f"Unexpected error running tests: {exc}")
+            return {
+                'command': ' '.join(command),
+                'passed': False,
+                'pass_rate': 0.0,
+                'stdout': '',
+                'stderr': str(exc),
+                'duration_s': 0.0,
+                'error': 'test_execution_error'
+            }
+
+        duration = (datetime.now() - start).total_seconds()
+        passed = result.returncode == 0
+
+        return {
+            'command': ' '.join(command),
+            'passed': passed,
+            'pass_rate': 1.0 if passed else 0.0,
+            'stdout': self._truncate_output(result.stdout.strip()),
+            'stderr': self._truncate_output(result.stderr.strip()),
+            'duration_s': duration,
+            'exit_code': result.returncode
+        }
+
+    def _summarize_test_results(self, test_results: Dict[str, Any]) -> str:
+        """Create a concise summary string for executed tests."""
+        command = test_results.get('command', 'tests')
+        status = 'pass' if test_results.get('passed') else 'fail'
+        duration = test_results.get('duration_s')
+        duration_part = f" in {duration:.2f}s" if isinstance(duration, (int, float)) else ''
+        return f"{command} ({status}{duration_part})"
+
+    def _truncate_output(self, text: str, max_length: int = 800) -> str:
+        """Limit captured command output to a manageable size."""
+        if not text or len(text) <= max_length:
+            return text
+        head = text[: max_length // 2].rstrip()
+        tail = text[-max_length // 2 :].lstrip()
+        return f"{head}\n... [truncated] ...\n{tail}"
 
     async def _run_hooks(self, hook_type: str, context: CommandContext) -> None:
         """

@@ -5,6 +5,7 @@ category: utility
 complexity: enhanced
 mcp-servers: [playwright]
 personas: [devops-engineer]
+requires_evidence: true
 ---
 
 # /sc:build - Project Building and Packaging

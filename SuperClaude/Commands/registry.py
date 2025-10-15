@@ -30,6 +30,7 @@ class CommandMetadata:
     parameters: Dict[str, Any] = field(default_factory=dict)
     file_path: str = ""
     content: str = ""
+    requires_evidence: bool = False
 
 
 class CommandRegistry:
@@ -110,7 +111,8 @@ class CommandRegistry:
                 triggers=self._extract_triggers(command_content),
                 parameters=self._extract_parameters(command_content),
                 file_path=str(file_path),
-                content=command_content
+                content=command_content,
+                requires_evidence=bool(frontmatter.get('requires_evidence', False))
             )
 
             return command

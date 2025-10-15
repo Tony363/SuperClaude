@@ -5,6 +5,7 @@ category: utility
 complexity: enhanced
 mcp-servers: [playwright]
 personas: [qa-specialist]
+requires_evidence: true
 ---
 
 # /sc:test - Testing and Quality Assurance
