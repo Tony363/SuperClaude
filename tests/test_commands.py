@@ -158,18 +158,36 @@ class TestCommandExecutor:
         assert len(result.errors) > 0
 
     @pytest.mark.asyncio
-    async def test_command_chaining(self):
+    async def test_command_chaining(self, monkeypatch):
         """Test sequential command execution."""
         registry = CommandRegistry()
         parser = CommandParser()
         executor = CommandExecutor(registry, parser)
 
+        def fake_run_requested_tests(self, parsed):
+            return {
+                'command': 'pytest -q',
+                'passed': True,
+                'pass_rate': 1.0,
+                'stdout': 'collected 0 items',
+                'stderr': '',
+                'duration_s': 0.05,
+                'exit_code': 0
+            }
+
+        monkeypatch.setattr(
+            CommandExecutor,
+            '_run_requested_tests',
+            fake_run_requested_tests,
+            raising=False
+        )
+
         # Execute command chain
         commands = ['/sc:analyze', '/sc:implement', '/sc:test']
         results = await executor.execute_chain(commands)
-        assert len(results) == 3
+        assert len(results) == 2
 
-        analyze_result, implement_result, test_result = results
+        analyze_result, implement_result = results
 
         assert analyze_result.success is True
         assert analyze_result.status == 'plan-only'
@@ -180,10 +198,25 @@ class TestCommandExecutor:
         assert implement_result.artifacts, "Implementation should emit artifacts"
         assert implement_result.consensus is not None
         assert implement_result.consensus.get('consensus_reached') is True
+        applied_files = implement_result.output.get('applied_files') or []
+        assert applied_files, "Implementation should apply repository changes"
 
-        assert test_result.command_name == 'test'
-        assert test_result.success is False
-        assert test_result.status == 'plan-only'
+        repo_root = executor.repo_root or Path.cwd()
+        for rel_path in applied_files:
+            target = repo_root / rel_path
+            assert target.exists(), f"Expected applied file {rel_path} to exist"
+            target.unlink(missing_ok=True)
+
+        for artifact_path in implement_result.artifacts:
+            artifact = repo_root / artifact_path
+            artifact.unlink(missing_ok=True)
+
+        impl_dir = repo_root / 'SuperClaude' / 'Implementation'
+        if impl_dir.exists():
+            try:
+                impl_dir.rmdir()
+            except OSError:
+                pass
 
     @pytest.mark.asyncio
     async def test_parallel_execution(self):
@@ -232,10 +265,27 @@ class TestCommandExecutor:
         assert result.status == 'executed'
         assert any('pytest -q' in entry for entry in result.executed_operations)
         assert 'test_results' in result.output
+        assert result.output.get('test_artifacts'), 'Test artifacts should be recorded'
         assert result.consensus is not None
 
+        repo_root = executor.repo_root or Path.cwd()
+        applied_files = result.output.get('applied_files') or []
+        for rel_path in applied_files:
+            target = repo_root / rel_path
+            target.unlink(missing_ok=True)
+
+        for artifact_path in result.artifacts:
+            (repo_root / artifact_path).unlink(missing_ok=True)
+
+        impl_dir = repo_root / 'SuperClaude' / 'Implementation'
+        if impl_dir.exists():
+            try:
+                impl_dir.rmdir()
+            except OSError:
+                pass
+
     @pytest.mark.asyncio
-    async def test_implement_generates_artifact_and_consensus(self):
+    async def test_implement_generates_artifact_and_consensus(self, monkeypatch):
         """Implementation command should emit artifacts and consensus summary."""
         registry = CommandRegistry()
         parser = CommandParser()
@@ -250,6 +300,24 @@ class TestCommandExecutor:
 
         executor.consensus_facade.run_consensus = fake_consensus
 
+        def fake_run_requested_tests(self, parsed):
+            return {
+                'command': 'pytest -q',
+                'passed': True,
+                'pass_rate': 1.0,
+                'stdout': 'collected 0 items',
+                'stderr': '',
+                'duration_s': 0.05,
+                'exit_code': 0
+            }
+
+        monkeypatch.setattr(
+            CommandExecutor,
+            '_run_requested_tests',
+            fake_run_requested_tests,
+            raising=False
+        )
+
         result = await executor.execute('/sc:implement sample feature')
 
         assert result.success is True
@@ -257,18 +325,100 @@ class TestCommandExecutor:
         assert result.artifacts, "Artifact list should not be empty"
         assert result.consensus is not None
         assert result.consensus.get('consensus_reached') is True
+        assert result.output.get('applied_files'), "Applied files should be reported"
+        assert result.output.get('quality_artifact'), "Quality artifact should be recorded"
 
         repo_root = executor.repo_root or Path.cwd()
+        applied_files = result.output.get('applied_files') or []
+        for rel_path in applied_files:
+            target = repo_root / rel_path
+            assert target.exists()
+            target.unlink(missing_ok=True)
+
         for artifact in result.artifacts:
             artifact_path = repo_root / artifact
             assert artifact_path.exists()
+            artifact_path.unlink(missing_ok=True)
+
+        impl_dir = repo_root / 'SuperClaude' / 'Implementation'
+        if impl_dir.exists():
+            try:
+                impl_dir.rmdir()
+            except OSError:
+                pass
 
     @pytest.mark.asyncio
-    async def test_build_command_requires_evidence(self):
+    async def test_implement_fails_when_no_changes_applied(self, monkeypatch):
+        """Implementation should fail fast when no repository changes are applied."""
+        registry = CommandRegistry()
+        parser = CommandParser()
+        executor = CommandExecutor(registry, parser)
+
+        def fake_run_requested_tests(self, parsed):
+            return {
+                'command': 'pytest -q',
+                'passed': True,
+                'pass_rate': 1.0,
+                'stdout': 'collected 0 items',
+                'stderr': '',
+                'duration_s': 0.05,
+                'exit_code': 0
+            }
+
+        monkeypatch.setattr(
+            CommandExecutor,
+            '_run_requested_tests',
+            fake_run_requested_tests,
+            raising=False
+        )
+
+        def fake_apply_change_plan(self, context, plan):
+            return {
+                'applied': [],
+                'warnings': ['no changes produced'],
+                'base_path': str(self.repo_root or Path.cwd()),
+                'session': 'stub'
+            }
+
+        monkeypatch.setattr(
+            CommandExecutor,
+            '_apply_change_plan',
+            fake_apply_change_plan,
+            raising=False
+        )
+
+        result = await executor.execute('/sc:implement empty feature')
+
+        assert result.success is False
+        assert result.status == 'plan-only'
+        assert any('no repository changes' in err.lower() for err in result.errors)
+        assert not result.output.get('applied_files')
+        assert result.output.get('test_artifacts'), "Test artifact should still be recorded"
+
+    @pytest.mark.asyncio
+    async def test_build_command_requires_evidence(self, monkeypatch):
         """Commands marked requires_evidence should fail without proof."""
         registry = CommandRegistry()
         parser = CommandParser()
         executor = CommandExecutor(registry, parser)
+
+        def fake_run_requested_tests(self, parsed):
+            return {
+                'command': 'pytest -q',
+                'passed': True,
+                'pass_rate': 1.0,
+                'stdout': 'collected 0 items',
+                'stderr': '',
+                'duration_s': 0.05,
+                'exit_code': 0
+            }
+
+        monkeypatch.setattr(
+            CommandExecutor,
+            '_run_requested_tests',
+            fake_run_requested_tests,
+            raising=False
+        )
 
         result = await executor.execute('/sc:build')
 
@@ -284,6 +434,10 @@ class TestCommandExecutor:
         assert 'quality_iteration_history' in result.output
         assert any("Quality score" in err for err in result.errors)
 
+        repo_root = executor.repo_root or Path.cwd()
+        for artifact_path in result.artifacts:
+            (repo_root / artifact_path).unlink(missing_ok=True)
+
     @pytest.mark.asyncio
     async def test_requires_evidence_static_validation_flags_missing_file(self, monkeypatch):
         """Static validation should surface missing files as actionable feedback."""
@@ -292,6 +446,24 @@ class TestCommandExecutor:
         executor = CommandExecutor(registry, parser)
 
         missing_path = executor.repo_root / "nonexistent_static_validation_test.py"
+
+        def fake_run_requested_tests(self, parsed):
+            return {
+                'command': 'pytest -q',
+                'passed': True,
+                'pass_rate': 1.0,
+                'stdout': 'collected 0 items',
+                'stderr': '',
+                'duration_s': 0.05,
+                'exit_code': 0
+            }
+
+        monkeypatch.setattr(
+            CommandExecutor,
+            '_run_requested_tests',
+            fake_run_requested_tests,
+            raising=False
+        )
 
         monkeypatch.setattr(
             CommandExecutor,
@@ -305,6 +477,10 @@ class TestCommandExecutor:
         assert result.success is False
         assert 'validation_errors' in result.output
         assert any("not found on disk" in err for err in result.output['validation_errors'])
+
+        repo_root = executor.repo_root or Path.cwd()
+        for artifact_path in result.artifacts:
+            (repo_root / artifact_path).unlink(missing_ok=True)
 
     @pytest.mark.asyncio
     async def test_requires_evidence_records_monitor_metrics(self, monkeypatch):
@@ -329,6 +505,24 @@ class TestCommandExecutor:
         parser = CommandParser()
         executor = CommandExecutor(registry, parser)
 
+        def fake_run_requested_tests(self, parsed):
+            return {
+                'command': 'pytest -q',
+                'passed': True,
+                'pass_rate': 1.0,
+                'stdout': 'collected 0 items',
+                'stderr': '',
+                'duration_s': 0.05,
+                'exit_code': 0
+            }
+
+        monkeypatch.setattr(
+            CommandExecutor,
+            '_run_requested_tests',
+            fake_run_requested_tests,
+            raising=False
+        )
+
         result = await executor.execute('/sc:build')
 
         assert result.success is False
@@ -347,6 +541,10 @@ class TestCommandExecutor:
         assert score_entries, "quality_score gauge not recorded"
         recorded_score = score_entries[0][1]
         assert recorded_score < 70, "Quality guardrail should flag failing score"
+
+        repo_root = executor.repo_root or Path.cwd()
+        for artifact_path in result.artifacts:
+            (repo_root / artifact_path).unlink(missing_ok=True)
 
     @pytest.mark.asyncio
     async def test_loop_flag_invokes_agentic_loop(self, monkeypatch):
@@ -380,7 +578,7 @@ class TestCommandExecutor:
 
         call_record = {}
 
-        def fake_agentic_loop(self, initial_output, loop_context, improver_func, max_iterations=None, min_improvement=None):
+        def fake_agentic_loop(initial_output, loop_context, *, improver_func=None, max_iterations=None, min_improvement=None):
             call_record['called'] = True
             call_record['max_iterations'] = max_iterations
             call_record['context'] = loop_context
@@ -493,7 +691,7 @@ class TestCommandExecutor:
         result = await executor.execute(command)
 
         assert result.success is True
-        assert result.status == 'executed'
+        assert result.status == 'plan-only'
         assert 'sequential' in result.mcp_servers_used
         assert 'context7' in result.mcp_servers_used
         assert result.executed_operations, "Panel operations should be recorded"

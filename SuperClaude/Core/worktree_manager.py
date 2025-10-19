@@ -13,7 +13,7 @@ import time
 import re
 import shlex
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Sequence, Tuple
 from datetime import datetime, timedelta
 import hashlib
 import logging
@@ -96,6 +96,95 @@ class WorktreeManager:
             return 1, "", "Command timed out"
         except Exception as e:
             return 1, "", str(e)
+
+    def apply_changes(
+        self,
+        changes: Sequence[Dict[str, Any]],
+        *,
+        worktree_id: Optional[str] = None,
+        mode: str = "replace"
+    ) -> Dict[str, Any]:
+        """Apply proposed changes to the repository or a specific worktree.
+
+        Args:
+            changes: Sequence of change descriptors. Each descriptor must include
+                a ``path`` (relative to the repository root) and ``content``.
+            worktree_id: Optional worktree identifier indicating where to apply
+                the changes. When omitted, the main repository is used.
+            mode: File write mode – ``replace`` (default) overwrites the file
+                contents, ``append`` appends to the existing file.
+
+        Returns:
+            Dictionary containing applied paths and any warnings encountered.
+        """
+
+        if not changes:
+            return {"applied": [], "warnings": ["No changes provided"], "base_path": str(self.repo_path)}
+
+        base_path = self.repo_path
+        session_id = "repository"
+
+        if worktree_id:
+            worktree_info = self.state.get("worktrees", {}).get(worktree_id)
+            if not worktree_info:
+                return {
+                    "applied": [],
+                    "warnings": [f"Worktree {worktree_id} not found"],
+                    "base_path": str(self.repo_path)
+                }
+            base_path = Path(worktree_info.get("path", self.repo_path))
+            session_id = worktree_id
+
+        applied: List[str] = []
+        warnings: List[str] = []
+
+        for change in changes:
+            rel_path = change.get("path")
+            if not rel_path:
+                warnings.append("Change is missing a target path")
+                continue
+
+            rel_path = Path(rel_path)
+            if rel_path.is_absolute() or ".." in rel_path.parts:
+                warnings.append(f"Invalid path outside repository: {rel_path}")
+                continue
+
+            target_path = (base_path / rel_path).resolve()
+
+            try:
+                target_path.relative_to(base_path.resolve())
+            except ValueError:
+                warnings.append(f"Path escapes base directory: {rel_path}")
+                continue
+
+            try:
+                target_path.parent.mkdir(parents=True, exist_ok=True)
+            except Exception as exc:
+                warnings.append(f"Failed creating directories for {rel_path}: {exc}")
+                continue
+
+            content = change.get("content", "")
+            encoding = change.get("encoding", "utf-8")
+            write_mode = change.get("mode", mode)
+
+            try:
+                if write_mode == "append" and target_path.exists():
+                    with target_path.open("a", encoding=encoding) as handle:
+                        handle.write(content)
+                else:
+                    target_path.write_text(str(content), encoding=encoding)
+            except Exception as exc:
+                warnings.append(f"Failed to write {rel_path}: {exc}")
+                continue
+
+            applied.append(str(target_path.relative_to(self.repo_path)))
+
+        return {
+            "applied": applied,
+            "warnings": warnings,
+            "base_path": str(base_path),
+            "session": session_id
+        }
 
     async def create_worktree(self, task_id: str, branch: str) -> Dict:
         """

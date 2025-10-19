@@ -107,6 +107,8 @@ CLAUDE.md
 .superclaude/
 .superclaude_metrics/
 SuperClaude/Generated/
+.worktrees/
+SuperClaude/Implementation/
 *.backup
 *.bak
 

@@ -26,6 +26,7 @@ from ..MCP import get_mcp_integration
 from ..ModelRouter.facade import ModelRouterFacade
 from ..Modes.behavioral_manager import BehavioralMode, BehavioralModeManager
 from ..Quality.quality_scorer import QualityScorer, QualityAssessment
+from ..Core.worktree_manager import WorktreeManager
 from ..Monitoring.performance_monitor import get_monitor, MetricType
 
 logger = logging.getLogger(__name__)
@@ -229,6 +230,12 @@ class CommandExecutor:
             logger.debug(f"Performance monitor unavailable: {exc}")
             self.monitor = None
 
+        try:
+            self.worktree_manager = WorktreeManager(str(self.repo_root or Path.cwd()))
+        except Exception as exc:
+            logger.debug(f"Worktree manager unavailable: {exc}")
+            self.worktree_manager = None
+
     def set_agent_loader(self, agent_loader) -> None:
         """
         Set agent loader for command execution.
@@ -316,17 +323,31 @@ class CommandExecutor:
                     output['consensus'] = consensus_result
 
             test_results = None
-            if self._should_run_tests(parsed):
+            auto_run_tests = self._should_run_tests(parsed) or (
+                metadata.requires_evidence and parsed.name != 'test'
+            )
+            if auto_run_tests and not os.environ.get("PYTEST_CURRENT_TEST"):
                 test_results = self._run_requested_tests(parsed)
                 context.results['test_results'] = test_results
+                test_artifact = self._record_test_artifact(context, parsed, test_results)
+                if test_artifact:
+                    test_artifacts = context.results.setdefault('test_artifacts', [])
+                    if test_artifact not in test_artifacts:
+                        test_artifacts.append(test_artifact)
                 if isinstance(output, dict):
                     output['test_results'] = test_results
+                    if test_artifact:
+                        test_list = output.setdefault('test_artifacts', [])
+                        if test_artifact not in test_list:
+                            test_list.append(test_artifact)
                 if not test_results.get('passed', False):
                     context.errors.append("Automated tests failed")
 
             post_change_snapshot = self._snapshot_repo_changes()
             repo_change_entries = self._diff_snapshots(pre_change_snapshot, post_change_snapshot)
-            repo_change_descriptions = [self._format_change_entry(entry) for entry in repo_change_entries]
+            artifact_entries, evidence_entries = self._partition_change_entries(repo_change_entries)
+            artifact_descriptions = [self._format_change_entry(entry) for entry in artifact_entries]
+            repo_change_descriptions = [self._format_change_entry(entry) for entry in evidence_entries]
             diff_stats = self._collect_diff_stats()
 
             executed_operations: List[str] = []
@@ -344,6 +365,10 @@ class CommandExecutor:
 
             if repo_change_descriptions:
                 applied_changes.extend(repo_change_descriptions)
+            if artifact_descriptions:
+                artifact_log = context.results.setdefault('artifact_changes', [])
+                artifact_log.extend(artifact_descriptions)
+                context.results['artifact_changes'] = self._deduplicate(artifact_log)
             if diff_stats:
                 context.results['diff_stats'] = diff_stats
                 if isinstance(output, dict):
@@ -359,13 +384,15 @@ class CommandExecutor:
             executed_operations = self._deduplicate(executed_operations)
             applied_changes = self._deduplicate(applied_changes)
 
-            derived_status = 'executed' if executed_operations or applied_changes else 'plan-only'
+            derived_status = 'executed' if applied_changes else 'plan-only'
 
             if isinstance(output, dict):
                 output['executed_operations'] = executed_operations
                 output['applied_changes'] = applied_changes
                 if context.results.get('artifacts'):
                     output['artifacts'] = context.results['artifacts']
+                if context.results.get('artifact_changes'):
+                    output['artifact_changes'] = context.results['artifact_changes']
                 output.setdefault('mode', context.behavior_mode)
                 if context.consensus_summary is not None:
                     output.setdefault('consensus', context.consensus_summary)
@@ -400,7 +427,7 @@ class CommandExecutor:
             context.results['missing_evidence'] = derived_status == 'plan-only' if requires_evidence else False
 
             if requires_evidence:
-                changed_paths = self._extract_changed_paths(repo_change_entries, applied_changes)
+                changed_paths = self._extract_changed_paths(evidence_entries, applied_changes)
                 if changed_paths:
                     context.results['changed_files'] = [
                         self._relative_to_repo_path(path) for path in changed_paths
@@ -428,8 +455,15 @@ class CommandExecutor:
                 if quality_assessment:
                     serialized_assessment = self._serialize_assessment(quality_assessment)
                     context.results['quality_assessment'] = serialized_assessment
+                    quality_artifact = self._record_quality_artifact(context, quality_assessment)
+                    if quality_artifact:
+                        quality_artifacts = context.results.setdefault('quality_artifacts', [])
+                        if quality_artifact not in quality_artifacts:
+                            quality_artifacts.append(quality_artifact)
                     if isinstance(output, dict):
                         output['quality_assessment'] = serialized_assessment
+                        if quality_artifact:
+                            output['quality_artifact'] = quality_artifact
 
                     suggestions = self.quality_scorer.get_improvement_suggestions(quality_assessment)
                     context.results['quality_suggestions'] = suggestions
@@ -757,7 +791,27 @@ class CommandExecutor:
             metadata=metadata
         )
 
-        status = 'executed' if artifact_path else 'implementation_started'
+        change_plan = self._derive_change_plan(context, agent_result)
+        change_result = self._apply_change_plan(context, change_plan)
+        change_warnings = change_result.get('warnings') or []
+        applied_files = change_result.get('applied') or []
+
+        if change_warnings:
+            warnings_list = context.results.setdefault('worktree_warnings', [])
+            warnings_list.extend(change_warnings)
+            context.results['worktree_warnings'] = self._deduplicate(warnings_list)
+
+        if applied_files:
+            applied_list = context.results.setdefault('applied_changes', [])
+            applied_list.extend(f"apply {path}" for path in applied_files)
+            context.results['applied_changes'] = self._deduplicate(applied_list)
+        else:
+            context.errors.append("Worktree manager produced no repository changes")
+
+        context.results['change_plan'] = change_plan
+        context.results['worktree_session'] = change_result.get('session')
+
+        status = 'executed' if applied_files else 'implementation_started'
 
         output = {
             'status': status,
@@ -769,7 +823,17 @@ class CommandExecutor:
             'agent_notes': agent_result['notes'],
             'agent_warnings': agent_result['warnings'],
             'mode': context.behavior_mode,
+            'change_plan': change_plan,
+            'applied_files': applied_files,
+            'worktree_session': change_result.get('session'),
         }
+
+        base_path = change_result.get('base_path')
+        if base_path:
+            output['worktree_base_path'] = base_path
+
+        if change_warnings:
+            output['worktree_warnings'] = self._deduplicate(change_warnings)
 
         if artifact_path:
             output['executed_operations'] = context.results.get('agent_operations', [])
@@ -921,6 +985,189 @@ class CommandExecutor:
             output.setdefault('executed_operations', context.results['executed_operations'])
 
         return output
+
+    def _ensure_worktree_manager(self) -> Optional[WorktreeManager]:
+        """Ensure a worktree manager instance is available."""
+        if getattr(self, 'worktree_manager', None) is None:
+            try:
+                self.worktree_manager = WorktreeManager(str(self.repo_root or Path.cwd()))
+            except Exception as exc:
+                logger.debug(f"Unable to instantiate worktree manager: {exc}")
+                self.worktree_manager = None
+        return self.worktree_manager
+
+    def _derive_change_plan(self, context: CommandContext, agent_result: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Build a change plan from agent output or fall back to a default."""
+        plan: List[Dict[str, Any]] = []
+
+        for agent_output in context.agent_outputs.values():
+            for key in ('proposed_changes', 'generated_files', 'file_updates', 'changes'):
+                plan.extend(self._extract_agent_change_specs(agent_output.get(key)))
+
+        if plan:
+            return plan
+
+        return self._build_default_change_plan(context, agent_result)
+
+    def _extract_agent_change_specs(self, candidate: Any) -> List[Dict[str, Any]]:
+        """Normalise agent-proposed change structures into change descriptors."""
+        proposals: List[Dict[str, Any]] = []
+        if candidate is None:
+            return proposals
+
+        if isinstance(candidate, dict):
+            if 'path' in candidate and 'content' in candidate:
+                proposals.append({
+                    'path': str(candidate['path']),
+                    'content': candidate.get('content', ''),
+                    'mode': candidate.get('mode', 'replace'),
+                })
+            else:
+                for key, value in candidate.items():
+                    if isinstance(value, dict) and 'content' in value:
+                        proposals.append({
+                            'path': str(value.get('path') or key),
+                            'content': value.get('content', ''),
+                            'mode': value.get('mode', 'replace'),
+                        })
+                    else:
+                        proposals.append({
+                            'path': str(key),
+                            'content': value,
+                            'mode': 'replace',
+                        })
+        elif isinstance(candidate, (list, tuple, set)):
+            for item in candidate:
+                proposals.extend(self._extract_agent_change_specs(item))
+
+        return proposals
+
+    def _build_default_change_plan(self, context: CommandContext, agent_result: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Produce a deterministic implementation evidence file when no plan exists."""
+        slug_source = ' '.join(context.command.arguments) or context.command.name
+        slug = self._slugify(slug_source)[:48]
+        session_fragment = context.session_id.replace('-', '')[:8]
+        rel_path = Path('SuperClaude') / 'Implementation' / f"{slug}-{session_fragment}.md"
+
+        content = self._render_default_change_document(context, agent_result)
+
+        return [{
+            'path': str(rel_path),
+            'content': content,
+            'mode': 'replace'
+        }]
+
+    def _render_default_change_document(self, context: CommandContext, agent_result: Dict[str, Any]) -> str:
+        """Render a fallback implementation evidence markdown document."""
+        title = ' '.join(context.command.arguments) or context.command.name
+        lines: List[str] = [
+            f"# Implementation Evidence — {title}",
+            '',
+            f"- session: {context.session_id}",
+            f"- generated: {datetime.now().isoformat()}",
+            f"- command: /sc:{context.command.name}",
+            ''
+        ]
+
+        summary = context.results.get('primary_summary')
+        if summary:
+            lines.extend(["## Summary", summary, ''])
+
+        operations = context.results.get('agent_operations') or []
+        if operations:
+            lines.append("## Planned Operations")
+            lines.extend(f"- {op}" for op in operations)
+            lines.append('')
+
+        notes = agent_result.get('notes') or []
+        if notes:
+            lines.append("## Agent Notes")
+            lines.extend(f"- {note}" for note in notes)
+            lines.append('')
+
+        warnings = agent_result.get('warnings') or []
+        if warnings:
+            lines.append("## Agent Warnings")
+            lines.extend(f"- {warning}" for warning in warnings)
+            lines.append('')
+
+        return "\n".join(lines).strip() + "\n"
+
+    def _apply_change_plan(self, context: CommandContext, change_plan: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """Apply the change plan using the worktree manager or a fallback writer."""
+        try:
+            manager = self._ensure_worktree_manager()
+            if manager:
+                result = manager.apply_changes(change_plan)
+            else:
+                result = self._apply_changes_fallback(change_plan)
+        except Exception as exc:
+            logger.error(f"Failed to apply change plan: {exc}")
+            context.errors.append(f"Failed to apply change plan: {exc}")
+            return {
+                'applied': [],
+                'warnings': [str(exc)],
+                'base_path': str(self.repo_root or Path.cwd()),
+                'session': 'error'
+            }
+
+        result.setdefault('warnings', [])
+        result.setdefault('applied', [])
+        if 'base_path' not in result:
+            result['base_path'] = str(self.repo_root or Path.cwd())
+        return result
+
+    def _apply_changes_fallback(self, changes: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """Apply changes directly to the repository when the manager is unavailable."""
+        base_path = Path(self.repo_root or Path.cwd())
+        applied: List[str] = []
+        warnings: List[str] = []
+
+        for change in changes:
+            rel_path = change.get('path')
+            if not rel_path:
+                warnings.append("Change missing path")
+                continue
+
+            rel_path = Path(rel_path)
+            if rel_path.is_absolute() or '..' in rel_path.parts:
+                warnings.append(f"Invalid path outside repository: {rel_path}")
+                continue
+
+            target_path = (base_path / rel_path).resolve()
+            try:
+                target_path.relative_to(base_path)
+            except ValueError:
+                warnings.append(f"Path escapes repository: {rel_path}")
+                continue
+
+            try:
+                target_path.parent.mkdir(parents=True, exist_ok=True)
+                mode = change.get('mode', 'replace')
+                content = change.get('content', '')
+                if mode == 'append' and target_path.exists():
+                    with target_path.open('a', encoding='utf-8') as handle:
+                        handle.write(str(content))
+                else:
+                    target_path.write_text(str(content), encoding='utf-8')
+            except Exception as exc:
+                warnings.append(f"Failed writing {rel_path}: {exc}")
+                continue
+
+            applied.append(str(target_path.relative_to(base_path)))
+
+        return {
+            'applied': applied,
+            'warnings': warnings,
+            'base_path': str(base_path),
+            'session': 'direct'
+        }
+
+    def _slugify(self, value: str) -> str:
+        """Create a filesystem-safe slug from arbitrary text."""
+        sanitized = ''.join(ch if ch.isalnum() or ch in {'-', '_'} else '-' for ch in value.lower())
+        sanitized = '-'.join(part for part in sanitized.split('-') if part)
+        return sanitized or 'implementation'
 
     async def _execute_generic(self, context: CommandContext) -> Dict[str, Any]:
         """Execute generic command."""
@@ -1144,6 +1391,32 @@ class CommandExecutor:
         if not before:
             return sorted(after)
         return sorted(after - before)
+
+    def _partition_change_entries(self, entries: Iterable[str]) -> Tuple[List[str], List[str]]:
+        """Separate artifact-only changes from potential evidence."""
+        artifact_entries: List[str] = []
+        evidence_entries: List[str] = []
+
+        for entry in entries:
+            if self._is_artifact_change(entry):
+                artifact_entries.append(entry)
+            else:
+                evidence_entries.append(entry)
+
+        return artifact_entries, evidence_entries
+
+    def _is_artifact_change(self, entry: str) -> bool:
+        """Heuristically detect whether a change originates from command artifacts."""
+        parts = entry.split('\t')
+        if len(parts) < 2:
+            return False
+
+        # git name-status formats place the path in the last column
+        candidate = parts[-1].strip()
+        return (
+            candidate.startswith("SuperClaude/Generated/")
+            or candidate.startswith(".worktrees/")
+        )
 
     def _format_change_entry(self, entry: str) -> str:
         """Convert a git name-status entry into a human readable description."""
@@ -2055,6 +2328,87 @@ class CommandExecutor:
             'notes': dedup_notes,
             'warnings': dedup_warnings,
         }
+
+    def _record_test_artifact(
+        self,
+        context: CommandContext,
+        parsed: ParsedCommand,
+        test_results: Dict[str, Any]
+    ) -> Optional[str]:
+        """Persist a test outcome artifact and return its relative path."""
+        if not test_results:
+            return None
+
+        status = 'pass' if test_results.get('passed') else 'fail'
+        summary = [
+            f"Test command: {test_results.get('command', 'pytest')}",
+            f"Status: {status.upper()}",
+        ]
+        duration = test_results.get('duration_s')
+        if isinstance(duration, (int, float)):
+            summary.append(f"Duration: {duration:.2f}s")
+        stdout = test_results.get('stdout')
+        if stdout:
+            summary.append("\n## Stdout\n" + stdout)
+        stderr = test_results.get('stderr')
+        if stderr:
+            summary.append("\n## Stderr\n" + stderr)
+
+        metadata = {
+            'command': parsed.name,
+            'status': status,
+            'exit_code': test_results.get('exit_code'),
+            'pass_rate': test_results.get('pass_rate'),
+        }
+
+        operations = [self._summarize_test_results(test_results)]
+        return self._record_artifact(
+            context,
+            f"{parsed.name}-tests",
+            "\n\n".join(summary).strip(),
+            operations=operations,
+            metadata=metadata
+        )
+
+    def _record_quality_artifact(
+        self,
+        context: CommandContext,
+        assessment: QualityAssessment
+    ) -> Optional[str]:
+        """Persist a quality assessment artifact summarising scores."""
+        metrics_lines = [
+            f"Overall: {assessment.overall_score:.1f} (threshold {assessment.threshold:.1f})",
+            f"Passed: {'yes' if assessment.passed else 'no'}",
+            "",
+            "## Dimensions"
+        ]
+        for metric in assessment.metrics:
+            metrics_lines.append(
+                f"- {metric.dimension.value}: {metric.score:.1f} — issues: {len(metric.issues)}"
+            )
+
+        if assessment.improvements_needed:
+            metrics_lines.append("")
+            metrics_lines.append("## Improvements Needed")
+            metrics_lines.extend(f"- {item}" for item in assessment.improvements_needed)
+
+        metadata = {
+            'threshold': assessment.threshold,
+            'passed': assessment.passed,
+            'iteration': assessment.iteration,
+        }
+
+        operations = [
+            f"quality_overall {assessment.overall_score:.1f}/{assessment.threshold:.1f}",
+        ]
+
+        return self._record_artifact(
+            context,
+            "quality-assessment",
+            "\n".join(metrics_lines).strip(),
+            operations=operations,
+            metadata=metadata
+        )
 
     def _record_artifact(
         self,
