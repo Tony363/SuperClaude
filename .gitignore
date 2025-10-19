@@ -106,6 +106,7 @@ CLAUDE.md
 .serena/
 .superclaude/
 .superclaude_metrics/
+SuperClaude/Generated/
 *.backup
 *.bak
 

@@ -23,7 +23,7 @@ SuperClaude is an advanced AI orchestration framework that transforms Claude Cod
 - **🌳 Worktree Manager**: Git automation for parallel feature development
 - **🤝 Consensus Builder**: Multi-model validation and agreement mechanisms
 - **🎨 6 Behavioral Modes**: Context-aware operational modes
-- **🔌 6 MCP Integrations**: Magic UI, Sequential thinking, Serena memory, Playwright, Zen, Deepwiki
+- **🔌 7 MCP Integrations**: Magic UI, Sequential thinking, Serena memory, Playwright, Zen, Deepwiki, MorphLLM stub
 
 ### 🚧 In Development
 - Production deployment features
@@ -62,7 +62,7 @@ graph TB
     end
 
     subgraph "Integration Layer"
-        MCP[MCP Servers<br/>6 integrations]
+        MCP[MCP Servers<br/>7 integrations]
         APC[API Clients<br/>4 providers]
         TF[Test Framework<br/>Integration tests]
     end
@@ -74,6 +74,7 @@ graph TB
         PLAY[Playwright]
         ZEN[Zen]
         DEEP[Deepwiki]
+        MORPH[MorphLLM]
     end
 
     subgraph "Storage Layer"
@@ -109,6 +110,7 @@ graph TB
     MCP --> PLAY
     MCP --> ZEN
     MCP --> DEEP
+    MCP --> MORPH
 
     DL --> CACHE
     WM --> STATE
@@ -163,6 +165,8 @@ pip install -e . && SuperClaude install
 --delegate                           # Auto-select best agent
 --loop                               # Iterate until quality ≥70%
 --consensus                          # Multi-model agreement
+
+> **Runtime requirements:** `--think` and `--consensus` route through the Zen MCP (bundled offline) to reach multi-model consensus. `--loop` executes the built-in quality scorer and does not require network access. `--delegate` loads catalogued agents, so keep `SuperClaude/Agents` installed. Commands that activate `morphllm` use the packaged MorphLLM stub unless you provision the remote server.
 ```
 
 ## 📦 Command System
@@ -328,6 +332,7 @@ Dimensions (100 points total):
 | **Playwright** | Browser Automation | `--play`, `--e2e` | E2E testing, visual validation |
 | **Zen** | Multi-model Orchestration | `--zen`, `--consensus` | Consensus building, validation |
 | **Deepwiki** | Documentation Repository | `--docs`, `/docs` | Library docs, API references, code examples |
+| **MorphLLM** | Transformation Planning | `--morph`, `--morphllm` | Safe refactor recipes, offline stubs |
 
 ## 🌳 Worktree Manager
 
@@ -379,18 +384,21 @@ SuperClaude_Framework/
 ## 🧪 Testing
 
 ```bash
-# Run all tests
-pytest tests/ -v
+# Run fast suite
+pytest -m "not slow" tests/
 
 # Run with coverage
 pytest tests/ --cov=SuperClaude --cov-report=html
+
+# Targeted guardrail coverage
+pytest tests/test_mcp_servers.py tests/test_model_router.py tests/test_agents.py tests/test_commands.py
 
 # Run specific test category
 pytest tests/test_agents.py -v
 pytest tests/test_integration.py -v
 
 # Performance benchmarks
-python benchmarks/run_benchmarks.py
+python benchmarks/run_benchmarks.py --suite smoke
 ```
 
 > **Pyenv Sandboxes:** If your environment blocks writes to `~/.pyenv/shims`, disable automatic rehashing before invoking pytest: `export PYENV_DISABLE_REHASH=1`.
@@ -521,7 +529,7 @@ pytest tests/
 - **22 Commands** (`/sc:*`) - Workflow automation patterns
 - **131 Agents** - Domain specialists (15 core + 116 extended)
 - **6 Behavioral Modes** - Context modification patterns
-- **6 MCP Servers** - External tool integrations
+- **7 MCP Servers** - External tool integrations
 - **8 AI Models** - Multi-model orchestration
 
 ## 🆘 Support
@@ -547,7 +555,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - **Total Agents**: 131 (15 core + 116 extended)
 - **Commands**: 22 comprehensive workflow commands
 - **AI Models**: 8 with intelligent routing
-- **MCP Servers**: 6 integrated (Magic, Sequential, Serena, Playwright, Zen, Deepwiki)
+- **MCP Servers**: 7 integrated (Magic, Sequential, Serena, Playwright, Zen, Deepwiki, MorphLLM)
 - **Quality Dimensions**: 8 evaluation criteria
 - **Behavioral Modes**: 6 context-aware modes
 - **Lines of Code**: ~20,000+

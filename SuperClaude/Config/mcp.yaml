@@ -91,6 +91,20 @@ servers:
       - api-reference
     priority: medium
 
+  morphllm:
+    enabled: true
+    name: MorphLLM Transformation Stub
+    triggers:
+      - --morph
+      - --morphllm
+    capabilities:
+      - bulk-refactor-planning
+      - change-safety
+      - audit-readiness
+    priority: medium
+    config:
+      catalog_path: null  # Use packaged catalog by default
+
 # Integration Configuration
 integration:
   auto_enable:

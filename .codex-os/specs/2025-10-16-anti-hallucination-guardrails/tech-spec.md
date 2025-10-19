@@ -38,6 +38,15 @@ links:
   - Counters: `invocations`, `plan_only`, `missing_evidence`, `static_validation_fail`, `quality_pass`, `quality_fail`, `success`, `failure`.
   - Gauges: `quality_score`, `static_issue_count`.
   - Tags: `command`, `status`, optional `score`, `threshold`, and `issue_count`.
+- Alert thresholds:
+  - Page when `missing_evidence` > 0 for the same `command` within a 5-minute window.
+  - Warn when `quality_fail` / `invocations` exceeds 0.2 over the last 15 minutes.
+  - Warn when `static_validation_fail` ≥ 1 for two consecutive windows (indicates syntax errors slipping through).
+- Dashboard layout (Grafana/Looker):
+  1. Guardrail funnel (Invocations → Executed → Plan-only) stacked by command.
+  2. Quality score gauge with P95 overlay and threshold line.
+  3. Alert table listing recent missing-evidence and static-validation incidents with repo/session tags.
+  4. Runbook links for remediation (docs/guardrail-monitoring.md).
 - Quality assessment errors emit `quality_missing` counter for alerting when scoring is unavailable.
 - Follow-up: wire dashboards (Grafana/Looker) using these metrics once telemetry sink shipping confirmed.
 

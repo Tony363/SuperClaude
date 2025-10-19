@@ -36,7 +36,7 @@ class CommandParser:
     """
 
     # Command patterns
-    COMMAND_PATTERN = re.compile(r'/sc:(\w+)(?:\s+(.*))?')
+    COMMAND_PATTERN = re.compile(r'/sc:([A-Za-z0-9_-]+)(?:\s+(.*))?')
     FLAG_PATTERN = re.compile(r'--([A-Za-z0-9_-]+)(?:=([^\s]+))?')
     SHORT_FLAG_PATTERN = re.compile(r'-(\w)(?:\s+([^\s]+))?')
 

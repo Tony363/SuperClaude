@@ -8,6 +8,7 @@ for GPT-5, Gemini, Claude, Grok, and other models.
 from .router import ModelRouter, RoutingDecision, ModelCapabilities, ModelProvider
 from .models import ModelManager, ModelConfig
 from .consensus import ConsensusBuilder, ConsensusResult, ModelVote, VoteType, Stance
+from .facade import ModelRouterFacade
 
 __all__ = [
     'ModelRouter',
@@ -20,7 +21,8 @@ __all__ = [
     'ConsensusResult',
     'ModelVote',
     'VoteType',
-    'Stance'
+    'Stance',
+    'ModelRouterFacade'
 ]
 
 __version__ = '1.0.0'

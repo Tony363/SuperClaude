@@ -723,7 +723,7 @@ For organizations requiring dedicated security support:
 
 **Last Updated**: December 2024 (SuperClaude Framework v4.0)
 **Next Review**: March 2025 (Quarterly review cycle)
-**Version**: 4.0.9 (Updated for v4 architectural changes)
+**Version**: 6.0.0-alpha (Updated for v6 architectural changes)
 
 **Review Schedule:**
 - **Quarterly Reviews**: Security policy accuracy and completeness assessment

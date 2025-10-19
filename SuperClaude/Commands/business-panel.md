@@ -1,14 +1,14 @@
-# /sc:business-panel - Business Panel Analysis System
+---
+name: business-panel
+description: "Run a multi-expert business analysis panel with adaptive interaction modes"
+category: analysis
+complexity: advanced
+mcp-servers: [sequential, context7]
+personas: [architect, documentation]
+requires_evidence: false
+---
 
-```yaml
----
-command: "/sc:business-panel"
-category: "Analysis & Strategic Planning"  
-purpose: "Multi-expert business analysis with adaptive interaction modes"
-wave-enabled: true
-performance-profile: "complex"
----
-```
+# /sc:business-panel - Business Panel Analysis System
 
 ## Overview
 

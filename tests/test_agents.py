@@ -5,14 +5,20 @@ These tests are written in advance to guide the implementation
 of the agent system in Phase 2.
 """
 
-import pytest
-from pathlib import Path
 import sys
-from unittest.mock import MagicMock, patch
 from abc import ABC, abstractmethod
+from pathlib import Path
+from types import SimpleNamespace
+
+import pytest
 
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
+
+from SuperClaude.Commands import CommandMetadata
+from SuperClaude.Commands.executor import CommandExecutor
+from SuperClaude.Commands.parser import CommandParser
+from SuperClaude.Agents.extended_loader import MatchScore, AgentCategory
 
 
 @pytest.mark.integration
@@ -160,6 +166,123 @@ def test_triggers_json_schema():
     triggers_file = Path(__file__).parent.parent / "SuperClaude" / "TRIGGERS.json"
     if not triggers_file.exists():
         print(f"TODO: Create TRIGGERS.json with schema: {expected_schema}")
+
+
+class _StubRegistry:
+    """Minimal registry stub for command executor tests."""
+
+    def __init__(self):
+        self._commands = {
+            'implement': CommandMetadata(
+                name='implement',
+                description='',
+                category='general',
+                complexity='standard'
+            )
+        }
+
+    def get_command(self, name: str):
+        return self._commands.get(name)
+@pytest.mark.asyncio
+async def test_delegate_flag_auto_selects_agent(monkeypatch):
+    """Command executor should auto-select an agent when --delegate is provided."""
+    parser = CommandParser()
+    executor = CommandExecutor(_StubRegistry(), parser)
+
+    class DummyAgent:
+        def __init__(self, agent_name: str) -> None:
+            self.agent_name = agent_name
+
+        def execute(self, payload):
+            return {
+                'output': f"handled by {self.agent_name}",
+                'actions_taken': [f"{self.agent_name}-action"],
+                'warnings': []
+            }
+
+    dummy_match = MatchScore(
+        agent_id='refactoring-expert',
+        total_score=0.9,
+        breakdown={'keywords': 0.3},
+        matched_criteria=['refactor'],
+        confidence='high'
+    )
+
+    monkeypatch.setattr(
+        executor.extended_agent_loader,
+        'select_agent',
+        lambda *args, **kwargs: [dummy_match]
+    )
+
+    executor.agent_loader.load_agent = lambda name: DummyAgent(name)
+
+    result = await executor.execute('/sc:implement improve modularity --delegate')
+
+    assert result.success is True
+    assert 'refactoring-expert' in result.agents_used
+    delegation = result.output.get('delegation', {})
+    assert delegation.get('selected_agent') == 'refactoring-expert'
+    assert delegation.get('strategy') == 'auto'
+    assert delegation.get('candidates'), "Delegation should expose candidate shortlist"
+    assert delegation['candidates'][0]['agent'] == 'refactoring-expert'
+    assert result.output.get('think_level') == 2
+
+
+@pytest.mark.asyncio
+async def test_delegate_extended_prefers_specialist(monkeypatch):
+    """--delegate-extended should prefer extended catalogue agents when available."""
+    parser = CommandParser()
+    executor = CommandExecutor(_StubRegistry(), parser)
+
+    class DummyAgent:
+        def __init__(self, agent_name: str) -> None:
+            self.agent_name = agent_name
+
+        def execute(self, payload):
+            return {
+                'output': f"handled by {self.agent_name}",
+                'actions_taken': [f"{self.agent_name}-action"],
+                'warnings': []
+            }
+
+    base_match = MatchScore(
+        agent_id='general-purpose',
+        total_score=0.82,
+        breakdown={'keywords': 0.3},
+        matched_criteria=['general'],
+        confidence='medium'
+    )
+    specialist_match = MatchScore(
+        agent_id='quality-specialist',
+        total_score=0.8,
+        breakdown={'keywords': 0.4},
+        matched_criteria=['quality'],
+        confidence='high'
+    )
+
+    executor.extended_agent_loader._agent_metadata['general-purpose'] = SimpleNamespace(
+        category=AgentCategory.CORE_DEVELOPMENT
+    )
+    executor.extended_agent_loader._agent_metadata['quality-specialist'] = SimpleNamespace(
+        category=AgentCategory.QUALITY_SECURITY
+    )
+
+    monkeypatch.setattr(
+        executor.extended_agent_loader,
+        'select_agent',
+        lambda *args, **kwargs: [base_match, specialist_match]
+    )
+    executor.agent_loader.load_agent = lambda name: DummyAgent(name)
+
+    result = await executor.execute('/sc:implement tighten monitoring --delegate-extended')
+
+    assert result.success is True
+    assert 'quality-specialist' in result.agents_used
+
+    delegation = result.output.get('delegation', {})
+    assert delegation.get('strategy') == 'extended'
+    assert delegation.get('selected_agent') == 'quality-specialist'
+    assert delegation['candidates'][0]['agent'] == 'quality-specialist'
 
 
 if __name__ == "__main__":

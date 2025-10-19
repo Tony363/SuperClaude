@@ -30,7 +30,7 @@ class TestCoreComponents(unittest.TestCase):
     def test_version(self):
         """Test version consistency"""
         from SuperClaude import __version__
-        self.assertEqual(__version__, "4.1.0")
+        self.assertEqual(__version__, "6.0.0-alpha")
 
     def test_agent_loader(self):
         """Test agent loading system"""

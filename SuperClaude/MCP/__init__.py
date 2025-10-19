@@ -45,6 +45,16 @@ from .integrations.sequential_integration import (
     SequentialIntegration,
 )
 
+from .integrations.context7_integration import (
+    Context7Integration,
+    Context7Reference,
+)
+
+from .integrations.morphllm_integration import (
+    MorphLLMIntegration,
+    MorphRecipe,
+)
+
 # Version info
 __version__ = "6.0.0-alpha"
 
@@ -55,6 +65,8 @@ __all__ = [
     'DeepwikiIntegration', 'DeepwikiDocument', 'DeepwikiSearchResult', 'DocumentationType',
     'MagicIntegration', 'MagicComponent',
     'SequentialIntegration',
+    'Context7Integration', 'Context7Reference',
+    'MorphLLMIntegration', 'MorphRecipe',
     'get_mcp_integration',
 ]
 
@@ -66,6 +78,8 @@ MCP_SERVERS: Dict[str, Type[Any]] = {
     'playwright': PlaywrightIntegration,
     'zen': ZenIntegration,
     'deepwiki': DeepwikiIntegration,
+    'context7': Context7Integration,
+    'morphllm': MorphLLMIntegration,
 }
 
 def get_mcp_integration(server_name: str, **kwargs):

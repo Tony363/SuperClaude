@@ -6,6 +6,7 @@ import pytest
 from pathlib import Path
 import sys
 from datetime import datetime, timedelta
+from types import SimpleNamespace
 
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -16,8 +17,16 @@ from SuperClaude.ModelRouter import (
     ModelManager,
     ConsensusBuilder,
     VoteType,
-    Stance
+    Stance,
+    ModelRouterFacade
 )
+from SuperClaude.Commands import (
+    CommandExecutor,
+    CommandParser,
+    CommandContext,
+    CommandMetadata
+)
+from SuperClaude.Quality.quality_scorer import QualityScorer
 
 
 class TestModelRouter:
@@ -225,3 +234,138 @@ class TestConsensusBuilder:
         assert result is not None
         assert len(result.votes) == 3
         assert result.synthesis is not None
+
+
+class TestModelRouterFacade:
+    """Tests for ModelRouterFacade convenience wrapper."""
+
+    @pytest.mark.asyncio
+    async def test_facade_returns_serializable_payload(self):
+        facade = ModelRouterFacade()
+
+        result = await facade.run_consensus("Implementation completed successfully.")
+
+        assert isinstance(result, dict)
+        assert 'consensus_reached' in result
+        assert 'votes' in result
+        assert isinstance(result['votes'], list)
+
+    @pytest.mark.asyncio
+    async def test_facade_supports_custom_models(self):
+        facade = ModelRouterFacade()
+
+        async def approve(prompt: str):
+            return {'response': 'approve', 'confidence': 0.8, 'reasoning': 'positive', 'tokens_used': 50}
+
+        async def reject(prompt: str):
+            return {'response': 'reject', 'confidence': 0.8, 'reasoning': 'negative', 'tokens_used': 50}
+
+        facade.consensus.register_executor('model-approve', approve)
+        facade.consensus.register_executor('model-reject', reject)
+
+        result = await facade.run_consensus(
+            "Build failed with critical error.",
+            models=['model-approve', 'model-reject']
+        )
+
+        assert result['consensus_reached'] is False
+        assert result['final_decision'] is None
+
+    @pytest.mark.asyncio
+    async def test_facade_respects_think_level(self):
+        facade = ModelRouterFacade()
+
+        deep_result = await facade.run_consensus(
+            "Design a complex distributed system",
+            think_level=3
+        )
+        quick_result = await facade.run_consensus(
+            "Quick lint fix",
+            think_level=1
+        )
+
+        assert deep_result['think_level'] == 3
+        assert quick_result['think_level'] == 1
+        assert deep_result['routing_decision']['primary_model'] in {
+            'gpt-5', 'claude-opus-4.1', 'gemini-2.5-pro'
+        }
+        assert quick_result['routing_decision']['primary_model'] in {
+            'gpt-4o', 'gpt-4o-mini', 'grok-code-fast-1'
+        }
+
+
+@pytest.mark.asyncio
+async def test_executor_think_flag_routes_models(monkeypatch):
+    """Command executor should pass --think level through to the model router and consensus facade."""
+    parser = CommandParser()
+    executor = object.__new__(CommandExecutor)
+    executor.quality_scorer = QualityScorer()
+    executor.delegate_category_map = {}
+    executor.extended_agent_loader = SimpleNamespace()
+    executor.consensus_facade = ModelRouterFacade()
+
+    recorded = {}
+    original_route = ModelRouter.route
+
+    def tracking_route(self, *args, **kwargs):
+        recorded['think_level'] = kwargs.get('think_level')
+        return original_route(self, *args, **kwargs)
+
+    parsed = parser.parse('/sc:dummy --consensus --think 3')
+    metadata = CommandMetadata(
+        name='dummy',
+        description='',
+        category='general',
+        complexity='standard'
+    )
+    context = CommandContext(
+        command=parsed,
+        metadata=metadata,
+        session_id='test-session'
+    )
+    context.results['mode'] = {}
+    context.results['behavior_mode'] = context.behavior_mode
+    context.results['flags'] = sorted(parsed.flags.keys())
+    context.results.setdefault('executed_operations', [])
+    context.results.setdefault('applied_changes', [])
+    context.results.setdefault('artifacts', [])
+
+    executor._apply_execution_flags(context)
+
+    async def stub_consensus(prompt, **kwargs):
+        recorded['consensus_think'] = kwargs.get('think_level')
+        decision = executor.consensus_facade.router.route(
+            task_type=kwargs.get('task_type', 'consensus'),
+            think_level=recorded['consensus_think']
+        )
+        return {
+            'consensus_reached': True,
+            'final_decision': {'decision': 'approve'},
+            'votes': [],
+            'think_level': recorded['consensus_think'],
+            'routing_decision': executor.consensus_facade._serialize_routing(decision)
+        }
+
+    monkeypatch.setattr(ModelRouter, "route", tracking_route)
+    monkeypatch.setattr(
+        executor.consensus_facade,
+        "run_consensus",
+        stub_consensus,
+        raising=False
+    )
+
+    result = await executor._ensure_consensus(
+        context,
+        output={},
+        enforce=context.consensus_forced,
+        think_level=context.think_level
+    )
+
+    assert context.consensus_forced is True
+    assert context.results.get('think_level') == 3
+    assert recorded.get('think_level') == 3
+    assert recorded.get('consensus_think') == 3
+    assert context.think_level == 3
+    assert result['think_level'] == 3
+    assert context.consensus_summary is not None
+    assert context.consensus_summary.get('think_level') == 3

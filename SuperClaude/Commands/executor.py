@@ -5,6 +5,7 @@ Orchestrates command execution with agent and MCP server integration.
 """
 
 import asyncio
+import json
 import logging
 import os
 import subprocess
@@ -12,17 +13,126 @@ import py_compile
 from dataclasses import dataclass, field, asdict
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Set
+from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Set, Tuple
 
 import yaml
 
+from .artifact_manager import CommandArtifactManager
 from .parser import CommandParser, ParsedCommand
 from .registry import CommandRegistry, CommandMetadata
+from ..Agents.loader import AgentLoader
+from ..Agents.extended_loader import ExtendedAgentLoader, AgentCategory, MatchScore
 from ..MCP import get_mcp_integration
+from ..ModelRouter.facade import ModelRouterFacade
+from ..Modes.behavioral_manager import BehavioralMode, BehavioralModeManager
 from ..Quality.quality_scorer import QualityScorer, QualityAssessment
 from ..Monitoring.performance_monitor import get_monitor, MetricType
 
 logger = logging.getLogger(__name__)
+
+BUSINESS_PANEL_EXPERTS = {
+    'christensen': {
+        'name': 'Clayton Christensen',
+        'lens': 'Disruption theory & jobs-to-be-done',
+        'focus': ['disruption', 'innovation cadence', 'non-consumption'],
+        'questions': [
+            "What job is the customer hiring this to do?",
+            "Which segments are overserved or underserved?",
+            "How does this shift the value network?"
+        ]
+    },
+    'porter': {
+        'name': 'Michael Porter',
+        'lens': 'Competitive strategy & five forces',
+        'focus': ['competitive-analysis', 'moats', 'positioning'],
+        'questions': [
+            "How do the five forces shift under this move?",
+            "Where can we create a defensible moat?",
+            "What assumptions competitors rely on?"
+        ]
+    },
+    'drucker': {
+        'name': 'Peter Drucker',
+        'lens': 'Management effectiveness & execution',
+        'focus': ['operational-discipline', 'management'],
+        'questions': [
+            "What is the mission and is it still valid?",
+            "What does the customer value now?",
+            "Where do we place scarce resources?"
+        ]
+    },
+    'godin': {
+        'name': 'Seth Godin',
+        'lens': 'Marketing innovation & tribe building',
+        'focus': ['narrative', 'community', 'positioning'],
+        'questions': [
+            "Who is the smallest viable audience?",
+            "What story are we telling that people repeat?",
+            "How do we create remarkable signals?"
+        ]
+    },
+    'kim_mauborgne': {
+        'name': 'W. Chan Kim & Renee Mauborgne',
+        'lens': 'Blue ocean strategy',
+        'focus': ['value-innovation', 'differentiation', 'cost'],
+        'questions': [
+            "Which factors can we eliminate or reduce?",
+            "Where can we raise new value for users?",
+            "What uncontested space emerges?"
+        ]
+    },
+    'collins': {
+        'name': 'Jim Collins',
+        'lens': 'Enduring companies & flywheels',
+        'focus': ['execution', 'discipline', 'flywheel'],
+        'questions': [
+            "What is the hedgehog concept here?",
+            "Which flywheel can we accelerate?",
+            "What brutal facts must we confront?"
+        ]
+    },
+    'taleb': {
+        'name': 'Nassim Nicholas Taleb',
+        'lens': 'Risk, optionality, and antifragility',
+        'focus': ['risk', 'resilience', 'optionality'],
+        'questions': [
+            "Where are we exposed to tail risks?",
+            "How do we gain from volatility?",
+            "What optionality can we preserve?"
+        ]
+    },
+    'meadows': {
+        'name': 'Donella Meadows',
+        'lens': 'Systems thinking & leverage points',
+        'focus': ['systems-dynamics', 'feedback'],
+        'questions': [
+            "What reinforcing and balancing loops exist?",
+            "Where is the highest leverage point?",
+            "What delays or bottlenecks dominate?"
+        ]
+    },
+    'doumont': {
+        'name': 'Jean-luc Doumont',
+        'lens': 'Structured communication & clarity',
+        'focus': ['communication', 'decision-alignment'],
+        'questions': [
+            "How do we communicate the core message?",
+            "What structure clarifies the decision?",
+            "Which stakeholders need tailored framing?"
+        ]
+    }
+}
+
+BUSINESS_PANEL_FOCUS_MAP = {
+    'disruption': ['christensen', 'porter', 'kim_mauborgne'],
+    'competitive-analysis': ['porter', 'taleb', 'collins'],
+    'go-to-market': ['godin', 'doumont', 'porter'],
+    'systems': ['meadows', 'christensen', 'collins'],
+    'risk': ['taleb', 'porter', 'christensen'],
+    'execution': ['drucker', 'collins', 'kim_mauborgne']
+}
+
+DEFAULT_BUSINESS_PANEL_EXPERTS = ['porter', 'drucker', 'godin']
 
 
 @dataclass
@@ -32,10 +142,22 @@ class CommandContext:
     metadata: CommandMetadata
     mcp_servers: List[str] = field(default_factory=list)
     agents: List[str] = field(default_factory=list)
+    agent_instances: Dict[str, Any] = field(default_factory=dict)
+    agent_outputs: Dict[str, Any] = field(default_factory=dict)
     start_time: datetime = field(default_factory=datetime.now)
     results: Dict[str, Any] = field(default_factory=dict)
     errors: List[str] = field(default_factory=list)
     session_id: str = ""
+    behavior_mode: str = BehavioralMode.NORMAL.value
+    consensus_summary: Optional[Dict[str, Any]] = None
+    artifact_records: List[Dict[str, Any]] = field(default_factory=list)
+    think_level: int = 2
+    loop_enabled: bool = False
+    loop_iterations: Optional[int] = None
+    loop_min_improvement: Optional[float] = None
+    consensus_forced: bool = False
+    delegated_agents: List[str] = field(default_factory=list)
+    delegation_strategy: Optional[str] = None
 
 
 @dataclass
@@ -50,6 +172,9 @@ class CommandResult:
     agents_used: List[str] = field(default_factory=list)
     executed_operations: List[str] = field(default_factory=list)
     applied_changes: List[str] = field(default_factory=list)
+    artifacts: List[str] = field(default_factory=list)
+    consensus: Optional[Dict[str, Any]] = None
+    behavior_mode: str = BehavioralMode.NORMAL.value
     status: str = 'plan-only'
 
 
@@ -77,14 +202,27 @@ class CommandExecutor:
         self.parser = parser
         self.execution_history: List[CommandResult] = []
         self.active_mcp_servers: Dict[str, Any] = {}
-        self.agent_loader = None  # Will be injected
         self.hooks: Dict[str, List[Callable]] = {
             'pre_execute': [],
             'post_execute': [],
             'on_error': []
         }
         self.repo_root = self._detect_repo_root()
+        base_path = self.repo_root or Path.cwd()
+        self.agent_loader: AgentLoader = AgentLoader()
+        self.extended_agent_loader: ExtendedAgentLoader = ExtendedAgentLoader()
+        self.behavior_manager = BehavioralModeManager()
+        self.artifact_manager = CommandArtifactManager(base_path / "SuperClaude" / "Generated")
+        self.consensus_facade = ModelRouterFacade()
         self.quality_scorer = QualityScorer()
+        self.delegate_category_map = {
+            'delegate_core': AgentCategory.CORE_DEVELOPMENT,
+            'delegate-debug': AgentCategory.QUALITY_SECURITY,
+            'delegate_refactor': AgentCategory.CORE_DEVELOPMENT,
+            'delegate-refactor': AgentCategory.CORE_DEVELOPMENT,
+            'delegate_search': AgentCategory.DEVELOPER_EXPERIENCE,
+            'delegate-search': AgentCategory.DEVELOPER_EXPERIENCE,
+        }
         try:
             self.monitor = get_monitor()
         except Exception as exc:
@@ -98,7 +236,7 @@ class CommandExecutor:
         Args:
             agent_loader: AgentLoader instance
         """
-        self.agent_loader = agent_loader
+        self.agent_loader = agent_loader or AgentLoader()
 
     async def execute(self, command_str: str) -> CommandResult:
         """
@@ -126,12 +264,23 @@ class CommandExecutor:
                     errors=[f"Command '{parsed.name}' not found"]
                 )
 
+            mode_state = self._prepare_mode(parsed)
+
             # Create execution context
             context = CommandContext(
                 command=parsed,
                 metadata=metadata,
-                session_id=self._generate_session_id()
+                session_id=self._generate_session_id(),
+                behavior_mode=mode_state['mode']
             )
+            context.results['mode'] = mode_state['context']
+            context.results['behavior_mode'] = mode_state['mode']
+            context.results.setdefault('executed_operations', [])
+            context.results.setdefault('applied_changes', [])
+            context.results.setdefault('artifacts', [])
+            context.results.setdefault('flags', sorted(context.command.flags.keys()))
+
+            self._apply_execution_flags(context)
 
             # Run pre-execution hooks
             await self._run_hooks('pre_execute', context)
@@ -146,6 +295,25 @@ class CommandExecutor:
 
             # Execute command logic
             output = await self._execute_command_logic(context)
+
+            loop_assessment: Optional[QualityAssessment] = None
+            if context.loop_enabled:
+                loop_result = self._maybe_run_quality_loop(context, output)
+                if loop_result:
+                    output = loop_result['output']
+                    loop_assessment = loop_result['assessment']
+
+            consensus_result = None
+            consensus_required = metadata.requires_evidence or context.consensus_forced
+            if consensus_required:
+                consensus_result = await self._ensure_consensus(
+                    context,
+                    output,
+                    enforce=consensus_required,
+                    think_level=context.think_level
+                )
+                if isinstance(output, dict):
+                    output['consensus'] = consensus_result
 
             test_results = None
             if self._should_run_tests(parsed):
@@ -177,7 +345,9 @@ class CommandExecutor:
             if repo_change_descriptions:
                 applied_changes.extend(repo_change_descriptions)
             if diff_stats:
-                applied_changes.extend(diff_stats)
+                context.results['diff_stats'] = diff_stats
+                if isinstance(output, dict):
+                    output['diff_stats'] = diff_stats
 
             if test_results:
                 executed_operations.append(self._summarize_test_results(test_results))
@@ -194,6 +364,23 @@ class CommandExecutor:
             if isinstance(output, dict):
                 output['executed_operations'] = executed_operations
                 output['applied_changes'] = applied_changes
+                if context.results.get('artifacts'):
+                    output['artifacts'] = context.results['artifacts']
+                output.setdefault('mode', context.behavior_mode)
+                if context.consensus_summary is not None:
+                    output.setdefault('consensus', context.consensus_summary)
+                if context.results.get('delegation'):
+                    output.setdefault('delegation', context.results['delegation'])
+                output.setdefault('think_level', context.think_level)
+                if context.loop_enabled:
+                    output.setdefault('loop', {
+                        'requested': True,
+                        'max_iterations': context.loop_iterations or self.quality_scorer.MAX_ITERATIONS,
+                        'iterations_executed': context.results.get('loop_iterations_executed', 0),
+                        'assessment': context.results.get('loop_assessment'),
+                    })
+                if context.results.get('routing_decision'):
+                    output.setdefault('routing_decision', context.results['routing_decision'])
 
                 existing_status = output.get('status')
                 if existing_status and existing_status not in {'executed', 'plan-only', 'failed'}:
@@ -234,7 +421,8 @@ class CommandExecutor:
                     context,
                     output,
                     changed_paths,
-                    derived_status
+                    derived_status,
+                    precomputed=loop_assessment
                 )
 
                 if quality_assessment:
@@ -247,6 +435,9 @@ class CommandExecutor:
                     context.results['quality_suggestions'] = suggestions
                     if isinstance(output, dict):
                         output['quality_suggestions'] = suggestions
+                        iteration_history = context.results.get('quality_iteration_history')
+                        if iteration_history:
+                            output['quality_iteration_history'] = iteration_history
 
                     if not quality_assessment.passed:
                         failure_msg = (
@@ -301,7 +492,8 @@ class CommandExecutor:
                 derived_status,
                 success_flag,
                 quality_assessment,
-                static_issues
+                static_issues,
+                context.consensus_summary
             )
 
             # Run post-execution hooks
@@ -321,6 +513,9 @@ class CommandExecutor:
                 agents_used=context.agents,
                 executed_operations=executed_operations,
                 applied_changes=applied_changes,
+                artifacts=context.results.get('artifacts', []),
+                consensus=context.consensus_summary,
+                behavior_mode=context.behavior_mode,
                 status=derived_status
             )
 
@@ -415,11 +610,9 @@ class CommandExecutor:
         Args:
             context: Command execution context
         """
-        if not self.agent_loader:
-            logger.warning("Agent loader not configured")
-            return
+        loader = self.agent_loader or AgentLoader()
 
-        required_personas = context.metadata.personas
+        required_personas = context.metadata.personas or []
 
         for persona in required_personas:
             try:
@@ -427,11 +620,45 @@ class CommandExecutor:
                 agent_name = self._map_persona_to_agent(persona)
                 if agent_name:
                     logger.info(f"Loading agent: {agent_name} for persona: {persona}")
-                    # TODO: Integrate with actual agent loading
-                    context.agents.append(agent_name)
+                    if agent_name in context.agent_instances:
+                        continue
+                    agent_instance = loader.load_agent(agent_name)
+                    if agent_instance:
+                        if agent_name not in context.agents:
+                            context.agents.append(agent_name)
+                        context.agent_instances[agent_name] = agent_instance
+                    else:
+                        warning = f"Agent loader returned None for {agent_name}"
+                        logger.warning(warning)
+                        context.errors.append(warning)
             except Exception as e:
                 logger.error(f"Failed to load agent for persona {persona}: {e}")
                 context.errors.append(f"Agent loading failed: {persona}")
+
+        if context.delegated_agents:
+            delegated = self._deduplicate(context.delegated_agents)
+            context.delegated_agents = delegated
+            context.results['delegated_agents'] = delegated
+            for agent_name in delegated:
+                if agent_name in context.agent_instances:
+                    if agent_name not in context.agents:
+                        context.agents.append(agent_name)
+                    continue
+                try:
+                    agent_instance = loader.load_agent(agent_name)
+                    if agent_instance:
+                        context.agent_instances[agent_name] = agent_instance
+                        if agent_name not in context.agents:
+                            context.agents.append(agent_name)
+                        logger.info(f"Auto-delegated agent loaded: {agent_name}")
+                    else:
+                        warning = f"Auto-delegation failed to load agent {agent_name}"
+                        logger.warning(warning)
+                        context.errors.append(warning)
+                except Exception as exc:
+                    message = f"Delegated agent load failed ({agent_name}): {exc}"
+                    logger.error(message)
+                    context.errors.append(message)
 
     def _map_persona_to_agent(self, persona: str) -> Optional[str]:
         """
@@ -482,25 +709,80 @@ class CommandExecutor:
             return await self._execute_git(context)
         elif command_name == 'workflow':
             return await self._execute_workflow(context)
+        elif command_name == 'business-panel':
+            return await self._execute_business_panel(context)
         else:
             # Generic execution for other commands
             return await self._execute_generic(context)
 
     async def _execute_implement(self, context: CommandContext) -> Dict[str, Any]:
         """Execute implementation command."""
-        return {
-            'status': 'implementation_started',
+        agent_result = self._run_agent_pipeline(context)
+
+        summary_lines = [
+            f"Implementation request for: {' '.join(context.command.arguments) or 'unspecified scope'}",
+            f"Mode: {context.behavior_mode}",
+            f"Agents engaged: {', '.join(context.agents) or 'none'}",
+        ]
+
+        if agent_result['notes']:
+            summary_lines.append("")
+            summary_lines.append("Agent insights:")
+            summary_lines.extend(f"- {note}" for note in agent_result['notes'])
+
+        if agent_result['operations']:
+            summary_lines.append("")
+            summary_lines.append("Planned or executed operations:")
+            summary_lines.extend(f"- {op}" for op in agent_result['operations'])
+
+        if agent_result['warnings']:
+            summary_lines.append("")
+            summary_lines.append("Warnings:")
+            summary_lines.extend(f"- {warn}" for warn in agent_result['warnings'])
+
+        summary = "\n".join(summary_lines).strip()
+        context.results['primary_summary'] = summary
+
+        metadata = {
+            'mode': context.behavior_mode,
+            'agents': context.agents,
+            'session_id': context.session_id,
+            'mcp_servers': context.mcp_servers,
+        }
+        artifact_path = self._record_artifact(
+            context,
+            context.command.name,
+            summary,
+            operations=agent_result['operations'],
+            metadata=metadata
+        )
+
+        status = 'executed' if artifact_path else 'implementation_started'
+
+        output = {
+            'status': status,
+            'summary': summary,
             'agents': context.agents,
             'mcp_servers': context.mcp_servers,
-            'parameters': context.command.parameters
+            'parameters': context.command.parameters,
+            'artifact': artifact_path,
+            'agent_notes': agent_result['notes'],
+            'agent_warnings': agent_result['warnings'],
+            'mode': context.behavior_mode,
         }
+
+        if artifact_path:
+            output['executed_operations'] = context.results.get('agent_operations', [])
+
+        return output
 
     async def _execute_analyze(self, context: CommandContext) -> Dict[str, Any]:
         """Execute analysis command."""
         return {
             'status': 'analysis_started',
             'scope': context.command.parameters.get('scope', 'project'),
-            'focus': context.command.parameters.get('focus', 'all')
+            'focus': context.command.parameters.get('focus', 'all'),
+            'mode': context.behavior_mode
         }
 
     async def _execute_test(self, context: CommandContext) -> Dict[str, Any]:
@@ -508,7 +790,8 @@ class CommandExecutor:
         return {
             'status': 'tests_started',
             'coverage': context.command.parameters.get('coverage', True),
-            'type': context.command.parameters.get('type', 'all')
+            'type': context.command.parameters.get('type', 'all'),
+            'mode': context.behavior_mode
         }
 
     async def _execute_build(self, context: CommandContext) -> Dict[str, Any]:
@@ -516,22 +799,128 @@ class CommandExecutor:
         return {
             'status': 'build_started',
             'optimize': context.command.parameters.get('optimize', False),
-            'target': context.command.parameters.get('target', 'production')
+            'target': context.command.parameters.get('target', 'production'),
+            'mode': context.behavior_mode
         }
 
     async def _execute_git(self, context: CommandContext) -> Dict[str, Any]:
         """Execute git command."""
         return {
             'status': 'git_operation_started',
-            'operation': context.command.arguments[0] if context.command.arguments else 'status'
+            'operation': context.command.arguments[0] if context.command.arguments else 'status',
+            'mode': context.behavior_mode
         }
 
     async def _execute_workflow(self, context: CommandContext) -> Dict[str, Any]:
         """Execute workflow command."""
         return {
             'status': 'workflow_generated',
-            'steps': self._generate_workflow_steps(context)
+            'steps': self._generate_workflow_steps(context),
+            'mode': context.behavior_mode
         }
+
+    async def _execute_business_panel(self, context: CommandContext) -> Dict[str, Any]:
+        """Execute the business panel orchestration command."""
+        agent_result = self._run_agent_pipeline(context)
+
+        panel_topic = ' '.join(context.command.arguments).strip() or "unspecified business scenario"
+        panel_mode = self._determine_business_panel_mode(context.command)
+        focus_domain = self._determine_business_panel_focus(context.command)
+        expert_ids = self._select_business_panel_experts(context.command, focus_domain)
+        phases = self._determine_business_panel_phases(panel_mode)
+        insights = self._generate_business_panel_insights(panel_topic, expert_ids, focus_domain)
+        recommendations = self._generate_business_panel_recommendations(panel_topic, insights, focus_domain)
+
+        panel_operations = [
+            f"panel_mode: {panel_mode}",
+            f"panel_focus: {focus_domain}",
+            "experts_engaged: " + ', '.join(BUSINESS_PANEL_EXPERTS[eid]['name'] for eid in expert_ids),
+            "panel_phases: " + ', '.join(phases)
+        ]
+
+        # Merge operations into execution evidence
+        context.results.setdefault('executed_operations', []).extend(panel_operations)
+        context.results['executed_operations'] = self._deduplicate(context.results['executed_operations'])
+
+        if agent_result['operations']:
+            context.results['executed_operations'].extend(
+                op for op in agent_result['operations'] if op not in context.results['executed_operations']
+            )
+            context.results['executed_operations'] = self._deduplicate(context.results['executed_operations'])
+
+        context.results.setdefault('panel', {}).update({
+            'topic': panel_topic,
+            'mode': panel_mode,
+            'focus': focus_domain,
+            'experts': expert_ids,
+            'phases': phases
+        })
+
+        summary_lines = [
+            f"Business panel analysis for: {panel_topic}",
+            f"Mode: {panel_mode} | Focus: {focus_domain}",
+            "",
+            "Experts engaged:"
+        ]
+        for expert_id in expert_ids:
+            expert = BUSINESS_PANEL_EXPERTS[expert_id]
+            summary_lines.append(f"- {expert['name']} — {expert['lens']}")
+
+        summary_lines.append("")
+        summary_lines.append("Key insights:")
+        for insight in insights[:5]:
+            summary_lines.append(f"- {insight['expert']}: {insight['headline']}")
+
+        summary = "\n".join(summary_lines).strip()
+
+        metadata = {
+            'topic': panel_topic,
+            'mode': panel_mode,
+            'focus': focus_domain,
+            'experts': [BUSINESS_PANEL_EXPERTS[eid]['name'] for eid in expert_ids],
+            'phases': phases
+        }
+        artifact_path = self._record_artifact(
+            context,
+            context.command.name,
+            summary,
+            operations=context.results['executed_operations'],
+            metadata=metadata
+        )
+
+        status = 'executed' if context.results['executed_operations'] else 'panel_initialized'
+
+        panel_payload = {
+            'topic': panel_topic,
+            'mode': panel_mode,
+            'focus': focus_domain,
+            'phases': phases,
+            'experts': [
+                {
+                    'id': expert_id,
+                    'name': BUSINESS_PANEL_EXPERTS[expert_id]['name'],
+                    'lens': BUSINESS_PANEL_EXPERTS[expert_id]['lens']
+                }
+                for expert_id in expert_ids
+            ]
+        }
+
+        output = {
+            'status': status,
+            'panel': panel_payload,
+            'insights': insights,
+            'recommendations': recommendations,
+            'agent_notes': agent_result['notes'],
+            'agent_warnings': agent_result['warnings'],
+            'mcp_servers': context.mcp_servers,
+            'artifact': artifact_path,
+            'mode': context.behavior_mode
+        }
+
+        if artifact_path:
+            output.setdefault('executed_operations', context.results['executed_operations'])
+
+        return output
 
     async def _execute_generic(self, context: CommandContext) -> Dict[str, Any]:
         """Execute generic command."""
@@ -539,7 +928,8 @@ class CommandExecutor:
             'status': 'executed',
             'command': context.command.name,
             'parameters': context.command.parameters,
-            'arguments': context.command.arguments
+            'arguments': context.command.arguments,
+            'mode': context.behavior_mode
         }
 
     def _generate_workflow_steps(self, context: CommandContext) -> List[Dict[str, Any]]:
@@ -572,6 +962,118 @@ class CommandExecutor:
             })
 
         return steps
+
+    def _determine_business_panel_mode(self, command: ParsedCommand) -> str:
+        """Select the panel interaction mode."""
+        requested_mode = command.parameters.get('mode')
+        if isinstance(requested_mode, str):
+            requested_mode = requested_mode.lower()
+        elif command.flags.get('mode'):
+            requested_mode = str(command.flags.get('mode')).lower()
+
+        valid_modes = {'discussion', 'debate', 'socratic', 'adaptive'}
+        if requested_mode in valid_modes:
+            return requested_mode
+
+        for flag_name in ('mode_discussion', 'mode_debate', 'mode_socratic', 'mode_adaptive'):
+            if command.flags.get(flag_name):
+                suffix = flag_name.split('_', 1)[1]
+                if suffix in valid_modes:
+                    return suffix
+
+        return 'discussion'
+
+    def _determine_business_panel_focus(self, command: ParsedCommand) -> str:
+        """Determine strategic focus for the panel."""
+        focus = command.parameters.get('focus')
+        if isinstance(focus, str) and focus:
+            return focus.lower()
+
+        return 'general'
+
+    def _select_business_panel_experts(self, command: ParsedCommand, focus: str) -> List[str]:
+        """Resolve which experts participate in the panel."""
+        if command.flags.get('all-experts') or command.flags.get('all_experts'):
+            return list(BUSINESS_PANEL_EXPERTS.keys())
+
+        explicit = command.parameters.get('experts')
+        if isinstance(explicit, str) and explicit.strip():
+            return self._normalize_expert_identifiers(explicit)
+
+        focus_candidates = BUSINESS_PANEL_FOCUS_MAP.get(focus)
+        if focus_candidates:
+            return focus_candidates
+
+        return DEFAULT_BUSINESS_PANEL_EXPERTS
+
+    def _normalize_expert_identifiers(self, raw_value: str) -> List[str]:
+        """Normalize a comma or space separated list of expert identifiers."""
+        tokens = [token.strip().lower() for token in raw_value.replace(';', ',').split(',') if token.strip()]
+        resolved: List[str] = []
+
+        alias_map: Dict[str, str] = {}
+        for expert_id, data in BUSINESS_PANEL_EXPERTS.items():
+            alias_map[expert_id] = expert_id
+            alias_map[data['name'].lower()] = expert_id
+            alias_map[data['name'].split()[0].lower()] = expert_id
+
+        for token in tokens:
+            key = alias_map.get(token)
+            if key and key not in resolved:
+                resolved.append(key)
+
+        return resolved if resolved else DEFAULT_BUSINESS_PANEL_EXPERTS
+
+    def _determine_business_panel_phases(self, mode: str) -> List[str]:
+        """Return the phases the panel will run based on mode."""
+        phase_map = {
+            'discussion': ['discussion'],
+            'debate': ['discussion', 'debate'],
+            'socratic': ['socratic'],
+            'adaptive': ['discussion', 'debate', 'socratic']
+        }
+        return phase_map.get(mode, ['discussion'])
+
+    def _generate_business_panel_insights(
+        self,
+        topic: str,
+        expert_ids: List[str],
+        focus: str
+    ) -> List[Dict[str, Any]]:
+        """Generate synthesized insights for each expert."""
+        insights: List[Dict[str, Any]] = []
+        for expert_id in expert_ids:
+            expert = BUSINESS_PANEL_EXPERTS[expert_id]
+            headline = f"{expert['name']} signals {expert['focus'][0] if expert['focus'] else 'strategic'} priority for {topic}"
+            insights.append({
+                'expert': expert['name'],
+                'headline': headline,
+                'lens': expert['lens'],
+                'questions': expert['questions'],
+                'focus_points': expert['focus'],
+                'focus_alignment': focus
+            })
+        return insights
+
+    def _generate_business_panel_recommendations(
+        self,
+        topic: str,
+        insights: List[Dict[str, Any]],
+        focus: str
+    ) -> List[str]:
+        """Create actionable recommendations from the panel insights."""
+        recommendations: List[str] = []
+        if focus != 'general':
+            recommendations.append(f"Establish success metrics for {focus} around '{topic}'.")
+
+        if insights:
+            lead = insights[0]
+            recommendations.append(
+                f"Activate a focused workstream led by {lead['expert']} to pressure-test {topic} against the primary lens: {lead['lens']}."
+            )
+
+        recommendations.append("Capture debate outcomes and assign owners for the top three decision points.")
+        return recommendations
 
     def _detect_repo_root(self) -> Optional[Path]:
         """Locate the git repository root, if available."""
@@ -773,6 +1275,20 @@ class CommandExecutor:
                     issues.append(f"{rel_path}: python syntax error — {message}")
                 except Exception as exc:
                     issues.append(f"{rel_path}: python validation failed — {exc}")
+            elif path.suffix == '.json':
+                try:
+                    json.loads(path.read_text(encoding='utf-8'))
+                except json.JSONDecodeError as exc:
+                    issues.append(f"{rel_path}: invalid JSON — {exc}")
+                except Exception as exc:
+                    issues.append(f"{rel_path}: json validation failed — {exc}")
+            elif path.suffix in {'.yaml', '.yml'}:
+                try:
+                    yaml.safe_load(path.read_text(encoding='utf-8'))
+                except yaml.YAMLError as exc:
+                    issues.append(f"{rel_path}: invalid YAML — {exc}")
+                except Exception as exc:
+                    issues.append(f"{rel_path}: yaml validation failed — {exc}")
 
         return issues
 
@@ -798,12 +1314,58 @@ class CommandExecutor:
 
         return data
 
+    def _maybe_run_quality_loop(
+        self,
+        context: CommandContext,
+        output: Any
+    ) -> Optional[Dict[str, Any]]:
+        """Execute the quality scorer's agentic loop when requested."""
+        if context.results.get('loop_assessment'):
+            return None
+
+        max_iterations = context.loop_iterations or self.quality_scorer.MAX_ITERATIONS
+        min_improvement = context.loop_min_improvement
+
+        def _identity_improver(current_output: Any, loop_context: Dict[str, Any]) -> Any:
+            loop_context.setdefault('notes', []).append(
+                'No automated remediation implemented; returning original output.'
+            )
+            return current_output
+
+        try:
+            improved_output, final_assessment, iteration_history = self.quality_scorer.agentic_loop(
+                output,
+                dict(context.results),
+                improver_func=_identity_improver,
+                max_iterations=max_iterations,
+                min_improvement=min_improvement
+            )
+        except Exception as exc:
+            logger.warning(f"Agentic loop execution failed: {exc}")
+            context.results['loop_error'] = str(exc)
+            return None
+
+        context.results['loop_iterations_executed'] = len(iteration_history)
+        context.results['loop_assessment'] = self._serialize_assessment(final_assessment)
+        context.results['quality_iteration_history'] = [
+            asdict(item) for item in iteration_history
+        ]
+        context.results.setdefault('loop_notes', []).append(
+            'Quality loop executed with identity improver (placeholder).'
+        )
+
+        return {
+            'output': improved_output,
+            'assessment': final_assessment
+        }
+
     def _evaluate_quality_gate(
         self,
         context: CommandContext,
         output: Any,
         changed_paths: List[Path],
-        status: str
+        status: str,
+        precomputed: Optional[QualityAssessment] = None
     ) -> Optional[QualityAssessment]:
         """Run quality scoring against the command result."""
         evaluation_context = dict(context.results)
@@ -813,10 +1375,36 @@ class CommandExecutor:
         ]
 
         try:
-            return self.quality_scorer.evaluate(
+            assessment = precomputed or self.quality_scorer.evaluate(
                 output,
                 evaluation_context
             )
+            if assessment and not assessment.passed:
+                if precomputed:
+                    return assessment
+
+                def _noop_improver(current_output, loop_context):
+                    loop_context.setdefault('notes', []).append('No automated remediation available.')
+                    return current_output
+
+                (
+                    _,
+                    loop_assessment,
+                    iteration_history
+                ) = self.quality_scorer.agentic_loop(
+                    output,
+                    evaluation_context,
+                    improver_func=_noop_improver
+                )
+
+                if iteration_history:
+                    context.results['quality_iteration_history'] = [
+                        asdict(item) for item in iteration_history
+                    ]
+
+                return loop_assessment
+
+            return assessment
         except Exception as exc:
             logger.warning(f"Quality scoring failed: {exc}")
             context.results['quality_assessment_error'] = str(exc)
@@ -829,7 +1417,8 @@ class CommandExecutor:
         derived_status: str,
         success: bool,
         assessment: Optional[QualityAssessment],
-        static_issues: List[str]
+        static_issues: List[str],
+        consensus: Optional[Dict[str, Any]]
     ) -> None:
         """Send telemetry for requires-evidence command outcomes."""
         if not requires_evidence or not self.monitor:
@@ -877,6 +1466,21 @@ class CommandExecutor:
             self.monitor.record_metric(metric_name, 1, MetricType.COUNTER, score_tags)
         else:
             self.monitor.record_metric(f"{base}.quality_missing", 1, MetricType.COUNTER, tags)
+
+        if consensus:
+            consensus_tags = dict(tags)
+            consensus_tags['consensus'] = str(consensus.get('consensus_reached', False))
+            decision = consensus.get('final_decision')
+            if decision is not None:
+                consensus_tags['decision'] = str(decision)
+            self.monitor.record_metric(f"{base}.consensus", 1, MetricType.COUNTER, consensus_tags)
+            if not consensus.get('consensus_reached', False):
+                self.monitor.record_metric(
+                    f"{base}.consensus_failed",
+                    1,
+                    MetricType.COUNTER,
+                    consensus_tags
+                )
 
         outcome_metric = f"{base}.success" if success else f"{base}.failure"
         self.monitor.record_metric(outcome_metric, 1, MetricType.COUNTER, tags)
@@ -1049,6 +1653,514 @@ class CommandExecutor:
                     await hook(context)
                 except Exception as e:
                     logger.error(f"Hook execution failed: {e}")
+
+    def _prepare_mode(self, parsed: ParsedCommand) -> Dict[str, Any]:
+        """Determine and apply the behavioral mode for a command."""
+        detection_context = {
+            'command': parsed.name,
+            'flags': ' '.join(sorted(parsed.flags.keys())),
+            'task': ' '.join(parsed.arguments),
+            'parameters': json.dumps(parsed.parameters, sort_keys=True, default=str)
+            if parsed.parameters else ''
+        }
+
+        # Always reset to normal before detection to avoid state bleed.
+        self.behavior_manager.switch_mode(
+            BehavioralMode.NORMAL,
+            detection_context,
+            trigger="reset"
+        )
+
+        detected_mode = self.behavior_manager.detect_mode_from_context(detection_context)
+        if detected_mode:
+            self.behavior_manager.switch_mode(detected_mode, detection_context, trigger="auto")
+
+        applied = self.behavior_manager.apply_mode_behaviors(detection_context)
+        return {
+            'mode': self.behavior_manager.get_current_mode().value,
+            'context': applied
+        }
+
+    def _apply_execution_flags(self, context: CommandContext) -> None:
+        """Apply execution flags such as think depth, loops, consensus, and delegation."""
+        parsed = context.command
+
+        think_info = self._resolve_think_level(parsed)
+        context.think_level = think_info['level']
+        context.results['think_level'] = think_info['level']
+        context.results['think_requested'] = think_info['requested']
+
+        loop_info = self._resolve_loop_request(parsed)
+        context.loop_enabled = loop_info['enabled']
+        context.loop_iterations = loop_info['iterations']
+        context.loop_min_improvement = loop_info['min_improvement']
+        if loop_info['enabled']:
+            context.results['loop_requested'] = True
+            if loop_info['iterations'] is not None:
+                context.results['loop_iterations_requested'] = loop_info['iterations']
+            if loop_info['min_improvement'] is not None:
+                context.results['loop_min_improvement_requested'] = loop_info['min_improvement']
+
+        context.consensus_forced = self._flag_present(parsed, 'consensus')
+        context.results['consensus_forced'] = context.consensus_forced
+
+        self._apply_auto_delegation(context)
+
+    def _resolve_think_level(self, parsed: ParsedCommand) -> Dict[str, Any]:
+        """Resolve requested think level (1-3) from command flags/parameters."""
+        default_level = 2
+        requested = self._flag_present(parsed, 'think')
+
+        candidate_keys = ['think', 'think_level', 'think-depth', 'think_depth', 'depth']
+        value = None
+        for key in candidate_keys:
+            if key in parsed.parameters:
+                value = parsed.parameters[key]
+                break
+
+        if value is None and requested:
+            value = 3
+
+        if value is None:
+            level = default_level
+        else:
+            level = self._clamp_int(value, 1, 3, default_level)
+
+        return {
+            'level': level,
+            'requested': requested or value is not None
+        }
+
+    def _resolve_loop_request(self, parsed: ParsedCommand) -> Dict[str, Any]:
+        """Determine whether agentic loop is requested and capture limits."""
+        enabled = self._flag_present(parsed, 'loop')
+        iterations = None
+        min_improvement = None
+
+        iteration_keys = ['loop', 'loop_iterations', 'loop-count', 'loop_count']
+        for key in iteration_keys:
+            if key in parsed.parameters:
+                iterations = self._clamp_int(
+                    parsed.parameters[key],
+                    1,
+                    self.quality_scorer.MAX_ITERATIONS,
+                    self.quality_scorer.MAX_ITERATIONS
+                )
+                enabled = True
+                break
+
+        min_keys = ['loop-min', 'loop_min', 'loop-improvement', 'loop_improvement']
+        for key in min_keys:
+            if key in parsed.parameters:
+                min_improvement = self._coerce_float(parsed.parameters[key], None)
+                enabled = True
+                break
+
+        return {
+            'enabled': enabled,
+            'iterations': iterations,
+            'min_improvement': min_improvement
+        }
+
+    def _apply_auto_delegation(self, context: CommandContext) -> None:
+        """Handle --delegate and related auto-delegation flags."""
+        parsed = context.command
+
+        explicit_targets = self._extract_delegate_targets(parsed)
+        if explicit_targets:
+            selected = self._deduplicate(explicit_targets)
+            context.delegated_agents.extend(selected)
+            context.delegated_agents = self._deduplicate(context.delegated_agents)
+            context.delegation_strategy = 'explicit'
+            context.results['delegation'] = {
+                'requested': True,
+                'strategy': 'explicit',
+                'selected_agent': selected[0] if selected else None,
+                'selected_agents': selected
+            }
+            context.results['delegated_agents'] = context.delegated_agents
+            return
+
+        delegate_flags = [
+            'delegate',
+            'delegate_core',
+            'delegate-core',
+            'delegate_extended',
+            'delegate-extended',
+            'delegate_debug',
+            'delegate-debug',
+            'delegate_refactor',
+            'delegate-refactor',
+            'delegate_search',
+            'delegate-search'
+        ]
+        if not any(self._flag_present(parsed, flag) for flag in delegate_flags):
+            return
+
+        strategy = 'auto'
+        if self._flag_present(parsed, 'delegate_extended') or self._flag_present(parsed, 'delegate-extended'):
+            strategy = 'extended'
+        elif self._flag_present(parsed, 'delegate_core') or self._flag_present(parsed, 'delegate-core'):
+            strategy = 'core'
+        elif self._flag_present(parsed, 'delegate_debug') or self._flag_present(parsed, 'delegate-debug'):
+            strategy = 'debug'
+        elif self._flag_present(parsed, 'delegate_refactor') or self._flag_present(parsed, 'delegate-refactor'):
+            strategy = 'refactor'
+        elif self._flag_present(parsed, 'delegate_search') or self._flag_present(parsed, 'delegate-search'):
+            strategy = 'search'
+
+        category_hint = None
+        for key, category in self.delegate_category_map.items():
+            if self._flag_present(parsed, key):
+                category_hint = category
+                break
+
+        selection_context = self._build_delegation_context(context)
+
+        try:
+            matches = self.extended_agent_loader.select_agent(
+                selection_context,
+                category_hint=category_hint,
+                top_n=5
+            )
+        except Exception as exc:
+            logger.warning(f"Delegation selection failed: {exc}")
+            context.results['delegation'] = {
+                'requested': True,
+                'strategy': strategy,
+                'error': str(exc)
+            }
+            return
+
+        if strategy == 'extended':
+            matches = [
+                match for match in matches
+                if self._is_extended_agent(match.agent_id)
+            ] or matches
+
+        if not matches:
+            context.results['delegation'] = {
+                'requested': True,
+                'strategy': strategy,
+                'error': 'No matching agents found'
+            }
+            return
+
+        primary = matches[0]
+        context.delegated_agents.append(primary.agent_id)
+        context.delegated_agents = self._deduplicate(context.delegated_agents)
+        context.delegation_strategy = strategy
+
+        context.results['delegation'] = {
+            'requested': True,
+            'strategy': strategy,
+            'selected_agent': primary.agent_id,
+            'confidence': primary.confidence,
+            'score': round(primary.total_score, 3),
+            'matched_criteria': primary.matched_criteria,
+            'candidates': [
+                {
+                    'agent': match.agent_id,
+                    'score': round(match.total_score, 3),
+                    'confidence': match.confidence
+                }
+                for match in matches[:3]
+            ],
+            'selection_context': {
+                'task': selection_context.get('task', '')[:120],
+                'keywords': selection_context.get('keywords', [])[:5],
+                'domains': selection_context.get('domains', [])[:5],
+                'languages': selection_context.get('languages', [])[:5],
+            }
+        }
+        context.results['delegated_agents'] = context.delegated_agents
+
+    def _build_delegation_context(self, context: CommandContext) -> Dict[str, Any]:
+        """Construct context payload for delegate selection."""
+        parsed = context.command
+        task_text = ' '.join(parsed.arguments).strip() or parsed.raw_string
+        parameters = parsed.parameters
+
+        languages = self._to_list(
+            parameters.get('language') or parameters.get('languages') or parameters.get('lang')
+        )
+        domains = self._to_list(parameters.get('domain') or parameters.get('domains'))
+        if context.metadata.category and context.metadata.category not in domains:
+            domains.append(context.metadata.category)
+
+        keywords = self._to_list(parameters.get('keywords') or parameters.get('tags'))
+        if task_text:
+            keywords.extend([
+                word.strip(',.').lower()
+                for word in task_text.split()
+                if len(word) > 3
+            ])
+
+        files = self._extract_files_from_parameters(parameters)
+
+        return {
+            'task': task_text,
+            'languages': languages,
+            'domains': domains,
+            'keywords': self._deduplicate(keywords),
+            'files': files,
+            'mode': context.behavior_mode,
+        }
+
+    def _extract_files_from_parameters(self, parameters: Dict[str, Any]) -> List[str]:
+        """Extract file or path hints from command parameters."""
+        files: List[str] = []
+        keys = ['file', 'files', 'path', 'paths', 'target', 'targets', 'module', 'modules']
+        for key in keys:
+            if key in parameters:
+                files.extend(self._to_list(parameters[key]))
+        return self._deduplicate([f for f in files if f])
+
+    def _extract_delegate_targets(self, parsed: ParsedCommand) -> List[str]:
+        """Extract explicit delegate targets provided by the user."""
+        values: List[str] = []
+        keys = [
+            'delegate',
+            'delegate_to',
+            'delegate-to',
+            'delegate_agent',
+            'delegate-agent',
+            'agents',
+        ]
+        for key in keys:
+            if key in parsed.parameters:
+                raw = parsed.parameters[key]
+                if isinstance(raw, list):
+                    values.extend(str(item) for item in raw)
+                elif raw is not None:
+                    values.extend(str(part).strip() for part in str(raw).split(','))
+        return [value for value in (v.strip() for v in values) if value]
+
+    def _flag_present(self, parsed: ParsedCommand, name: str) -> bool:
+        """Check whether a flag or parameter is present and truthy."""
+        if name in parsed.flags:
+            return bool(parsed.flags[name])
+        alias = name.replace('-', '_')
+        if alias in parsed.flags:
+            return bool(parsed.flags[alias])
+
+        for lookup in (name, alias):
+            if lookup in parsed.parameters:
+                value = parsed.parameters[lookup]
+                if isinstance(value, bool):
+                    return value
+                if isinstance(value, (int, float)):
+                    return bool(value)
+                if isinstance(value, str) and value.lower() in {'true', 'yes', '1', 'force', 'auto'}:
+                    return True
+        return False
+
+    def _coerce_float(self, value: Any, default: Optional[float]) -> Optional[float]:
+        """Best-effort float coercion."""
+        try:
+            if isinstance(value, bool):
+                return 1.0 if value else 0.0
+            return float(value)
+        except (TypeError, ValueError):
+            return default
+
+    def _clamp_int(self, value: Any, minimum: int, maximum: int, default: int) -> int:
+        """Coerce to int and clamp within bounds."""
+        try:
+            if isinstance(value, bool):
+                intval = 1 if value else 0
+            else:
+                intval = int(value)
+        except (TypeError, ValueError):
+            return default
+        return max(minimum, min(maximum, intval))
+
+    def _to_list(self, value: Any) -> List[str]:
+        """Normalize value into a list of strings."""
+        if value is None:
+            return []
+        if isinstance(value, list):
+            return [str(item).strip() for item in value if str(item).strip()]
+        if isinstance(value, (set, tuple)):
+            return [str(item).strip() for item in value if str(item).strip()]
+        text = str(value).strip()
+        if not text:
+            return []
+        if ',' in text:
+            return [part.strip() for part in text.split(',') if part.strip()]
+        return [text]
+
+    def _is_extended_agent(self, agent_id: str) -> bool:
+        """Determine if an agent belongs to the extended catalogue."""
+        metadata = getattr(self.extended_agent_loader, "_agent_metadata", {}).get(agent_id)
+        if not metadata:
+            return False
+        return metadata.category != AgentCategory.CORE_DEVELOPMENT
+
+    def _run_agent_pipeline(self, context: CommandContext) -> Dict[str, List[str]]:
+        """Execute loaded agents and aggregate their outputs."""
+        if not context.agent_instances:
+            return {'operations': [], 'notes': [], 'warnings': []}
+
+        task_description = ' '.join(context.command.arguments).strip()
+        if not task_description:
+            task_description = context.command.raw_string
+
+        aggregated_operations: List[str] = []
+        aggregated_notes: List[str] = []
+        aggregated_warnings: List[str] = []
+
+        agent_payload = {
+            'task': task_description,
+            'command': context.command.name,
+            'flags': sorted(context.command.flags.keys()),
+            'parameters': context.command.parameters,
+            'mode': context.behavior_mode,
+            'mode_context': context.results.get('mode', {}),
+        }
+
+        for agent_name, agent in context.agent_instances.items():
+            try:
+                result = agent.execute(agent_payload)
+            except Exception as exc:
+                warning = f"{agent_name}: execution error — {exc}"
+                logger.error(warning)
+                context.errors.append(warning)
+                aggregated_warnings.append(warning)
+                continue
+
+            context.agent_outputs[agent_name] = result
+            actions = self._normalize_evidence_value(result.get('actions_taken'))
+            plans = self._normalize_evidence_value(result.get('planned_actions'))
+            warnings = self._normalize_evidence_value(result.get('warnings'))
+            output_text = str(result.get('output') or '').strip()
+
+            aggregated_operations.extend(actions)
+            aggregated_operations.extend(plans)
+            aggregated_warnings.extend(warnings)
+            note = output_text or "; ".join(plans) or "Provided guidance only."
+            aggregated_notes.append(f"{agent_name}: {note}")
+
+        dedup_ops = self._deduplicate(aggregated_operations)
+        dedup_notes = self._deduplicate(aggregated_notes)
+        dedup_warnings = self._deduplicate(aggregated_warnings)
+
+        context.results.setdefault('agent_operations', []).extend(dedup_ops)
+        context.results.setdefault('agent_notes', []).extend(dedup_notes)
+        if dedup_warnings:
+            context.results.setdefault('agent_warnings', []).extend(dedup_warnings)
+
+        return {
+            'operations': dedup_ops,
+            'notes': dedup_notes,
+            'warnings': dedup_warnings,
+        }
+
+    def _record_artifact(
+        self,
+        context: CommandContext,
+        command_name: str,
+        summary: str,
+        operations: Iterable[str],
+        metadata: Optional[Dict[str, Any]] = None,
+    ) -> Optional[str]:
+        """Persist an artifact and register it with the context."""
+        record = self.artifact_manager.record_summary(
+            command_name,
+            summary,
+            operations=operations,
+            metadata=metadata or {}
+        )
+
+        if not record:
+            return None
+
+        rel_path = self._relative_to_repo_path(record.path)
+        context.results.setdefault('artifacts', []).append(rel_path)
+        context.results.setdefault('executed_operations', []).append(
+            f"artifact created: {rel_path}"
+        )
+        context.artifact_records.append({
+            'path': rel_path,
+            'metadata': record.metadata,
+        })
+        return rel_path
+
+    def _build_consensus_prompt(self, context: CommandContext, output: Any) -> str:
+        """Construct a deterministic prompt for consensus evaluation."""
+        lines = [
+            f"Command: /sc:{context.command.name}",
+            f"Mode: {context.behavior_mode}",
+            f"Flags: {' '.join(sorted(context.command.flags.keys())) or 'none'}",
+            f"Arguments: {' '.join(context.command.arguments) or 'none'}",
+        ]
+
+        summary = ""
+        if isinstance(output, dict):
+            summary = str(output.get('summary') or output.get('output') or '')
+        if not summary:
+            summary = str(context.results.get('primary_summary') or '')
+        if not summary:
+            summary = context.command.raw_string
+        lines.append("Summary:")
+        lines.append(summary.strip())
+
+        agent_notes = context.results.get('agent_notes') or []
+        if agent_notes:
+            lines.append("Agent Findings:")
+            lines.extend(f"- {note}" for note in agent_notes)
+
+        operations = context.results.get('agent_operations') or []
+        if operations:
+            lines.append("Operations:")
+            lines.extend(f"- {op}" for op in operations)
+
+        return "\n".join(lines)
+
+    async def _ensure_consensus(
+        self,
+        context: CommandContext,
+        output: Any,
+        *,
+        enforce: bool = False,
+        think_level: Optional[int] = None,
+        task_type: str = "consensus"
+    ) -> Dict[str, Any]:
+        """Run consensus builder and attach the result to the context."""
+        prompt = self._build_consensus_prompt(context, output)
+        try:
+            result = await self.consensus_facade.run_consensus(
+                prompt,
+                context=context.results,
+                think_level=think_level,
+                task_type=task_type
+            )
+        except Exception as exc:
+            message = f"Consensus evaluation failed: {exc}"
+            logger.error(message)
+            context.errors.append(message)
+            result = {'consensus_reached': False, 'error': str(exc)}
+
+        context.consensus_summary = result
+        context.results['consensus'] = result
+        if result.get('routing_decision'):
+            context.results['routing_decision'] = result['routing_decision']
+        if result.get('models'):
+            context.results['consensus_models'] = result['models']
+        if result.get('think_level') is not None:
+            context.results['consensus_think_level'] = result['think_level']
+
+        if enforce and not result.get('consensus_reached', False):
+            message = "Consensus not reached; additional review required."
+            if result.get('error'):
+                message = f"Consensus failed: {result['error']}"
+            context.errors.append(message)
+            if isinstance(output, dict):
+                warnings_list = self._ensure_list(output, 'warnings')
+                if message not in warnings_list:
+                    warnings_list.append(message)
+
+        return result
 
     def register_hook(self, hook_type: str, hook_func: Callable) -> None:
         """

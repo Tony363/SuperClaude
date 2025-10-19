@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- MorphLLM MCP stub with packaged catalog and activation smoke tests covering every registered server.
+- Continuous integration workflow executing guardrail pytest suites and the benchmark smoke harness.
+
+### Changed
+- README flag examples now document runtime requirements for `--think`, `--loop`, `--consensus`, `--delegate`, and include MorphLLM as the seventh MCP integration.
+- Recorded architectural decision for offline MorphLLM support and CI guardrails in `.codex-os/product/decisions.md`.
+
+### Fixed
+- CLI flag wiring for `--think`, `--loop`, `--consensus`, and `--delegate` now routes through the model router, quality loop, and consensus builder with regression coverage.
+
+## [6.0.0-alpha] - 2025-10-07
+
+### Added
+- Promoted framework capabilities to the planned v6 orchestration feature set (131 agents, 22 commands, 8 AI models, 6 MCP integrations).
+- Updated installer component manifests so every distributable advertises the v6.0.0-alpha release.
+
+### Changed
+- Synchronized version identifiers across Python package metadata, npm package manifest, VERSION file, and documentation.
+- Refreshed README badges and messaging to reflect the v6.0.0-alpha alpha status.
+
+### Fixed
+- Added automated regression coverage to fail when version strings fall out of sync between release artifacts.
+
 ## [5.0.0-alpha] - 2025-10-06
 
 ### Added

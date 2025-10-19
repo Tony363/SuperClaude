@@ -2,9 +2,12 @@
 Test version handling and consistency across the framework.
 """
 
-import pytest
-from pathlib import Path
+import json
+import re
 import sys
+from pathlib import Path
+
+import pytest
 
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -13,50 +16,83 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 def test_version_import():
     """Test that version can be imported from the package."""
     from SuperClaude import __version__
+
     assert __version__ is not None
     assert isinstance(__version__, str)
     assert len(__version__) > 0
 
 
 def test_version_format():
-    """Test that version follows semantic versioning format."""
+    """Test that version follows semantic versioning format (with optional pre-release tag)."""
     from SuperClaude import __version__
-    parts = __version__.split('.')
-    assert len(parts) >= 2  # At least major.minor
 
-    # Check that each part is numeric
-    for part in parts[:3]:  # Check major, minor, patch if present
-        assert part.isdigit(), f"Version part '{part}' is not numeric"
+    semver_pattern = re.compile(r"^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$")
+    assert semver_pattern.match(__version__), (
+        f"Version '{__version__}' does not follow semantic versioning with optional pre-release"
+    )
 
 
 def test_version_consistency():
     """Test that version is consistent across different sources."""
     from SuperClaude import __version__ as package_version
 
-    # Check VERSION file
-    version_file = Path(__file__).parent.parent / "VERSION"
+    project_root = Path(__file__).parent.parent
+    failures = []
+
+    version_file = project_root / "VERSION"
     if version_file.exists():
         file_version = version_file.read_text().strip()
-        assert package_version == file_version, \
-            f"Package version {package_version} doesn't match VERSION file {file_version}"
+        if package_version != file_version:
+            failures.append(
+                f"VERSION file mismatch: expected {package_version}, found {file_version}"
+            )
 
-    # Check pyproject.toml
-    pyproject = Path(__file__).parent.parent / "pyproject.toml"
+    pyproject = project_root / "pyproject.toml"
     if pyproject.exists():
         content = pyproject.read_text()
-        # Simple regex to find version in pyproject.toml
-        import re
         match = re.search(r'version\s*=\s*"([^"]+)"', content)
-        if match:
-            pyproject_version = match.group(1)
-            assert package_version == pyproject_version, \
-                f"Package version {package_version} doesn't match pyproject.toml {pyproject_version}"
+        if match and package_version != match.group(1):
+            failures.append(
+                f"pyproject.toml mismatch: expected {package_version}, found {match.group(1)}"
+            )
+
+    package_json = project_root / "package.json"
+    if package_json.exists():
+        pkg_version = json.loads(package_json.read_text()).get("version")
+        if pkg_version and package_version != pkg_version:
+            failures.append(
+                f"package.json mismatch: expected {package_version}, found {pkg_version}"
+            )
+
+    readme = project_root / "README.md"
+    if readme.exists():
+        readme_content = readme.read_text()
+        expected_readme_header = f"SuperClaude Framework v{package_version}"
+        if expected_readme_header not in readme_content:
+            failures.append(
+                f"README mismatch: '{expected_readme_header}' not found in README.md"
+            )
+
+    changelog = project_root / "CHANGELOG.md"
+    if changelog.exists():
+        changelog_content = changelog.read_text()
+        pattern = rf"^## \[{re.escape(package_version)}\]"
+        if not re.search(pattern, changelog_content, re.MULTILINE):
+            failures.append(
+                f"CHANGELOG mismatch: heading '## [{package_version}]' not found"
+            )
+
+    assert not failures, "Version mismatches detected:\n" + "\n".join(failures)
 
 
 def test_version_current():
     """Test that version is the expected current version."""
     from SuperClaude import __version__
-    assert __version__ == "4.1.0", f"Expected version 4.1.0, got {__version__}"
+
+    expected_version = "6.0.0-alpha"
+    assert __version__ == expected_version, (
+        f"Expected version {expected_version}, got {__version__}"
+    )
 
 
 if __name__ == "__main__":

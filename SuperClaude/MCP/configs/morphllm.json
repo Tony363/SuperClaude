@@ -1,0 +1,26 @@
+{
+  "safe-refactor": {
+    "name": "Safe Refactor Skeleton",
+    "summary": "Plan conservative refactors with checkpoints and validation.",
+    "operations": [
+      "Enumerate impacted modules and existing contracts.",
+      "Stage refactor into bite-sized steps with rollback notes.",
+      "Highlight validation strategy (tests, linters, checks).",
+      "List post-refactor verification tasks."
+    ],
+    "confidence": 0.82,
+    "estimated_tokens": 900
+  },
+  "feature-hardening": {
+    "name": "Feature Hardening Audit",
+    "summary": "Strengthen an existing feature with guardrails and testing.",
+    "operations": [
+      "Capture current feature scope and known regressions.",
+      "Outline guardrails: validation, logging, feature flags.",
+      "Add test matrix covering positive, negative, and edge cases.",
+      "Document follow-up tickets for risky gaps."
+    ],
+    "confidence": 0.76,
+    "estimated_tokens": 780
+  }
+}
