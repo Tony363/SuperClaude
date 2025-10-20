@@ -22,6 +22,7 @@ from SuperClaude.Commands import (
 )
 from SuperClaude.Commands import executor as executor_module
 from SuperClaude.Quality.quality_scorer import QualityAssessment, IterationResult, QualityScorer
+from SuperClaude.Modes.behavioral_manager import BehavioralMode
 
 
 class TestCommandRegistry:
@@ -283,6 +284,407 @@ class TestCommandExecutor:
                 impl_dir.rmdir()
             except OSError:
                 pass
+
+    def test_run_requested_tests_translates_flags(self, monkeypatch):
+        """_run_requested_tests should honor coverage, markers, and targets."""
+        registry = CommandRegistry()
+        parser = CommandParser()
+        executor = CommandExecutor(registry, parser)
+
+        parsed = parser.parse('/sc:test tests/unit --coverage --type unit --markers smoke,integration')
+
+        captured = {}
+
+        stdout = (
+            "collected 3 items\n\n"
+            "tests/unit/test_example.py::test_alpha PASSED\n"
+            "tests/unit/test_example.py::test_beta PASSED\n"
+            "tests/unit/test_example.py::test_gamma PASSED\n\n"
+            "============================== 3 passed in 0.42s ==============================\n"
+            "---------- coverage: platform linux, python 3.11.8-final-0 -----------\n"
+            "Name                       Stmts   Miss  Cover\n"
+            "----------------------------------------------\n"
+            "SuperClaude/example.py        30      0   100%\n"
+            "TOTAL                         30      0      0      100%\n"
+        )
+
+        def fake_run(cmd, **kwargs):
+            captured['cmd'] = cmd
+            return SimpleNamespace(returncode=0, stdout=stdout, stderr='')
+
+        monkeypatch.setattr(executor_module.subprocess, 'run', fake_run, raising=False)
+
+        result = executor._run_requested_tests(parsed)
+
+        assert captured['cmd'][0] == 'pytest'
+        assert '--cov=SuperClaude' in captured['cmd']
+        assert '--cov-report=term-missing' in captured['cmd']
+        assert '--cov-report=html' in captured['cmd']
+        assert 'tests/unit' in captured['cmd']
+        assert '-m' in captured['cmd']
+        marker_expression = captured['cmd'][captured['cmd'].index('-m') + 1]
+        assert 'unit' in marker_expression
+        assert 'smoke' in marker_expression
+        assert 'integration' in marker_expression
+
+        assert result['passed'] is True
+        assert result['coverage'] == 1.0
+        assert result['tests_passed'] == 3
+        assert result['tests_failed'] == 0
+        assert result['pass_rate'] == 1.0
+        assert result['markers'] == ['unit', 'smoke', 'integration']
+        assert result['targets'] == ['tests/unit']
+
+    def test_run_requested_tests_failure_metrics(self, monkeypatch):
+        """Failure output should surface counts, errors, and coverage."""
+        registry = CommandRegistry()
+        parser = CommandParser()
+        executor = CommandExecutor(registry, parser)
+
+        parsed = parser.parse('/sc:test --markers smoke --target tests/failing')
+
+        stdout = (
+            "collected 2 items\n\n"
+            "tests/failing/test_sample.py::test_ok PASSED\n"
+            "tests/failing/test_sample.py::test_not_ok FAILED\n\n"
+            "=========================== short test summary info ===========================\n"
+            "FAILED tests/failing/test_sample.py::test_not_ok - AssertionError: boom\n"
+            "========================= 1 failed, 1 passed in 0.33s =========================\n"
+            "---------- coverage: platform linux, python 3.11.8-final-0 -----------\n"
+            "Name                       Stmts   Miss  Cover\n"
+            "----------------------------------------------\n"
+            "SuperClaude/problem.py        20     10    50%\n"
+            "TOTAL                         20     10      0      50%\n"
+        )
+
+        def fake_run(cmd, **kwargs):
+            return SimpleNamespace(returncode=1, stdout=stdout, stderr='')
+
+        monkeypatch.setattr(executor_module.subprocess, 'run', fake_run, raising=False)
+
+        result = executor._run_requested_tests(parsed)
+
+        assert result['passed'] is False
+        assert pytest.approx(result['pass_rate'], rel=1e-6) == 0.5
+        assert result['tests_failed'] == 1
+        assert result['tests_passed'] == 1
+        assert result['coverage'] == 0.5
+        assert 'tests/failing/test_sample.py::test_not_ok' in result.get('errors', [])[0]
+
+    @pytest.mark.asyncio
+    async def test_test_command_with_coverage_exposes_results(self, monkeypatch):
+        """/sc:test --coverage should surface structured results and artifacts."""
+        registry = CommandRegistry()
+        parser = CommandParser()
+        executor = CommandExecutor(registry, parser)
+
+        stdout = (
+            "collected 1 item\n\n"
+            "tests/test_dummy.py::test_dummy PASSED\n\n"
+            "============================== 1 passed in 0.21s ==============================\n"
+            "---------- coverage: platform linux, python 3.11.8-final-0 -----------\n"
+            "Name                       Stmts   Miss  Cover\n"
+            "----------------------------------------------\n"
+            "SuperClaude/dummy.py            5      0   100%\n"
+            "TOTAL                           5      0      0      100%\n"
+        )
+
+        def fake_run(cmd, **kwargs):
+            return SimpleNamespace(returncode=0, stdout=stdout, stderr='')
+
+        monkeypatch.setattr(executor_module.subprocess, 'run', fake_run, raising=False)
+
+        result = await executor.execute('/sc:test --coverage')
+
+        assert result.success is False  # still plan-only due to no repo diffs
+        assert result.command_name == 'test'
+        assert result.output['test_results']['coverage'] == 1.0
+        assert result.output['test_results']['tests_passed'] == 1
+        assert result.output['test_results']['markers'] == []
+        assert result.output['test_artifacts'], "Test evidence artifact should be recorded"
+
+        repo_root = executor.repo_root or Path.cwd()
+        for artifact_path in result.artifacts:
+            path = repo_root / artifact_path
+            if path.exists():
+                path.unlink()
+
+        generated_dir = repo_root / 'SuperClaude' / 'Generated'
+        if generated_dir.exists():
+            for child in generated_dir.glob('test-tests-*.md'):
+                child.unlink(missing_ok=True)
+
+    @pytest.mark.asyncio
+    async def test_quality_loop_remediation_records_iteration(self, monkeypatch):
+        """Quality remediation loop should apply changes and record iteration details."""
+        registry = CommandRegistry()
+        parser = CommandParser()
+        executor = CommandExecutor(registry, parser)
+
+        parsed = parser.parse('/sc:implement remediation --loop')
+        metadata = registry.get_command('implement')
+        context = CommandContext(
+            command=parsed,
+            metadata=metadata,
+            session_id='loop-success',
+            behavior_mode=BehavioralMode.NORMAL.value
+        )
+        context.results['mode'] = {}
+        context.results['behavior_mode'] = context.behavior_mode
+        context.results.setdefault('flags', [])
+        context.loop_enabled = True
+        context.loop_iterations = 2
+        context.loop_min_improvement = 1.0
+
+        def fake_prepare_agents(self, ctx, agents):
+            return None
+
+        monkeypatch.setattr(
+            executor,
+            '_prepare_remediation_agents',
+            fake_prepare_agents.__get__(executor, CommandExecutor)
+        )
+
+        def fake_run_agent_pipeline(self, ctx):
+            ctx.agent_outputs = {
+                'quality-engineer': {
+                    'proposed_changes': [{
+                        'path': 'SuperClaude/Implementation/remediation.md',
+                        'content': '# remediation change',
+                        'mode': 'replace'
+                    }]
+                }
+            }
+            return {'operations': ['generated remediation change'], 'notes': [], 'warnings': []}
+
+        monkeypatch.setattr(
+            executor,
+            '_run_agent_pipeline',
+            fake_run_agent_pipeline.__get__(executor, CommandExecutor)
+        )
+
+        def fake_derive_change_plan(self, ctx, agent_result, *, label=None):
+            suffix = f"-{label}" if label else ''
+            return [{
+                'path': f'SuperClaude/Implementation/remediation{suffix}.md',
+                'content': '# remediation change',
+                'mode': 'replace'
+            }]
+
+        monkeypatch.setattr(
+            executor,
+            '_derive_change_plan',
+            fake_derive_change_plan.__get__(executor, CommandExecutor)
+        )
+
+        def fake_apply_change_plan(self, ctx, plan):
+            return {
+                'applied': [entry['path'] for entry in plan],
+                'warnings': [],
+                'base_path': str(self.repo_root or Path.cwd()),
+                'session': 'repo'
+            }
+
+        monkeypatch.setattr(
+            executor,
+            '_apply_change_plan',
+            fake_apply_change_plan.__get__(executor, CommandExecutor)
+        )
+
+        def fake_run_requested_tests(self, parsed_cmd):
+            return {
+                'command': 'pytest -q',
+                'args': ['pytest', '-q'],
+                'passed': True,
+                'pass_rate': 1.0,
+                'stdout': 'collected 1 item\n1 passed',
+                'stderr': '',
+                'duration_s': 0.2,
+                'exit_code': 0,
+                'coverage': 0.92,
+                'summary': '1 passed'
+            }
+
+        monkeypatch.setattr(
+            executor,
+            '_run_requested_tests',
+            fake_run_requested_tests.__get__(executor, CommandExecutor)
+        )
+
+        def make_assessment(score, passed, iteration, improvements):
+            return QualityAssessment(
+                overall_score=score,
+                metrics=[],
+                timestamp=datetime.now(),
+                iteration=iteration,
+                passed=passed,
+                threshold=70.0,
+                context={},
+                improvements_needed=improvements
+            )
+
+        def fake_agentic_loop(initial_output, loop_ctx, improver_func, max_iterations=None, min_improvement=None):
+            failing = make_assessment(55.0, False, 0, ['add tests'])
+            remediation_context = {
+                **loop_ctx,
+                'iteration': 0,
+                'quality_assessment': failing,
+                'improvements_needed': failing.improvements_needed
+            }
+            improved_output = improver_func(initial_output, remediation_context)
+            final = make_assessment(82.0, True, 1, [])
+            history = [
+                IterationResult(
+                    iteration=0,
+                    input_quality=55.0,
+                    output_quality=82.0,
+                    improvements_applied=['add tests'],
+                    time_taken=0.05,
+                    success=True
+                )
+            ]
+            return improved_output, final, history
+
+        monkeypatch.setattr(executor.quality_scorer, 'agentic_loop', fake_agentic_loop)
+
+        output = {'status': 'plan-only'}
+        loop_result = executor._maybe_run_quality_loop(context, output)
+
+        assert loop_result is not None
+        improved_output = loop_result['output']
+        assert isinstance(improved_output, dict)
+        assert improved_output['quality_loop'][0]['status'] == 'improved'
+        assert improved_output['quality_loop'][0]['applied_files']
+        assert context.results['loop_assessment']['passed'] is True
+        assert context.results['quality_loop_iterations'][0]['tests']['passed'] is True
+
+    @pytest.mark.asyncio
+    async def test_quality_loop_remediation_propagates_failure(self, monkeypatch):
+        """Quality remediation loop should surface failures when fixes do not succeed."""
+        registry = CommandRegistry()
+        parser = CommandParser()
+        executor = CommandExecutor(registry, parser)
+
+        parsed = parser.parse('/sc:implement remediation --loop')
+        metadata = registry.get_command('implement')
+        context = CommandContext(
+            command=parsed,
+            metadata=metadata,
+            session_id='loop-failure',
+            behavior_mode=BehavioralMode.NORMAL.value
+        )
+        context.results['mode'] = {}
+        context.results['behavior_mode'] = context.behavior_mode
+        context.loop_enabled = True
+        context.loop_iterations = 1
+
+        monkeypatch.setattr(
+            executor,
+            '_prepare_remediation_agents',
+            (lambda self, ctx, agents: None).__get__(executor, CommandExecutor)
+        )
+
+        def fake_run_agent_pipeline(self, ctx):
+            return {'operations': ['attempt remediation'], 'notes': [], 'warnings': []}
+
+        monkeypatch.setattr(
+            executor,
+            '_run_agent_pipeline',
+            fake_run_agent_pipeline.__get__(executor, CommandExecutor)
+        )
+
+        def fake_derive_change_plan(self, ctx, agent_result, *, label=None):
+            return [{
+                'path': f'SuperClaude/Implementation/noop-{label}.md',
+                'content': '# noop',
+                'mode': 'replace'
+            }]
+
+        monkeypatch.setattr(
+            executor,
+            '_derive_change_plan',
+            fake_derive_change_plan.__get__(executor, CommandExecutor)
+        )
+
+        def fake_apply_change_plan(self, ctx, plan):
+            return {
+                'applied': [],
+                'warnings': ['no remediation performed'],
+                'base_path': str(self.repo_root or Path.cwd()),
+                'session': 'repo'
+            }
+
+        monkeypatch.setattr(
+            executor,
+            '_apply_change_plan',
+            fake_apply_change_plan.__get__(executor, CommandExecutor)
+        )
+
+        def fake_run_requested_tests(self, parsed_cmd):
+            return {
+                'command': 'pytest -q',
+                'args': ['pytest', '-q'],
+                'passed': False,
+                'pass_rate': 0.0,
+                'stdout': 'collected 1 item\n1 failed',
+                'stderr': 'AssertionError',
+                'duration_s': 0.15,
+                'exit_code': 1,
+                'coverage': 0.4,
+                'summary': '1 failed'
+            }
+
+        monkeypatch.setattr(
+            executor,
+            '_run_requested_tests',
+            fake_run_requested_tests.__get__(executor, CommandExecutor)
+        )
+
+        def make_assessment(score, passed, iteration, improvements):
+            return QualityAssessment(
+                overall_score=score,
+                metrics=[],
+                timestamp=datetime.now(),
+                iteration=iteration,
+                passed=passed,
+                threshold=70.0,
+                context={},
+                improvements_needed=improvements
+            )
+
+        def fake_agentic_loop(initial_output, loop_ctx, improver_func, max_iterations=None, min_improvement=None):
+            failing = make_assessment(50.0, False, 0, ['fix failures'])
+            remediation_context = {
+                **loop_ctx,
+                'iteration': 0,
+                'quality_assessment': failing,
+                'improvements_needed': failing.improvements_needed
+            }
+            improver_func(initial_output, remediation_context)
+            final = make_assessment(55.0, False, 1, ['fix failures'])
+            history = [
+                IterationResult(
+                    iteration=0,
+                    input_quality=50.0,
+                    output_quality=55.0,
+                    improvements_applied=['fix failures'],
+                    time_taken=0.05,
+                    success=False
+                )
+            ]
+            return initial_output, final, history
+
+        monkeypatch.setattr(executor.quality_scorer, 'agentic_loop', fake_agentic_loop)
+
+        output = {'status': 'plan-only'}
+        loop_result = executor._maybe_run_quality_loop(context, output)
+
+        assert loop_result is not None
+        assert context.results['loop_assessment']['passed'] is False
+        iteration_record = context.results['quality_loop_iterations'][0]
+        assert iteration_record['status'] in {'tests-failed', 'no-changes-tests-failed', 'no-changes'}
+        assert iteration_record['tests']['passed'] is False
+        assert context.results['quality_loop_warnings']
 
     @pytest.mark.asyncio
     async def test_implement_generates_artifact_and_consensus(self, monkeypatch):

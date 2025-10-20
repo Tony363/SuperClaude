@@ -5,9 +5,11 @@ Orchestrates command execution with agent and MCP server integration.
 """
 
 import asyncio
+import copy
 import json
 import logging
 import os
+import re
 import subprocess
 import py_compile
 from dataclasses import dataclass, field, asdict
@@ -996,7 +998,13 @@ class CommandExecutor:
                 self.worktree_manager = None
         return self.worktree_manager
 
-    def _derive_change_plan(self, context: CommandContext, agent_result: Dict[str, Any]) -> List[Dict[str, Any]]:
+    def _derive_change_plan(
+        self,
+        context: CommandContext,
+        agent_result: Dict[str, Any],
+        *,
+        label: Optional[str] = None
+    ) -> List[Dict[str, Any]]:
         """Build a change plan from agent output or fall back to a default."""
         plan: List[Dict[str, Any]] = []
 
@@ -1007,7 +1015,7 @@ class CommandExecutor:
         if plan:
             return plan
 
-        return self._build_default_change_plan(context, agent_result)
+        return self._build_default_change_plan(context, agent_result, label=label)
 
     def _extract_agent_change_specs(self, candidate: Any) -> List[Dict[str, Any]]:
         """Normalise agent-proposed change structures into change descriptors."""
@@ -1042,12 +1050,19 @@ class CommandExecutor:
 
         return proposals
 
-    def _build_default_change_plan(self, context: CommandContext, agent_result: Dict[str, Any]) -> List[Dict[str, Any]]:
+    def _build_default_change_plan(
+        self,
+        context: CommandContext,
+        agent_result: Dict[str, Any],
+        *,
+        label: Optional[str] = None
+    ) -> List[Dict[str, Any]]:
         """Produce a deterministic implementation evidence file when no plan exists."""
         slug_source = ' '.join(context.command.arguments) or context.command.name
         slug = self._slugify(slug_source)[:48]
         session_fragment = context.session_id.replace('-', '')[:8]
-        rel_path = Path('SuperClaude') / 'Implementation' / f"{slug}-{session_fragment}.md"
+        label_suffix = f"-{self._slugify(label)}" if label else ''
+        rel_path = Path('SuperClaude') / 'Implementation' / f"{slug}-{session_fragment}{label_suffix}.md"
 
         content = self._render_default_change_document(context, agent_result)
 
@@ -1168,6 +1183,153 @@ class CommandExecutor:
         sanitized = ''.join(ch if ch.isalnum() or ch in {'-', '_'} else '-' for ch in value.lower())
         sanitized = '-'.join(part for part in sanitized.split('-') if part)
         return sanitized or 'implementation'
+
+    def _quality_loop_improver(
+        self,
+        context: CommandContext,
+        current_output: Any,
+        loop_context: Dict[str, Any]
+    ) -> Any:
+        """Remediation improver used by the quality loop."""
+        iteration_index = int(loop_context.get('iteration', 0))
+
+        try:
+            return self._run_quality_remediation_iteration(
+                context,
+                current_output,
+                loop_context,
+                iteration_index
+            )
+        except Exception as exc:
+            logger.warning(f"Quality remediation iteration failed: {exc}")
+            loop_context.setdefault('errors', []).append(str(exc))
+            context.results.setdefault('quality_loop_warnings', []).append(str(exc))
+            return current_output
+
+    def _run_quality_remediation_iteration(
+        self,
+        context: CommandContext,
+        current_output: Any,
+        loop_context: Dict[str, Any],
+        iteration_index: int
+    ) -> Any:
+        """Perform a single remediation iteration for the quality loop."""
+        improvements = list(loop_context.get('improvements_needed') or [])
+        loop_context.setdefault('notes', []).append(
+            f"Remediation iteration {iteration_index + 1} focusing on: {', '.join(improvements) or 'general improvements'}"
+        )
+
+        self._prepare_remediation_agents(context, ['quality-engineer', 'refactoring-expert', 'general-purpose'])
+
+        previous_hint = context.command.parameters.get('quality_improvements')
+        context.command.parameters['quality_improvements'] = improvements
+
+        try:
+            agent_result = self._run_agent_pipeline(context)
+        finally:
+            if previous_hint is None:
+                context.command.parameters.pop('quality_improvements', None)
+            else:
+                context.command.parameters['quality_improvements'] = previous_hint
+
+        change_plan = self._derive_change_plan(
+            context,
+            agent_result,
+            label=f"iteration-{iteration_index + 1}"
+        )
+
+        apply_result = self._apply_change_plan(context, change_plan)
+        applied_files = apply_result.get('applied', []) or []
+        warnings = apply_result.get('warnings', []) or []
+
+        if not applied_files:
+            message = "Quality remediation produced no repository changes."
+            loop_context.setdefault('errors', []).append(message)
+            warnings.append(message)
+
+        if warnings:
+            quality_warnings = context.results.setdefault('quality_loop_warnings', [])
+            for warning in warnings:
+                if warning not in quality_warnings:
+                    quality_warnings.append(warning)
+
+        if applied_files:
+            applied_list = context.results.setdefault('applied_changes', [])
+            for path in applied_files:
+                entry = f"loop iteration {iteration_index + 1}: apply {path}"
+                if entry not in applied_list:
+                    applied_list.append(entry)
+
+        tests = self._run_requested_tests(context.command)
+        tests_summary = self._summarize_test_results(tests)
+
+        operations = context.results.setdefault('executed_operations', [])
+        operations.append(f"quality loop iteration {iteration_index + 1}")
+        operations.append(tests_summary)
+        context.results['executed_operations'] = self._deduplicate(operations)
+
+        quality_tests = context.results.setdefault('quality_loop_tests', [])
+        quality_tests.append(tests)
+
+        iteration_record = {
+            'iteration': iteration_index,
+            'improvements_requested': improvements,
+            'agents_invoked': sorted(set(context.agents)),
+            'change_plan': change_plan,
+            'applied_files': applied_files,
+            'warnings': warnings,
+            'tests': {
+                'passed': tests.get('passed'),
+                'command': tests.get('command'),
+                'coverage': tests.get('coverage'),
+                'summary': tests.get('summary'),
+                'exit_code': tests.get('exit_code'),
+            }
+        }
+
+        if not applied_files and not tests.get('passed'):
+            iteration_record['status'] = 'no-changes-tests-failed'
+        elif not applied_files:
+            iteration_record['status'] = 'no-changes'
+        elif not tests.get('passed'):
+            iteration_record['status'] = 'tests-failed'
+            loop_context.setdefault('errors', []).append('Tests failed during remediation iteration.')
+        else:
+            iteration_record['status'] = 'improved'
+
+        quality_iterations = context.results.setdefault('quality_loop_iterations', [])
+        quality_iterations.append(iteration_record)
+
+        improved_output = copy.deepcopy(current_output) if isinstance(current_output, dict) else current_output
+        if isinstance(improved_output, dict):
+            loop_payload = {
+                'iteration': iteration_index,
+                'improvements': improvements,
+                'applied_files': applied_files,
+                'test_results': tests,
+                'warnings': warnings,
+                'status': iteration_record['status']
+            }
+            improved_output.setdefault('quality_loop', []).append(loop_payload)
+        return improved_output
+
+    def _prepare_remediation_agents(self, context: CommandContext, agents: Iterable[str]) -> None:
+        """Ensure remediation-focused agents are available for the quality loop."""
+        loader = self.agent_loader or AgentLoader()
+        for agent_name in agents:
+            if agent_name in context.agent_instances:
+                continue
+            try:
+                agent_instance = loader.load_agent(agent_name)
+            except Exception as exc:
+                warning = f"Failed to load remediation agent {agent_name}: {exc}"
+                logger.debug(warning)
+                context.results.setdefault('quality_loop_warnings', []).append(warning)
+                continue
+            if agent_instance:
+                context.agent_instances[agent_name] = agent_instance
+                if agent_name not in context.agents:
+                    context.agents.append(agent_name)
 
     async def _execute_generic(self, context: CommandContext) -> Dict[str, Any]:
         """Execute generic command."""
@@ -1599,17 +1761,14 @@ class CommandExecutor:
         max_iterations = context.loop_iterations or self.quality_scorer.MAX_ITERATIONS
         min_improvement = context.loop_min_improvement
 
-        def _identity_improver(current_output: Any, loop_context: Dict[str, Any]) -> Any:
-            loop_context.setdefault('notes', []).append(
-                'No automated remediation implemented; returning original output.'
-            )
-            return current_output
+        def _remediation_improver(current_output: Any, loop_context: Dict[str, Any]) -> Any:
+            return self._quality_loop_improver(context, current_output, loop_context)
 
         try:
             improved_output, final_assessment, iteration_history = self.quality_scorer.agentic_loop(
                 output,
                 dict(context.results),
-                improver_func=_identity_improver,
+                improver_func=_remediation_improver,
                 max_iterations=max_iterations,
                 min_improvement=min_improvement
             )
@@ -1620,11 +1779,21 @@ class CommandExecutor:
 
         context.results['loop_iterations_executed'] = len(iteration_history)
         context.results['loop_assessment'] = self._serialize_assessment(final_assessment)
-        context.results['quality_iteration_history'] = [
-            asdict(item) for item in iteration_history
-        ]
+        iteration_dicts: List[Dict[str, Any]] = []
+        remediation_records = context.results.get('quality_loop_iterations', [])
+        for idx, item in enumerate(iteration_history):
+            data = asdict(item)
+            if idx < len(remediation_records):
+                data['remediation'] = remediation_records[idx]
+            iteration_dicts.append(data)
+        if iteration_dicts:
+            context.results['quality_iteration_history'] = iteration_dicts
+            if isinstance(improved_output, dict):
+                improved_output.setdefault('quality_iteration_history', iteration_dicts)
+                if remediation_records:
+                    improved_output['quality_loop_iterations'] = remediation_records
         context.results.setdefault('loop_notes', []).append(
-            'Quality loop executed with identity improver (placeholder).'
+            'Quality loop executed with remediation pipeline.'
         )
 
         return {
@@ -1656,24 +1825,29 @@ class CommandExecutor:
                 if precomputed:
                     return assessment
 
-                def _noop_improver(current_output, loop_context):
-                    loop_context.setdefault('notes', []).append('No automated remediation available.')
-                    return current_output
+                def _remediation_improver(current_output, loop_context):
+                    return self._quality_loop_improver(context, current_output, loop_context)
 
                 (
-                    _,
+                    remediated_output,
                     loop_assessment,
                     iteration_history
                 ) = self.quality_scorer.agentic_loop(
                     output,
                     evaluation_context,
-                    improver_func=_noop_improver
+                    improver_func=_remediation_improver
                 )
 
+                output = remediated_output
                 if iteration_history:
-                    context.results['quality_iteration_history'] = [
-                        asdict(item) for item in iteration_history
-                    ]
+                    remediation_records = context.results.get('quality_loop_iterations', [])
+                    serialized = []
+                    for idx, item in enumerate(iteration_history):
+                        data = asdict(item)
+                        if idx < len(remediation_records):
+                            data['remediation'] = remediation_records[idx]
+                        serialized.append(data)
+                    context.results['quality_iteration_history'] = serialized
 
                 return loop_assessment
 
@@ -1821,24 +1995,25 @@ class CommandExecutor:
             return True
         return metadata.name in {'implement'}
 
+    def _is_truthy(self, value: Any) -> bool:
+        """Interpret diverse flag representations as boolean truthy values."""
+        if isinstance(value, bool):
+            return value
+        if isinstance(value, (int, float)):
+            return value != 0
+        if isinstance(value, str):
+            normalized = value.strip().lower()
+            return normalized in {'1', 'true', 'yes', 'on', 'enabled'}
+        return False
+
     def _should_run_tests(self, parsed: ParsedCommand) -> bool:
         """Determine if automated tests should be executed."""
-
-        def _flag_enabled(value: Any) -> bool:
-            if isinstance(value, bool):
-                return value
-            if isinstance(value, (int, float)):
-                return value != 0
-            if isinstance(value, str):
-                return value.lower() in {'1', 'true', 'yes', 'on'}
-            return False
-
         keys = ('with-tests', 'with_tests', 'run-tests', 'run_tests')
 
         for key in keys:
-            if _flag_enabled(parsed.flags.get(key)):
+            if self._is_truthy(parsed.flags.get(key)):
                 return True
-            if _flag_enabled(parsed.parameters.get(key)):
+            if self._is_truthy(parsed.parameters.get(key)):
                 return True
 
         # Always run when invoking the dedicated test command.
@@ -1846,10 +2021,74 @@ class CommandExecutor:
 
     def _run_requested_tests(self, parsed: ParsedCommand) -> Dict[str, Any]:
         """Execute project tests and capture results."""
-        command = ["pytest", "-q"]
-        target = parsed.parameters.get('target')
-        if isinstance(target, str) and target.strip():
-            command.append(target.strip())
+        pytest_args: List[str] = ["-q"]
+        markers: List[str] = []
+        targets: List[str] = []
+
+        parameters = parsed.parameters
+        flags = parsed.flags
+
+        coverage_enabled = self._is_truthy(flags.get('coverage')) or self._is_truthy(parameters.get('coverage'))
+        if coverage_enabled:
+            cov_target = parameters.get('cov')
+            if not isinstance(cov_target, str) or not cov_target.strip():
+                cov_target = "SuperClaude"
+            pytest_args.extend([
+                f"--cov={cov_target.strip()}",
+                "--cov-report=term-missing",
+                "--cov-report=html"
+            ])
+
+        type_param = parameters.get('type')
+        if isinstance(type_param, str):
+            normalized_type = type_param.strip().lower()
+            if normalized_type in {'unit', 'integration', 'e2e'}:
+                markers.append(normalized_type)
+
+        if self._is_truthy(flags.get('e2e')) or self._is_truthy(parameters.get('e2e')):
+            markers.append('e2e')
+
+        def _extend_markers(raw: Any) -> None:
+            if raw is None:
+                return
+            values: Iterable[str]
+            if isinstance(raw, str):
+                values = [token.strip() for token in re.split(r'[\s,]+', raw) if token.strip()]
+            elif isinstance(raw, (list, tuple, set)):
+                values = [str(item).strip() for item in raw if str(item).strip()]
+            else:
+                values = [str(raw).strip()]
+            for value in values:
+                markers.append(value)
+
+        _extend_markers(parameters.get('marker'))
+        _extend_markers(parameters.get('markers'))
+
+        if parsed.arguments:
+            targets.extend(parsed.arguments)
+        target_param = parameters.get('target')
+        if isinstance(target_param, str) and target_param.strip():
+            targets.append(target_param.strip())
+
+        unique_markers: List[str] = []
+        seen_markers: Set[str] = set()
+        for marker in markers:
+            normalized = marker.strip()
+            if not normalized:
+                continue
+            if normalized not in seen_markers:
+                seen_markers.add(normalized)
+                unique_markers.append(normalized)
+
+        command: List[str] = ["pytest", *pytest_args]
+        if unique_markers:
+            marker_expression = ' or '.join(unique_markers)
+            command.extend(["-m", marker_expression])
+        if targets:
+            command.extend(targets)
+
+        env = os.environ.copy()
+        env.setdefault("PYENV_DISABLE_REHASH", "1")
 
         start = datetime.now()
         try:
@@ -1858,43 +2097,74 @@ class CommandExecutor:
                 cwd=str(self.repo_root or Path.cwd()),
                 capture_output=True,
                 text=True,
-                check=False
+                check=False,
+                env=env
             )
         except FileNotFoundError as exc:
             logger.warning(f"Test runner not available: {exc}")
             return {
                 'command': ' '.join(command),
+                'args': command,
                 'passed': False,
                 'pass_rate': 0.0,
                 'stdout': '',
                 'stderr': str(exc),
                 'duration_s': 0.0,
-                'error': 'pytest_not_found'
+                'error': 'pytest_not_found',
+                'coverage': None,
+                'markers': unique_markers,
+                'targets': targets,
             }
         except Exception as exc:
             logger.error(f"Unexpected error running tests: {exc}")
             return {
                 'command': ' '.join(command),
+                'args': command,
                 'passed': False,
                 'pass_rate': 0.0,
                 'stdout': '',
                 'stderr': str(exc),
                 'duration_s': 0.0,
-                'error': 'test_execution_error'
+                'error': 'test_execution_error',
+                'coverage': None,
+                'markers': unique_markers,
+                'targets': targets,
             }
 
         duration = (datetime.now() - start).total_seconds()
         passed = result.returncode == 0
+        stdout_text = result.stdout or ""
+        stderr_text = result.stderr or ""
+        metrics = self._parse_pytest_output(stdout_text, stderr_text)
 
-        return {
+        pass_rate = metrics.get('pass_rate')
+        if pass_rate is None:
+            pass_rate = 1.0 if passed else 0.0
+
+        output = {
             'command': ' '.join(command),
+            'args': command,
             'passed': passed,
-            'pass_rate': 1.0 if passed else 0.0,
-            'stdout': self._truncate_output(result.stdout.strip()),
-            'stderr': self._truncate_output(result.stderr.strip()),
+            'pass_rate': pass_rate,
+            'stdout': self._truncate_output(stdout_text.strip()),
+            'stderr': self._truncate_output(stderr_text.strip()),
             'duration_s': duration,
-            'exit_code': result.returncode
+            'exit_code': result.returncode,
+            'coverage': metrics.get('coverage'),
+            'summary': metrics.get('summary'),
+            'tests_passed': metrics.get('tests_passed', 0),
+            'tests_failed': metrics.get('tests_failed', 0),
+            'tests_errored': metrics.get('tests_errored', 0),
+            'tests_skipped': metrics.get('tests_skipped', 0),
+            'tests_collected': metrics.get('tests_collected'),
+            'markers': unique_markers,
+            'targets': targets,
         }
+
+        if metrics.get('errors'):
+            output['errors'] = metrics['errors']
+
+        return output
 
     def _summarize_test_results(self, test_results: Dict[str, Any]) -> str:
         """Create a concise summary string for executed tests."""
@@ -1903,6 +2173,69 @@ class CommandExecutor:
         duration = test_results.get('duration_s')
         duration_part = f" in {duration:.2f}s" if isinstance(duration, (int, float)) else ''
         return f"{command} ({status}{duration_part})"
+
+    def _parse_pytest_output(self, stdout: str, stderr: str) -> Dict[str, Any]:
+        """Extract structured metrics from pytest stdout/stderr."""
+        combined = "\n".join(part for part in (stdout, stderr) if part)
+
+        metrics: Dict[str, Any] = {
+            'tests_passed': 0,
+            'tests_failed': 0,
+            'tests_errored': 0,
+            'tests_skipped': 0,
+            'tests_collected': None,
+            'pass_rate': None,
+            'summary': None,
+            'coverage': None,
+            'errors': []
+        }
+
+        if not combined:
+            return metrics
+
+        for line in combined.splitlines():
+            stripped = line.strip()
+            if re.match(r"=+\s+.+\s+=+", stripped):
+                metrics['summary'] = stripped
+
+        collected_match = re.search(r"collected\s+(\d+)\s+items?", combined)
+        if collected_match:
+            metrics['tests_collected'] = int(collected_match.group(1))
+
+        for count, label in re.findall(r"(\d+)\s+(passed|failed|errors?|skipped|xfailed|xpassed)", combined):
+            value = int(count)
+            normalized = label.rstrip('s')
+            if normalized == 'passed':
+                metrics['tests_passed'] += value
+            elif normalized == 'failed':
+                metrics['tests_failed'] += value
+            elif normalized == 'error':
+                metrics['tests_errored'] += value
+            elif normalized == 'skipped':
+                metrics['tests_skipped'] += value
+            elif normalized == 'xfailed':
+                metrics['tests_skipped'] += value
+            elif normalized == 'xpassed':
+                metrics['tests_passed'] += value
+
+        executed = metrics['tests_passed'] + metrics['tests_failed'] + metrics['tests_errored']
+        if executed:
+            metrics['pass_rate'] = metrics['tests_passed'] / executed
+
+        coverage_match = re.search(r"TOTAL\s+(?:\d+\s+){1,4}(\d+(?:\.\d+)?)%", combined)
+        if not coverage_match:
+            coverage_match = re.search(r"coverage[:\s]+(\d+(?:\.\d+)?)%", combined, re.IGNORECASE)
+        if coverage_match:
+            try:
+                metrics['coverage'] = float(coverage_match.group(1)) / 100.0
+            except (TypeError, ValueError):
+                metrics['coverage'] = None
+
+        failure_entries = re.findall(r"FAILED\s+([^\s]+)\s+-\s+(.+)", combined)
+        for test_name, message in failure_entries:
+            metrics['errors'].append(f"{test_name} - {message.strip()}")
+
+        return metrics
 
     def _truncate_output(self, text: str, max_length: int = 800) -> str:
         """Limit captured command output to a manageable size."""
