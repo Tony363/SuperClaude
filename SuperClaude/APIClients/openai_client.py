@@ -4,13 +4,14 @@ OpenAI API Client for GPT-5, GPT-4.1, GPT-4o, and GPT-4o-mini models.
 Provides unified interface for all OpenAI models with streaming and function calling support.
 """
 
-import os
+import json
 import logging
-import asyncio
-from typing import Dict, List, Any, Optional, AsyncIterator
+import os
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
-import json
+from typing import Any, AsyncIterator, Dict, List, Optional
+
+from .http_utils import HTTPClientError, post_json
 
 logger = logging.getLogger(__name__)
 
@@ -141,47 +142,66 @@ class OpenAIClient:
         # Check rate limits
         await self.rate_limiter.acquire(request)
 
+        payload = self._build_payload(request)
+        headers = {
+            "Authorization": f"Bearer {self.config.api_key}",
+            "Content-Type": "application/json",
+        }
+        if self.config.organization:
+            headers["OpenAI-Organization"] = self.config.organization
+
         try:
-            # In real implementation, make actual API call
-            # async with aiohttp.ClientSession() as session:
-            #     headers = {
-            #         "Authorization": f"Bearer {self.config.api_key}",
-            #         "Content-Type": "application/json"
-            #     }
-            #     if self.config.organization:
-            #         headers["OpenAI-Organization"] = self.config.organization
-            #
-            #     payload = self._build_payload(request)
-            #
-            #     async with session.post(
-            #         f"{self.config.endpoint}/chat/completions",
-            #         headers=headers,
-            #         json=payload,
-            #         timeout=self.config.timeout
-            #     ) as response:
-            #         data = await response.json()
-
-            # Mock response
-            response = CompletionResponse(
-                id=f"chatcmpl-{datetime.now().timestamp()}",
-                model=request.model,
-                content=f"Response from {request.model} to: {request.messages[-1]['content'][:50]}...",
-                usage={
-                    "prompt_tokens": 100,
-                    "completion_tokens": 50,
-                    "total_tokens": 150
-                }
+            status, data, response_headers = await post_json(
+                f"{self.config.endpoint}/chat/completions",
+                payload,
+                headers=headers,
+                timeout=self.config.timeout,
             )
-
-            # Track usage
-            self.token_counter.add(response.usage)
-
-            logger.info(f"Completed request with {request.model}: {response.usage['total_tokens']} tokens")
-            return response
-
-        except Exception as e:
-            logger.error(f"OpenAI API error: {e}")
+        except HTTPClientError as exc:
+            logger.error("OpenAI API error: %s", exc)
             raise
+
+        choices = data.get("choices") or []
+        if not choices:
+            raise HTTPClientError(status, "OpenAI response missing choices", data)
+
+        choice = choices[0]
+        message = choice.get("message") or {}
+        role = message.get("role", "assistant")
+        content = message.get("content") or ""
+        function_call = message.get("function_call")
+        usage = data.get("usage") or {}
+        finish_reason = choice.get("finish_reason", data.get("finish_reason", "stop"))
+
+        response = CompletionResponse(
+            id=data.get("id", f"chatcmpl-{datetime.now().timestamp()}"),
+            model=data.get("model", request.model),
+            content=content,
+            role=role,
+            function_call=function_call,
+            usage=usage,
+            finish_reason=finish_reason or "stop",
+            metadata={
+                "created": data.get("created"),
+                "system_fingerprint": data.get("system_fingerprint"),
+                "status": status,
+                "headers": {k: v for k, v in response_headers.items() if k.lower().startswith("x-")},
+            },
+        )
+
+        if "prompt_annotations" in data:
+            response.metadata["prompt_annotations"] = data["prompt_annotations"]
+        if "usage" not in data:
+            # Populate total tokens when API response omits them
+            response.usage.setdefault("total_tokens", response.usage.get("prompt_tokens", 0) + response.usage.get("completion_tokens", 0))
+
+        self.token_counter.add(response.usage)
+        logger.info(
+            "Completed OpenAI request with %s: %s tokens",
+            response.model,
+            response.usage.get("total_tokens", 0),
+        )
+        return response
 
     async def stream(self, request: CompletionRequest) -> AsyncIterator[str]:
         """

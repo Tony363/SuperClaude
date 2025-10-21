@@ -1,7 +1,13 @@
 # Gaps Between README Claims and Codebase
 
-- `/sc:implement` is marketed as end-to-end feature delivery with evidence (`README.md:158`), yet the executor only aggregates agent notes (`SuperClaude/Commands/executor.py:718`) and marks success once a markdown artifact exists even if no git diff is produced (`SuperClaude/Commands/executor.py:362`).
-- `/sc:test --coverage --e2e` is advertised as a full coverage run (`README.md:166`), but `_run_requested_tests` always invokes `pytest -q` and drops the coverage flag (`SuperClaude/Commands/executor.py:1576`, `SuperClaude/Commands/executor.py:792`).
-- The README states that `--loop` iterates until quality ≥70 (`README.md:166`), yet the loop uses an identity improver that never changes results (`SuperClaude/Commands/executor.py:1331`) and simply re-evaluates the same payload (`SuperClaude/Quality/quality_scorer.py:239`).
-- Multi-model consensus is highlighted as a shipped capability (`README.md:24`), but the facade wires keyword-based mock executors (`SuperClaude/ModelRouter/facade.py:131`) and consensus responses are mocked (`SuperClaude/ModelRouter/consensus.py:298`) because provider clients remain stubs (`SuperClaude/APIClients/openai_client.py:67`).
-- Operational commands such as `/sc:build` and `/sc:git` are described as real automations (`README.md:187`-`README.md:195`), but their handlers just echo parameters (`SuperClaude/Commands/executor.py:797`, `SuperClaude/Commands/executor.py:806`, `SuperClaude/Commands/executor.py:925`) without performing any work.
+## Resolved
+
+- `/sc:implement` now applies agent change plans, runs tests, and refuses success without repository evidence (`SuperClaude/Commands/executor.py:346`, `SuperClaude/Commands/executor.py:389`, `SuperClaude/Commands/executor.py:509`; regression coverage at `tests/test_commands.py:399`).
+- `/sc:test --coverage --e2e` forwards the requested flags to pytest, surfaces structured metrics, and records artifacts (`SuperClaude/Commands/executor.py:2037`, `SuperClaude/Commands/executor.py:2155`, `SuperClaude/Commands/executor.py:334`; verified by `tests/test_commands.py:288` and `tests/test_commands.py:338`).
+- The quality loop now runs a remediation pipeline instead of an identity pass-through, persisting iteration history and assessments (`SuperClaude/Commands/executor.py:1187`, `SuperClaude/Commands/executor.py:1765`; covered by `tests/test_commands.py:418` and `tests/test_commands.py:472`).
+- Multi-model consensus routes to real providers when credentials are present and falls back deterministically when offline (`SuperClaude/ModelRouter/facade.py:103`, `SuperClaude/APIClients/http_utils.py:1`, `SuperClaude/APIClients/openai_client.py:122`, `SuperClaude/APIClients/anthropic_client.py:105`, `SuperClaude/APIClients/google_client.py:111`, `SuperClaude/APIClients/xai_client.py:113`; validated by `tests/test_model_router.py:394`).
+- Operational commands `/sc:build`, `/sc:git`, and `/sc:workflow` execute tangible automation with artifact evidence and regression coverage (`SuperClaude/Commands/executor.py:865`, `SuperClaude/Commands/executor.py:990`, `SuperClaude/Commands/executor.py:1135`; exercised in `tests/test_commands.py:290`, `tests/test_commands.py:328`, `tests/test_commands.py:373`).
+
+## Outstanding
+
+- None. README promises are now aligned with the implemented capabilities.

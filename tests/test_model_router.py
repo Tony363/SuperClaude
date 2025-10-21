@@ -7,10 +7,13 @@ from pathlib import Path
 import sys
 from datetime import datetime, timedelta
 from types import SimpleNamespace
+from typing import Any, Dict
 
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+from SuperClaude.APIClients import openai_client as openai_module
+from SuperClaude.APIClients.openai_client import CompletionResponse
 from SuperClaude.ModelRouter import (
     ModelRouter,
     RoutingDecision,
@@ -236,12 +239,61 @@ class TestConsensusBuilder:
         assert result.synthesis is not None
 
 
+RECORDED_CONSENSUS_FIXTURE_APPROVE = {
+    'gpt-5': {
+        'response': {'decision': 'approve', 'notes': 'Primary reviewer satisfied.'},
+        'confidence': 0.88,
+        'reasoning': 'Comprehensive testing evidence and quality loop passed.',
+        'tokens_used': 180,
+        'metadata': {'fixture': 'approve', 'provider': 'openai'}
+    },
+    'claude-opus-4.1': {
+        'response': {'decision': 'approve', 'notes': 'Risk profile acceptable.'},
+        'confidence': 0.82,
+        'reasoning': 'Security and maintainability concerns resolved.',
+        'tokens_used': 160,
+        'metadata': {'fixture': 'approve', 'provider': 'anthropic'}
+    },
+    'gpt-4.1': {
+        'response': {'decision': 'approve', 'notes': 'Fallback review matches.'},
+        'confidence': 0.76,
+        'reasoning': 'No outstanding issues detected.',
+        'tokens_used': 140,
+        'metadata': {'fixture': 'approve', 'provider': 'openai'}
+    }
+}
+
+RECORDED_CONSENSUS_FIXTURE_SPLIT = {
+    'gpt-5': {
+        'response': {'decision': 'approve', 'notes': 'Meets success criteria.'},
+        'confidence': 0.74,
+        'reasoning': 'Feature passes regression tests.',
+        'tokens_used': 150,
+        'metadata': {'fixture': 'split', 'provider': 'openai'}
+    },
+    'claude-opus-4.1': {
+        'response': {'decision': 'revise', 'notes': 'Observability gap discovered.'},
+        'confidence': 0.71,
+        'reasoning': 'Lack of monitoring in rollout plan.',
+        'tokens_used': 155,
+        'metadata': {'fixture': 'split', 'provider': 'anthropic'}
+    },
+    'gpt-4.1': {
+        'response': {'decision': 'revise', 'notes': 'Tests insufficient.'},
+        'confidence': 0.69,
+        'reasoning': 'Negative scenario missing coverage.',
+        'tokens_used': 148,
+        'metadata': {'fixture': 'split', 'provider': 'openai'}
+    }
+}
+
+
 class TestModelRouterFacade:
     """Tests for ModelRouterFacade convenience wrapper."""
 
     @pytest.mark.asyncio
     async def test_facade_returns_serializable_payload(self):
-        facade = ModelRouterFacade()
+        facade = ModelRouterFacade(offline=True)
 
         result = await facade.run_consensus("Implementation completed successfully.")
 
@@ -252,7 +304,7 @@ class TestModelRouterFacade:
 
     @pytest.mark.asyncio
     async def test_facade_supports_custom_models(self):
-        facade = ModelRouterFacade()
+        facade = ModelRouterFacade(offline=True)
 
         async def approve(prompt: str):
             return {'response': 'approve', 'confidence': 0.8, 'reasoning': 'positive', 'tokens_used': 50}
@@ -273,7 +325,7 @@ class TestModelRouterFacade:
 
     @pytest.mark.asyncio
     async def test_facade_respects_think_level(self):
-        facade = ModelRouterFacade()
+        facade = ModelRouterFacade(offline=True)
 
         deep_result = await facade.run_consensus(
             "Design a complex distributed system",
@@ -292,6 +344,84 @@ class TestModelRouterFacade:
         assert quick_result['routing_decision']['primary_model'] in {
             'gpt-4o', 'gpt-4o-mini', 'grok-code-fast-1'
         }
+
+    @pytest.mark.asyncio
+    async def test_facade_consensus_with_recorded_fixture(self):
+        facade = ModelRouterFacade(offline=True)
+        facade.consensus.model_executors.clear()
+
+        for model_name, payload in RECORDED_CONSENSUS_FIXTURE_APPROVE.items():
+
+            async def executor(prompt: str, *, result=payload) -> Dict[str, Any]:
+                return result
+
+            facade.consensus.register_executor(model_name, executor)
+
+        result = await facade.run_consensus(
+            "All acceptance criteria satisfied; proceed?",
+            models=list(RECORDED_CONSENSUS_FIXTURE_APPROVE.keys())
+        )
+
+        assert result['consensus_reached'] is True
+        assert result['final_decision']['decision'] == 'approve'
+        assert result['offline'] is True
+        assert len(result['votes']) == len(RECORDED_CONSENSUS_FIXTURE_APPROVE)
+
+    @pytest.mark.asyncio
+    async def test_facade_records_disagreements_from_fixture(self):
+        facade = ModelRouterFacade(offline=True)
+        facade.consensus.model_executors.clear()
+
+        for model_name, payload in RECORDED_CONSENSUS_FIXTURE_SPLIT.items():
+
+            async def executor(prompt: str, *, result=payload) -> Dict[str, Any]:
+                return result
+
+            facade.consensus.register_executor(model_name, executor)
+
+        result = await facade.run_consensus(
+            "Risky deployment detected; proceed?",
+            models=list(RECORDED_CONSENSUS_FIXTURE_SPLIT.keys())
+        )
+
+        assert result['consensus_reached'] is False
+        assert result['final_decision'] is None
+        assert len(result['disagreements']) >= 1
+        responses = {vote['response']['decision'] for vote in result['votes'] if isinstance(vote['response'], dict)}
+        assert responses == {'approve', 'revise'}
+
+    @pytest.mark.asyncio
+    async def test_facade_invokes_openai_provider_with_api_key(self, monkeypatch):
+        monkeypatch.setenv("OPENAI_API_KEY", "test-key")
+        call_log: Dict[str, Any] = {}
+
+        async def fake_complete(self, request):
+            call_log.setdefault("models", []).append(request.model)
+            return CompletionResponse(
+                id="chatcmpl-test",
+                model=request.model,
+                content="approve — strong evidence of completion",
+                usage={"prompt_tokens": 10, "completion_tokens": 5, "total_tokens": 15},
+                finish_reason="stop",
+            )
+
+        monkeypatch.setattr(
+            openai_module.OpenAIClient,
+            "complete",
+            fake_complete,
+            raising=False,
+        )
+
+        facade = ModelRouterFacade(offline=False)
+        result = await facade.run_consensus(
+            "Should we approve the implementation?",
+            models=["gpt-4o"],
+        )
+
+        assert call_log.get("models") == ["gpt-4o"]
+        assert result["offline"] is False
+        assert result["votes"][0]["metadata"].get("provider") == "openai"
+        assert "approve" in str(result["votes"][0]["response"]).lower()
 
 
 @pytest.mark.asyncio

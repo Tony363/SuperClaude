@@ -6,12 +6,14 @@ Orchestrates command execution with agent and MCP server integration.
 
 import asyncio
 import copy
+import importlib.util
 import json
 import logging
 import os
 import re
 import subprocess
 import py_compile
+import shutil
 from dataclasses import dataclass, field, asdict
 from datetime import datetime
 from pathlib import Path
@@ -862,28 +864,378 @@ class CommandExecutor:
 
     async def _execute_build(self, context: CommandContext) -> Dict[str, Any]:
         """Execute build command."""
-        return {
-            'status': 'build_started',
-            'optimize': context.command.parameters.get('optimize', False),
-            'target': context.command.parameters.get('target', 'production'),
+        repo_root = Path(self.repo_root or Path.cwd())
+        params = context.command.parameters
+
+        explicit_target = context.command.arguments[0] if context.command.arguments else None
+        if explicit_target and explicit_target.startswith("--"):
+            explicit_target = None
+
+        target = explicit_target or params.get('target') or 'project'
+        build_type = str(params.get('type', 'production') or 'production').lower()
+        optimize = (
+            self._flag_present(context.command, 'optimize')
+            or self._is_truthy(params.get('optimize'))
+        )
+        clean_requested = (
+            self._flag_present(context.command, 'clean')
+            or self._is_truthy(params.get('clean'))
+        )
+
+        operations: List[str] = []
+        warnings: List[str] = []
+        cleaned = []
+
+        if clean_requested:
+            cleaned, clean_errors = self._clean_build_artifacts(repo_root)
+            if cleaned:
+                operations.extend(f"removed {path}" for path in cleaned)
+                context.results.setdefault('applied_changes', []).extend(
+                    f"delete {path}" for path in cleaned
+                )
+            if clean_errors:
+                warnings.extend(clean_errors)
+
+        pipeline = self._plan_build_pipeline(build_type, target, optimize)
+        build_logs: List[Dict[str, Any]] = []
+        step_errors: List[str] = []
+
+        for step in pipeline:
+            result = self._run_command(step['command'], cwd=step.get('cwd'))
+            build_logs.append({
+                'description': step['description'],
+                'command': result.get('command'),
+                'stdout': result.get('stdout', ''),
+                'stderr': result.get('stderr', ''),
+                'exit_code': result.get('exit_code'),
+                'duration_s': result.get('duration_s'),
+                'error': result.get('error'),
+            })
+            op_label = f"{step['description']} (exit {result.get('exit_code')})"
+            operations.append(op_label)
+            context.results.setdefault('applied_changes', []).append(op_label)
+            if result.get('error'):
+                stderr = result.get('stderr') or result.get('error')
+                step_errors.append(f"{step['description']}: {stderr}")
+
+        if not pipeline:
+            step_errors.append("No build steps available for this project.")
+
+        if step_errors:
+            warnings.extend(step_errors)
+            context.errors.extend(step_errors)
+
+        operations = self._deduplicate(operations)
+        if operations:
+            exec_ops = context.results.setdefault('executed_operations', [])
+            exec_ops.extend(op for op in operations if op not in exec_ops)
+
+        summary_lines = [
+            f"Build type: {build_type or 'default'}",
+            f"Target: {target}",
+            f"Optimizations: {'enabled' if optimize else 'disabled'}",
+            f"Cleaned: {', '.join(cleaned) if cleaned else 'none'}",
+            "",
+            "## Steps",
+        ]
+        if build_logs:
+            for idx, entry in enumerate(build_logs, start=1):
+                summary_lines.append(f"{idx}. {entry['description']} — exit {entry['exit_code']}")
+                if entry.get('stderr'):
+                    summary_lines.append(f"   stderr: {self._truncate_output(entry['stderr'])}")
+        else:
+            summary_lines.append("No build commands were executed.")
+
+        if warnings:
+            summary_lines.append("")
+            summary_lines.append("## Warnings")
+            summary_lines.extend(f"- {warning}" for warning in warnings)
+
+        artifact = self._record_artifact(
+            context,
+            "build",
+            "\n".join(summary_lines).strip(),
+            operations=operations,
+            metadata={
+                "type": build_type,
+                "target": target,
+                "optimize": optimize,
+                "status": "success" if not step_errors else "failed",
+            },
+        )
+
+        success = not step_errors
+        status = 'build_succeeded' if success else 'build_failed'
+
+        if warnings:
+            warning_list = context.results.setdefault('build_warnings', [])
+            warning_list.extend(warnings)
+            context.results['build_warnings'] = self._deduplicate(warning_list)
+
+        output: Dict[str, Any] = {
+            'status': status,
+            'build_type': build_type,
+            'target': target,
+            'optimize': optimize,
+            'steps': build_logs,
+            'cleared_artifacts': cleaned,
             'mode': context.behavior_mode
         }
+        if artifact:
+            output['artifact'] = artifact
+        if warnings:
+            output['warnings'] = warnings
+        return output
 
     async def _execute_git(self, context: CommandContext) -> Dict[str, Any]:
         """Execute git command."""
-        return {
-            'status': 'git_operation_started',
-            'operation': context.command.arguments[0] if context.command.arguments else 'status',
+        repo_root = Path(self.repo_root or Path.cwd())
+        if not (repo_root / ".git").exists():
+            message = "Git repository not found; initialize Git before using /sc:git."
+            context.errors.append(message)
+            return {
+                'status': 'git_failed',
+                'error': message,
+                'mode': context.behavior_mode
+            }
+
+        operation = context.command.arguments[0] if context.command.arguments else 'status'
+        operation = operation.lower()
+        extra_args = context.command.arguments[1:]
+
+        apply_changes = (
+            self._flag_present(context.command, 'apply')
+            or self._is_truthy(context.command.parameters.get('apply'))
+        )
+        smart_commit = (
+            self._flag_present(context.command, 'smart-commit')
+            or self._flag_present(context.command, 'smart_commit')
+            or self._is_truthy(context.command.parameters.get('smart-commit'))
+            or self._is_truthy(context.command.parameters.get('smart_commit'))
+        )
+        commit_message = context.command.parameters.get('message') or context.command.parameters.get('msg')
+
+        operations: List[str] = []
+        logs: List[Dict[str, Any]] = []
+        warnings: List[str] = []
+
+        def _record(result: Dict[str, Any], description: str) -> None:
+            logs.append({
+                'description': description,
+                'command': result.get('command'),
+                'stdout': result.get('stdout', ''),
+                'stderr': result.get('stderr', ''),
+                'exit_code': result.get('exit_code'),
+                'duration_s': result.get('duration_s'),
+                'error': result.get('error'),
+            })
+            operations.append(description)
+            context.results.setdefault('applied_changes', []).append(description)
+            if result.get('error'):
+                stderr = result.get('stderr') or result.get('error')
+                warnings.append(f"{description}: {stderr}")
+
+        status_summary: Dict[str, Any] = {}
+
+        if operation == 'status':
+            status_result = self._run_command(['git', 'status', '--short', '--branch'], cwd=repo_root)
+            _record(status_result, 'git status --short --branch')
+            stdout = status_result.get('stdout', '')
+            lines = [line for line in stdout.splitlines() if line and not line.startswith('##')]
+            staged = sum(1 for line in lines if line and line[0] not in {'?', ' '})
+            unstaged = sum(1 for line in lines if len(line) > 1 and line[1] not in {' ', '?'})
+            untracked = sum(1 for line in lines if line.startswith('??'))
+            status_summary = {
+                'branch': next((line[2:].strip() for line in stdout.splitlines() if line.startswith('##')), ''),
+                'staged_changes': staged,
+                'unstaged_changes': unstaged,
+                'untracked_files': untracked,
+            }
+        elif operation == 'diff':
+            diff_result = self._run_command(['git', 'diff', '--stat'], cwd=repo_root)
+            _record(diff_result, 'git diff --stat')
+        elif operation == 'log':
+            log_result = self._run_command(['git', 'log', '--oneline', '-5'], cwd=repo_root)
+            _record(log_result, 'git log --oneline -5')
+        elif operation == 'branch':
+            branch_result = self._run_command(['git', 'branch', '--show-current'], cwd=repo_root)
+            _record(branch_result, 'git branch --show-current')
+            status_summary = {'branch': branch_result.get('stdout', '').strip()}
+        elif operation == 'add':
+            targets = extra_args or ['.']
+            add_result = self._run_command(['git', 'add', *targets], cwd=repo_root)
+            _record(add_result, f"git add {' '.join(targets)}")
+        elif operation == 'commit':
+            if smart_commit or not commit_message:
+                commit_message = self._generate_commit_message(repo_root)
+            if not commit_message:
+                commit_message = "chore: update workspace"
+            command_args = ['git', 'commit', '-m', commit_message]
+            if not apply_changes:
+                command_args.insert(2, '--dry-run')
+            commit_result = self._run_command(command_args, cwd=repo_root)
+            _record(commit_result, " ".join(command_args))
+            status_summary['commit_message'] = commit_message
+        else:
+            generic_cmd = ['git', operation, *extra_args]
+            result = self._run_command(generic_cmd, cwd=repo_root)
+            _record(result, f\"{' '.join(generic_cmd)}\")
+
+        if warnings:
+            context.errors.extend(warnings)
+
+        operations = self._deduplicate(operations)
+        if operations:
+            exec_ops = context.results.setdefault('executed_operations', [])
+            exec_ops.extend(op for op in operations if op not in exec_ops)
+
+        summary_lines = [f"Operation: {operation}", f"Apply changes: {'yes' if apply_changes else 'no'}"]
+        if status_summary:
+            summary_lines.append("")
+            summary_lines.append("## Highlights")
+            for key, value in status_summary.items():
+                summary_lines.append(f"- {key.replace('_', ' ').title()}: {value}")
+
+        summary_lines.append("")
+        summary_lines.append("## Commands")
+        for entry in logs:
+            summary_lines.append(f"- {entry['description']} — exit {entry['exit_code']}")
+
+        if warnings:
+            summary_lines.append("")
+            summary_lines.append("## Warnings")
+            summary_lines.extend(f"- {warning}" for warning in warnings)
+
+        artifact = self._record_artifact(
+            context,
+            "git",
+            "\n".join(summary_lines).strip(),
+            operations=operations,
+            metadata={
+                "operation": operation,
+                "apply": apply_changes,
+                "smart_commit": smart_commit,
+            },
+        )
+
+        status = 'git_completed' if not warnings else 'git_failed'
+        output: Dict[str, Any] = {
+            'status': status,
+            'operation': operation,
+            'logs': logs,
+            'summary': status_summary,
             'mode': context.behavior_mode
         }
+        if artifact:
+            output['artifact'] = artifact
+        if warnings:
+            output['warnings'] = warnings
+        return output
 
     async def _execute_workflow(self, context: CommandContext) -> Dict[str, Any]:
         """Execute workflow command."""
-        return {
+        repo_root = Path(self.repo_root or Path.cwd())
+        raw_argument = " ".join(context.command.arguments).strip()
+        params = context.command.parameters
+
+        strategy = str(params.get('strategy', 'systematic') or 'systematic').lower()
+        depth = str(params.get('depth', 'normal') or 'normal').lower()
+        parallel = (
+            self._flag_present(context.command, 'parallel')
+            or self._is_truthy(params.get('parallel'))
+        )
+
+        source_path: Optional[Path] = None
+        source_text = ""
+        if raw_argument:
+            candidate = (repo_root / raw_argument).resolve()
+            try:
+                if candidate.exists() and candidate.is_file():
+                    source_path = candidate
+                    source_text = candidate.read_text(encoding='utf-8', errors='ignore')
+            except Exception as exc:
+                logger.debug(f"Unable to read workflow source {candidate}: {exc}")
+
+        if not source_text:
+            inline_spec = params.get('input') or raw_argument
+            if inline_spec:
+                source_text = inline_spec
+
+        sections = self._extract_heading_titles(source_text) if source_text else []
+        features = self._extract_feature_list(source_text) if source_text else []
+
+        steps = self._generate_workflow_steps(
+            context,
+            strategy=strategy,
+            depth=depth,
+            parallel=parallel,
+            sections=sections,
+            features=features or ([raw_argument] if raw_argument else []),
+        )
+
+        if not steps:
+            message = "Unable to generate workflow steps from the provided input."
+            context.errors.append(message)
+            return {
+                'status': 'workflow_failed',
+                'error': message,
+                'mode': context.behavior_mode
+            }
+
+        operations = [f"{step['id']}: {step['title']}" for step in steps]
+        context.results.setdefault('applied_changes', []).append(
+            f"workflow generated for {source_path.name if source_path else (raw_argument or 'adhoc request')}"
+        )
+        exec_ops = context.results.setdefault('executed_operations', [])
+        for op in operations:
+            if op not in exec_ops:
+                exec_ops.append(op)
+
+        summary_lines = [
+            f"Strategy: {strategy}",
+            f"Depth: {depth}",
+            f"Parallel enabled: {'yes' if parallel else 'no'}",
+            f"Source: {str(source_path.relative_to(repo_root)) if source_path else (raw_argument or 'inline request')}",
+            "",
+            "## Workflow Steps",
+        ]
+        for step in steps:
+            summary_lines.append(
+                f"- {step['id']} [{step['phase']}] {step['title']} — owner: {step['owner']}"
+            )
+            if step.get('dependencies'):
+                summary_lines.append(f"  dependencies: {', '.join(step['dependencies'])}")
+            if step.get('deliverables'):
+                summary_lines.append(f"  deliverables: {', '.join(step['deliverables'])}")
+
+        artifact = self._record_artifact(
+            context,
+            "workflow",
+            "\n".join(summary_lines).strip(),
+            operations=operations,
+            metadata={
+                "strategy": strategy,
+                "depth": depth,
+                "parallel": parallel,
+                "source": str(source_path.relative_to(repo_root)) if source_path else raw_argument or '',
+            },
+        )
+
+        output: Dict[str, Any] = {
             'status': 'workflow_generated',
-            'steps': self._generate_workflow_steps(context),
-            'mode': context.behavior_mode
+            'strategy': strategy,
+            'depth': depth,
+            'parallel': parallel,
+            'steps': steps,
+            'mode': context.behavior_mode,
+            'sections': sections,
+            'features': features,
         }
+        if artifact:
+            output['artifact'] = artifact
+        if source_path:
+            output['source_path'] = str(source_path.relative_to(repo_root))
+        return output
 
     async def _execute_business_panel(self, context: CommandContext) -> Dict[str, Any]:
         """Execute the business panel orchestration command."""
@@ -1341,34 +1693,159 @@ class CommandExecutor:
             'mode': context.behavior_mode
         }
 
-    def _generate_workflow_steps(self, context: CommandContext) -> List[Dict[str, Any]]:
-        """Generate workflow steps based on command context."""
-        # Basic workflow generation
-        steps = []
+    def _generate_workflow_steps(
+        self,
+        context: CommandContext,
+        *,
+        strategy: str,
+        depth: str,
+        parallel: bool,
+        sections: Sequence[str],
+        features: Sequence[str]
+    ) -> List[Dict[str, Any]]:
+        """Generate structured workflow steps."""
+        steps: List[Dict[str, Any]] = []
+        step_counter = 0
 
-        # Add analysis step if needed
-        if 'analyze' in context.metadata.personas:
+        def add_step(
+            phase: str,
+            title: str,
+            owner: str,
+            *,
+            dependencies: Optional[Sequence[str]] = None,
+            deliverables: Optional[Sequence[str]] = None,
+            notes: Optional[str] = None,
+            parallelizable: bool = False
+        ) -> str:
+            nonlocal step_counter
+            step_counter += 1
+            step_id = f"S{step_counter:02d}"
             steps.append({
-                'step': 1,
-                'action': 'analyze_requirements',
-                'agent': 'requirements-analyst'
+                'id': step_id,
+                'phase': phase,
+                'title': title,
+                'owner': owner,
+                'dependencies': list(dependencies or []),
+                'deliverables': list(deliverables or []),
+                'notes': notes or "",
+                'parallel': bool(parallelizable and parallel),
             })
+            return step_id
 
-        # Add implementation steps
-        if 'implement' in context.command.name:
-            steps.append({
-                'step': len(steps) + 1,
-                'action': 'implement_feature',
-                'agent': 'general-purpose'
-            })
+        analysis_owner = "requirements-analyst"
+        architecture_owner = "system-architect"
+        quality_owner = "quality-engineer"
+        release_owner = "devops-architect"
 
-        # Add testing step
-        if context.command.parameters.get('with-tests', False):
-            steps.append({
-                'step': len(steps) + 1,
-                'action': 'create_tests',
-                'agent': 'quality-engineer'
-            })
+        analysis_id = add_step(
+            "Analysis",
+            "Clarify scope, stakeholders, and success criteria",
+            analysis_owner,
+            deliverables=["Requirements brief", "Success metrics checklist"],
+            notes="Synthesize PRD sections and confirm acceptance criteria."
+        )
+
+        design_id = add_step(
+            "Architecture",
+            "Establish architecture and integration boundaries",
+            architecture_owner,
+            dependencies=[analysis_id],
+            deliverables=["Architecture baseline", "Interface contracts"],
+            notes="Align with existing decisions and stack documented in product roadmap."
+        )
+
+        planning_owner = "project-manager"
+        planning_notes = "Define execution cadence and align with delivery strategy."
+        if strategy in {"agile", "scrum"}:
+            planning_title = "Plan sprint backlog and iteration cadence"
+        elif strategy in {"enterprise"}:
+            planning_title = "Align governance checkpoints and stakeholder approvals"
+        else:
+            planning_title = "Sequence implementation milestones and owners"
+
+        planning_id = add_step(
+            "Planning",
+            planning_title,
+            planning_owner,
+            dependencies=[analysis_id, design_id],
+            deliverables=["Execution plan", "Owner assignments"],
+            notes=planning_notes,
+            parallelizable=True
+        )
+
+        implementation_dependencies = [design_id, planning_id]
+        feature_steps: List[str] = []
+
+        feature_items = features or ["Core feature implementation"]
+        for item in feature_items:
+            owner = self._select_feature_owner(item)
+            feature_steps.append(
+                add_step(
+                    "Implementation",
+                    f"Deliver feature: {item}",
+                    owner,
+                    dependencies=implementation_dependencies,
+                    deliverables=[f"{item} implementation", "Linked documentation updates"],
+                    notes="Coordinate with delegated agents when specialization is required.",
+                    parallelizable=True
+                )
+            )
+
+        if depth in {"deep", "enterprise"}:
+            security_step = add_step(
+                "Quality",
+                "Run security and compliance review",
+                "security-engineer",
+                dependencies=feature_steps or implementation_dependencies,
+                deliverables=["Security checklist", "Risk register updates"],
+                notes="Ensure authentication, authorization, and data handling meet standards.",
+                parallelizable=parallel
+            )
+            performance_step = add_step(
+                "Quality",
+                "Validate performance and scalability benchmarks",
+                "performance-engineer",
+                dependencies=feature_steps or [security_step],
+                deliverables=["Performance test results", "Optimization backlog"],
+                notes="Stress critical paths; capture regression budgets.",
+                parallelizable=parallel
+            )
+            qa_dependencies = feature_steps + [security_step, performance_step]
+        else:
+            qa_dependencies = feature_steps
+
+        qa_step = add_step(
+            "Quality",
+            "Execute automated tests and acceptance validation",
+            quality_owner,
+            dependencies=qa_dependencies or implementation_dependencies,
+            deliverables=["Test evidence", "Coverage summary", "Go/No-go recommendation"],
+            notes="Include regression, integration, and smoke suites.",
+            parallelizable=False
+        )
+
+        release_dependencies = [qa_step]
+        release_notes = "Package artifacts, update changelog, and prepare rollout checklist."
+        release_step = add_step(
+            "Release",
+            "Prepare deployment and rollout communications",
+            release_owner,
+            dependencies=release_dependencies,
+            deliverables=["Deployment plan", "Rollback steps", "Release notes draft"],
+            notes=release_notes,
+            parallelizable=False
+        )
+
+        if strategy in {"enterprise", "systematic"}:
+            add_step(
+                "Governance",
+                "Capture learnings and update long-term roadmap",
+                "requirements-analyst",
+                dependencies=[release_step],
+                deliverables=["Retrospective summary", "Roadmap adjustments"],
+                notes="Feed outcomes into product artifacts for cross-team awareness.",
+                parallelizable=False
+            )
 
         return steps
 
@@ -1612,6 +2089,81 @@ class CommandExecutor:
 
         return entry
 
+    def _run_command(
+        self,
+        command: Sequence[str],
+        *,
+        cwd: Optional[Path] = None,
+        env: Optional[Dict[str, Any]] = None,
+        timeout: Optional[int] = None
+    ) -> Dict[str, Any]:
+        """
+        Execute a system command and capture its output.
+
+        Returns:
+            Dictionary containing command metadata, stdout, stderr, exit code, duration,
+            and an optional error indicator.
+        """
+        args = [str(part) for part in command]
+        working_dir = Path(cwd or self.repo_root or Path.cwd())
+        runtime_env = os.environ.copy()
+        runtime_env.setdefault("PYENV_DISABLE_REHASH", "1")
+        if env:
+            runtime_env.update({str(key): str(value) for key, value in env.items()})
+
+        start = datetime.now()
+        try:
+            result = subprocess.run(
+                args,
+                cwd=str(working_dir),
+                capture_output=True,
+                text=True,
+                env=runtime_env,
+                timeout=timeout,
+                check=False
+            )
+            duration = (datetime.now() - start).total_seconds()
+            stdout_text = (result.stdout or "").strip()
+            stderr_text = (result.stderr or "").strip()
+            output = {
+                "command": " ".join(args),
+                "args": args,
+                "cwd": str(working_dir),
+                "stdout": stdout_text,
+                "stderr": stderr_text,
+                "exit_code": result.returncode,
+                "duration_s": duration,
+            }
+            if result.returncode != 0:
+                output["error"] = f"exit code {result.returncode}"
+            return output
+        except subprocess.TimeoutExpired as exc:
+            duration = (datetime.now() - start).total_seconds()
+            stdout_text = getattr(exc, "stdout", "") or ""
+            stderr_text = getattr(exc, "stderr", "") or ""
+            return {
+                "command": " ".join(args),
+                "args": args,
+                "cwd": str(working_dir),
+                "stdout": stdout_text.strip(),
+                "stderr": (stderr_text or "Command timed out").strip(),
+                "exit_code": None,
+                "duration_s": duration,
+                "error": "timeout",
+            }
+        except Exception as exc:
+            duration = (datetime.now() - start).total_seconds()
+            return {
+                "command": " ".join(args),
+                "args": args,
+                "cwd": str(working_dir),
+                "stdout": "",
+                "stderr": str(exc),
+                "exit_code": None,
+                "duration_s": duration,
+                "error": str(exc),
+            }
+
     def _collect_diff_stats(self) -> List[str]:
         """Collect diff statistics for working and staged changes."""
         if not self.repo_root or not (self.repo_root / '.git').exists():
@@ -1641,6 +2193,92 @@ class CommandExecutor:
                 stats.append(f"diff --stat ({label}): {self._truncate_output(output)}")
 
         return stats
+
+    def _clean_build_artifacts(self, repo_root: Path) -> Tuple[List[str], List[str]]:
+        """Remove common build artifacts when a clean build is requested."""
+        removed: List[str] = []
+        errors: List[str] = []
+        targets = [
+            "build",
+            "dist",
+            "htmlcov",
+            ".pytest_cache",
+            "SuperClaude.egg-info",
+        ]
+
+        for target in targets:
+            path = repo_root / target
+            if not path.exists():
+                continue
+            try:
+                if path.is_dir():
+                    shutil.rmtree(path)
+                else:
+                    path.unlink()
+                removed.append(str(path.relative_to(repo_root)))
+            except Exception as exc:
+                errors.append(f"{target}: {exc}")
+
+        return removed, errors
+
+    def _plan_build_pipeline(
+        self,
+        build_type: str,
+        target: Optional[str],
+        optimize: bool
+    ) -> List[Dict[str, Any]]:
+        """Determine the build steps required for the current repository."""
+        repo_root = Path(self.repo_root or Path.cwd())
+        pipeline: List[Dict[str, Any]] = []
+
+        has_pyproject = (repo_root / "pyproject.toml").exists()
+        has_setup = (repo_root / "setup.py").exists()
+        has_package_json = (repo_root / "package.json").exists()
+
+        if has_package_json and shutil.which("npm"):
+            pipeline.append({
+                "description": "Install npm dependencies",
+                "command": ["npm", "install"],
+                "cwd": repo_root
+            })
+            build_cmd: List[str] = ["npm", "run", "build"]
+            if build_type and build_type not in {"production", "prod"}:
+                build_cmd.extend(["--", f"--mode={build_type}"])
+            elif optimize:
+                build_cmd.extend(["--", "--mode=production"])
+            pipeline.append({
+                "description": f"Run npm build ({build_type or 'default'})",
+                "command": build_cmd,
+                "cwd": repo_root
+            })
+
+        if has_pyproject or has_setup:
+            if importlib.util.find_spec("build"):
+                build_args = ["python", "-m", "build"]
+                if optimize:
+                    build_args.append("--wheel")
+                    build_args.append("--sdist")
+                pipeline.append({
+                    "description": "Build Python distributions",
+                    "command": build_args,
+                    "cwd": repo_root
+                })
+            elif has_setup:
+                pipeline.append({
+                    "description": "Build Python source distribution",
+                    "command": ["python", "setup.py", "sdist"],
+                    "cwd": repo_root
+                })
+
+        superclaude_path = repo_root / "SuperClaude"
+        if superclaude_path.exists():
+            pipeline.append({
+                "description": "Compile Python sources",
+                "command": ["python", "-m", "compileall", str(superclaude_path)],
+                "cwd": repo_root
+            })
+
+        return pipeline
 
     def _extract_changed_paths(self, repo_entries: List[str], applied_changes: List[str]) -> List[Path]:
         """Derive candidate file paths that were reported as changed."""
@@ -1726,6 +2364,87 @@ class CommandExecutor:
                     issues.append(f"{rel_path}: yaml validation failed — {exc}")
 
         return issues
+
+    def _generate_commit_message(self, repo_root: Path) -> str:
+        """Generate a conventional commit message based on repository changes."""
+        status_result = self._run_command(["git", "status", "--short"], cwd=repo_root)
+        stdout = status_result.get("stdout", "")
+        if not stdout.strip():
+            return "chore: update workspace"
+
+        scopes: Set[str] = set()
+        doc_only = True
+        test_only = True
+
+        for line in stdout.splitlines():
+            line = line.strip()
+            if not line:
+                continue
+            parts = line.split(maxsplit=1)
+            if len(parts) < 2:
+                continue
+            path_fragment = parts[1]
+            path = Path(path_fragment)
+            if path.parts:
+                scopes.add(path.parts[0])
+            suffix = path.suffix.lower()
+            if suffix not in {".md", ".rst"}:
+                doc_only = False
+            if "test" not in path.parts and not path.parts[0].startswith("test"):
+                test_only = False
+
+        scope_text = "/".join(sorted(scopes)) if scopes else "project"
+        if doc_only and not test_only:
+            prefix = "docs"
+        elif test_only and not doc_only:
+            prefix = "test"
+        else:
+            prefix = "chore"
+
+        return f"{prefix}: update {scope_text}"
+
+    def _extract_heading_titles(self, source_text: str) -> List[str]:
+        """Extract top-level headings from a document."""
+        titles: List[str] = []
+        for line in source_text.splitlines():
+            stripped = line.strip()
+            if not stripped.startswith("#"):
+                continue
+            level = len(stripped) - len(stripped.lstrip("#"))
+            if level > 3:
+                continue
+            title = stripped.lstrip("#").strip()
+            if title:
+                titles.append(title)
+        return titles[:12]
+
+    def _extract_feature_list(self, source_text: str) -> List[str]:
+        """Extract feature-like bullet items from a document."""
+        features: List[str] = []
+        for line in source_text.splitlines():
+            stripped = line.strip()
+            if not stripped or stripped.startswith("#"):
+                continue
+            if stripped[0] in {"-", "*"}:
+                candidate = stripped[1:].strip(" -*\t")
+                if candidate:
+                    features.append(candidate)
+        return features[:12]
+
+    def _select_feature_owner(self, description: str) -> str:
+        """Choose an agent owner for a workflow item based on keywords."""
+        text = description.lower()
+        if any(keyword in text for keyword in ("frontend", "ui", "ux", "react", "view")):
+            return "frontend-architect"
+        if any(keyword in text for keyword in ("backend", "api", "service", "database")):
+            return "backend-architect"
+        if any(keyword in text for keyword in ("security", "auth", "permission", "compliance")):
+            return "security-engineer"
+        if any(keyword in text for keyword in ("testing", "qa", "quality")):
+            return "quality-engineer"
+        if any(keyword in text for keyword in ("deployment", "infrastructure", "devops", "ci")):
+            return "devops-architect"
+        return "general-purpose"
 
     def _relative_to_repo_path(self, path: Path) -> str:
         """Convert absolute path to repo-relative string."""
@@ -2836,12 +3555,17 @@ class CommandExecutor:
             context.results['consensus_models'] = result['models']
         if result.get('think_level') is not None:
             context.results['consensus_think_level'] = result['think_level']
+        if 'offline' in result:
+            context.results['consensus_offline'] = bool(result['offline'])
 
         if enforce and not result.get('consensus_reached', False):
             message = "Consensus not reached; additional review required."
             if result.get('error'):
                 message = f"Consensus failed: {result['error']}"
             context.errors.append(message)
+            context.results['consensus_failed'] = True
+            if result.get('error'):
+                context.results['consensus_error'] = result['error']
             if isinstance(output, dict):
                 warnings_list = self._ensure_list(output, 'warnings')
                 if message not in warnings_list:

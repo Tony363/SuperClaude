@@ -4,12 +4,13 @@ X.AI API Client for Grok-4 and Grok-Code-Fast-1 models.
 Provides unified interface for X.AI's Grok models with code analysis capabilities.
 """
 
-import os
 import logging
-import asyncio
-from typing import Dict, List, Any, Optional, AsyncIterator
+import os
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
+from typing import Any, AsyncIterator, Dict, List, Optional
+
+from .http_utils import HTTPClientError, post_json
 
 logger = logging.getLogger(__name__)
 
@@ -132,45 +133,52 @@ class XAIClient:
         # Check rate limits
         await self.rate_limiter.acquire(request)
 
+        payload = self._build_payload(request)
+        headers = {
+            "Authorization": f"Bearer {self.config.api_key}",
+            "Content-Type": "application/json",
+        }
+
         try:
-            # In real implementation, make actual API call
-            # async with aiohttp.ClientSession() as session:
-            #     headers = {
-            #         "Authorization": f"Bearer {self.config.api_key}",
-            #         "Content-Type": "application/json"
-            #     }
-            #
-            #     payload = self._build_payload(request)
-            #
-            #     async with session.post(
-            #         f"{self.config.endpoint}/chat/completions",
-            #         headers=headers,
-            #         json=payload,
-            #         timeout=self.config.timeout
-            #     ) as response:
-            #         data = await response.json()
-
-            # Mock response
-            response = GrokResponse(
-                id=f"grok-{datetime.now().timestamp()}",
-                model=request.model,
-                content=f"Grok {request.model} response to: {request.messages[-1]['content'][:50]}...",
-                usage={
-                    "prompt_tokens": 100,
-                    "completion_tokens": 50,
-                    "total_tokens": 150
-                }
+            status, data, response_headers = await post_json(
+                f"{self.config.endpoint}/chat/completions",
+                payload,
+                headers=headers,
+                timeout=self.config.timeout,
             )
-
-            # Track usage
-            self.token_counter.add(response.usage)
-
-            logger.info(f"Completed Grok request with {request.model}: {response.usage['total_tokens']} tokens")
-            return response
-
-        except Exception as e:
-            logger.error(f"X.AI API error: {e}")
+        except HTTPClientError as exc:
+            logger.error("X.AI API error: %s", exc)
             raise
+
+        choices = data.get("choices") or []
+        if not choices:
+            raise HTTPClientError(status, "Grok response missing choices", data)
+        choice = choices[0]
+        message = choice.get("message") or {}
+        role = message.get("role", "assistant")
+        content = message.get("content") or ""
+
+        response = GrokResponse(
+            id=data.get("id", f"grok-{datetime.now().timestamp()}"),
+            model=data.get("model", request.model),
+            content=content,
+            role=role,
+            tool_calls=message.get("tool_calls") or message.get("toolCalls"),
+            finish_reason=choice.get("finish_reason", "stop"),
+            usage=data.get("usage", {}),
+            metadata={
+                "status": status,
+                "headers": {k: v for k, v in response_headers.items() if k.lower().startswith("x-")},
+            },
+        )
+
+        self.token_counter.add(response.usage)
+        logger.info(
+            "Completed Grok request with %s: %s tokens",
+            response.model,
+            response.usage.get("total_tokens", 0),
+        )
+        return response
 
     async def analyze_code(
         self,

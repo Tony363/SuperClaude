@@ -6,6 +6,7 @@ import sys
 from datetime import datetime
 from pathlib import Path
 from types import SimpleNamespace
+from typing import List, Sequence
 
 import pytest
 
@@ -284,6 +285,124 @@ class TestCommandExecutor:
                 impl_dir.rmdir()
             except OSError:
                 pass
+
+    @pytest.mark.asyncio
+    async def test_build_command_runs_pipeline(self, monkeypatch):
+        """Build command should execute pipeline steps and emit artifacts."""
+        registry = CommandRegistry()
+        parser = CommandParser()
+        executor = CommandExecutor(registry, parser)
+
+        commands_invoked: List[Sequence[str]] = []
+
+        def fake_run_command(self, command, *, cwd=None, env=None, timeout=None):
+            commands_invoked.append(tuple(command))
+            return {
+                'command': ' '.join(command),
+                'args': list(command),
+                'stdout': 'ok',
+                'stderr': '',
+                'exit_code': 0,
+                'duration_s': 0.01
+            }
+
+        monkeypatch.setattr(
+            CommandExecutor,
+            '_run_command',
+            fake_run_command,
+            raising=False
+        )
+
+        result = await executor.execute('/sc:build --type prod')
+
+        assert result.success is True
+        assert result.output['status'] == 'build_succeeded'
+        assert commands_invoked, "Expected build pipeline to invoke system commands"
+        assert result.output.get('artifact'), "Build should produce an artifact"
+
+        repo_root = executor.repo_root or Path.cwd()
+        for artifact_path in result.artifacts:
+            (repo_root / artifact_path).unlink(missing_ok=True)
+
+    @pytest.mark.asyncio
+    async def test_git_status_reports_repository_state(self, monkeypatch):
+        """Git status should parse repository summary and create artifacts."""
+        registry = CommandRegistry()
+        parser = CommandParser()
+        executor = CommandExecutor(registry, parser)
+
+        def fake_run_command(self, command, *, cwd=None, env=None, timeout=None):
+            if command[:4] == ['git', 'status', '--short', '--branch']:
+                return {
+                    'command': ' '.join(command),
+                    'args': list(command),
+                    'stdout': "## main\n M SuperClaude/Commands/executor.py\n?? new_feature.py\n",
+                    'stderr': '',
+                    'exit_code': 0,
+                    'duration_s': 0.01
+                }
+            return {
+                'command': ' '.join(command),
+                'args': list(command),
+                'stdout': '',
+                'stderr': '',
+                'exit_code': 0,
+                'duration_s': 0.01
+            }
+
+        monkeypatch.setattr(
+            CommandExecutor,
+            '_run_command',
+            fake_run_command,
+            raising=False
+        )
+
+        result = await executor.execute('/sc:git status')
+        assert result.success is True
+        summary = result.output['summary']
+        assert summary['branch'] == 'main'
+        assert summary['staged_changes'] == 1
+        assert summary['untracked_files'] == 1
+        assert result.output.get('artifact')
+
+        repo_root = executor.repo_root or Path.cwd()
+        for artifact_path in result.artifacts:
+            (repo_root / artifact_path).unlink(missing_ok=True)
+
+    @pytest.mark.asyncio
+    async def test_workflow_command_generates_plan(self):
+        """Workflow command should produce structured steps from a PRD."""
+        registry = CommandRegistry()
+        parser = CommandParser()
+        executor = CommandExecutor(registry, parser)
+
+        repo_root = executor.repo_root or Path.cwd()
+        prd_path = repo_root / "temp-workflow-spec.md"
+        prd_path.write_text(
+            "# Authentication feature\n\n"
+            "## Goals\n"
+            "- Enable secure login\n"
+            "- Capture audit events\n\n"
+            "## Non-Goals\n"
+            "- Mobile clients\n\n"
+            "## Acceptance Criteria\n"
+            "- Users can authenticate with email and password\n"
+            "- Security monitoring alerts on failed attempts\n",
+            encoding='utf-8'
+        )
+
+        try:
+            result = await executor.execute(f"/sc:workflow {prd_path.name} --strategy agile --depth deep --parallel")
+            assert result.success is True
+            assert result.output['status'] == 'workflow_generated'
+            assert result.output['steps'], "Workflow should include generated steps"
+            assert any(step['phase'] == 'Quality' for step in result.output['steps'])
+            assert result.output.get('artifact')
+
+            for artifact_path in result.artifacts:
+                (repo_root / artifact_path).unlink(missing_ok=True)
+        finally:
+            prd_path.unlink(missing_ok=True)
 
     def test_run_requested_tests_translates_flags(self, monkeypatch):
         """_run_requested_tests should honor coverage, markers, and targets."""
@@ -748,6 +867,64 @@ class TestCommandExecutor:
                 impl_dir.rmdir()
             except OSError:
                 pass
+
+    @pytest.mark.asyncio
+    async def test_requires_evidence_blocks_on_consensus_failure(self, monkeypatch):
+        """Requires-evidence commands should fail when consensus cannot be reached."""
+        registry = CommandRegistry()
+        parser = CommandParser()
+        executor = CommandExecutor(registry, parser)
+
+        async def failing_consensus(prompt: str, **kwargs):
+            return {
+                'consensus_reached': False,
+                'error': 'no agreement between models',
+                'models': ['gpt-5', 'claude-opus-4.1'],
+                'think_level': kwargs.get('think_level', 2),
+                'offline': True
+            }
+
+        executor.consensus_facade.run_consensus = failing_consensus
+
+        def fake_run_requested_tests(self, parsed_cmd):
+            return {
+                'command': 'pytest -q',
+                'args': ['pytest', '-q'],
+                'passed': True,
+                'pass_rate': 1.0,
+                'stdout': 'collected 0 items',
+                'stderr': '',
+                'duration_s': 0.05,
+                'exit_code': 0
+            }
+
+        monkeypatch.setattr(
+            CommandExecutor,
+            '_run_requested_tests',
+            fake_run_requested_tests,
+            raising=False
+        )
+
+        def fake_apply_change_plan(self, ctx, plan):
+            return {
+                'applied': [entry['path'] for entry in plan],
+                'warnings': [],
+                'base_path': str(self.repo_root or Path.cwd()),
+                'session': 'repo'
+            }
+
+        monkeypatch.setattr(
+            CommandExecutor,
+            '_apply_change_plan',
+            fake_apply_change_plan,
+            raising=False
+        )
+
+        result = await executor.execute('/sc:implement sample feature --consensus')
+
+        assert result.success is False
+        assert any('consensus' in err.lower() for err in result.errors)
+        assert result.consensus.get('consensus_reached') is False
 
     @pytest.mark.asyncio
     async def test_implement_fails_when_no_changes_applied(self, monkeypatch):

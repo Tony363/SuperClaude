@@ -4,12 +4,13 @@ Anthropic API Client for Claude Opus 4.1 model.
 Provides unified interface for Anthropic's Claude models with streaming support.
 """
 
-import os
 import logging
-import asyncio
-from typing import Dict, List, Any, Optional, AsyncIterator
+import os
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
+from typing import Any, AsyncIterator, Dict, List, Optional
+
+from .http_utils import HTTPClientError, post_json
 
 logger = logging.getLogger(__name__)
 
@@ -134,45 +135,53 @@ class AnthropicClient:
         # Check rate limits
         await self.rate_limiter.acquire(request)
 
+        payload = self._build_payload(request)
+        headers = {
+            "x-api-key": self.config.api_key,
+            "anthropic-version": self.config.api_version,
+            "content-type": "application/json",
+        }
+
         try:
-            # In real implementation, make actual API call
-            # async with aiohttp.ClientSession() as session:
-            #     headers = {
-            #         "x-api-key": self.config.api_key,
-            #         "anthropic-version": self.config.api_version,
-            #         "content-type": "application/json"
-            #     }
-            #
-            #     payload = self._build_payload(request)
-            #
-            #     async with session.post(
-            #         f"{self.config.endpoint}/messages",
-            #         headers=headers,
-            #         json=payload,
-            #         timeout=self.config.timeout
-            #     ) as response:
-            #         data = await response.json()
-
-            # Mock response
-            response = ClaudeResponse(
-                id=f"msg_{datetime.now().timestamp()}",
-                model=request.model,
-                content=f"Claude Opus response to: {request.messages[-1]['content'][:50]}...",
-                usage={
-                    "input_tokens": 100,
-                    "output_tokens": 50
-                }
+            status, data, response_headers = await post_json(
+                f"{self.config.endpoint}/messages",
+                payload,
+                headers=headers,
+                timeout=self.config.timeout,
             )
-
-            # Track usage
-            self.token_counter.add(response.usage)
-
-            logger.info(f"Completed Claude request: {response.usage.get('input_tokens', 0)} + {response.usage.get('output_tokens', 0)} tokens")
-            return response
-
-        except Exception as e:
-            logger.error(f"Anthropic API error: {e}")
+        except HTTPClientError as exc:
+            logger.error("Anthropic API error: %s", exc)
             raise
+
+        content_blocks = data.get("content") or []
+        text_parts: List[str] = []
+        for block in content_blocks:
+            if isinstance(block, dict) and block.get("type") == "text":
+                text_parts.append(block.get("text", ""))
+        content_text = "\n".join(part for part in text_parts if part) or str(content_blocks)
+
+        usage = data.get("usage") or {}
+        response = ClaudeResponse(
+            id=data.get("id", f"msg_{datetime.now().timestamp()}"),
+            model=data.get("model", request.model),
+            content=content_text,
+            stop_reason=data.get("stop_reason", "end_turn"),
+            usage=usage,
+            metadata={
+                "type": data.get("type"),
+                "role": data.get("role"),
+                "status": status,
+                "headers": {k: v for k, v in response_headers.items() if k.lower().startswith("x-")},
+            },
+        )
+
+        self.token_counter.add(response.usage)
+        logger.info(
+            "Completed Claude request with %s: %s tokens",
+            response.model,
+            response.usage.get("input_tokens", 0) + response.usage.get("output_tokens", 0),
+        )
+        return response
 
     async def stream(self, request: ClaudeRequest) -> AsyncIterator[str]:
         """

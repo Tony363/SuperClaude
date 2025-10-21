@@ -4,12 +4,13 @@ Google API Client for Gemini 2.5 Pro model.
 Provides unified interface for Google's Gemini models with long context support.
 """
 
-import os
 import logging
-import asyncio
-from typing import Dict, List, Any, Optional, AsyncIterator
+import os
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
+from typing import Any, AsyncIterator, Dict, List, Optional
+
+from .http_utils import HTTPClientError, post_json
 
 logger = logging.getLogger(__name__)
 
@@ -137,42 +138,57 @@ class GoogleClient:
         # Check rate limits
         await self.rate_limiter.acquire(request)
 
+        payload = self._build_payload(request)
+        url = f"{self.config.endpoint}/models/{model_config['full_name']}:generateContent"
+
         try:
-            # In real implementation, make actual API call
-            # async with aiohttp.ClientSession() as session:
-            #     url = f"{self.config.endpoint}/models/{model_config['full_name']}:generateContent"
-            #     params = {"key": self.config.api_key}
-            #
-            #     payload = self._build_payload(request)
-            #
-            #     async with session.post(
-            #         url,
-            #         params=params,
-            #         json=payload,
-            #         timeout=self.config.timeout
-            #     ) as response:
-            #         data = await response.json()
-
-            # Mock response
-            response = GeminiResponse(
-                text=f"Gemini response to: {request.prompt[:50]}...",
-                model=model_config["full_name"],
-                token_count={
-                    "prompt_tokens": 100,
-                    "candidates_tokens": 50,
-                    "total_tokens": 150
-                }
+            status, data, response_headers = await post_json(
+                url,
+                payload,
+                params={"key": self.config.api_key},
+                timeout=self.config.timeout,
             )
-
-            # Track usage
-            self.token_counter.add(response.token_count)
-
-            logger.info(f"Completed Gemini request: {response.token_count.get('total_tokens', 0)} tokens")
-            return response
-
-        except Exception as e:
-            logger.error(f"Google API error: {e}")
+        except HTTPClientError as exc:
+            logger.error("Google API error: %s", exc)
             raise
+
+        candidates = data.get("candidates") or []
+        if not candidates:
+            raise HTTPClientError(status, "Gemini response missing candidates", data)
+        primary = candidates[0]
+        content = primary.get("content") or {}
+        parts = content.get("parts") or []
+        text_parts = [part.get("text", "") for part in parts if isinstance(part, dict)]
+        combined_text = "\n".join(part for part in text_parts if part).strip()
+
+        usage_meta = data.get("usageMetadata") or {}
+        token_count = {
+            "prompt_tokens": usage_meta.get("promptTokenCount", 0),
+            "candidates_tokens": usage_meta.get("candidatesTokenCount", 0),
+            "total_tokens": usage_meta.get("totalTokenCount", 0),
+        }
+
+        response = GeminiResponse(
+            text=combined_text or str(content),
+            model=model_config["full_name"],
+            finish_reason=primary.get("finishReason", "STOP"),
+            safety_ratings=primary.get("safetyRatings", []),
+            citation_metadata=primary.get("citationMetadata"),
+            token_count=token_count,
+            metadata={
+                "status": status,
+                "headers": {k: v for k, v in response_headers.items() if k.lower().startswith("x-")},
+                "prompt_feedback": data.get("promptFeedback"),
+            },
+        )
+
+        self.token_counter.add(token_count)
+        logger.info(
+            "Completed Gemini request with %s: %s tokens",
+            response.model,
+            response.token_count.get("total_tokens", 0),
+        )
+        return response
 
     async def complete_long_context(
         self,
