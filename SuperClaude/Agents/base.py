@@ -31,6 +31,8 @@ class BaseAgent(ABC):
                    Expected keys: name, description, category, tools,
                    triggers, focus_areas, boundaries
         """
+        self.config = dict(config)
+
         self.name = config.get('name', 'unnamed-agent')
         self.description = config.get('description', '')
         self.category = config.get('category', 'general')

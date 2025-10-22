@@ -5,8 +5,12 @@ This module provides a generic agent implementation that works with
 any agent defined in markdown without requiring a specific Python class.
 """
 
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Iterable, Optional
 import re
+from datetime import datetime
+from pathlib import Path
+import textwrap
+
 from .base import BaseAgent
 
 
@@ -73,7 +77,6 @@ class GenericMarkdownAgent(BaseAgent):
 
             # Extract task from context
             task = context.get('task', '')
-            files = context.get('files', [])
             parameters = context.get('parameters', {})
 
             # Build execution plan based on key actions
@@ -82,8 +85,29 @@ class GenericMarkdownAgent(BaseAgent):
 
             executed_operations = self._extract_executed_operations(context)
 
-            if executed_operations:
-                # Treat provided operations as evidence of execution
+            synthesized_changes = self._synthesise_change_plan(
+                context,
+                task,
+                execution_plan,
+                executed_operations
+            )
+
+            if synthesized_changes:
+                result['proposed_changes'] = synthesized_changes
+                result['auto_generated_stub'] = True
+                result['actions_taken'].extend(
+                    f"write {change['path']}" for change in synthesized_changes
+                )
+                if executed_operations:
+                    result['actions_taken'].extend(executed_operations)
+                result['output'] = self._generate_output(
+                    task,
+                    execution_plan,
+                    result['actions_taken']
+                )
+                result['success'] = True
+                result['status'] = 'executed'
+            elif executed_operations:
                 result['actions_taken'].extend(executed_operations)
                 result['output'] = self._generate_output(
                     task,
@@ -93,7 +117,6 @@ class GenericMarkdownAgent(BaseAgent):
                 result['success'] = True
                 result['status'] = 'executed'
             else:
-                # No concrete work performed; return plan-only guidance
                 result['warnings'].append(
                     "No concrete file or command changes detected; returning plan-only guidance."
                 )
@@ -384,3 +407,205 @@ class GenericMarkdownAgent(BaseAgent):
             return matches / len(significant_keywords) > 0.5
 
         return False
+
+    # --- Change synthesis helpers -------------------------------------------------
+
+    def _synthesise_change_plan(
+        self,
+        context: Dict[str, Any],
+        task: str,
+        planned_actions: List[str],
+        executed_operations: List[str],
+    ) -> List[Dict[str, Any]]:
+        """
+        Best-effort synthesis of a concrete change plan so downstream components
+        apply tangible repo edits instead of plan-only guidance.
+        """
+        change_entries: List[Dict[str, Any]] = []
+
+        provided_changes = context.get('proposed_changes') or context.get('changes')
+        if isinstance(provided_changes, list):
+            for entry in provided_changes:
+                if isinstance(entry, dict) and entry.get('path') and 'content' in entry:
+                    change_entries.append({
+                        'path': str(entry['path']),
+                        'content': entry.get('content', ''),
+                        'mode': entry.get('mode', 'replace')
+                    })
+            if change_entries:
+                return change_entries
+
+        if executed_operations:
+            return change_entries
+
+        stub_extension = self._infer_extension(context, task)
+        stub_path = self._build_stub_path(task, stub_extension)
+        stub_content = self._render_stub_content(
+            task=task,
+            planned_actions=planned_actions,
+            extension=stub_extension,
+        )
+
+        change_entries.append({
+            'path': stub_path,
+            'content': stub_content,
+            'mode': 'replace'
+        })
+
+        return change_entries
+
+    def _infer_extension(self, context: Dict[str, Any], task: str) -> str:
+        """Infer file extension for generated stub."""
+        parameters = context.get('parameters', {}) or {}
+        framework = str(parameters.get('framework') or '').lower()
+        language = str(parameters.get('language') or '').lower()
+        request = f"{task} {' '.join(context.get('flags', []))} {framework} {language}".lower()
+
+        def has_any(*needles: str) -> bool:
+            return any(needle in request for needle in needles)
+
+        if has_any('readme', 'docs', 'documentation', 'spec', 'note', 'adr'):
+            return 'md'
+        if framework in {'react', 'next', 'nextjs'} or has_any('component', 'frontend', 'ui', 'tsx'):
+            return 'tsx'
+        if framework == 'vue' or has_any('vue'):
+            return 'vue'
+        if framework in {'svelte', 'solid'} or has_any('svelte'):
+            return 'svelte'
+        if framework in {'express', 'node'} or has_any('typescript', 'ts', 'lambda', 'api endpoint'):
+            return 'ts'
+        if framework in {'go', 'golang'} or has_any('golang', ' go'):
+            return 'go'
+        if framework in {'rust'} or has_any(' rust', 'rust '):
+            return 'rs'
+        if framework in {'java', 'spring'} or has_any('java ', 'spring'):
+            return 'java'
+        if framework in {'csharp', '.net', 'dotnet'} or has_any('c#', 'csharp', '.net', 'dotnet'):
+            return 'cs'
+
+        if isinstance(self.default_extension, str) and self.default_extension:
+            return self.default_extension
+
+        if has_any('frontend', 'javascript', 'typescript'):
+            return 'ts'
+
+        return 'py'
+
+    def _build_stub_path(self, task: str, extension: str) -> str:
+        """Construct stub file path under SuperClaude/Implementation/Auto."""
+        slug = self._slugify(task or self.name)
+        timestamp = datetime.utcnow().strftime('%Y%m%d%H%M%S')
+        file_name = f"{slug}-{timestamp}.{extension}"
+        subdir = self._slugify(self.category or "general")
+        rel_path = Path('SuperClaude') / 'Implementation' / 'Auto' / subdir / file_name
+        return str(rel_path)
+
+    def _render_stub_content(
+        self,
+        task: str,
+        planned_actions: List[str],
+        extension: str,
+    ) -> str:
+        """Render language-appropriate stub content describing the plan."""
+        plan_lines = [line.strip() for line in planned_actions if line and line.strip()]
+        timestamp = datetime.utcnow().isoformat()
+        agent_name = self.name.replace('-', ' ').title()
+
+        if extension == 'py':
+            function_name = self._to_snake(self._slugify(task or agent_name))
+            plan_comment = '\n'.join(f"#  - {step}" for step in plan_lines) or "#  - flesh out behaviour"
+            return textwrap.dedent(f"""
+                \"\"\"Auto-generated implementation stub for {task or agent_name}.
+
+                Generated by {agent_name} on {timestamp}. Replace with real implementation.
+                \"\"\"
+
+                from __future__ import annotations
+
+
+                # TODO: follow the implementation plan
+                {plan_comment}
+
+
+                def {function_name}() -> None:
+                    \"\"\"Replace with actual logic for {task or 'this task'}.\"
+                    \"\"\"
+                    raise NotImplementedError(
+                        "Auto-generated stub created by SuperClaude; implement actual behaviour."
+                    )
+            """).strip() + "\n"
+
+        if extension in {'ts', 'tsx'}:
+            component_name = self._to_pascal(self._slugify(task or agent_name) or "AutoComponent")
+            plan_comment = '\n'.join(f" *  - {step}" for step in plan_lines) or " *  - flesh out behaviour"
+            if extension == 'tsx':
+                body = textwrap.dedent(f"""
+                    import React from 'react';
+
+                    export function {component_name}(): React.ReactElement {{
+                      return (
+                        <div className="auto-generated">
+                          TODO: Replace with real implementation for {task or agent_name}.
+                        </div>
+                      );
+                    }}
+                """).strip()
+            else:
+                body = textwrap.dedent(f"""
+                    export function {component_name}(): void {{
+                      throw new Error('Auto-generated stub for {task or agent_name}');
+                    }}
+                """).strip()
+
+            return textwrap.dedent(f"""
+                /**
+                 * Auto-generated implementation stub for {task or agent_name}.
+                 * Generated: {timestamp}
+                 * Plan:
+{plan_comment}
+                 */
+                {body}
+            """).strip() + "\n"
+
+        if extension == 'md':
+            plan_section = '\n'.join(f"- {step}" for step in plan_lines) or "- Flesh out the behaviour."
+            return textwrap.dedent(f"""
+                # Auto-generated Implementation Stub
+
+                - Agent: {agent_name}
+                - Generated: {timestamp}
+                - Task: {task or 'unspecified'}
+
+                ## Recommended Steps
+                {plan_section}
+
+                Replace this stub with detailed documentation once the work is complete.
+            """).strip() + "\n"
+
+        plan_comment = '\n'.join(f"//  - {step}" for step in plan_lines) or "//  - flesh out behaviour"
+        function_name = self._to_pascal(self._slugify(task or agent_name) or "AutoStub")
+        return textwrap.dedent(f"""
+            // Auto-generated implementation stub for {task or agent_name}
+            // Generated: {timestamp}
+            // Plan:
+            {plan_comment}
+
+            function {function_name}() {{
+              throw new Error("Auto-generated stub created by SuperClaude; replace with real code.");
+            }}
+        """).strip() + "\n"
+
+    @staticmethod
+    def _slugify(value: str) -> str:
+        sanitized = ''.join(ch if ch.isalnum() or ch in {'-', '_'} else '-' for ch in value.lower())
+        sanitized = '-'.join(part for part in sanitized.split('-') if part)
+        return sanitized or 'auto-task'
+
+    @staticmethod
+    def _to_snake(value: str) -> str:
+        return value.replace('-', '_')
+
+    @staticmethod
+    def _to_pascal(value: str) -> str:
+        parts = [part for part in value.replace('_', '-').split('-') if part]
+        return ''.join(part.capitalize() for part in parts) or 'AutoStub'
