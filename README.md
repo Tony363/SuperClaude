@@ -231,7 +231,7 @@ SuperClaude_Framework/
 ## Observability Artifacts
 - Command evidence: `SuperClaude/Implementation/*.md`.
 - Command summaries and diff logs: `SuperClaude/Generated/<command>/`.
-- Metrics: `.superclaude_metrics/metrics.db` (SQLite) and `events.jsonl`.
+- Metrics: `.superclaude_metrics/metrics.db` (SQLite) and `metrics.jsonl`.
 - Serena session memory: `~/.claude/serena_memory.json`.
 
 ## Contributing
