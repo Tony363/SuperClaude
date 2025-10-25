@@ -42,6 +42,8 @@
   a `requires_evidence` command returns without acceptable quality.
 - `PerformanceMonitor` records metrics to `.superclaude_metrics/metrics.db` (SQLite) and
   JSONL sinks so executions can be audited offline.
+- Agent usage telemetry persists to `.superclaude_metrics/agent_usage.json`, enabling the
+  generated markdown report (`scripts/report_agent_usage.py`) to spotlight the most active personas.
 
 ## Current Limitations
 - Consensus, model routing, and MCP servers default to heuristic stubs unless you export
@@ -148,10 +150,15 @@ heuristics to real provider clients.
 | Deepwiki | `SuperClaude/MCP/deepwiki_integration.py` | Local doc lookup |
 | Zen | `SuperClaude/MCP/zen_integration.py` | Consensus orchestration helper |
 
+All other legacy MCP adapters (Serena, MorphLLM, Context7, Playwright, etc.) have been retired
+and no longer ship with the framework.
+
 ### CLI Tooling
 - Entry points `SuperClaude` / `superclaude` execute `SuperClaude/__main__.py`.
 - `setup/cli/commands/` provides `install`, `update`, `uninstall`, `backup`, `clean`, `agent`.
 - Components live in `setup/core/` and `setup/services/`; installs target `~/.claude/`.
+- `scripts/report_agent_usage.py` emits a usage dashboard; see `Docs/User-Guide/maintenance.md`
+  for stub cleanup and telemetry workflows.
 
 ## Command Catalog
 The Markdown playbooks shipped under `SuperClaude/Commands/*.md` inform Claude Code how to
