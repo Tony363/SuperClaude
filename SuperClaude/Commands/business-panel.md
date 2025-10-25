@@ -3,7 +3,7 @@ name: business-panel
 description: "Run a multi-expert business analysis panel with adaptive interaction modes"
 category: analysis
 complexity: advanced
-mcp-servers: [sequential, context7]
+mcp-servers: [sequential]
 personas: [architect, documentation]
 requires_evidence: false
 ---
@@ -72,7 +72,7 @@ Question-driven exploration for deep learning and strategic thinking development
 
 ## Auto-Persona Activation
 - **Auto-Activates**: Analyzer, Architect, Mentor personas
-- **MCP Integration**: Sequential (primary), Context7 (business patterns)
+- **MCP Integration**: Sequential (primary), Deepwiki (business frameworks)
 - **Tool Orchestration**: Read, Grep, Write, MultiEdit, TodoWrite
 
 ## Integration Notes

@@ -364,7 +364,7 @@ AGENT_DEFINITIONS = {
             "description": "Comprehensive testing strategies and quality assurance",
             "domains": ["testing", "qa", "automation", "quality"],
             "languages": ["python", "javascript", "java"],
-            "frameworks": ["selenium", "pytest", "jest", "cypress", "playwright"]
+            "frameworks": ["selenium", "pytest", "jest", "cypress"]
         },
         {
             "id": "security-analyst",

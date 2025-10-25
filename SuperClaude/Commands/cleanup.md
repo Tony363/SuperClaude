@@ -3,7 +3,7 @@ name: cleanup
 description: "Systematically clean up code, remove dead code, and optimize project structure"
 category: workflow
 complexity: standard
-mcp-servers: [sequential, context7]
+mcp-servers: [sequential]
 personas: [architect, quality, security]
 ---
 
@@ -29,13 +29,13 @@ personas: [architect, quality, security]
 
 Key behaviors:
 - Multi-persona coordination (architect, quality, security) based on cleanup type
-- Framework-specific cleanup patterns via Context7 MCP integration
+- Framework-specific cleanup patterns via Deepwiki MCP integration
 - Systematic analysis via Sequential MCP for complex cleanup operations
 - Safety-first approach with backup and rollback capabilities
 
 ## MCP Integration
 - **Sequential MCP**: Auto-activated for complex multi-step cleanup analysis and planning
-- **Context7 MCP**: Framework-specific cleanup patterns and best practices
+- **Deepwiki MCP**: Framework-specific cleanup patterns and best practices
 - **Persona Coordination**: Architect (structure), Quality (debt), Security (credentials)
 
 ## Tool Coordination
@@ -63,7 +63,7 @@ Key behaviors:
 ```
 /sc:cleanup --type imports --preview
 # Analyzes and shows unused import cleanup without execution
-# Framework-aware optimization via Context7 patterns
+# Framework-aware optimization via Deepwiki patterns
 ```
 
 ### Comprehensive Project Cleanup
@@ -76,7 +76,7 @@ Key behaviors:
 ### Framework-Specific Cleanup
 ```
 /sc:cleanup components/ --aggressive
-# Thorough cleanup with Context7 framework patterns
+# Thorough cleanup with Deepwiki framework patterns
 # Sequential analysis for complex dependency management
 ```
 

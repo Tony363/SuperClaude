@@ -17,6 +17,8 @@
 - Auto-implementation now materializes stub files under `SuperClaude/Implementation/Auto/`, so
   `/sc:implement` produces verifiable diffs even without bespoke agent output. The stubs satisfy
   the `requires_evidence` gate while still signalling that human polish is expected.
+- Passing `--cleanup` to `/sc:implement` purges stale auto-generated stubs older than seven days,
+  keeping `SuperClaude/Implementation/Auto/` lean without touching in-progress work.
 - Extended Markdown personas are promoted to lightweight Python subclasses at load time, giving
   the entire 131-agent roster first-class execution support alongside the 15 bespoke strategists.
 - When tests are triggered from within a pytest session (e.g., during CI), the executor emits a
@@ -142,13 +144,8 @@ heuristics to real provider clients.
 
 | Integration | Path | Status |
 |-------------|------|--------|
-| Context7 catalog | `SuperClaude/MCP/integrations/context7_integration.py` | Offline doc excerpts |
-| Magic UI | `SuperClaude/MCP/integrations/magic_integration.py` | Deterministic UI generator |
-| MorphLLM | `SuperClaude/MCP/integrations/morphllm_integration.py` | Recipe-based refactor plans |
 | Sequential | `SuperClaude/MCP/integrations/sequential_integration.py` | Planning stub |
 | Deepwiki | `SuperClaude/MCP/deepwiki_integration.py` | Local doc lookup |
-| Playwright | `SuperClaude/MCP/playwright_integration.py` | Test runner stub |
-| Serena | `SuperClaude/MCP/serena_integration.py` | JSON-backed memory store |
 | Zen | `SuperClaude/MCP/zen_integration.py` | Consensus orchestration helper |
 
 ### CLI Tooling
@@ -232,7 +229,7 @@ SuperClaude_Framework/
 - Command evidence: `SuperClaude/Implementation/*.md`.
 - Command summaries and diff logs: `SuperClaude/Generated/<command>/`.
 - Metrics: `.superclaude_metrics/metrics.db` (SQLite) and `metrics.jsonl`.
-- Serena session memory: `~/.claude/serena_memory.json`.
+- UnifiedStore database: `~/.claude/unified_store.db` (migrated from `serena_memory.json`).
 
 ## Contributing
 - Follow Conventional Commit messages (`type(scope): subject`).

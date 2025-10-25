@@ -4,10 +4,9 @@ Smoke tests for MCP integrations.
 
 from pathlib import Path
 
-import pytest
 import yaml
 
-from SuperClaude.MCP import MCP_SERVERS, get_mcp_integration, MorphLLMIntegration
+from SuperClaude.MCP import MCP_SERVERS, get_mcp_integration
 
 
 def _project_root() -> Path:
@@ -35,18 +34,3 @@ def test_all_mcp_servers_can_be_instantiated():
             instance = get_mcp_integration(name)
 
         assert instance is not None, f"Failed to instantiate MCP server '{name}'"
-
-
-@pytest.mark.asyncio
-async def test_morphllm_stub_returns_plan():
-    """MorphLLM stub should return a predictable transformation plan."""
-    integration = MorphLLMIntegration()
-    plan = await integration.plan_transformation(
-        scope="src/service.py",
-        objectives=["reduce complexity", "add guard clauses"],
-    )
-
-    assert plan["scope"] == "src/service.py"
-    assert "operations" in plan and plan["operations"]
-    assert plan["recipe"]
-    assert plan["confidence"] > 0

@@ -55,8 +55,8 @@ def verify_superclaude_file(file_path: Path, component: str) -> bool:
                 'MODE_Task_Management.md', 'MODE_Token_Efficiency.md'
             ],
             'mcp_docs': [
-                'MCP_Context7.md', 'MCP_Sequential.md', 'MCP_Magic.md',
-                'MCP_Playwright.md', 'MCP_Morphllm.md', 'MCP_Serena.md'
+                'MCP_Fetch.md', 'MCP_Filesystem.md', 'MCP_Sequential.md',
+                'MCP_Deepwiki.md', 'MCP_Zen.md'
             ]
         }
         

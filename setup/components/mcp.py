@@ -39,24 +39,11 @@ class MCPComponent(Component):
                 "npm_package": "@deepwiki/mcp-server",
                 "required": False
             },
-            "playwright": {
-                "name": "playwright",
-                "description": "Cross-browser E2E testing and automation",
-                "npm_package": "@playwright/mcp@latest",
-                "required": False
-            },
             "sequential-thinking": {
                 "name": "sequential-thinking",
                 "description": "Multi-step problem solving and systematic analysis",
                 "npm_package": "@modelcontextprotocol/server-sequential-thinking",
                 "required": True
-            },
-            "serena": {
-                "name": "serena",
-                "description": "Semantic code analysis and intelligent editing",
-                "install_method": "uv",
-                "install_command": "uvx --from git+https://github.com/oraios/serena serena-mcp-server",
-                "required": False
             }
         }
     
@@ -65,7 +52,7 @@ class MCPComponent(Component):
         return {
             "name": "mcp",
             "version": __version__,
-            "description": "MCP server integration (Fetch, Filesystem, Deepwiki, Playwright, Sequential, Serena)",
+            "description": "MCP server integration (Fetch, Filesystem, Deepwiki, Sequential)",
             "category": "integration"
         }
     

@@ -16,10 +16,8 @@ from SuperClaude.ModelRouter.router import ModelRouter
 from SuperClaude.Quality.quality_scorer import QualityScorer
 from SuperClaude.Agents.extended_loader import ExtendedAgentLoader
 from SuperClaude.MCP import (
-    MagicIntegration,
     SequentialIntegration,
-    SerenaIntegration,
-    PlaywrightIntegration,
+    DeepwikiIntegration,
     ZenIntegration,
 )
 from SuperClaude.Testing.integration_framework import TestRunner, TestCase
@@ -73,25 +71,15 @@ class TestCoreComponents(unittest.TestCase):
 class TestMCPIntegrations(unittest.TestCase):
     """Test MCP server integrations"""
 
-    def test_magic_integration(self):
-        """Test Magic UI integration"""
-        magic = MagicIntegration()
-        self.assertIsNotNone(magic)
-
     def test_sequential_integration(self):
         """Test Sequential thinking integration"""
         sequential = SequentialIntegration()
         self.assertIsNotNone(sequential)
 
-    def test_serena_integration(self):
-        """Test Serena memory integration"""
-        serena = SerenaIntegration()
-        self.assertIsNotNone(serena)
-
-    def test_playwright_integration(self):
-        """Test Playwright browser integration"""
-        playwright = PlaywrightIntegration()
-        self.assertIsNotNone(playwright)
+    def test_deepwiki_integration(self):
+        """Test Deepwiki documentation integration"""
+        deepwiki = DeepwikiIntegration()
+        self.assertIsNotNone(deepwiki)
 
     def test_zen_integration(self):
         """Test Zen multi-model integration"""

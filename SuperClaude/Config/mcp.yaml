@@ -2,21 +2,6 @@
 # Version: 6.0.0-alpha
 
 servers:
-  magic:
-    enabled: true
-    name: Magic UI Generator
-    triggers:
-      - /ui
-      - /21
-      - --magic
-      - --tools magic
-    capabilities:
-      - ui-generation
-      - component-creation
-      - accessibility
-      - responsive-design
-    priority: high
-
   sequential:
     enabled: true
     name: Sequential Thinking
@@ -31,34 +16,6 @@ servers:
       - complex-analysis
       - debugging
     priority: high
-
-  serena:
-    enabled: true
-    name: Project Memory & Symbols
-    triggers:
-      - --serena
-      - /sc:load
-      - /sc:save
-    capabilities:
-      - session-memory
-      - symbol-operations
-      - checkpointing
-      - context-persistence
-    priority: medium
-
-  playwright:
-    enabled: true
-    name: Browser Automation
-    triggers:
-      - --play
-      - --playwright
-      - --e2e
-    capabilities:
-      - browser-testing
-      - e2e-testing
-      - accessibility-testing
-      - visual-validation
-    priority: medium
 
   zen:
     enabled: true
@@ -91,20 +48,6 @@ servers:
       - api-reference
     priority: medium
 
-  morphllm:
-    enabled: true
-    name: MorphLLM Transformation Stub
-    triggers:
-      - --morph
-      - --morphllm
-    capabilities:
-      - bulk-refactor-planning
-      - change-safety
-      - audit-readiness
-    priority: medium
-    config:
-      catalog_path: null  # Use packaged catalog by default
-
 # Integration Configuration
 integration:
   auto_enable:
@@ -118,8 +61,6 @@ integration:
     retry_limit: 2
 
   coordination:
-    sequential_then_magic: true  # Sequential analyzes, Magic implements
-    serena_persistence: true      # Auto-checkpoint with Serena
     zen_validation: true          # Zen validates critical operations
 
 # Performance Configuration

@@ -18,6 +18,7 @@ from enum import Enum
 from .base import BaseAgent
 from .registry import AgentRegistry
 from .parser import AgentMarkdownParser
+from . import usage_tracker
 
 
 class AgentCategory(Enum):
@@ -227,6 +228,8 @@ class ExtendedAgentLoader:
 
         # Update access tracking
         self._track_access(agent_id)
+        config = self.registry.get_agent_config(agent_id) if self.registry else None
+        source = 'core' if config and config.get('is_core') else 'extended'
 
         # Check cache first
         if not force_reload and agent_id in self._cache:
@@ -244,6 +247,7 @@ class ExtendedAgentLoader:
                     metadata.last_accessed = time.time()
                     metadata.load_count += 1
 
+                usage_tracker.record_load(agent_id, source=source)
                 load_time = time.time() - start_time
                 self._stats['total_load_time'] += load_time
 
@@ -264,6 +268,7 @@ class ExtendedAgentLoader:
             if agent.initialize():
                 # Add to cache
                 self._add_to_cache(agent_id, agent)
+                usage_tracker.record_load(agent_id, source=source)
 
                 # Update metadata
                 if agent_id in self._agent_metadata:

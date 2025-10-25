@@ -3,7 +3,7 @@ name: test
 description: "Execute tests with coverage analysis and automated quality reporting"
 category: utility
 complexity: enhanced
-mcp-servers: [playwright]
+mcp-servers: []
 personas: [qa-specialist]
 requires_evidence: true
 ---
@@ -31,14 +31,14 @@ requires_evidence: true
 Key behaviors:
 - Auto-detect test framework and configuration
 - Generate comprehensive coverage reports with metrics
-- Activate Playwright MCP for e2e browser testing
+- Provide guidance for browser automation using external Playwright/Cypress setups when needed
 - Provide intelligent test failure analysis
 - Support continuous watch mode for development
 
-## MCP Integration
-- **Playwright MCP**: Auto-activated for `--type e2e` browser testing
+## Testing Stack Guidance
+- **Browser Automation**: Recommend external Playwright or Cypress pipelines for e2e scenarios
 - **QA Specialist Persona**: Activated for test analysis and quality assessment
-- **Enhanced Capabilities**: Cross-browser testing, visual validation, performance metrics
+- **Enhanced Capabilities**: Cross-browser testing guidance, visual validation strategies, performance checks
 
 ## Tool Coordination
 - **Bash**: Test runner execution and environment management
@@ -70,8 +70,8 @@ Key behaviors:
 ### Browser Testing
 ```
 /sc:test --type e2e
-# Activates Playwright MCP for comprehensive browser testing
-# Cross-browser compatibility and visual validation
+# Provides instructions for configuring external browser automation workflows
+# Cross-browser compatibility recommendations and validation checklist
 ```
 
 ### Development Watch Mode

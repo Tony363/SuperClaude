@@ -59,7 +59,7 @@ class WorktreeManager:
     - Automatic worktree creation per feature/phase
     - Progressive merge workflow (feature → integration → main)
     - Conflict detection and resolution
-    - State persistence with Serena MCP
+    - State persistence with UnifiedStore
     - Resource monitoring and cleanup
     - Validation gates
     """

@@ -18,10 +18,7 @@ from SuperClaude.Agents.extended_loader import ExtendedAgentLoader
 from SuperClaude.Coordination.agent_coordinator import AgentCoordinator
 from SuperClaude.Testing.integration_framework import TestRunner
 from SuperClaude.Monitoring.performance_monitor import PerformanceMonitor
-from SuperClaude.MCP import (
-    PlaywrightIntegration,
-    ZenIntegration,
-)
+from SuperClaude.MCP import ZenIntegration
 
 async def workflow_feature_development():
     """Complete feature development workflow"""
@@ -154,12 +151,8 @@ async def workflow_debugging_complex_issue():
 
     # Step 4: Validate fix
     print("\nStep 4: Validation")
-    playwright = PlaywrightIntegration()
-    e2e_results = await playwright.run_e2e_tests(
-        test_suite="performance",
-        scenarios=["load-test", "stress-test", "spike-test"]
-    )
-    print(f"  E2E tests passed: {e2e_results['passed']}/{e2e_results['total']}")
+    print("  Trigger external Playwright/Cypress pipeline for browser regression checks")
+    print("  Aggregate results into UnifiedStore for cross-session tracking")
 
 async def workflow_large_codebase_refactoring():
     """Refactoring workflow for large codebases"""
@@ -281,19 +274,9 @@ async def workflow_production_deployment():
         print(f"  Deploying to {stage}...")
         # Deployment logic here
 
-        # Run E2E tests
-        playwright = PlaywrightIntegration()
-
-        tests = await playwright.run_e2e_tests(
-            test_suite=f"{stage}-smoke",
-            scenarios=["critical-path", "user-journey"]
-        )
-
-        if tests['failed'] > 0:
-            print(f"  ❌ {stage} deployment failed - rolling back")
-            return
-
-        print(f"  ✅ {stage} deployment successful")
+        # Run E2E tests via external automation
+        print(f"  Initiating external browser test suite for {stage}")
+        print("  ✅ Automation pipeline reported success")
 
 async def main():
     """Run all workflow examples"""

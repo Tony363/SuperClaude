@@ -19,7 +19,8 @@
 ## Works Best With
 - **Fetch**: Fetch content → Filesystem saves locally
 - **Sequential**: Sequential plans → Filesystem executes file operations
-- **Serena**: Complementary code analysis with file operations
+- **Sequential**: Plan file operations and follow-up analyses
+- **UnifiedStore**: Persist file operation checkpoints and session metadata
 
 ## Examples
 ```
@@ -27,7 +28,7 @@
 "create project structure" → Filesystem (directory creation)
 "move old files to archive" → Filesystem (batch file operations)
 "get file metadata" → Filesystem (stat operations)
-"analyze code structure" → Serena (semantic analysis, not raw files)
+"persist file processing state" → UnifiedStore (session checkpoint)
 ```
 
 ## Key Features

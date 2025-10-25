@@ -24,9 +24,8 @@ class MCPDocsComponent(Component):
             "fetch": "MCP_Fetch.md",
             "filesystem": "MCP_Filesystem.md",
             "mcp-deepwiki": "MCP_Deepwiki.md",
-            "playwright": "MCP_Playwright.md",
             "sequential": "MCP_Sequential.md",
-            "serena": "MCP_Serena.md"
+            "zen": "MCP_Zen.md"
         }
         
         super().__init__(install_dir, Path(""))

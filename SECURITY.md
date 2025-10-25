@@ -278,12 +278,12 @@ For organizations requiring extended security support:
 
 **Individual Server Security:**
 
-**Context7**: Documentation lookup with request sanitization and rate limiting
+**Fetch**: Remote content retrieval with request sanitization and rate limiting
+**Filesystem**: Local file access with sandboxed execution and permission guards
 **Sequential**: Reasoning engine with controlled execution scope and resource limits
-**Magic**: UI generation with output validation and XSS prevention
-**Playwright**: Browser automation with sandboxed execution environment
-**Morphllm**: Code transformation with input validation and safety checks
-**Serena**: Memory management with secure data persistence and access controls
+**Zen**: Consensus orchestration with deterministic validation paths
+**Deepwiki**: Documentation lookup constrained to vetted sources
+**UnifiedStore**: Session persistence with secure local storage and access controls
 
 **Network Security:**
 - HTTPS enforcement for external MCP server connections

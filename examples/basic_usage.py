@@ -145,19 +145,15 @@ async def example_mcp_integration():
 
     # Import MCP integrations
     from SuperClaude.MCP import (
-        MagicIntegration,
+        DeepwikiIntegration,
         SequentialIntegration,
         ZenIntegration,
     )
 
-    # Magic UI generation
-    magic = MagicIntegration()
-    component = await magic.generate_component(
-        "authentication",
-        "login-form",
-        {"framework": "react", "styling": "tailwind"}
-    )
-    print(f"Generated UI component: {component['name']}")
+    # Deepwiki documentation lookup
+    deepwiki = DeepwikiIntegration()
+    doc = await deepwiki.lookup("Next.js authentication best practices")
+    print(f"Doc lookup returned {len(doc['sections'])} relevant sections")
 
     # Sequential thinking
     sequential = SequentialIntegration()

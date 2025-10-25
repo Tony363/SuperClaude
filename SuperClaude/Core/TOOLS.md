@@ -65,25 +65,25 @@ Located in `Agents/Extended/` - organized by category for specialized needs:
 Specialized tools for enhanced capabilities.
 
 ### Core Development
-- **Serena**: Symbol operations, LSP integration, project memory
-  - Use for: Rename functions, find references, session persistence
-  
+- **Sequential**: Multi-step reasoning, complex analysis  
+  - Use for: Debugging, architecture review, systematic problem solving
+- **Zen**: Multi-model consensus and validation  
+  - Use for: Design reviews, risk assessments, cross-model agreement
 - **Fetch**: Web content retrieval and extraction
-- **Filesystem**: Secure file system operations
+- **Filesystem**: Secure file system operations  
   - Use for: Style enforcement, multi-file replacements, framework updates
 
-- **Sequential**: Multi-step reasoning, complex analysis
-  - Use for: Debugging, architecture review, systematic problem solving
-
 ### UI & Documentation  
-- **MCP-Deepwiki**: Technical documentation and code examples
+- **MCP-Deepwiki**: Technical documentation and code examples  
   - Use for: React/Vue/Angular components, accessible UI, design systems
-
-- **Deepwiki**: Technical documentation, framework patterns
+- **Deepwiki**: Technical documentation, framework patterns  
   - Use for: Library docs, API references, best practices
-
-- **Playwright**: Browser automation, E2E testing
+- **Browser Automation**: External Playwright/Cypress pipelines (manual)  
   - Use for: Visual testing, user flows, accessibility validation
+
+### Persistence
+- **UnifiedStore**: Built-in session memory and symbol catalog  
+  - Use for: Session checkpoints, state restoration, refactor planning
 
 ## Quality Evaluation
 Simple scoring system for all outputs:
@@ -105,10 +105,10 @@ Quality dimensions: Correctness (40%), Completeness (30%), Code Quality (20%), P
 | Refactor code | Task(refactoring-expert) | MultiEdit |
 | Fetch web content | Fetch | WebSearch |
 | Get docs | Deepwiki | WebSearch |
-| Rename symbol | Serena | Manual search |
+| Rename symbol | UnifiedStore | Manual search |
 | Bulk edits | MultiEdit | Sequential edits |
 | Complex analysis | Sequential | Native reasoning |
-| Browser test | Playwright | Unit tests |
+| Browser test | External Playwright/Cypress | Unit tests |
 
 ## Decision Flow
 ```
@@ -118,6 +118,6 @@ Web content? → Fetch
 File operations? → Filesystem
 Bulk edits? → MultiEdit
 Complex reasoning? → Sequential
-Browser testing? → Playwright
+Browser testing? → External Playwright/Cypress pipeline
 Quality < 70? → Auto-iterate with feedback
 ```

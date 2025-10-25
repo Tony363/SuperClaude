@@ -3,7 +3,7 @@ name: brainstorm
 description: "Interactive requirements discovery through Socratic dialogue and systematic exploration"
 category: orchestration
 complexity: advanced
-mcp-servers: [sequential, context7, magic, playwright, morphllm, serena]
+mcp-servers: [sequential, zen]
 personas: [architect, analyzer, frontend, backend, security, devops, project-manager]
 ---
 
@@ -38,11 +38,9 @@ Key behaviors:
 
 ## MCP Integration
 - **Sequential MCP**: Complex multi-step reasoning for systematic exploration and validation
-- **Context7 MCP**: Framework-specific feasibility assessment and pattern analysis
-- **Magic MCP**: UI/UX feasibility and design system integration analysis
-- **Playwright MCP**: User experience validation and interaction pattern testing
-- **Morphllm MCP**: Large-scale content analysis and pattern-based transformation
-- **Serena MCP**: Cross-session persistence, memory management, and project context enhancement
+- **Deepwiki MCP**: Framework-specific feasibility assessment and pattern analysis
+- **Zen MCP**: Consensus building for conflicting stakeholder priorities
+- **UnifiedStore**: Cross-session persistence, memory management, and project context enhancement
 
 ## Tool Coordination
 - **Read/Write/Edit**: Requirements documentation and specification generation
@@ -70,20 +68,20 @@ Key behaviors:
 ```
 /sc:brainstorm "real-time collaboration features" --strategy agile --parallel
 # Parallel exploration paths with frontend, backend, and security personas
-# Context7 and Magic MCP for framework and UI pattern analysis
+# Deepwiki MCP for framework patterns with Sequential MCP-driven analysis
 ```
 
 ### Enterprise Solution Validation
 ```
 /sc:brainstorm "enterprise data analytics platform" --strategy enterprise --validate
 # Comprehensive validation with security, devops, and architect personas
-# Serena MCP for cross-session persistence and enterprise requirements tracking
+# UnifiedStore for cross-session persistence and enterprise requirements tracking
 ```
 
 ### Cross-Session Refinement
 ```
 /sc:brainstorm "mobile app monetization strategy" --depth normal
-# Serena MCP manages cross-session context and iterative refinement
+# UnifiedStore manages cross-session context and iterative refinement
 # Progressive dialogue enhancement with memory-driven insights
 ```
 

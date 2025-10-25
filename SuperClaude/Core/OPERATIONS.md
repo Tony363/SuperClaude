@@ -214,7 +214,7 @@ Task type → Best tool:
 ├─ Code search → Grep > bash grep
 ├─ Web content → Fetch MCP > WebSearch  
 ├─ Documentation → Deepwiki MCP > web search
-└─ Browser testing → Playwright MCP > unit tests
+└─ Browser testing → external Playwright/Cypress pipeline > unit tests
 ```
 
 ## Agentic Loop Implementation

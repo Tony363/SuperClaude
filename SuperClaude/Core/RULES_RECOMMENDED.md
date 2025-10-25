@@ -29,7 +29,7 @@ For critical and important rules, see RULES_CRITICAL.md.
 - **MCP Server Usage**: Leverage specialized MCP servers for their strengths:
   - MultiEdit for bulk edits
   - sequential-thinking for analysis
-  - playwright for browser testing
+  - external Playwright/Cypress pipelines for browser testing
   - fetch for web content
 - **Batch Operations**: Use MultiEdit over multiple Edits, batch Read calls, group operations
 - **Powerful Search**: Use Grep tool over bash grep, Glob over find, specialized search tools
@@ -135,8 +135,8 @@ Task Type → Recommended Tool:
 ├─ Web Content → Fetch MCP
 ├─ File Operations → Filesystem MCP
 ├─ Code Analysis → Sequential-thinking
-├─ Browser Testing → Playwright
-├─ Symbol Operations → Serena
+├─ Browser Testing → External Playwright/Cypress pipeline
+├─ Symbol Operations → UnifiedStore
 ├─ Documentation → MCP-Deepwiki
 └─ Pattern Search → Grep (not bash grep)
 ```

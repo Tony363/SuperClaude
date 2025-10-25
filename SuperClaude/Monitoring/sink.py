@@ -1,8 +1,12 @@
 from __future__ import annotations
 
 import json
+import logging
 from pathlib import Path
 from typing import Dict, Any, Optional
+
+
+logger = logging.getLogger(__name__)
 
 
 class MetricsSink:
@@ -28,7 +32,11 @@ class JsonlMetricsSink(MetricsSink):
         try:
             with self.file_path.open("a", encoding="utf-8") as f:
                 f.write(json.dumps(event, ensure_ascii=False) + "\n")
-        except Exception:
-            # Best-effort persistence; never raise in hot path
-            pass
-
+        except Exception as exc:
+            # Best-effort persistence; surface for diagnostics without raising.
+            logger.debug(
+                "Failed to append metrics event to %s: %s",
+                self.file_path,
+                exc,
+                exc_info=True,
+            )

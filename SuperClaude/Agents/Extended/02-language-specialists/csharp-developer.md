@@ -90,7 +90,7 @@ Testing excellence:
 - Mocking with Moq
 - Property-based testing
 - Performance testing
-- E2E with Playwright
+- E2E browser testing (external Playwright/Cypress)
 - Test data builders
 
 Async programming:

@@ -345,7 +345,7 @@ def prompt_api_key(service_name: str, env_var_name: str) -> Optional[str]:
     Prompt for API key with security and UX best practices
     
     Args:
-        service_name: Human-readable service name (e.g., "Magic", "Morphllm")
+        service_name: Human-readable service name (e.g., "Zen", "Deepwiki")
         env_var_name: Environment variable name (e.g., "TWENTYFIRST_API_KEY")
         
     Returns:

@@ -365,7 +365,7 @@ registry:
       priority: 2
       domains: [testing, qa]
       languages: [any]
-      keywords: [qa, test, selenium, cypress, playwright, e2e]
+      keywords: [qa, test, selenium, cypress, e2e]
       file_patterns: ["*.spec.*", "*.test.*", "*.e2e.*"]
       description: "Test automation frameworks"
 

@@ -61,10 +61,10 @@
 - **Web**: fetch
 - **Files**: filesystem
 - **Docs**: mcp-deepwiki
-- **Browser**: playwright
 - **Analysis**: sequential
-- **Symbols**: serena
-- **Browser**: playwright
+- **Consensus**: zen
+- **Browser**: external Playwright/Cypress pipelines (manual)
+- **Persistence**: UnifiedStore (built-in, no --tools flag)
 
 ## Power Combos
 

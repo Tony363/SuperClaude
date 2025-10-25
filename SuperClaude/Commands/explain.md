@@ -3,7 +3,7 @@ name: explain
 description: "Provide clear explanations of code, concepts, and system behavior with educational clarity"
 category: workflow
 complexity: standard
-mcp-servers: [sequential, context7]
+mcp-servers: [sequential]
 personas: [educator, architect, security]
 ---
 
@@ -29,13 +29,13 @@ personas: [educator, architect, security]
 
 Key behaviors:
 - Multi-persona coordination for domain expertise (educator, architect, security)
-- Framework-specific explanations via Context7 integration
+- Framework-specific explanations via Deepwiki integration
 - Systematic analysis via Sequential MCP for complex concept breakdown
 - Adaptive explanation depth based on audience and complexity
 
 ## MCP Integration
 - **Sequential MCP**: Auto-activated for complex multi-component analysis and structured reasoning
-- **Context7 MCP**: Framework documentation and official pattern explanations
+- **Deepwiki MCP**: Framework documentation and official pattern explanations
 - **Persona Coordination**: Educator (learning), Architect (systems), Security (practices)
 
 ## Tool Coordination
@@ -45,7 +45,7 @@ Key behaviors:
 
 ## Key Patterns
 - **Progressive Learning**: Basic concepts → intermediate details → advanced implementation
-- **Framework Integration**: Context7 documentation → accurate official patterns and practices
+- **Framework Integration**: Deepwiki documentation → accurate official patterns and practices
 - **Multi-Domain Analysis**: Technical accuracy + educational clarity + security awareness
 - **Interactive Explanation**: Static content → examples → interactive exploration
 
@@ -61,7 +61,7 @@ Key behaviors:
 ### Framework Concept Explanation
 ```
 /sc:explain react-hooks --level intermediate --context react
-# Context7 integration for official React documentation patterns
+# Deepwiki integration for official React documentation patterns
 # Structured explanation with progressive complexity
 ```
 

@@ -3,7 +3,7 @@ name: implement
 description: "Feature and code implementation with intelligent persona activation and MCP integration"
 category: workflow
 complexity: standard
-mcp-servers: [context7, sequential, magic, playwright]
+mcp-servers: [sequential, zen]
 personas: [architect, frontend, backend, security, qa-specialist]
 requires_evidence: true
 ---
@@ -33,16 +33,16 @@ requires_evidence: true
 
 Key behaviors:
 - Context-based persona activation (architect, frontend, backend, security, qa)
-- Framework-specific implementation via Context7 and Magic MCP integration
+- Framework-specific implementation via Deepwiki MCP guidance and curated playbooks
 - Systematic multi-component coordination via Sequential MCP
-- Comprehensive testing integration with Playwright for validation
+- Consensus validation on risky changes via Zen MCP
 - Evidence-driven reporting — never claim code exists without showing diff + tests
 
 ## MCP Integration
-- **Context7 MCP**: Framework patterns and official documentation for React, Vue, Angular, Express
-- **Magic MCP**: Auto-activated for UI component generation and design system integration
 - **Sequential MCP**: Complex multi-step analysis and implementation planning
-- **Playwright MCP**: Testing validation and quality assurance integration
+- **Zen MCP**: Consensus building for architectural and security-sensitive decisions
+- **Deepwiki MCP**: Framework documentation, patterns, and best practices
+- **UnifiedStore**: Cross-session implementation state, learnings, and checkpoints
 
 ## Tool Coordination
 - **Write/Edit/MultiEdit**: Code generation and modification for implementation
@@ -68,7 +68,7 @@ Key behaviors:
 ### React Component Implementation
 ```
 /sc:implement user profile component --type component --framework react
-# Magic MCP generates UI component with design system integration
+# Deepwiki MCP surfaces framework-specific scaffold patterns
 # Frontend persona ensures best practices and accessibility
 ```
 
@@ -90,7 +90,7 @@ Key behaviors:
 ### Framework-Specific Implementation
 ```
 /sc:implement dashboard widget --framework vue
-# Context7 MCP provides Vue-specific patterns and documentation
+# Deepwiki MCP provides Vue-specific patterns and documentation
 # Framework-appropriate implementation with official best practices
 ```
 

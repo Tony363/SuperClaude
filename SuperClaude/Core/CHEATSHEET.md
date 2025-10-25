@@ -44,7 +44,7 @@ Security → security-engineer
 Web content → fetch
 File operations → filesystem
 Bulk edits → MultiEdit
-Browser testing → playwright
+Browser testing → external Playwright/Cypress pipelines
 ```
 
 ## Power Combinations

@@ -1,7 +1,7 @@
 # MCP Server Integrations (Stub)
 
-SuperClaude bundles six MCP integrations (Magic UI, Sequential, Serena,
-Playwright, Zen, Context7) with configuration stored under `SuperClaude/MCP`.
+SuperClaude bundles three MCP integrations (Sequential, Zen, Deepwiki) with
+configuration stored under `SuperClaude/MCP`.
 
 Refer to the core assets for the current connection details:
 

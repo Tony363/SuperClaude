@@ -18,7 +18,7 @@
 
 ## Works Best With
 - **Sequential**: Deepwiki provides docs → Sequential analyzes implementation strategy
-- **Magic**: Deepwiki supplies patterns → Magic generates framework-compliant components
+- **Zen**: Deepwiki supplies references → Zen validates approach across expert models
 
 ## Examples
 ```

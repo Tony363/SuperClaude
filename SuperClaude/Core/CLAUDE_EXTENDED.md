@@ -27,9 +27,9 @@ Loads when specific MCP servers are used:
 
 @MCP_Fetch.md           # Activated by: web content retrieval, URL fetching
 @MCP_Filesystem.md      # Activated by: file operations, directory management
-@MCP_Playwright.md      # Activated by: browser testing, E2E scenarios
 @MCP_Sequential.md      # Activated by: --think flags, complex analysis
-@MCP_Serena.md          # Activated by: symbol operations, project memory
+@MCP_Zen.md             # Activated by: consensus validation, model comparisons
+@MCP_Deepwiki.md        # Activated by: documentation lookup, API research
 
 ### Extended Rules & Operations
 Additional guidelines and frameworks:
@@ -62,9 +62,9 @@ The framework intelligently loads components based on these triggers:
 ### MCP Server Usage
 - Web content retrieval → Loads MCP_Fetch.md
 - File operations → Loads MCP_Filesystem.md
-- Browser testing → Loads MCP_Playwright.md
 - Deep analysis → Loads MCP_Sequential.md
-- Symbol operations → Loads MCP_Serena.md
+- Consensus validation → Loads MCP_Zen.md
+- Documentation lookup → Loads MCP_Deepwiki.md
 
 ### Quality & Optimization
 - Performance issues → Loads RULES_RECOMMENDED.md

@@ -28,12 +28,12 @@
 
 | Task Type | Best Tool | Alternative |
 |-----------|-----------|-------------|
-| UI components | Magic MCP | Manual coding |
+| UI components | Deepwiki MCP | Manual coding |
 | Deep analysis | Sequential MCP | Native reasoning |
-| Symbol operations | Serena MCP | Manual search |
-| Pattern edits | Morphllm MCP | Individual edits |
+| Symbol operations | UnifiedStore | Manual search |
+| Pattern edits | MultiEdit | Individual edits |
 | Documentation | Deepwiki MCP | Web search |
-| Browser testing | Playwright MCP | Unit tests |
+| Browser testing | External Playwright/Cypress | Unit tests |
 | Multi-file edits | MultiEdit | Sequential Edits |
 
 ## Resource Management

@@ -8,15 +8,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- MorphLLM MCP stub with packaged catalog and activation smoke tests covering every registered server.
-- Continuous integration workflow executing guardrail pytest suites and the benchmark smoke harness.
+- UnifiedStore SQLite-backed persistence with migration helper from legacy Serena data.
+- Regression coverage for UnifiedStore state management (`tests/test_worktree_state.py`).
 
 ### Changed
-- README flag examples now document runtime requirements for `--think`, `--loop`, `--consensus`, `--delegate`, and include MorphLLM as the seventh MCP integration.
-- Recorded architectural decision for offline MorphLLM support and CI guardrails in `.codex-os/product/decisions.md`.
+- Removed Context7, Magic, MorphLLM, Playwright, and Serena MCP integrations; streamlined registry to Sequential, Zen, and Deepwiki.
+- Updated commands, modes, docs, and agents to reference UnifiedStore and remaining MCP servers.
+- Simplified installer components and MCP documentation to match current server lineup.
 
 ### Fixed
-- CLI flag wiring for `--think`, `--loop`, `--consensus`, and `--delegate` now routes through the model router, quality loop, and consensus builder with regression coverage.
+- Replaced Playwright automation stubs in examples with guidance for external pipelines to avoid broken imports.
 
 ## [6.0.0-alpha] - 2025-10-07
 

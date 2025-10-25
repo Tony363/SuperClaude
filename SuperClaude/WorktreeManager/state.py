@@ -1,16 +1,17 @@
 """
 Worktree State Management for SuperClaude Framework.
 
-Provides state persistence and tracking with Serena MCP integration.
+Provides state persistence and tracking using the UnifiedStore backend.
 """
 
 import json
 import logging
 from pathlib import Path
 from typing import Dict, Any, Optional, List
-import yaml
 from dataclasses import dataclass, asdict, field
 from datetime import datetime
+
+from SuperClaude.Core.unified_store import UnifiedStore
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +36,7 @@ class WorktreeStateManager:
 
     Features:
     - State serialization and persistence
-    - Serena MCP integration for project memory
+    - UnifiedStore-backed project memory
     - Validation tracking
     - Merge history
     - Resource monitoring
@@ -43,31 +44,24 @@ class WorktreeStateManager:
 
     STATE_FILE = ".worktrees/state.json"
 
-    def __init__(self, repo_path: Optional[str] = None, serena_client=None):
+    def __init__(self, repo_path: Optional[str] = None, store: Optional[UnifiedStore] = None):
         """
         Initialize state manager.
 
         Args:
             repo_path: Path to repository
-            serena_client: Optional Serena MCP client for memory persistence
+            store: Optional UnifiedStore instance for dependency injection
         """
         self.repo_path = Path(repo_path or ".")
         self.state_file = self.repo_path / self.STATE_FILE
-        self.serena_client = serena_client
+        self.store = store or UnifiedStore()
         self.states: Dict[str, WorktreeState] = {}
-
-        # Optionally enable Serena persistence by default
-        if self.serena_client is None:
-            try:
-                self._auto_init_serena()
-            except Exception as e:
-                logger.debug(f"Serena auto-init skipped: {e}")
 
         # Load existing state
         self.load_state()
 
     def load_state(self) -> None:
-        """Load state from disk and Serena."""
+        """Load state from disk and UnifiedStore."""
         # Load from disk
         if self.state_file.exists():
             try:
@@ -79,64 +73,23 @@ class WorktreeStateManager:
             except Exception as e:
                 logger.error(f"Failed to load state: {e}")
 
-        # Load from Serena if available
-        if self.serena_client:
-            self._load_from_serena()
+        self._load_from_store()
 
-    def _load_from_serena(self) -> None:
-        """Load state from Serena MCP memory."""
+    def _load_from_store(self) -> None:
+        """Load state from UnifiedStore."""
         try:
-            # List worktree memories
-            memories = self.serena_client.list_memories(prefix="worktree_")
-
+            memories = self.store.list_memories(prefix="worktree_")
             for memory_key in memories:
-                memory_data = self.serena_client.read_memory(memory_key)
+                memory_data = self.store.read_memory(memory_key)
                 if memory_data and 'worktree_name' in memory_data:
-                    name = memory_data['worktree_name']
                     state = WorktreeState(**memory_data)
-                    self.states[name] = state
-                    logger.debug(f"Loaded worktree state from Serena: {name}")
-
-        except Exception as e:
-            logger.warning(f"Failed to load from Serena: {e}")
-
-    def _auto_init_serena(self) -> None:
-        """Best-effort initialization of Serena client when enabled in config."""
-        try:
-            # Read config/mcp.yaml
-            repo = self.repo_path if isinstance(self.repo_path, Path) else Path(self.repo_path or ".")
-            cfg_path = repo / "SuperClaude" / "Config" / "mcp.yaml"
-            cfg = {}
-            if cfg_path.exists():
-                with cfg_path.open("r", encoding="utf-8") as f:
-                    cfg = yaml.safe_load(f) or {}
-
-            enabled = (
-                cfg.get('integration', {})
-                   .get('coordination', {})
-                   .get('serena_persistence', True)
-            )
-            if not enabled:
-                return
-
-            # Create Serena integration and sync adapter
-            from SuperClaude.MCP import get_mcp_integration
-            from SuperClaude.MCP.serena_sync_adapter import SerenaSyncAdapter
-
-            servers_cfg = cfg.get('servers', {})
-            serena_cfg = servers_cfg.get('serena', {}) if isinstance(servers_cfg, dict) else {}
-            try:
-                integration = get_mcp_integration('serena', config=serena_cfg)
-            except TypeError:
-                integration = get_mcp_integration('serena')
-
-            self.serena_client = SerenaSyncAdapter(integration)
-            logger.info("Serena persistence enabled for WorktreeStateManager")
-        except Exception as e:
-            logger.debug(f"Serena auto-init error: {e}")
+                    self.states[state.worktree_name] = state
+                    logger.debug(f"Loaded worktree state from store: {state.worktree_name}")
+        except Exception as e:  # pragma: no cover - defensive logging
+            logger.warning(f"Failed to load worktree states from UnifiedStore: {e}")
 
     def save_state(self) -> None:
-        """Save state to disk and Serena."""
+        """Save state to disk and UnifiedStore."""
         # Prepare data
         data = {
             'version': '1.0.0',
@@ -153,20 +106,18 @@ class WorktreeStateManager:
         except Exception as e:
             logger.error(f"Failed to save state: {e}")
 
-        # Save to Serena if available
-        if self.serena_client:
-            self._save_to_serena()
+        self._save_to_store()
 
-    def _save_to_serena(self) -> None:
-        """Save state to Serena MCP memory."""
+    def _save_to_store(self) -> None:
+        """Persist worktree state to UnifiedStore."""
         try:
             for name, state in self.states.items():
                 memory_key = f"worktree_{name}"
-                self.serena_client.write_memory(memory_key, asdict(state))
-                logger.debug(f"Saved worktree state to Serena: {name}")
+                self.store.write_memory(memory_key, asdict(state))
+                logger.debug(f"Saved worktree state to store: {name}")
 
-        except Exception as e:
-            logger.warning(f"Failed to save to Serena: {e}")
+        except Exception as e:  # pragma: no cover - defensive logging
+            logger.warning(f"Failed to save worktree states to UnifiedStore: {e}")
 
     def update_state(self,
                      worktree_name: str,
@@ -229,13 +180,11 @@ class WorktreeStateManager:
         if worktree_name in self.states:
             del self.states[worktree_name]
 
-            # Remove from Serena if available
-            if self.serena_client:
-                try:
-                    memory_key = f"worktree_{worktree_name}"
-                    self.serena_client.delete_memory(memory_key)
-                except:
-                    pass
+            try:
+                memory_key = f"worktree_{worktree_name}"
+                self.store.delete_memory(memory_key)
+            except Exception:
+                pass
 
             self.save_state()
             logger.debug(f"Removed state for worktree: {worktree_name}")
@@ -434,3 +383,13 @@ class WorktreeStateManager:
         lines.append(f"- Disk Usage: {usage['disk_usage_mb']:.2f} MB")
 
         return "\n".join(lines)
+
+    def cleanup(self) -> None:
+        """Release any resources held by the manager."""
+        try:
+            self.store.close()
+        except Exception:
+            pass
+
+    def __del__(self) -> None:
+        self.cleanup()

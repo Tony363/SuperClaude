@@ -14,6 +14,7 @@ import json
 
 from .base import BaseAgent
 from .registry import AgentRegistry
+from . import usage_tracker
 
 
 class AgentLoader:
@@ -75,6 +76,9 @@ class AgentLoader:
         self._stats['loads'] += 1
         start_time = time.time()
 
+        config = self.registry.get_agent_config(name) if self.registry else None
+        source = 'core' if config and config.get('is_core') else 'extended'
+
         # Check cache first
         if not force_reload and name in self._cache:
             cache_entry = self._cache[name]
@@ -85,6 +89,7 @@ class AgentLoader:
                 self._cache.move_to_end(name)
                 self._stats['cache_hits'] += 1
                 self.logger.debug(f"Cache hit for agent: {name}")
+                usage_tracker.record_load(name, source=source)
 
                 load_time = time.time() - start_time
                 self._stats['total_load_time'] += load_time
@@ -106,6 +111,7 @@ class AgentLoader:
             if agent.initialize():
                 # Add to cache
                 self._add_to_cache(name, agent)
+                usage_tracker.record_load(name, source=source)
             else:
                 self.logger.warning(f"Failed to initialize agent: {name}")
                 agent = None

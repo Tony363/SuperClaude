@@ -14,8 +14,9 @@ import re
 import subprocess
 import py_compile
 import shutil
+import textwrap
 from dataclasses import dataclass, field, asdict
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Set, Tuple
 
@@ -26,6 +27,7 @@ from .parser import CommandParser, ParsedCommand
 from .registry import CommandRegistry, CommandMetadata
 from ..Agents.loader import AgentLoader
 from ..Agents.extended_loader import ExtendedAgentLoader, AgentCategory, MatchScore
+from ..Agents import usage_tracker as agent_usage_tracker
 from ..MCP import get_mcp_integration
 from ..ModelRouter.facade import ModelRouterFacade
 from ..Modes.behavioral_manager import BehavioralMode, BehavioralModeManager
@@ -314,17 +316,15 @@ class CommandExecutor:
                     output = loop_result['output']
                     loop_assessment = loop_result['assessment']
 
-            consensus_result = None
             consensus_required = metadata.requires_evidence or context.consensus_forced
-            if consensus_required:
-                consensus_result = await self._ensure_consensus(
-                    context,
-                    output,
-                    enforce=consensus_required,
-                    think_level=context.think_level
-                )
-                if isinstance(output, dict):
-                    output['consensus'] = consensus_result
+            consensus_result = await self._ensure_consensus(
+                context,
+                output,
+                enforce=consensus_required,
+                think_level=context.think_level
+            )
+            if isinstance(output, dict):
+                output['consensus'] = consensus_result
 
             test_results = None
             auto_run_tests = self._should_run_tests(parsed) or (
@@ -660,7 +660,7 @@ class CommandExecutor:
                     if hasattr(maybe, '__await__'):
                         await maybe
                 if callable(init_session):
-                    maybe = init_session()  # often async for Serena-like
+                    maybe = init_session()  # often async for UnifiedStore-backed sessions
                     if hasattr(maybe, '__await__'):
                         await maybe
 
@@ -878,6 +878,38 @@ class CommandExecutor:
 
         if artifact_path:
             output['executed_operations'] = context.results.get('agent_operations', [])
+
+        cleanup_details: Optional[Dict[str, Any]] = None
+        if self._flag_present(context.command, 'cleanup'):
+            repo_root = Path(self.repo_root or Path.cwd())
+            auto_root = repo_root / 'SuperClaude' / 'Implementation' / 'Auto'
+            ttl_param = (
+                context.command.parameters.get('cleanup-ttl')
+                or context.command.parameters.get('cleanup_ttl')
+            )
+            ttl_days = self._clamp_int(ttl_param, 0, 365, 7) if ttl_param is not None else 7
+            removed, skipped = self._cleanup_auto_stubs(auto_root, ttl_days=ttl_days)
+            if removed or skipped:
+                cleanup_details = {
+                    'removed': removed,
+                    'skipped': skipped,
+                    'ttl_days': ttl_days,
+                }
+                operations = context.results.setdefault('executed_operations', [])
+                operations.extend(f"cleanup removed {path}" for path in removed)
+                context.results['executed_operations'] = self._deduplicate(operations)
+                if skipped:
+                    warning_bucket = context.results.setdefault('agent_warnings', [])
+                    warning_bucket.extend(f"cleanup skipped {item}" for item in skipped)
+                    context.results['agent_warnings'] = self._deduplicate(warning_bucket)
+                logger.info(
+                    "Auto-stub cleanup removed %d file(s); skipped %d entry(ies)",
+                    len(removed),
+                    len(skipped),
+                )
+
+        if cleanup_details:
+            output['auto_stub_cleanup'] = cleanup_details
 
         return output
 
@@ -1446,29 +1478,124 @@ class CommandExecutor:
         *,
         label: Optional[str] = None
     ) -> List[Dict[str, Any]]:
-        """Produce a deterministic implementation evidence file when no plan exists."""
+        """Produce deterministic fallback artifacts when no agent plan exists."""
         slug_source = ' '.join(context.command.arguments) or context.command.name
         slug = self._slugify(slug_source)[:48]
         session_fragment = context.session_id.replace('-', '')[:8]
         label_suffix = f"-{self._slugify(label)}" if label else ''
-        rel_path = Path('SuperClaude') / 'Implementation' / f"{slug}-{session_fragment}{label_suffix}.md"
 
-        content = self._render_default_change_document(context, agent_result)
+        plan: List[Dict[str, Any]] = []
 
-        return [{
+        stub_entry = self._build_auto_stub_entry(
+            context,
+            agent_result,
+            slug=slug,
+            session_fragment=session_fragment,
+            label_suffix=label_suffix,
+        )
+        if stub_entry:
+            plan.append(stub_entry)
+
+        evidence_entry = self._build_default_evidence_entry(
+            context,
+            agent_result,
+            slug=slug,
+            session_fragment=session_fragment,
+            label_suffix=label_suffix,
+        )
+        if evidence_entry:
+            plan.append(evidence_entry)
+
+        if not plan:
+            # Fallback to a minimal note so downstream guardrails have something to inspect.
+            rel_path = (
+                Path('SuperClaude') /
+                'Implementation' /
+                f"{slug}-{session_fragment}{label_suffix or ''}.md"
+            )
+            plan.append({
+                'path': str(rel_path),
+                'content': '# Auto-generated placeholder\n',
+                'mode': 'replace'
+            })
+
+        return plan
+
+    def _build_default_evidence_entry(
+        self,
+        context: CommandContext,
+        agent_result: Dict[str, Any],
+        *,
+        slug: str,
+        session_fragment: str,
+        label_suffix: str
+    ) -> Dict[str, Any]:
+        rel_path = (
+            Path('SuperClaude') /
+            'Implementation' /
+            f"{slug}-{session_fragment}{label_suffix}.md"
+        )
+
+        content = self._render_default_evidence_document(context, agent_result)
+        return {
             'path': str(rel_path),
             'content': content,
             'mode': 'replace'
-        }]
+        }
 
-    def _render_default_change_document(self, context: CommandContext, agent_result: Dict[str, Any]) -> str:
+    def _build_generic_stub_change(
+        self,
+        context: CommandContext,
+        summary: str
+    ) -> Dict[str, Any]:
+        """Create a minimal stub change plan so generic commands leave evidence."""
+        timestamp = datetime.now().isoformat()
+        command_name = context.command.name or "generic"
+        slug = self._slugify(command_name)
+        session_fragment = (context.session_id or "session")[:8]
+        file_name = f"{slug}-{session_fragment}.md"
+        rel_path = (
+            Path('SuperClaude') /
+            'Implementation' /
+            'Auto' /
+            'generic' /
+            file_name
+        )
+
+        lines = [
+            f"# Generic Change Plan — /sc:{command_name}",
+            "",
+            f"- session: {context.session_id}",
+            f"- generated: {timestamp}",
+            f"- command: /sc:{command_name}",
+            "",
+            "## Summary",
+            summary,
+            "",
+            "## Next Steps",
+            "- Replace this autogenerated stub with concrete implementation details.",
+            "- Capture resulting diffs to upgrade this placeholder plan.",
+        ]
+
+        return {
+            'path': str(rel_path),
+            'content': "\n".join(lines).strip() + "\n",
+            'mode': 'replace'
+        }
+
+    def _render_default_evidence_document(
+        self,
+        context: CommandContext,
+        agent_result: Dict[str, Any]
+    ) -> str:
         """Render a fallback implementation evidence markdown document."""
         title = ' '.join(context.command.arguments) or context.command.name
+        timestamp = datetime.now().isoformat()
         lines: List[str] = [
             f"# Implementation Evidence — {title}",
             '',
             f"- session: {context.session_id}",
-            f"- generated: {datetime.now().isoformat()}",
+            f"- generated: {timestamp}",
             f"- command: /sc:{context.command.name}",
             ''
         ]
@@ -1496,6 +1623,204 @@ class CommandExecutor:
             lines.append('')
 
         return "\n".join(lines).strip() + "\n"
+
+    def _build_auto_stub_entry(
+        self,
+        context: CommandContext,
+        agent_result: Dict[str, Any],
+        *,
+        slug: str,
+        session_fragment: str,
+        label_suffix: str
+    ) -> Optional[Dict[str, Any]]:
+        extension = self._infer_auto_stub_extension(context, agent_result)
+        category = self._infer_auto_stub_category(context)
+        if not extension:
+            return None
+
+        file_name = f"{slug}-{session_fragment}{label_suffix}.{extension}"
+        rel_path = (
+            Path('SuperClaude') /
+            'Implementation' /
+            'Auto' /
+            category /
+            file_name
+        )
+
+        content = self._render_auto_stub_content(
+            context,
+            agent_result,
+            extension=extension,
+            slug=slug,
+            session_fragment=session_fragment,
+        )
+
+        return {
+            'path': str(rel_path),
+            'content': content,
+            'mode': 'replace'
+        }
+
+    def _infer_auto_stub_extension(
+        self,
+        context: CommandContext,
+        agent_result: Dict[str, Any]
+    ) -> str:
+        parameters = context.command.parameters
+        language_hint = str(parameters.get('language') or '').lower()
+        framework_hint = str(parameters.get('framework') or '').lower()
+        request_blob = ' '.join([
+            ' '.join(context.command.arguments).lower(),
+            language_hint,
+            framework_hint,
+            ' '.join(parameters.get('targets', []) or []),
+        ])
+
+        def has_any(*needles: str) -> bool:
+            return any(needle in request_blob for needle in needles)
+
+        if has_any('readme', 'docs', 'documentation', 'spec', 'adr'):
+            return 'md'
+        if has_any('component', 'frontend', 'ui', 'tsx', 'react') or framework_hint in {'react', 'next', 'nextjs'}:
+            return 'tsx'
+        if has_any('typescript', 'ts', 'lambda', 'api') or framework_hint in {'express', 'node'}:
+            return 'ts'
+        if has_any('javascript', 'browser'):
+            return 'js'
+        if has_any('vue') or framework_hint == 'vue':
+            return 'vue'
+        if has_any('svelte') or framework_hint in {'svelte', 'solid'}:
+            return 'svelte'
+        if has_any('rust') or framework_hint == 'rust':
+            return 'rs'
+        if has_any('golang', ' go') or framework_hint in {'go', 'golang'}:
+            return 'go'
+        if has_any('java', 'spring') or framework_hint == 'java':
+            return 'java'
+        if has_any('csharp', 'c#', '.net', 'dotnet') or framework_hint in {'csharp', '.net', 'dotnet'}:
+            return 'cs'
+        if has_any('yaml', 'config', 'manifest'):
+            return 'yaml'
+
+        default_ext = agent_result.get('default_extension')
+        if isinstance(default_ext, str) and default_ext:
+            return default_ext
+
+        return 'py'
+
+    def _infer_auto_stub_category(self, context: CommandContext) -> str:
+        command = context.command.name
+        if command in {'test', 'improve', 'cleanup', 'reflect'}:
+            return 'quality'
+        if command in {'build', 'workflow', 'git'}:
+            return 'engineering'
+        return 'engineering' if command == 'implement' else 'general'
+
+    def _render_auto_stub_content(
+        self,
+        context: CommandContext,
+        agent_result: Dict[str, Any],
+        *,
+        extension: str,
+        slug: str,
+        session_fragment: str,
+    ) -> str:
+        title = ' '.join(context.command.arguments) or context.command.name
+        timestamp = datetime.now().isoformat()
+        operations = agent_result.get('operations') or context.results.get('agent_operations') or []
+        notes = agent_result.get('notes') or context.results.get('agent_notes') or []
+
+        if not operations:
+            operations = [
+                'Review requirements and confirm scope with stakeholders',
+                'Implement the planned changes in code',
+                'Add or update tests to cover the new behavior'
+            ]
+
+        def format_ops(prefix: str = '#') -> str:
+            return '\n'.join(f"{prefix}  - {op}" for op in self._deduplicate(operations))
+
+        def format_notes(prefix: str = '#') -> str:
+            if not notes:
+                return ''
+            return '\n'.join(f"{prefix}  - {note}" for note in self._deduplicate(notes))
+
+        function_name = slug.replace('-', '_') or f"auto_task_{session_fragment}"
+        if not function_name[0].isalpha():
+            function_name = f"auto_task_{session_fragment}"
+
+        if extension == 'py':
+            body = textwrap.dedent(
+                f'''
+                """Auto-generated implementation stub for {title}.
+
+                Generated by the SuperClaude auto-implementation pipeline on {timestamp}.
+                Replace this placeholder with the final implementation once the change plan is complete.
+                """
+
+                def {function_name}() -> None:
+                    """Work through the auto-generated change plan before removing this stub."""
+                    raise NotImplementedError("Replace auto-generated stub once implementation is complete")
+
+
+                # Planned operations
+                {format_ops()}
+
+                # Additional context
+                {format_notes() or '#  - No additional agent notes recorded'}
+                '''
+            ).strip()
+            return body + "\n"
+
+        if extension in {'ts', 'tsx', 'js'}:
+            body = textwrap.dedent(
+                f'''
+                // Auto-generated implementation stub for {title}.
+                // Generated on {timestamp}. Replace with the real implementation after completing the plan.
+
+                export function {function_name}(): never {{
+                  throw new Error('Replace auto-generated stub once implementation is complete');
+                }}
+
+                // Planned operations
+                {format_ops('//')}
+
+                {format_notes('//') or '//  - No additional agent notes recorded'}
+                '''
+            ).strip()
+            return body + "\n"
+
+        if extension == 'md':
+            lines = [
+                f"# Auto-generated Implementation Stub — {title}",
+                '',
+                f"- session: {context.session_id}",
+                f"- generated: {timestamp}",
+                f"- command: /sc:{context.command.name}",
+                '',
+                "## Planned Operations",
+            ]
+            lines.extend(f"- {op}" for op in self._deduplicate(operations))
+            if notes:
+                lines.append('')
+                lines.append('## Agent Notes')
+                lines.extend(f"- {note}" for note in self._deduplicate(notes))
+            return "\n".join(lines).strip() + "\n"
+
+        comment_prefix = '//' if extension in {'java', 'cs', 'rs', 'go', 'vue', 'svelte'} else '#'
+
+        body = textwrap.dedent(
+            f"""
+            {comment_prefix} Auto-generated implementation stub for {title}.
+            {comment_prefix} Generated on {timestamp}. Replace with real implementation after completing the plan.
+
+            {comment_prefix} Planned operations
+            {format_ops(comment_prefix)}
+
+            {format_notes(comment_prefix) or f"{comment_prefix}  - No additional agent notes recorded"}
+            """
+        ).strip()
+        return body + "\n"
 
     def _apply_change_plan(self, context: CommandContext, change_plan: List[Dict[str, Any]]) -> Dict[str, Any]:
         """Apply the change plan using the worktree manager or a fallback writer."""
@@ -1721,14 +2046,81 @@ class CommandExecutor:
                     context.agents.append(agent_name)
 
     async def _execute_generic(self, context: CommandContext) -> Dict[str, Any]:
-        """Execute generic command."""
-        return {
-            'status': 'executed',
-            'command': context.command.name,
-            'parameters': context.command.parameters,
-            'arguments': context.command.arguments,
-            'mode': context.behavior_mode
+        """Execute fallback logic for commands without bespoke handlers."""
+        command = context.command
+        argument_text = " ".join(command.arguments) if command.arguments else "none"
+        flags_text = ", ".join(sorted(command.flags.keys())) or "none"
+        summary_lines = [
+            f"Command: /sc:{command.name}",
+            f"Mode: {context.behavior_mode}",
+            f"Arguments: {argument_text}",
+            f"Flags: {flags_text}",
+        ]
+        if command.parameters:
+            summary_lines.append("Parameters:")
+            for key, value in sorted(command.parameters.items()):
+                summary_lines.append(f"- {key}: {value}")
+
+        summary = "\n".join(summary_lines).strip()
+
+        operations = [
+            f"fallback-handler executed for /sc:{command.name}",
+        ]
+
+        artifact = self._record_artifact(
+            context,
+            command.name,
+            summary,
+            operations=operations,
+            metadata={
+                "mode": context.behavior_mode,
+                "fallback": True,
+            }
+        )
+
+        change_entry = self._build_generic_stub_change(context, summary)
+        apply_result = self._apply_change_plan(context, [change_entry])
+        applied_files = apply_result.get('applied', [])
+        change_warnings = apply_result.get('warnings', []) or []
+        if change_warnings:
+            context.errors.extend(change_warnings)
+
+        if applied_files:
+            applied_log = context.results.setdefault('applied_changes', [])
+            for path in applied_files:
+                applied_log.append(f"apply {path}")
+            context.results['applied_changes'] = self._deduplicate(applied_log)
+
+        plan_entries = context.results.setdefault('change_plan', [])
+        if not any(
+            isinstance(existing, dict) and existing.get('path') == change_entry.get('path')
+            for existing in plan_entries
+        ):
+            plan_entries.append(change_entry)
+
+        context.results.setdefault('executed_operations', [])
+        context.results['executed_operations'].extend(operations)
+        context.results['executed_operations'] = self._deduplicate(
+            context.results['executed_operations']
+        )
+
+        status = 'executed' if applied_files else 'plan-only'
+
+        output: Dict[str, Any] = {
+            'status': status,
+            'command': command.name,
+            'parameters': command.parameters,
+            'arguments': command.arguments,
+            'mode': context.behavior_mode,
+            'summary': summary,
+            'change_plan': [change_entry],
+            'applied_files': applied_files,
         }
+        if artifact:
+            output['artifact'] = artifact
+        if change_warnings:
+            output['warnings'] = change_warnings
+        return output
 
     def _generate_workflow_steps(
         self,
@@ -2257,6 +2649,126 @@ class CommandExecutor:
                 errors.append(f"{target}: {exc}")
 
         return removed, errors
+
+    def _cleanup_auto_stubs(self, auto_root: Path, ttl_days: int = 7) -> Tuple[List[str], List[str]]:
+        """
+        Remove stale auto-generated stubs older than the provided TTL.
+
+        Returns:
+            Tuple of (removed_paths, skipped_messages)
+        """
+        removed: List[str] = []
+        skipped: List[str] = []
+
+        if ttl_days < 0:
+            ttl_days = 0
+
+        if not auto_root.exists():
+            return removed, skipped
+
+        cutoff = datetime.now() - timedelta(days=ttl_days)
+        repo_root = Path(self.repo_root or Path.cwd())
+        cleaned_directories: Set[Path] = set()
+
+        for stub_file in auto_root.rglob('*'):
+            if not stub_file.is_file():
+                continue
+            if stub_file.suffix in {'.pyc', '.pyo'}:
+                continue
+            if stub_file.name == '__init__.py':
+                continue
+
+            try:
+                if not self._is_auto_stub(stub_file):
+                    continue
+
+                if ttl_days >= 0:
+                    modified_at = datetime.fromtimestamp(stub_file.stat().st_mtime)
+                    if modified_at > cutoff:
+                        continue
+
+                if self._git_has_modifications(stub_file):
+                    skipped.append(f"{self._relative_to_repo_path(stub_file)} (pending git changes)")
+                    continue
+
+                stub_file.unlink()
+                removed.append(self._relative_to_repo_path(stub_file))
+                cleaned_directories.add(stub_file.parent)
+            except Exception as exc:
+                skipped.append(f"{self._relative_to_repo_path(stub_file)} ({exc})")
+
+        # Attempt to prune empty directories created by cleanup
+        for directory in sorted(cleaned_directories, key=lambda p: len(p.parts), reverse=True):
+            if directory == auto_root:
+                continue
+            try:
+                directory.relative_to(repo_root)
+            except ValueError:
+                continue
+            try:
+                directory.rmdir()
+            except OSError:
+                continue
+
+        return removed, skipped
+
+    def _is_auto_stub(self, stub_file: Path) -> bool:
+        """Check whether the given file matches the auto-stub template."""
+        try:
+            content = stub_file.read_text(encoding='utf-8', errors='ignore')
+        except Exception:
+            return False
+
+        if "Auto-generated implementation stub" not in content and "Auto-generated Implementation Stub" not in content:
+            return False
+
+        sentinel_phrases = [
+            "Replace auto-generated stub once implementation is complete",
+            "Auto-generated Implementation Stub —",
+            "Auto-generated placeholder",
+        ]
+        for phrase in sentinel_phrases:
+            if phrase in content:
+                return True
+
+        if "NotImplementedError" in content and "Auto-generated" in content:
+            return True
+
+        return False
+
+    def _git_has_modifications(self, file_path: Path) -> bool:
+        """Check whether git reports pending changes for the path (excluding untracked files)."""
+        if not self.repo_root or not (self.repo_root / '.git').exists():
+            return False
+
+        try:
+            rel_path = file_path.relative_to(self.repo_root)
+        except ValueError:
+            # File sits outside repo root; treat as unmanaged.
+            return False
+
+        try:
+            result = subprocess.run(
+                ["git", "status", "--short", "--", str(rel_path)],
+                cwd=self.repo_root,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+        except Exception:
+            return False
+
+        if result.returncode != 0:
+            return False
+
+        output = result.stdout.strip()
+        if not output:
+            return False
+
+        status = output.splitlines()[0][:2]
+        if status == "??":
+            return False
+        return True
 
     def _plan_build_pipeline(
         self,
@@ -3405,6 +3917,7 @@ class CommandExecutor:
                 continue
 
             context.agent_outputs[agent_name] = result
+            agent_usage_tracker.record_execution(agent_name)
             if result.get('auto_generated_stub'):
                 context.results['auto_generated_stub'] = True
             actions = self._normalize_evidence_value(result.get('actions_taken'))

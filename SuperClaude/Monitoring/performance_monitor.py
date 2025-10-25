@@ -162,7 +162,7 @@ class PerformanceMonitor:
             try:
                 await self.monitor_task
             except asyncio.CancelledError:
-                pass
+                logger.debug("Monitoring task cancelled", exc_info=True)
 
         logger.info("Stopped performance monitoring")
 
@@ -172,7 +172,7 @@ class PerformanceMonitor:
         try:
             self.take_snapshot()
         except Exception:
-            pass
+            logger.debug("Snapshot collection failed", exc_info=True)
 
     def get_metrics(self) -> Dict[str, Any]:
         """Return a simplified metrics snapshot for quick checks."""
@@ -228,7 +228,7 @@ class PerformanceMonitor:
             try:
                 sink.write_event(event)
             except Exception:
-                pass
+                logger.debug("Failed to persist metric event via %s", sink, exc_info=True)
 
     def start_timer(self, name: str) -> Callable:
         """
@@ -347,7 +347,7 @@ class PerformanceMonitor:
             try:
                 sink.write_event(event)
             except Exception:
-                pass
+                logger.debug("Failed to persist alert via %s", sink, exc_info=True)
 
         return snapshot
 
@@ -600,7 +600,7 @@ class PerformanceMonitor:
                         try:
                             sink.write_event(event)
                         except Exception:
-                            pass
+                            logger.debug("Failed to persist snapshot via %s", sink, exc_info=True)
 
             else:
                 # Resolve alert if it exists

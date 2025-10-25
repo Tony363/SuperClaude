@@ -3,7 +3,7 @@ name: build
 description: "Build, compile, and package projects with intelligent error handling and optimization"
 category: utility
 complexity: enhanced
-mcp-servers: [playwright]
+mcp-servers: []
 personas: [devops-engineer]
 requires_evidence: true
 ---
@@ -34,8 +34,8 @@ Key behaviors:
 - Environment-specific optimization (dev/prod/test configurations)
 - Comprehensive build reporting with timing metrics and artifact analysis
 
-## MCP Integration
-- **Playwright MCP**: Auto-activated for build validation and UI testing during builds
+## Validation Guidance
+- **Browser Validation**: Recommend external Playwright or Cypress test suites when UI verification is required
 - **DevOps Engineer Persona**: Activated for build optimization and deployment preparation
 - **Enhanced Capabilities**: Build pipeline integration, performance monitoring, artifact validation
 
@@ -78,8 +78,8 @@ Key behaviors:
 ### Development Build with Validation
 ```
 /sc:build --type dev --validate
-# Development build with Playwright validation
-# UI testing and build verification integration
+# Development build with optional browser validation guidance
+# UI testing recommendations and build verification integration
 ```
 
 ## Boundaries

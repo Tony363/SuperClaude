@@ -77,7 +77,7 @@ except:
 Use the most powerful tool available:
 - Unknown scope → Task(general-purpose)
 - Multi-file edits → MultiEdit > sequential Edits
-- Symbol operations → Serena > manual search
+- Symbol operations → UnifiedStore > manual search
 - Pattern edits → MultiEdit > individual changes
 - Web content → Fetch > WebSearch
 - Documentation → Deepwiki > web search

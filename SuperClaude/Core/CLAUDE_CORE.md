@@ -31,7 +31,7 @@ The following components load automatically when their triggers are detected:
 - **Loads**: Relevant MODE_*.md files
 
 ### MCP Servers
-- **Trigger**: MCP usage like Fetch, Filesystem, Deepwiki, Sequential, Serena
+- **Trigger**: MCP usage like Fetch, Filesystem, Deepwiki, Sequential, Zen
 - **Loads**: Relevant MCP_*.md documentation
 
 ## 💡 Quick Commands

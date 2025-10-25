@@ -3,7 +3,7 @@ name: estimate
 description: "Provide development estimates for tasks, features, or projects with intelligent analysis"
 category: special
 complexity: standard
-mcp-servers: [sequential, context7]
+mcp-servers: [sequential]
 personas: [architect, performance, project-manager]
 ---
 
@@ -30,12 +30,12 @@ personas: [architect, performance, project-manager]
 Key behaviors:
 - Multi-persona coordination (architect, performance, project-manager) based on estimation scope
 - Sequential MCP integration for systematic analysis and complexity assessment
-- Context7 MCP integration for framework-specific patterns and historical benchmarks
+- Deepwiki MCP integration for framework-specific patterns and historical benchmarks
 - Intelligent breakdown analysis with confidence intervals and risk factors
 
 ## MCP Integration
 - **Sequential MCP**: Complex multi-step estimation analysis and systematic complexity assessment
-- **Context7 MCP**: Framework-specific estimation patterns and historical benchmark data
+- **Deepwiki MCP**: Framework-specific estimation patterns and historical benchmark data
 - **Persona Coordination**: Architect (design complexity), Performance (optimization effort), Project Manager (timeline)
 
 ## Tool Coordination
@@ -84,4 +84,3 @@ Key behaviors:
 - Guarantee estimate accuracy without proper scope analysis and validation
 - Provide estimates without appropriate domain expertise and complexity assessment
 - Override historical benchmarks without clear justification and analysis
-

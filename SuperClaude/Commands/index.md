@@ -3,7 +3,7 @@ name: index
 description: "Generate comprehensive project documentation and knowledge base with intelligent organization"
 category: special
 complexity: standard
-mcp-servers: [sequential, context7]
+mcp-servers: [sequential]
 personas: [architect, scribe, quality]
 ---
 
@@ -30,12 +30,12 @@ personas: [architect, scribe, quality]
 Key behaviors:
 - Multi-persona coordination (architect, scribe, quality) based on documentation scope and complexity
 - Sequential MCP integration for systematic analysis and comprehensive documentation workflows
-- Context7 MCP integration for framework-specific patterns and documentation standards
+- Deepwiki MCP integration for framework-specific patterns and documentation standards
 - Intelligent organization with cross-referencing capabilities and automated maintenance
 
 ## MCP Integration
 - **Sequential MCP**: Complex multi-step project analysis and systematic documentation generation
-- **Context7 MCP**: Framework-specific documentation patterns and established standards
+- **Deepwiki MCP**: Framework-specific documentation patterns and established standards
 - **Persona Coordination**: Architect (structure), Scribe (content), Quality (validation)
 
 ## Tool Coordination
@@ -48,7 +48,7 @@ Key behaviors:
 - **Structure Analysis**: Project examination → component identification → logical organization → cross-referencing
 - **Documentation Types**: API docs → Structure docs → README → Knowledge base approaches
 - **Quality Validation**: Completeness assessment → accuracy verification → standard compliance → maintenance planning
-- **Framework Integration**: Context7 patterns → official standards → best practices → consistency validation
+- **Framework Integration**: Deepwiki patterns → official standards → best practices → consistency validation
 
 ## Examples
 

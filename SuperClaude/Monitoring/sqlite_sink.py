@@ -4,6 +4,9 @@ import sqlite3
 from pathlib import Path
 from typing import Dict, Any, Optional
 import json
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class SQLiteMetricsSink:
@@ -48,6 +51,8 @@ class SQLiteMetricsSink:
                 )
                 conn.commit()
         except Exception:
-            # Non-fatal persistence
-            pass
-
+            logger.debug(
+                "Failed to write metrics event to SQLite at %s",
+                self.db_path,
+                exc_info=True,
+            )

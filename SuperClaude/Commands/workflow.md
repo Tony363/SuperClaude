@@ -3,7 +3,7 @@ name: workflow
 description: "Generate structured implementation workflows from PRDs and feature requirements"
 category: orchestration
 complexity: advanced
-mcp-servers: [sequential, context7, magic, playwright, morphllm, serena]
+mcp-servers: [sequential, zen, deepwiki]
 personas: [architect, analyzer, frontend, backend, security, devops, project-manager]
 ---
 
@@ -35,11 +35,9 @@ Key behaviors:
 
 ## MCP Integration
 - **Sequential MCP**: Complex multi-step workflow analysis and systematic implementation planning
-- **Context7 MCP**: Framework-specific workflow patterns and implementation best practices
-- **Magic MCP**: UI/UX workflow generation and design system integration strategies
-- **Playwright MCP**: Testing workflow integration and quality assurance automation
-- **Morphllm MCP**: Large-scale workflow transformation and pattern-based optimization
-- **Serena MCP**: Cross-session workflow persistence, memory management, and project context
+- **Zen MCP**: Consensus validation for high-risk implementation decisions
+- **Deepwiki MCP**: Framework-specific workflow patterns and implementation best practices
+- **UnifiedStore**: Cross-session workflow persistence, memory management, and project context
 
 ## Tool Coordination
 - **Read/Write/Edit**: PRD analysis and workflow documentation generation
@@ -67,7 +65,7 @@ Key behaviors:
 ```
 /sc:workflow "user authentication system" --strategy agile --parallel
 # Agile workflow generation with parallel task coordination
-# Context7 and Magic MCP for framework and UI workflow patterns
+# Deepwiki MCP for framework patterns and Sequential MCP for dependency planning
 ```
 
 ### Enterprise Implementation Planning
@@ -80,7 +78,7 @@ Key behaviors:
 ### Cross-Session Workflow Management
 ```
 /sc:workflow project-brief.md --depth normal
-# Serena MCP manages cross-session workflow context and persistence
+# UnifiedStore manages cross-session workflow context and persistence
 # Progressive workflow enhancement with memory-driven insights
 ```
 

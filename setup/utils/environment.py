@@ -253,8 +253,8 @@ def get_superclaude_environment_variables() -> Dict[str, str]:
     # Fallback: check known SuperClaude API key environment variables
     # (for backwards compatibility with existing installations)
     known_superclaude_env_vars = [
-        "TWENTYFIRST_API_KEY",  # Magic server
-        "MORPH_API_KEY"         # Morphllm server
+        "TWENTYFIRST_API_KEY",  # Legacy Magic server (deprecated)
+        "MORPH_API_KEY"         # Legacy MorphLLM server (deprecated)
     ]
     
     for env_var in known_superclaude_env_vars:

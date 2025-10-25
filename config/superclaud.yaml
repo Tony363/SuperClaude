@@ -111,29 +111,10 @@ mcp_servers:
   retry_attempts: 3
 
   servers:
-    magic:
-      enabled: true
-      frameworks:
-        - react
-        - vue
-        - angular
-        - svelte
-        - vanilla
-
     sequential:
       enabled: true
       max_steps: 20
       min_confidence: 0.7
-
-    serena:
-      enabled: true
-      memory_prefix: "sc_"
-      persistence: true
-
-    playwright:
-      enabled: true
-      browser: chromium
-      headless: true
 
     zen:
       enabled: true
@@ -141,9 +122,6 @@ mcp_servers:
         - gpt-5
         - claude-opus-4.1
         - gemini-2.5-pro
-
-    context7:
-      enabled: false  # Not implemented yet
 
 # Logging configuration
 logging:

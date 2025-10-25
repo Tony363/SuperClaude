@@ -284,7 +284,7 @@ class QualityEngineer(BaseAgent):
             strategy['patterns'] = ['API testing', 'database testing']
         elif test_type == 'e2e':
             strategy['levels'] = ['e2e', 'acceptance']
-            strategy['tools'] = ['playwright', 'cypress', 'selenium']
+            strategy['tools'] = ['cypress', 'selenium', 'external-playwright']
             strategy['patterns'] = ['page object', 'user flows']
 
         # Set priorities based on requirements

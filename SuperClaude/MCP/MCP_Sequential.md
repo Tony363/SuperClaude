@@ -19,8 +19,8 @@
 
 ## Works Best With
 - **Deepwiki**: Sequential coordinates analysis → Deepwiki provides comprehensive documentation
-- **Magic**: Sequential analyzes UI logic → Magic implements structured components
-- **Playwright**: Sequential identifies testing strategy → Playwright executes validation
+- **Deepwiki**: Sequential analyzes requirements → Deepwiki surfaces framework patterns
+- **External Playwright/Cypress pipelines**: Sequential identifies testing strategy → automation executes validation
 
 ## Examples
 ```

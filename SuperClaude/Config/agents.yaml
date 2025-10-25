@@ -114,7 +114,7 @@ cache:
     ttl: 3600
 
   memory:
-    provider: serena
+    provider: unified_store
     checkpoint_interval: 1800
 
   disk:

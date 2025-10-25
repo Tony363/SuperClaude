@@ -18,7 +18,6 @@ capabilities:
   - pytest
   - jest
   - cypress
-  - playwright
   patterns: []
 keywords:
 - quality

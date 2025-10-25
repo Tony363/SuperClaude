@@ -186,7 +186,7 @@ business_panel_config:
   
   # Integration
   mcp_sequential_primary: true
-  mcp_context7_patterns: true
+  mcp_deepwiki_patterns: true
   persona_coordination: true
 ```
 

@@ -17,7 +17,7 @@
 ## Common Tools
 - **TodoWrite**: Core tool for task tracking
 - **Task agents**: Delegation for complex subtasks
-- **Serena (write_memory)**: Persist task state across sessions
+- **UnifiedStore (write_memory)**: Persist task state across sessions
 
 ## Task Hierarchy with Memory
 
@@ -30,7 +30,7 @@
 
 ### Session Start
 ```
-1. list_memories() → Show existing task state
+1. list_memories() → Show existing task state via UnifiedStore
 2. read_memory("current_plan") → Resume context
 3. think_about_collected_information() → Understand where we left off
 ```
@@ -66,9 +66,9 @@
 | Task Type | Primary Tool | Memory Key |
 |-----------|-------------|------------|
 | Analysis | Sequential MCP | "analysis_results" |
-| Implementation | MultiEdit/Morphllm | "code_changes" |
-| UI Components | Magic MCP | "ui_components" |
-| Testing | Playwright MCP | "test_results" |
+| Implementation | MultiEdit | "code_changes" |
+| UI Components | Deepwiki MCP | "ui_components" |
+| Testing | External Playwright/Cypress | "test_results" |
 | Documentation | Deepwiki MCP | "doc_patterns" |
 
 ## Quality-Driven Agent Selection

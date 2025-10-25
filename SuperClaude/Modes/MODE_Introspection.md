@@ -32,7 +32,7 @@ When GPT-5 is unavailable, Claude Opus 4.1 provides comparable reasoning depth.
 
 ## Common Tools
 - **Sequential MCP**: Structured self-analysis
-- **Serena (think_about_*)**: Built-in reflection tools
+- **UnifiedStore reflection helpers**: Built-in think_about_* routines
 - **Task (root-cause-analyst)**: Deep problem investigation
 
 ## Behavioral Changes

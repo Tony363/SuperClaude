@@ -303,9 +303,8 @@ strategic_questions:
 
 ### MCP Server Integration
 - **Sequential**: Primary coordination for multi-expert analysis, complex reasoning, debate moderation
-- **Context7**: Business frameworks, management patterns, strategic case studies
-- **Magic**: Business model visualization, strategic diagram generation
-- **Playwright**: Business application testing, user journey validation
+- **Deepwiki**: Business frameworks, management patterns, strategic case studies
+- **Zen**: Consensus validation on strategic recommendations and risk assessments
 
 ### Wave Mode Integration
 **Wave-Enabled Operations**:
