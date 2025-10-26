@@ -72,9 +72,11 @@ def _load_cache() -> Dict[str, Dict[str, int]]:
                     loaded = int(stats.get("loaded", 0))
                     executed = int(stats.get("executed", 0))
                     source = stats.get("source", "unknown")
+                    plan_only = int(stats.get("plan_only", 0))
                     data[agent] = {
                         "loaded": max(0, loaded),
                         "executed": max(0, executed),
+                        "plan_only": max(0, plan_only),
                         "source": str(source or "unknown"),
                     }
         except Exception:
@@ -94,6 +96,7 @@ def _persist_cache() -> None:
         agent: {
             "loaded": stats.get("loaded", 0),
             "executed": stats.get("executed", 0),
+            "plan_only": stats.get("plan_only", 0),
             "source": stats.get("source", "unknown"),
         }
         for agent, stats in _CACHE.items()
@@ -108,7 +111,7 @@ def _bump(agent: str, field: str, source: Optional[str] = None) -> None:
 
     with _LOCK:
         cache = _load_cache()
-        entry = cache.setdefault(agent, {"loaded": 0, "executed": 0, "source": source or "unknown"})
+        entry = cache.setdefault(agent, {"loaded": 0, "executed": 0, "plan_only": 0, "source": source or "unknown"})
         entry[field] = max(0, int(entry.get(field, 0))) + 1
         if source:
             entry["source"] = source
@@ -123,6 +126,11 @@ def record_load(agent: str, source: Optional[str] = None) -> None:
 def record_execution(agent: str, source: Optional[str] = None) -> None:
     """Record that an agent executed."""
     _bump(agent, "executed", source=source)
+
+
+def record_plan_only(agent: str, source: Optional[str] = None) -> None:
+    """Record that an agent returned plan-only guidance."""
+    _bump(agent, "plan_only", source=source)
 
 
 def get_usage_snapshot() -> Dict[str, Dict[str, int]]:
@@ -246,6 +254,7 @@ def reset_usage_stats(for_tests: bool = False) -> None:
 __all__ = [
     "record_load",
     "record_execution",
+    "record_plan_only",
     "get_usage_snapshot",
     "classify_agents",
     "write_markdown_report",

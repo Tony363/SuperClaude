@@ -131,6 +131,9 @@ class AgentRegistry:
         category = config.get('category', 'general')
 
         # Store configuration
+        if 'capability_tier' not in config:
+            config['capability_tier'] = 'strategist' if config.get('is_core') else 'heuristic-wrapper'
+
         self._agents[name] = config
 
         # Update category index
@@ -176,6 +179,7 @@ class AgentRegistry:
             'requirements-analyst': 'requirements_analyst',
             'socratic-mentor': 'socratic_mentor',
             'learning-guide': 'learning_guide',
+            'fullstack-developer': 'fullstack_developer',
         }
 
         loaded = 0
@@ -259,7 +263,7 @@ class AgentRegistry:
         if name in self._agent_classes:
             return
 
-        from .generic import GenericMarkdownAgent
+        from .heuristic_markdown import HeuristicMarkdownAgent
 
         class_name = self._get_class_name(name)
         default_extension = self._guess_default_extension(config)
@@ -270,11 +274,14 @@ class AgentRegistry:
             'default_extension': default_extension,
         }
 
-        self._agent_classes[name] = type(
+        agent_class = type(
             class_name,
-            (GenericMarkdownAgent,),
+            (HeuristicMarkdownAgent,),
             attributes
         )
+        self._agent_classes[name] = agent_class
+        if config.get('capability_tier') == 'heuristic-wrapper' and getattr(agent_class, 'STRATEGIST_TIER', False):
+            config['capability_tier'] = 'strategist'
 
     @staticmethod
     def _guess_default_extension(config: Dict[str, Any]) -> str:
@@ -378,6 +385,15 @@ class AgentRegistry:
             self.discover_agents()
 
         return self._agents.get(name)
+
+    def get_capability_tier(self, name: str) -> str:
+        """
+        Return the capability tier assigned to an agent.
+        """
+        config = self.get_agent_config(name)
+        if not config:
+            return 'unknown'
+        return str(config.get('capability_tier', 'unknown'))
 
     def search_agents(self, query: str) -> List[str]:
         """

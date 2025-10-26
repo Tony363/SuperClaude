@@ -181,11 +181,17 @@ class AgentSelector:
         score = 0.0
         # Handle both string and dict context
         if isinstance(context, dict):
-            context_str = context.get('task', '') + ' ' + context.get('description', '')
-            context_str += ' '.join(context.get('files', []))
+            context_str = (
+                context.get('task', '')
+                + ' '
+                + context.get('description', '')
+                + ' '
+                + ' '.join(context.get('files', []))
+            )
         else:
             context_str = str(context)
         context_lower = context_str.lower()
+        complex_context = self._is_complex_context(context_str)
 
         # 1. Trigger keyword matching (40% weight)
         trigger_score = self._score_triggers(context_lower, config.get('triggers', []))
@@ -213,14 +219,56 @@ class AgentSelector:
         )
         score += focus_score * 0.1
 
-        # 6. Boost for core agents (5% bonus)
+        # 6. Capability tier bias (±20%)
+        tier_score = self._score_capability_tier(
+            config.get('capability_tier', 'wrapper'),
+            complex_context
+        )
+        score += tier_score
+
+        # 7. Boost for core agents (5% bonus)
         if config.get('is_core', False):
             score += 0.05
 
-        # 7. Keyword-to-core-agent boost to ensure intuitive defaults
+        # 8. Keyword-to-core-agent boost to ensure intuitive defaults
         score += self._keyword_core_boost(config.get('name', ''), context_lower)
 
         return min(score, 1.0)
+
+    def _is_complex_context(self, context_str: str) -> bool:
+        """Heuristic to detect complex, multi-domain requests."""
+        lowered = context_str.lower()
+        complexity_signals = [
+            'architecture',
+            'migration',
+            'fullstack',
+            'end-to-end',
+            'multi-step',
+            'integration',
+            'refactor',
+            'compliance',
+            'staging',
+            'rollout',
+        ]
+        signal_hits = sum(1 for token in complexity_signals if token in lowered)
+        return len(lowered) > 160 or signal_hits >= 2
+
+    def _score_capability_tier(self, tier: str, complex_context: bool) -> float:
+        """Bias the match score towards strategist-tier agents for complex work."""
+        tier_normalized = (tier or 'wrapper').lower()
+        base = 0.0
+        if tier_normalized == 'strategist':
+            base = 0.12
+        elif tier_normalized in {'heuristic-wrapper', 'enhanced-wrapper'}:
+            base = 0.05
+
+        if complex_context:
+            if tier_normalized == 'strategist':
+                base += 0.1
+            else:
+                base -= 0.1
+
+        return base
 
     def _keyword_core_boost(self, agent_name: str, context_lower: str) -> float:
         """Apply small heuristic boosts to ensure intuitive core agent matches."""

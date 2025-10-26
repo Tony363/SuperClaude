@@ -27,6 +27,7 @@ from .parser import CommandParser, ParsedCommand
 from .registry import CommandRegistry, CommandMetadata
 from ..Agents.loader import AgentLoader
 from ..Agents.extended_loader import ExtendedAgentLoader, AgentCategory, MatchScore
+from ..Agents.registry import AgentRegistry
 from ..Agents import usage_tracker as agent_usage_tracker
 from ..MCP import get_mcp_integration
 from ..ModelRouter.facade import ModelRouterFacade
@@ -4131,18 +4132,25 @@ class CommandExecutor:
 
             context.agent_outputs[agent_name] = result
             agent_usage_tracker.record_execution(agent_name)
-            if result.get('auto_generated_stub'):
-                context.results['auto_generated_stub'] = True
-            actions = self._normalize_evidence_value(result.get('actions_taken'))
-            plans = self._normalize_evidence_value(result.get('planned_actions'))
-            warnings = self._normalize_evidence_value(result.get('warnings'))
-            output_text = str(result.get('output') or '').strip()
 
-            aggregated_operations.extend(actions)
-            aggregated_operations.extend(plans)
-            aggregated_warnings.extend(warnings)
-            note = output_text or "; ".join(plans) or "Provided guidance only."
-            aggregated_notes.append(f"{agent_name}: {note}")
+            status = self._ingest_agent_result(
+                context,
+                agent_name,
+                result,
+                aggregated_operations,
+                aggregated_notes,
+                aggregated_warnings
+            )
+
+            if status == 'plan-only':
+                self._record_agent_plan_only([agent_name])
+                self._maybe_escalate_with_strategist(
+                    context,
+                    agent_payload,
+                    aggregated_operations,
+                    aggregated_notes,
+                    aggregated_warnings
+                )
 
         dedup_ops = self._deduplicate(aggregated_operations)
         dedup_notes = self._deduplicate(aggregated_notes)
@@ -4158,6 +4166,175 @@ class CommandExecutor:
             'notes': dedup_notes,
             'warnings': dedup_warnings,
         }
+
+    def _ingest_agent_result(
+        self,
+        context: CommandContext,
+        agent_name: str,
+        result: Dict[str, Any],
+        operations: List[str],
+        notes: List[str],
+        warnings: List[str],
+    ) -> str:
+        """Normalize an agent's raw result into aggregated collections."""
+        if result.get('auto_generated_stub'):
+            context.results['auto_generated_stub'] = True
+
+        actions = self._normalize_evidence_value(result.get('actions_taken'))
+        plans = self._normalize_evidence_value(result.get('planned_actions'))
+        warning_entries = self._normalize_evidence_value(result.get('warnings'))
+
+        operations.extend(actions)
+        operations.extend(plans)
+        warnings.extend(warning_entries)
+
+        output_text = str(result.get('output') or '').strip()
+        note = output_text or "; ".join(plans) or "Provided guidance only."
+        notes.append(f"{agent_name}: {note}")
+
+        status = str(result.get('status') or '').lower()
+        if status == 'plan-only':
+            plan_only_agents = context.results.setdefault('plan_only_agents', [])
+            if agent_name not in plan_only_agents:
+                plan_only_agents.append(agent_name)
+
+        return status
+
+    def _record_agent_plan_only(self, agents: Iterable[str]) -> None:
+        """Persist plan-only telemetry for each agent."""
+        registry = getattr(self.agent_loader, 'registry', None)
+        for agent in agents:
+            source = None
+            if registry:
+                try:
+                    cfg = registry.get_agent_config(agent) or {}
+                    source = 'core' if cfg.get('is_core') else 'extended'
+                except Exception:
+                    source = None
+            try:
+                agent_usage_tracker.record_plan_only(agent, source=source)
+            except Exception:
+                continue
+
+    def _maybe_escalate_with_strategist(
+        self,
+        context: CommandContext,
+        payload: Dict[str, Any],
+        operations: List[str],
+        notes: List[str],
+        warnings: List[str]
+    ) -> None:
+        """Attempt to load and execute a strategist-tier fallback agent."""
+        if context.results.get('escalation_performed'):
+            return
+
+        context.consensus_forced = True
+
+        registry = getattr(self.agent_loader, 'registry', None)
+        if not registry:
+            return
+
+        active_agents = set(context.agent_instances.keys())
+        candidate = self._select_strategist_candidate(payload.get('task', ''), registry, active_agents)
+        if not candidate:
+            return
+
+        try:
+            strategist = self.agent_loader.load_agent(candidate)
+        except Exception as exc:
+            warning = f"{candidate}: escalation load failed — {exc}"
+            warnings.append(warning)
+            context.errors.append(warning)
+            return
+
+        if not strategist:
+            warning = f"{candidate}: escalation load returned no agent instance"
+            warnings.append(warning)
+            context.errors.append(warning)
+            return
+
+        context.results['escalation_performed'] = True
+        context.results.setdefault('escalations', []).append({
+            'trigger': 'plan-only',
+            'agent': candidate,
+        })
+
+        if candidate not in context.agent_instances:
+            context.agent_instances[candidate] = strategist
+        if candidate not in context.agents:
+            context.agents.append(candidate)
+
+        retry_payload = dict(payload)
+        retry_payload['retry_count'] = int(context.results.get('escalation_attempts', 0)) + 1
+        context.results['escalation_attempts'] = retry_payload['retry_count']
+
+        try:
+            result = strategist.execute(retry_payload)
+        except Exception as exc:
+            warning = f"{candidate}: escalation execution error — {exc}"
+            warnings.append(warning)
+            context.errors.append(warning)
+            return
+
+        context.agent_outputs[candidate] = result
+        agent_usage_tracker.record_execution(candidate)
+
+        status = self._ingest_agent_result(
+            context,
+            candidate,
+            result,
+            operations,
+            notes,
+            warnings
+        )
+
+        if status == 'plan-only':
+            self._record_agent_plan_only([candidate])
+        else:
+            context.results.setdefault('escalation_success', True)
+
+    def _select_strategist_candidate(
+        self,
+        task: str,
+        registry: AgentRegistry,
+        exclude: Iterable[str]
+    ) -> Optional[str]:
+        """
+        Choose a strategist-tier agent for escalation based on the task context.
+        """
+        lowered = (task or '').lower()
+        exclude_set = set(exclude)
+
+        fallback_order: List[str] = []
+        frontend_signals = ['frontend', 'ui', 'react', 'component', 'next.js', 'nextjs']
+        backend_signals = ['backend', 'api', 'service', 'endpoint', 'database', 'schema']
+
+        if any(sig in lowered for sig in frontend_signals) and any(sig in lowered for sig in backend_signals):
+            fallback_order.append('fullstack-developer')
+
+        fallback_order.extend([
+            'system-architect',
+            'backend-architect',
+            'frontend-architect',
+            'quality-engineer',
+        ])
+
+        for candidate in fallback_order:
+            if candidate in exclude_set:
+                continue
+            cfg = registry.get_agent_config(candidate)
+            if not cfg:
+                continue
+            if registry.get_capability_tier(candidate) == 'strategist':
+                return candidate
+
+        for name in registry.get_all_agents():
+            if name in exclude_set:
+                continue
+            if registry.get_capability_tier(name) == 'strategist':
+                return name
+
+        return None
 
     def _record_test_artifact(
         self,
