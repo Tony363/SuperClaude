@@ -148,7 +148,16 @@ heuristics to real provider clients.
 |-------------|------|--------|
 | Sequential | `SuperClaude/MCP/integrations/sequential_integration.py` | Planning stub |
 | Deepwiki | `SuperClaude/MCP/deepwiki_integration.py` | Local doc lookup |
-| Zen | `SuperClaude/MCP/zen_integration.py` | Consensus orchestration helper |
+| Zen | `SuperClaude/MCP/zen_integration.py` | Offline consensus helper piping `/sc:*` commands through deterministic votes |
+
+Zen is intentionally a **local stub** — it never calls the public zen-mcp-server, does not require
+API keys, and only returns synthetic vote data so the framework stays deterministic. The triggers
+configured in `SuperClaude/Config/mcp.yaml` (`--zen`, `--consensus`, `--thinkdeep`, `--zen-review`)
+are the same ones referenced by the command playbooks (for example
+`SuperClaude/Commands/implement.md`). When those flags or commands fire, the executor asks
+`ModelRouterFacade` to run consensus, which delegates to the stub and attaches the vote summary to
+the command result. Live Zen features such as continuation IDs, CLI bridges, or vision tooling are
+deliberately out of scope for this offline build.
 
 All other legacy MCP adapters (Serena, MorphLLM, Context7, Playwright, etc.) have been retired
 and no longer ship with the framework.
