@@ -3,7 +3,7 @@ name: explain
 description: "Provide clear explanations of code, concepts, and system behavior with educational clarity"
 category: workflow
 complexity: standard
-mcp-servers: [sequential]
+mcp-servers: [zen, deepwiki]
 personas: [educator, architect, security]
 ---
 
@@ -30,12 +30,12 @@ personas: [educator, architect, security]
 Key behaviors:
 - Multi-persona coordination for domain expertise (educator, architect, security)
 - Framework-specific explanations via Deepwiki integration
-- Systematic analysis via Sequential MCP for complex concept breakdown
+- Consensus-backed clarification via Zen MCP when multiple perspectives required
 - Adaptive explanation depth based on audience and complexity
 
 ## MCP Integration
-- **Sequential MCP**: Auto-activated for complex multi-component analysis and structured reasoning
 - **Deepwiki MCP**: Framework documentation and official pattern explanations
+- **Zen MCP**: Cross-perspective validation for nuanced topics
 - **Persona Coordination**: Educator (learning), Architect (systems), Security (practices)
 
 ## Tool Coordination
@@ -69,7 +69,7 @@ Key behaviors:
 ```
 /sc:explain microservices-system --level advanced --format interactive
 # Architect persona explains system design and patterns
-# Interactive exploration with Sequential analysis breakdown
+# Interactive exploration with consensus-backed analysis
 ```
 
 ### Security Concept Explanation

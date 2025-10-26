@@ -2,7 +2,7 @@
 SuperClaude Framework MCP Server Integrations
 
 Provides integration factories and exports for MCP (Model Context Protocol)
-servers including sequential reasoning, multi-model orchestration (Zen),
+servers including multi-model orchestration (Zen),
 and documentation (Deepwiki).
 """
 
@@ -24,12 +24,8 @@ from .deepwiki_integration import (
     DocumentationType,
 )
 
-from .integrations.sequential_integration import (
-    SequentialIntegration,
-)
-
-from .rube_proxy import (
-    RubeProxyIntegration,
+from .rube_integration import (
+    RubeIntegration,
 )
 
 # Version info
@@ -38,16 +34,15 @@ __version__ = "6.0.0-alpha"
 __all__ = [
     'ZenIntegration', 'ConsensusResult', 'ThinkingMode', 'ModelConfig', 'ConsensusType',
     'DeepwikiIntegration', 'DeepwikiDocument', 'DeepwikiSearchResult', 'DocumentationType',
-    'SequentialIntegration', 'RubeProxyIntegration',
+    'RubeIntegration',
     'get_mcp_integration',
 ]
 
 # MCP Server Registry
 MCP_SERVERS: Dict[str, Type[Any]] = {
-    'sequential': SequentialIntegration,
     'zen': ZenIntegration,
     'deepwiki': DeepwikiIntegration,
-    'rube': RubeProxyIntegration,
+    'rube': RubeIntegration,
 }
 
 def get_mcp_integration(server_name: str, **kwargs):

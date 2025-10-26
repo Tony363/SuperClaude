@@ -1,4 +1,4 @@
-# Rube MCP Option A Implementation Plan
+# Rube MCP Option A Implementation Plan *(legacy)*
 
 - **Author:** Codex  
 - **Date:** 2025-10-26  
@@ -6,7 +6,9 @@
 
 ## Background
 
-SuperClaude currently supports local-first MCP integrations (Sequential, Zen, Deepwiki). Rube MCP expands capabilities by brokering hundreds of SaaS tools via a hosted endpoint. Because the active Anti-Hallucination Guardrails spec keeps the framework offline by default, the integration must:
+> **Note:** This document captured the initial opt-in spike for Rube MCP. The connector is now first-class; see `Docs/Reference/rube-integration-plan.md` for the active roadmap.
+
+SuperClaude currently supports local-first MCP integrations (Zen, Deepwiki). Rube MCP expands capabilities by brokering hundreds of SaaS tools via a hosted endpoint. Because the active Anti-Hallucination Guardrails spec keeps the framework offline by default, the integration must:
 
 1. Stay opt-in and respect an explicit environment toggle.
 2. Fail safely when network access is unavailable.

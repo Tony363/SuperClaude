@@ -38,7 +38,7 @@
 - Enable quality-driven iteration (score < 70 = retry)
 
 **--tools [name]**
-- Enable specific MCP server: fetch, filesystem, mcp-deepwiki, sequential, zen
+- Enable specific MCP server: fetch, filesystem, mcp-deepwiki, zen, rube
 - Use --no-mcp to disable all MCP servers
 
 ## Quality Control

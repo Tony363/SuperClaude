@@ -3,7 +3,7 @@ name: spawn
 description: "Meta-system task orchestration with intelligent breakdown and delegation"
 category: special
 complexity: high
-mcp-servers: []
+mcp-servers: [zen, deepwiki, rube]
 personas: []
 ---
 
@@ -33,9 +33,9 @@ Key behaviors:
 - Cross-domain operation management with parallel and sequential execution patterns
 - Advanced dependency analysis and resource optimization across task hierarchies
 ## MCP Integration
-- **Native Orchestration**: Meta-system command uses native coordination without MCP dependencies
-- **Progressive Integration**: Coordination with systematic execution for progressive enhancement
-- **Framework Integration**: Advanced integration with SuperClaude orchestration layers
+- **Zen MCP**: Consensus checkpoints for high-risk orchestration choices
+- **Deepwiki MCP**: Pattern lookup for domain-specific playbooks
+- **Rube MCP**: External automation dispatch (ticketing, notifications, CI triggers)
 
 ## Tool Coordination
 - **TodoWrite**: Hierarchical task breakdown and progress tracking across Epic → Story → Task levels

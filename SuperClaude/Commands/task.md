@@ -3,7 +3,7 @@ name: task
 description: "Execute complex tasks with intelligent workflow management and delegation"
 category: special
 complexity: advanced
-mcp-servers: [sequential, zen, deepwiki]
+mcp-servers: [zen, deepwiki, rube]
 personas: [architect, analyzer, frontend, backend, security, devops, project-manager]
 ---
 
@@ -29,21 +29,20 @@ personas: [architect, analyzer, frontend, backend, security, devops, project-man
 
 Key behaviors:
 - Multi-persona coordination across architect, frontend, backend, security, devops domains
-- Intelligent MCP server routing (Sequential, Zen, Deepwiki)
+- Intelligent MCP server routing (Zen, Deepwiki)
 - Systematic execution with progressive task enhancement and cross-session persistence
 - Advanced task delegation with hierarchical breakdown and dependency management
 
 ## MCP Integration
-- **Sequential MCP**: Complex multi-step task analysis and systematic execution planning
 - **Zen MCP**: Consensus validation for cross-team decision points and risk reviews
 - **Deepwiki MCP**: Framework-specific patterns and implementation best practices
+- **Rube MCP**: External automation (ticketing, notifications, CI hooks) aligned to task outputs
 - **UnifiedStore**: Cross-session task persistence and project memory management
 
 ## Tool Coordination
 - **TodoWrite**: Hierarchical task breakdown and progress tracking across Epic → Story → Task levels
 - **Task**: Advanced delegation for complex multi-agent coordination and sub-task management
 - **Read/Write/Edit**: Task documentation and implementation coordination
-- **sequentialthinking**: Structured reasoning for complex task dependency analysis
 
 ## Key Patterns
 - **Task Hierarchy**: Epic-level objectives → Story coordination → Task execution → Subtask granularity

@@ -5,6 +5,7 @@ Demonstrates core functionality of v6.0.0-alpha
 """
 
 import asyncio
+import os
 from pathlib import Path
 import sys
 
@@ -146,23 +147,14 @@ async def example_mcp_integration():
     # Import MCP integrations
     from SuperClaude.MCP import (
         DeepwikiIntegration,
-        SequentialIntegration,
         ZenIntegration,
+        RubeIntegration,
     )
 
     # Deepwiki documentation lookup
     deepwiki = DeepwikiIntegration()
     doc = await deepwiki.lookup("Next.js authentication best practices")
     print(f"Doc lookup returned {len(doc['sections'])} relevant sections")
-
-    # Sequential thinking
-    sequential = SequentialIntegration()
-    analysis = await sequential.analyze(
-        "Why is the API response slow?",
-        max_steps=5
-    )
-    print(f"Analysis completed in {analysis['steps']} steps")
-    print(f"Root cause: {analysis['conclusion']}")
 
     # Zen multi-model consensus
     zen = ZenIntegration()
@@ -172,6 +164,14 @@ async def example_mcp_integration():
     )
     print(f"Consensus reached: {consensus['agreement']}")
     print(f"Confidence: {consensus['confidence']}%")
+
+    # Optional Rube automation (dry-run by default)
+    os.environ.setdefault("SC_RUBE_MODE", "dry-run")
+    rube = RubeIntegration()
+    rube.initialize()
+    await rube.initialize_session()
+    dry_run = await rube.invoke("demo.tool", {"ping": "pong"})
+    print(f"Rube invocation status: {dry_run['status']}")
 
 async def example_coordination():
     """Example: Multi-agent coordination"""

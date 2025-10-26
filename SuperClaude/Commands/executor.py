@@ -569,6 +569,17 @@ class CommandExecutor:
                 context.consensus_summary
             )
 
+            # Dispatch any Rube automation once metrics have been recorded.
+            rube_operations = await self._dispatch_rube_actions(context, output)
+            if rube_operations:
+                executed_operations.extend(rube_operations)
+                if isinstance(output, dict):
+                    integrations = output.setdefault('integrations', {})
+                    existing_ops = self._ensure_list(integrations, 'rube')
+                    for op in rube_operations:
+                        if op not in existing_ops:
+                            existing_ops.append(op)
+
             # Run post-execution hooks
             await self._run_hooks('post_execute', context)
 
@@ -649,16 +660,23 @@ class CommandExecutor:
                 if not isinstance(cfg, dict):
                     cfg = {}
 
-                env_toggle = cfg.get('env_toggle')
                 enabled_flag = cfg.get('enabled', True)
-                env_value = os.getenv(env_toggle) if env_toggle else None
-
-                should_enable = self._is_truthy(env_value) if env_value is not None else self._is_truthy(enabled_flag)
-
-                if not should_enable:
-                    hint = f" (set {env_toggle}=true to enable)" if env_toggle else ""
-                    logger.info(f"Skipping MCP server '{server_name}' because it is disabled{hint}.")
+                if not self._is_truthy(enabled_flag):
+                    logger.info(f"Skipping MCP server '{server_name}' because it is disabled in configuration.")
                     context.errors.append(f"MCP server '{server_name}' disabled")
+                    continue
+
+                requires_network = bool(cfg.get('requires_network', False))
+                network_mode = os.getenv('SC_NETWORK_MODE', 'offline').strip().lower()
+                network_allowed = network_mode in {'online', 'mixed', 'rube', 'auto'}
+
+                if requires_network and not network_allowed:
+                    logger.info(
+                        "Skipping MCP server '%s' because network mode '%s' disallows outbound access.",
+                        server_name,
+                        network_mode or 'offline'
+                    )
+                    context.errors.append(f"MCP server '{server_name}' unavailable (network mode)")
                     continue
 
                 # Instantiate the integration. Prefer passing config if accepted.
@@ -3214,6 +3232,100 @@ class CommandExecutor:
 
         outcome_metric = f"{base}.success" if success else f"{base}.failure"
         self.monitor.record_metric(outcome_metric, 1, MetricType.COUNTER, tags)
+
+    async def _dispatch_rube_actions(self, context: CommandContext, output: Any) -> List[str]:
+        """Send orchestration data to Rube MCP when available."""
+        if 'rube' not in context.mcp_servers:
+            return []
+
+        rube_entry = self.active_mcp_servers.get('rube')
+        if not rube_entry:
+            return []
+
+        instance = rube_entry.get('instance')
+        if instance is None or not hasattr(instance, 'invoke'):
+            return []
+
+        request = self._build_rube_request(context, output)
+        if not request:
+            return []
+
+        tool = request['tool']
+        payload = request['payload']
+
+        try:
+            response = await instance.invoke(tool, payload)
+            context.results['rube_response'] = response
+            status = response.get('status', 'ok') if isinstance(response, dict) else 'ok'
+
+            if self.monitor:
+                base = 'commands.rube'
+                tags = {'command': context.command.name, 'status': status}
+                self.monitor.record_metric(f"{base}.invocations", 1, MetricType.COUNTER, tags)
+                metric = f"{base}.dry_run" if status == 'dry-run' else f"{base}.success"
+                self.monitor.record_metric(metric, 1, MetricType.COUNTER, tags)
+
+            return [f"rube:{tool}:{status}"]
+        except Exception as exc:  # pragma: no cover - network behaviour
+            message = f"Rube automation failed: {exc}"
+            logger.warning(message)
+            context.errors.append(message)
+            if self.monitor:
+                tags = {'command': context.command.name}
+                self.monitor.record_metric('commands.rube.failure', 1, MetricType.COUNTER, tags)
+            return [f"rube:{tool}:error"]
+
+    def _build_rube_request(self, context: CommandContext, output: Any) -> Optional[Dict[str, Any]]:
+        """Construct a payload describing the action for Rube MCP."""
+        command_name = context.command.name
+        tool_map = {
+            'task': 'workflow.dispatch',
+            'workflow': 'workflow.dispatch',
+            'spawn': 'workflow.dispatch',
+            'improve': 'automation.log',
+            'business-panel': 'insights.record',
+            'implement': 'automation.log',
+        }
+
+        tool = tool_map.get(command_name)
+        if not tool:
+            return None
+
+        payload: Dict[str, Any] = {
+            'command': command_name,
+            'session_id': context.session_id,
+            'summary': self._summarize_rube_context(command_name, output, context),
+            'metadata': {
+                'status': context.results.get('status', context.command.name),
+                'requires_evidence': context.metadata.requires_evidence,
+                'errors': list(context.errors),
+            },
+        }
+
+        if context.command.arguments:
+            payload['arguments'] = list(context.command.arguments)
+        if context.command.parameters:
+            payload['parameters'] = dict(context.command.parameters)
+
+        return {'tool': tool, 'payload': payload}
+
+    def _summarize_rube_context(
+        self,
+        command_name: str,
+        output: Any,
+        context: CommandContext,
+    ) -> str:
+        """Generate a short summary for Rube automation payloads."""
+        if isinstance(output, dict):
+            summary = output.get('summary') or output.get('description') or output.get('title')
+            if isinstance(summary, str) and summary.strip():
+                return summary.strip()[:400]
+
+        applied = context.results.get('applied_changes') or context.results.get('change_plan')
+        if isinstance(applied, list) and applied:
+            return f"{command_name} touched {len(applied)} files."
+
+        return f"{command_name} executed with status {context.results.get('status', 'unknown')}"
 
     def _normalize_evidence_value(self, value: Any) -> List[str]:
         """Normalize evidence values into a flat list of strings."""

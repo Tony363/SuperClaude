@@ -29,12 +29,12 @@
 | Task Type | Best Tool | Alternative |
 |-----------|-----------|-------------|
 | UI components | Deepwiki MCP | Manual coding |
-| Deep analysis | Sequential MCP | Native reasoning |
+| Deep analysis | Zen MCP | Native reasoning |
 | Symbol operations | UnifiedStore | Manual search |
 | Pattern edits | MultiEdit | Individual edits |
 | Documentation | Deepwiki MCP | Web search |
 | Browser testing | External Playwright/Cypress | Unit tests |
-| Multi-file edits | MultiEdit | Sequential Edits |
+| Multi-file edits | MultiEdit | Serial Edits |
 
 ## Resource Management
 

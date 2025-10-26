@@ -3,7 +3,7 @@ name: cleanup
 description: "Systematically clean up code, remove dead code, and optimize project structure"
 category: workflow
 complexity: standard
-mcp-servers: [sequential]
+mcp-servers: [zen, deepwiki]
 personas: [architect, quality, security]
 ---
 
@@ -30,12 +30,12 @@ personas: [architect, quality, security]
 Key behaviors:
 - Multi-persona coordination (architect, quality, security) based on cleanup type
 - Framework-specific cleanup patterns via Deepwiki MCP integration
-- Systematic analysis via Sequential MCP for complex cleanup operations
+- Consensus-backed validation via Zen MCP for complex cleanup operations
 - Safety-first approach with backup and rollback capabilities
 
 ## MCP Integration
-- **Sequential MCP**: Auto-activated for complex multi-step cleanup analysis and planning
 - **Deepwiki MCP**: Framework-specific cleanup patterns and best practices
+- **Zen MCP**: Consensus-driven gating for high-impact cleanup decisions
 - **Persona Coordination**: Architect (structure), Quality (debt), Security (credentials)
 
 ## Tool Coordination
@@ -77,7 +77,7 @@ Key behaviors:
 ```
 /sc:cleanup components/ --aggressive
 # Thorough cleanup with Deepwiki framework patterns
-# Sequential analysis for complex dependency management
+# Consensus analysis for complex dependency management
 ```
 
 ## Boundaries

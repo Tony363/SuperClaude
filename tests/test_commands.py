@@ -67,7 +67,7 @@ class TestCommandRegistry:
         # Get MCP requirements for implement
         mcp_servers = registry.get_mcp_requirements('implement')
         assert isinstance(mcp_servers, list)
-        assert 'sequential' in mcp_servers or 'zen' in mcp_servers
+        assert 'zen' in mcp_servers
 
 
 class TestCommandParser:
@@ -162,7 +162,7 @@ class TestCommandExecutor:
 
     @pytest.mark.asyncio
     async def test_command_chaining(self, monkeypatch):
-        """Test sequential command execution."""
+        """Test command chaining execution."""
         registry = CommandRegistry()
         parser = CommandParser()
         executor = CommandExecutor(registry, parser)
@@ -1315,7 +1315,7 @@ class TestCommandExecutor:
 
         assert result.success is True
         assert result.status == 'plan-only'
-        assert 'sequential' in result.mcp_servers_used
+        assert 'deepwiki' in result.mcp_servers_used
         assert result.executed_operations, "Panel operations should be recorded"
         assert result.artifacts, "Business panel should emit an artifact"
 
@@ -1329,6 +1329,20 @@ class TestCommandExecutor:
         assert 'christensen' in expert_names
         assert output['insights'], "Panel must produce insights"
         assert output['recommendations'], "Recommendations should not be empty"
+
+    @pytest.mark.asyncio
+    async def test_task_command_records_rube_operations(self, monkeypatch):
+        """/sc:task should record Rube automation hooks when available."""
+        monkeypatch.setenv("SC_NETWORK_MODE", "online")
+        monkeypatch.setenv("SC_RUBE_MODE", "dry-run")
+
+        registry = CommandRegistry()
+        parser = CommandParser(registry=registry)
+        executor = CommandExecutor(registry, parser)
+
+        result = await executor.execute('/sc:task create "release notes" --strategy systematic')
+
+        assert any(op.startswith('rube:') for op in result.executed_operations), "Expected Rube automation log"
 
     def _write_cleanup_stub(self, target: Path) -> None:
         target.write_text(

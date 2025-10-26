@@ -28,7 +28,7 @@ For critical and important rules, see RULES_CRITICAL.md.
 - **Agent Delegation**: Use Task agents for complex multi-step operations (>3 steps)
 - **MCP Server Usage**: Leverage specialized MCP servers for their strengths:
   - MultiEdit for bulk edits
-  - sequential-thinking for analysis
+  - Zen for consensus and risk validation
   - external Playwright/Cypress pipelines for browser testing
   - fetch for web content
 - **Batch Operations**: Use MultiEdit over multiple Edits, batch Read calls, group operations

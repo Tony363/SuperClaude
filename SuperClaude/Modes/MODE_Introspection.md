@@ -31,7 +31,7 @@ When GPT-5 is unavailable, Claude Opus 4.1 provides comparable reasoning depth.
 - **Token Efficiency**: Self-optimize for resource usage
 
 ## Common Tools
-- **Sequential MCP**: Structured self-analysis
+- **Zen MCP**: Structured multi-perspective self-analysis
 - **UnifiedStore reflection helpers**: Built-in think_about_* routines
 - **Task (root-cause-analyst)**: Deep problem investigation
 

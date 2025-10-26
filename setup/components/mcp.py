@@ -2,6 +2,7 @@
 MCP component for MCP server integration
 """
 
+import os
 import subprocess
 import sys
 from typing import Dict, List, Tuple, Optional, Any
@@ -39,11 +40,13 @@ class MCPComponent(Component):
                 "npm_package": "@deepwiki/mcp-server",
                 "required": False
             },
-            "sequential-thinking": {
-                "name": "sequential-thinking",
-                "description": "Multi-step problem solving and systematic analysis",
-                "npm_package": "@modelcontextprotocol/server-sequential-thinking",
-                "required": True
+            "rube": {
+                "name": "rube",
+                "description": "Hosted automation hub (Composio Rube)",
+                "hosted": True,
+                "required": True,
+                "api_key_env": "SC_RUBE_API_KEY",
+                "api_key_description": "Composio OAuth token for Rube MCP"
             }
         }
     
@@ -52,7 +55,7 @@ class MCPComponent(Component):
         return {
             "name": "mcp",
             "version": __version__,
-            "description": "MCP server integration (Fetch, Filesystem, Deepwiki, Sequential)",
+            "description": "MCP server integration (Fetch, Filesystem, Deepwiki, Rube)",
             "category": "integration"
         }
     
@@ -236,6 +239,12 @@ class MCPComponent(Component):
             return self._install_uv_mcp_server(server_info, config)
 
         server_name = server_info["name"]
+        if server_info.get("hosted"):
+            self.logger.info(f"Skipping local installation for hosted MCP server: {server_name}")
+            if not config.get("dry_run", False):
+                self._warn_hosted_server_requirements(server_info)
+            return True
+
         npm_package = server_info.get("npm_package")
 
         if not npm_package:
@@ -297,6 +306,29 @@ class MCPComponent(Component):
         except Exception as e:
             self.logger.error(f"Error installing MCP server {server_name}: {e}")
             return False
+
+    def _warn_hosted_server_requirements(self, server_info: Dict[str, Any]) -> None:
+        """Emit warnings for hosted MCP servers that rely on external credentials."""
+        server_name = server_info.get("name", "rube")
+        api_key_env = server_info.get("api_key_env")
+
+        if api_key_env:
+            if not os.getenv(api_key_env):
+                display_warning(
+                    f"Hosted MCP server '{server_name}' requires credentials. "
+                    f"Set {api_key_env} before running automation."
+                )
+                self.logger.warning(
+                    "Hosted MCP server %s missing environment variable %s",
+                    server_name,
+                    api_key_env,
+                )
+            else:
+                self.logger.info(
+                    "Found credentials for hosted MCP server %s in %s",
+                    server_name,
+                    api_key_env,
+                )
     
     def _uninstall_mcp_server(self, server_name: str) -> bool:
         """Uninstall a single MCP server"""

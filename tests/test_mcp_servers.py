@@ -1,5 +1,5 @@
 """
-Smoke tests and opt-in behaviour tests for MCP integrations.
+Smoke tests and behaviour checks for MCP integrations.
 """
 
 import logging
@@ -12,7 +12,7 @@ from SuperClaude.Commands.executor import CommandContext, CommandExecutor
 from SuperClaude.Commands.parser import CommandParser, ParsedCommand
 from SuperClaude.Commands.registry import CommandMetadata, CommandRegistry
 from SuperClaude.MCP import MCP_SERVERS, get_mcp_integration
-from SuperClaude.MCP.rube_proxy import RubeProxyIntegration
+from SuperClaude.MCP.rube_integration import RubeIntegration
 
 
 def _project_root() -> Path:
@@ -42,10 +42,9 @@ def test_all_mcp_servers_can_be_instantiated():
         assert instance is not None, f"Failed to instantiate MCP server '{name}'"
 
 
-def test_rube_disabled_without_opt_in(monkeypatch):
-    """Rube connector refuses to initialize when opt-in flag is absent."""
-    monkeypatch.delenv("SC_MCP_RUBE_ENABLED", raising=False)
-    integration = RubeProxyIntegration(config={"enabled": False})
+def test_rube_disabled_via_config():
+    """Rube integration refuses to initialize when disabled in config."""
+    integration = RubeIntegration(config={"enabled": False})
     assert integration.enabled is False
 
     with pytest.raises(RuntimeError):
@@ -53,25 +52,10 @@ def test_rube_disabled_without_opt_in(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_rube_enabled_with_env(monkeypatch):
-    """Rube connector initializes when the opt-in environment flag is set."""
-    monkeypatch.setenv("SC_MCP_RUBE_ENABLED", "true")
-    monkeypatch.setenv("SC_NETWORK_MODE", "online")
-
-    integration = RubeProxyIntegration(config={"enabled": False})
-    assert integration.enabled is True
-    assert integration.initialize() is True
-    assert await integration.initialize_session() is True
-
-    with pytest.raises(RuntimeError):
-        await integration.invoke("tool", {})
-
-
-@pytest.mark.asyncio
 async def test_executor_skips_disabled_rube(monkeypatch, caplog):
-    """Executor logs and skips activation when Rube remains disabled."""
-    monkeypatch.delenv("SC_MCP_RUBE_ENABLED", raising=False)
+    """Executor logs and skips activation when network mode blocks Rube."""
     monkeypatch.setenv("SC_NETWORK_MODE", "offline")
+    monkeypatch.delenv("SC_RUBE_MODE", raising=False)
 
     registry = CommandRegistry()
     parser = CommandParser(registry=registry)
@@ -99,9 +83,9 @@ async def test_executor_skips_disabled_rube(monkeypatch, caplog):
 
 @pytest.mark.asyncio
 async def test_executor_activates_rube_when_enabled(monkeypatch):
-    """Executor activates Rube when opt-in flag is set and network allowed."""
-    monkeypatch.setenv("SC_MCP_RUBE_ENABLED", "true")
+    """Executor activates Rube when network is allowed."""
     monkeypatch.setenv("SC_NETWORK_MODE", "online")
+    monkeypatch.setenv("SC_RUBE_MODE", "dry-run")
 
     registry = CommandRegistry()
     parser = CommandParser(registry=registry)
@@ -123,3 +107,31 @@ async def test_executor_activates_rube_when_enabled(monkeypatch):
 
     assert "rube" in executor.active_mcp_servers
     assert "rube" in context.mcp_servers
+
+
+@pytest.mark.asyncio
+async def test_rube_dry_run_without_network(monkeypatch):
+    """Rube integration falls back to dry-run when network is unavailable."""
+    monkeypatch.setenv("SC_NETWORK_MODE", "offline")
+    monkeypatch.delenv("SC_RUBE_MODE", raising=False)
+
+    integration = RubeIntegration()
+    integration.initialize()
+    await integration.initialize_session()
+
+    response = await integration.invoke("tool", {"foo": "bar"})
+    assert response["status"] == "dry-run"
+
+
+@pytest.mark.asyncio
+async def test_rube_live_requires_api_key(monkeypatch):
+    """Live mode should fail fast if API key is missing."""
+    monkeypatch.setenv("SC_NETWORK_MODE", "online")
+    monkeypatch.delenv("SC_RUBE_MODE", raising=False)
+    monkeypatch.delenv("SC_RUBE_API_KEY", raising=False)
+
+    integration = RubeIntegration()
+    integration.initialize()
+
+    with pytest.raises(RuntimeError):
+        await integration.initialize_session()

@@ -16,7 +16,6 @@ from SuperClaude.ModelRouter.router import ModelRouter
 from SuperClaude.Quality.quality_scorer import QualityScorer
 from SuperClaude.Agents.extended_loader import ExtendedAgentLoader
 from SuperClaude.MCP import (
-    SequentialIntegration,
     DeepwikiIntegration,
     ZenIntegration,
 )
@@ -70,11 +69,6 @@ class TestCoreComponents(unittest.TestCase):
 
 class TestMCPIntegrations(unittest.TestCase):
     """Test MCP server integrations"""
-
-    def test_sequential_integration(self):
-        """Test Sequential thinking integration"""
-        sequential = SequentialIntegration()
-        self.assertIsNotNone(sequential)
 
     def test_deepwiki_integration(self):
         """Test Deepwiki documentation integration"""

@@ -458,7 +458,6 @@ class DynamicContextManager:
 
         # Check for MCP tool patterns
         mcp_tools = {
-            'mcp__sequential': ['sequential-mcp', 'analysis'],
             'mcp__zen': ['zen-mcp', 'consensus'],
             'mcp__deepwiki': ['deepwiki-mcp', 'documentation'],
         }

@@ -185,7 +185,7 @@ business_panel_config:
   expert_voice_preservation: 0.85
   
   # Integration
-  mcp_sequential_primary: true
+  mcp_zen_validation: true
   mcp_deepwiki_patterns: true
   persona_coordination: true
 ```

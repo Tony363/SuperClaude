@@ -3,7 +3,7 @@ name: implement
 description: "Feature and code implementation with intelligent persona activation and MCP integration"
 category: workflow
 complexity: standard
-mcp-servers: [sequential, zen]
+mcp-servers: [zen, deepwiki]
 personas: [architect, frontend, backend, security, qa-specialist]
 requires_evidence: true
 ---
@@ -34,12 +34,10 @@ requires_evidence: true
 Key behaviors:
 - Context-based persona activation (architect, frontend, backend, security, qa)
 - Framework-specific implementation via Deepwiki MCP guidance and curated playbooks
-- Systematic multi-component coordination via Sequential MCP
 - Consensus validation on risky changes via Zen MCP
 - Evidence-driven reporting — never claim code exists without showing diff + tests
 
 ## MCP Integration
-- **Sequential MCP**: Complex multi-step analysis and implementation planning
 - **Zen MCP**: Consensus building for architectural and security-sensitive decisions
 - **Deepwiki MCP**: Framework documentation, patterns, and best practices
 - **UnifiedStore**: Cross-session implementation state, learnings, and checkpoints
@@ -83,7 +81,7 @@ Key behaviors:
 ```
 /sc:implement payment processing system --type feature --with-tests
 # Multi-persona coordination: architect, frontend, backend, security
-# Sequential MCP breaks down complex implementation steps
+# Zen MCP validates complex implementation steps
 # Return diff + tests or explicitly note pending work
 ```
 

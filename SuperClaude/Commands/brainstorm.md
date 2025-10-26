@@ -3,7 +3,7 @@ name: brainstorm
 description: "Interactive requirements discovery through Socratic dialogue and systematic exploration"
 category: orchestration
 complexity: advanced
-mcp-servers: [sequential, zen]
+mcp-servers: [zen, deepwiki]
 personas: [architect, analyzer, frontend, backend, security, devops, project-manager]
 ---
 
@@ -37,7 +37,6 @@ Key behaviors:
 - Cross-session persistence with comprehensive requirements discovery documentation
 
 ## MCP Integration
-- **Sequential MCP**: Complex multi-step reasoning for systematic exploration and validation
 - **Deepwiki MCP**: Framework-specific feasibility assessment and pattern analysis
 - **Zen MCP**: Consensus building for conflicting stakeholder priorities
 - **UnifiedStore**: Cross-session persistence, memory management, and project context enhancement
@@ -47,7 +46,6 @@ Key behaviors:
 - **TodoWrite**: Progress tracking for complex multi-phase exploration
 - **Task**: Advanced delegation for parallel exploration paths and multi-agent coordination
 - **WebSearch**: Market research, competitive analysis, and technology validation
-- **sequentialthinking**: Structured reasoning for complex requirements analysis
 
 ## Key Patterns
 - **Socratic Dialogue**: Question-driven exploration → systematic requirements discovery
@@ -61,14 +59,14 @@ Key behaviors:
 ```
 /sc:brainstorm "AI-powered project management tool" --strategy systematic --depth deep
 # Multi-persona analysis: architect (system design), analyzer (feasibility), project-manager (requirements)
-# Sequential MCP provides structured exploration framework
+# Zen MCP provides structured exploration framework
 ```
 
 ### Agile Feature Exploration
 ```
 /sc:brainstorm "real-time collaboration features" --strategy agile --parallel
 # Parallel exploration paths with frontend, backend, and security personas
-# Deepwiki MCP for framework patterns with Sequential MCP-driven analysis
+# Deepwiki MCP for framework patterns with Zen MCP-driven analysis
 ```
 
 ### Enterprise Solution Validation

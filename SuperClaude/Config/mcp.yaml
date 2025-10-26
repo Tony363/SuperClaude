@@ -2,21 +2,6 @@
 # Version: 6.0.0-alpha
 
 servers:
-  sequential:
-    enabled: true
-    name: Sequential Thinking
-    triggers:
-      - --think
-      - --think-hard
-      - --ultrathink
-      - --seq
-    capabilities:
-      - multi-step-reasoning
-      - hypothesis-testing
-      - complex-analysis
-      - debugging
-    priority: high
-
   zen:
     enabled: true
     name: Multi-Model Orchestrator
@@ -49,7 +34,7 @@ servers:
     priority: medium
 
   rube:
-    enabled: false
+    enabled: true
     name: Rube Automation Hub
     triggers:
       - --rube
@@ -61,7 +46,7 @@ servers:
     priority: low
     requires_network: true
     endpoint: https://rube.app/mcp
-    env_toggle: SC_MCP_RUBE_ENABLED
+    timeout_seconds: 60
 
 # Integration Configuration
 integration:

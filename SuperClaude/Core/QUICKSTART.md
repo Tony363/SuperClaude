@@ -61,8 +61,8 @@
 - **Web**: fetch
 - **Files**: filesystem
 - **Docs**: mcp-deepwiki
-- **Analysis**: sequential
-- **Consensus**: zen
+- **Consensus & Analysis**: zen
+- **Automation (opt-in)**: rube
 - **Browser**: external Playwright/Cypress pipelines (manual)
 - **Persistence**: UnifiedStore (built-in, no --tools flag)
 

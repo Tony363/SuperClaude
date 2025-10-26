@@ -111,11 +111,6 @@ mcp_servers:
   retry_attempts: 3
 
   servers:
-    sequential:
-      enabled: true
-      max_steps: 20
-      min_confidence: 0.7
-
     zen:
       enabled: true
       models:

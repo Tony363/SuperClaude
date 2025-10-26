@@ -65,7 +65,7 @@
 
 | Task Type | Primary Tool | Memory Key |
 |-----------|-------------|------------|
-| Analysis | Sequential MCP | "analysis_results" |
+| Analysis | Zen MCP | "analysis_results" |
 | Implementation | MultiEdit | "code_changes" |
 | UI Components | Deepwiki MCP | "ui_components" |
 | Testing | External Playwright/Cypress | "test_results" |
