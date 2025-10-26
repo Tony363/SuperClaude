@@ -107,6 +107,7 @@ CLAUDE.md
 .superclaude/
 .superclaude_metrics/
 SuperClaude/Generated/
+SuperClaude/quarantine/
 .worktrees/
 SuperClaude/Implementation/
 *.backup
