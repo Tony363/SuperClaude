@@ -54,9 +54,9 @@
 ## Current Limitations
 - Consensus, model routing, and MCP servers default to heuristic stubs unless you export
   `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GOOGLE_API_KEY`, or `XAI_API_KEY`.
-- Auto-generated change plans emit executable stubs under `SuperClaude/Implementation/Auto/`; they
-  satisfy the `requires_evidence` gate, but still ship as scaffolds that demand developer
-  refinement before production use.
+- Auto-generated change plans still synthesize stub guidance under `SuperClaude/Implementation/Auto/`,
+  but the guardrails keep them as plan-only evidence—`/sc:implement` will fail the
+  `requires_evidence` gate until a human applies real repository changes.
 - Framework documentation lookups run from the repository’s curated knowledge base; the former
   Deepwiki MCP connector has been removed from this offline bundle.
 - Extended personas execute via generated Python wrappers, yet only the 15 core strategists ship

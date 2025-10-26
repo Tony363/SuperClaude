@@ -14,3 +14,8 @@
 - **Context:** Auto-generated evidence stubs accumulated in `SuperClaude/Implementation/Auto/` with no lifecycle management, and the 131-agent catalog lacked data showing which personas actually execute.
 - **Decision:** Add a TTL-based cleanup helper (`/sc:implement --cleanup`) that only removes untouched auto stubs, log safe-skipped files, and surface usage telemetry via `.superclaude_metrics/agent_usage.json` plus `scripts/report_agent_usage.py`.
 - **Consequences:** Repositories stay free of stale evidence while preserving active work. The new markdown report highlights “active”, “observed”, and “planned” agents so product owners can prioritise future implementations without editing configuration files.
+
+## 2025-10-26 – Requires-Evidence Guardrail Enforces Real Diffs
+- **Context:** `/sc:implement` succeeded with only auto-generated stubs, letting hallucinated change plans satisfy the `requires_evidence` check while still demanding human follow-up.
+- **Decision:** Treat auto stubs as plan-only evidence, suppress writing them to the repository, and fail the guardrail until genuine file modifications are applied.
+- **Consequences:** Stub guidance still appears in the change plan, but commands now exit with actionable errors and quality failures until developers supply real diffs. Tests cover the new behaviour and README documents the stricter guardrail.

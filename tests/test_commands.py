@@ -807,8 +807,8 @@ class TestCommandExecutor:
         assert context.results['quality_loop_warnings']
 
     @pytest.mark.asyncio
-    async def test_implement_generates_artifact_and_consensus(self, monkeypatch):
-        """Implementation command should emit artifacts and consensus summary."""
+    async def test_implement_stub_runs_fail_requires_evidence(self, monkeypatch):
+        """Stub-only implement runs should fail the requires-evidence gate."""
         registry = CommandRegistry()
         parser = CommandParser()
         executor = CommandExecutor(registry, parser)
@@ -842,51 +842,29 @@ class TestCommandExecutor:
 
         result = await executor.execute('/sc:implement sample feature')
 
-        assert result.success is True
-        assert result.status == 'executed'
-        assert result.artifacts, "Artifact list should not be empty"
+        assert result.success is False
+        assert result.status == 'plan-only'
         assert result.consensus is not None
         assert result.consensus.get('consensus_reached') is True
-        assert result.output.get('applied_files'), "Applied files should be reported"
-        assert result.output.get('quality_artifact'), "Quality artifact should be recorded"
+        assert result.output.get('applied_files') == []
+
+        error_text = "\n".join(result.errors)
+        assert "Requires execution evidence but no repository changes were detected." in error_text
+        assert "Auto-generated implementation stubs were withheld" in error_text
+
+        change_plan = result.output.get('change_plan') or []
+        assert change_plan, "Change plan should include stub guidance"
+        auto_stub_entries = [entry for entry in change_plan if entry.get('auto_stub')]
+        assert auto_stub_entries, "Stub entries should be flagged as auto_stub"
 
         repo_root = executor.repo_root or Path.cwd()
-        applied_files = result.output.get('applied_files') or []
-        auto_stub_paths = [
-            Path(rel_path)
-            for rel_path in applied_files
-            if Path(rel_path).parts[:3] == ('SuperClaude', 'Implementation', 'Auto')
-        ]
-        assert auto_stub_paths, "Auto stub should be generated under SuperClaude/Implementation/Auto"
-        for rel_path in applied_files:
-            target = repo_root / rel_path
-            assert target.exists()
-            target.unlink(missing_ok=True)
+        for entry in auto_stub_entries:
+            stub_path = repo_root / entry['path']
+            assert not stub_path.exists(), f"Stub file {stub_path} should not be written to disk"
 
-        for artifact in result.artifacts:
-            artifact_path = repo_root / artifact
-            assert artifact_path.exists()
-            artifact_path.unlink(missing_ok=True)
-
-        auto_root = repo_root / 'SuperClaude' / 'Implementation' / 'Auto'
-        if auto_root.exists():
-            for category_dir in auto_root.glob('*'):
-                if category_dir.is_dir():
-                    try:
-                        category_dir.rmdir()
-                    except OSError:
-                        pass
-            try:
-                auto_root.rmdir()
-            except OSError:
-                pass
-
-        impl_dir = repo_root / 'SuperClaude' / 'Implementation'
-        if impl_dir.exists():
-            try:
-                impl_dir.rmdir()
-            except OSError:
-                pass
+        worktree_warnings = result.output.get('worktree_warnings') or []
+        assert any("Auto-generated implementation stubs" in warning for warning in worktree_warnings), \
+            "Worktree warnings should note that stubs were withheld"
 
     @pytest.mark.asyncio
     async def test_requires_evidence_blocks_on_consensus_failure(self, monkeypatch):

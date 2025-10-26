@@ -507,18 +507,6 @@ class CommandExecutor:
                         if iteration_history:
                             output['quality_iteration_history'] = iteration_history
 
-                    auto_stub = context.results.get('auto_generated_stub', False)
-                    if (
-                        auto_stub
-                        and not quality_assessment.passed
-                        and quality_assessment.overall_score >= quality_assessment.threshold - 5.0
-                    ):
-                        quality_assessment.passed = True
-                        serialized_assessment = self._serialize_assessment(quality_assessment)
-                        context.results['quality_assessment'] = serialized_assessment
-                        if isinstance(output, dict):
-                            output['quality_assessment'] = serialized_assessment
-
                     if not quality_assessment.passed:
                         failure_msg = (
                             f"Quality score {quality_assessment.overall_score:.1f} "
@@ -915,7 +903,12 @@ class CommandExecutor:
             applied_list.extend(f"apply {path}" for path in applied_files)
             context.results['applied_changes'] = self._deduplicate(applied_list)
         else:
-            context.errors.append("Worktree manager produced no repository changes")
+            if context.results.get('auto_generated_stub'):
+                context.errors.append(
+                    "Auto-generated implementation stubs were withheld; no repository changes were applied."
+                )
+            else:
+                context.errors.append("Worktree manager produced no repository changes")
 
         context.results['change_plan'] = change_plan
         context.results['worktree_session'] = change_result.get('session')
@@ -1527,30 +1520,35 @@ class CommandExecutor:
 
         if isinstance(candidate, dict):
             if 'path' in candidate and 'content' in candidate:
-                proposals.append({
-                    'path': str(candidate['path']),
-                    'content': candidate.get('content', ''),
-                    'mode': candidate.get('mode', 'replace'),
-                })
+                proposals.append(self._normalize_change_descriptor(candidate))
             else:
                 for key, value in candidate.items():
                     if isinstance(value, dict) and 'content' in value:
-                        proposals.append({
-                            'path': str(value.get('path') or key),
-                            'content': value.get('content', ''),
-                            'mode': value.get('mode', 'replace'),
-                        })
+                        descriptor = dict(value)
+                        descriptor.setdefault('path', key)
+                        proposals.append(self._normalize_change_descriptor(descriptor))
                     else:
-                        proposals.append({
+                        proposals.append(self._normalize_change_descriptor({
                             'path': str(key),
                             'content': value,
                             'mode': 'replace',
-                        })
+                        }))
         elif isinstance(candidate, (list, tuple, set)):
             for item in candidate:
                 proposals.extend(self._extract_agent_change_specs(item))
 
         return proposals
+
+    def _normalize_change_descriptor(self, descriptor: Dict[str, Any]) -> Dict[str, Any]:
+        """Ensure change descriptors retain metadata flags like auto_stub."""
+        normalized = {
+            'path': str(descriptor.get('path')),
+            'content': descriptor.get('content', ''),
+            'mode': descriptor.get('mode', 'replace'),
+        }
+        if descriptor.get('auto_stub'):
+            normalized['auto_stub'] = True
+        return normalized
 
     def _build_default_change_plan(
         self,
@@ -1597,7 +1595,8 @@ class CommandExecutor:
             plan.append({
                 'path': str(rel_path),
                 'content': '# Auto-generated placeholder\n',
-                'mode': 'replace'
+                'mode': 'replace',
+                'auto_stub': True
             })
 
         return plan
@@ -1621,7 +1620,8 @@ class CommandExecutor:
         return {
             'path': str(rel_path),
             'content': content,
-            'mode': 'replace'
+            'mode': 'replace',
+            'auto_stub': True
         }
 
     def _build_generic_stub_change(
@@ -1661,7 +1661,8 @@ class CommandExecutor:
         return {
             'path': str(rel_path),
             'content': "\n".join(lines).strip() + "\n",
-            'mode': 'replace'
+            'mode': 'replace',
+            'auto_stub': True
         }
 
     def _render_default_evidence_document(
@@ -1739,7 +1740,8 @@ class CommandExecutor:
         return {
             'path': str(rel_path),
             'content': content,
-            'mode': 'replace'
+            'mode': 'replace',
+            'auto_stub': True
         }
 
     def _infer_auto_stub_extension(
@@ -1905,12 +1907,35 @@ class CommandExecutor:
 
     def _apply_change_plan(self, context: CommandContext, change_plan: List[Dict[str, Any]]) -> Dict[str, Any]:
         """Apply the change plan using the worktree manager or a fallback writer."""
+        stub_entries = [entry for entry in change_plan if entry.get('auto_stub')]
+        material_changes = [entry for entry in change_plan if not entry.get('auto_stub')]
+
+        if stub_entries:
+            context.results['auto_generated_stub'] = True
+            suppressed = context.results.setdefault('suppressed_auto_stubs', [])
+            for entry in stub_entries:
+                stub_path = entry.get('path')
+                if stub_path and stub_path not in suppressed:
+                    suppressed.append(stub_path)
+
+        if not material_changes:
+            warning = (
+                "Auto-generated implementation stubs were withheld; "
+                "no repository files were modified."
+            )
+            return {
+                'applied': [],
+                'warnings': [warning],
+                'base_path': str(self.repo_root or Path.cwd()),
+                'session': 'stub-only'
+            }
+
         try:
             manager = self._ensure_worktree_manager()
             if manager:
-                result = manager.apply_changes(change_plan)
+                result = manager.apply_changes(material_changes)
             else:
-                result = self._apply_changes_fallback(change_plan)
+                result = self._apply_changes_fallback(material_changes)
         except Exception as exc:
             logger.error(f"Failed to apply change plan: {exc}")
             context.errors.append(f"Failed to apply change plan: {exc}")
@@ -1923,6 +1948,12 @@ class CommandExecutor:
 
         result.setdefault('warnings', [])
         result.setdefault('applied', [])
+        if stub_entries:
+            warning = (
+                "Auto-generated implementation stubs were withheld from the repository."
+            )
+            if warning not in result['warnings']:
+                result['warnings'].append(warning)
         if 'base_path' not in result:
             result['base_path'] = str(self.repo_root or Path.cwd())
         return result
