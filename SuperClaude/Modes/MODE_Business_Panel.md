@@ -303,7 +303,7 @@ strategic_questions:
 
 ### MCP Server Integration
 - **Sequential**: Primary coordination for multi-expert analysis, complex reasoning, debate moderation
-- **Deepwiki**: Business frameworks, management patterns, strategic case studies
+- **Knowledge Base**: Business frameworks, management patterns, strategic case studies
 - **Zen**: Consensus validation on strategic recommendations and risk assessments
 
 ### Wave Mode Integration

@@ -56,7 +56,7 @@ def verify_superclaude_file(file_path: Path, component: str) -> bool:
             ],
             'mcp_docs': [
                 'MCP_Fetch.md', 'MCP_Filesystem.md',
-                'MCP_Deepwiki.md', 'MCP_Zen.md', 'MCP_Rube.md'
+                'MCP_Zen.md', 'MCP_Rube.md'
             ]
         }
         

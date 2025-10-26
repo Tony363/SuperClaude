@@ -3,7 +3,7 @@ name: improve
 description: "Apply systematic improvements to code quality, performance, and maintainability"
 category: workflow
 complexity: standard
-mcp-servers: [zen, deepwiki, rube]
+mcp-servers: [zen, rube]
 personas: [architect, performance, quality, security]
 ---
 
@@ -29,12 +29,12 @@ personas: [architect, performance, quality, security]
 
 Key behaviors:
 - Multi-persona coordination (architect, performance, quality, security) based on improvement type
-- Framework-specific optimization via Deepwiki integration for best practices
+- Framework-specific optimization via curated repository standards and best practices
 - Consensus validation via Zen MCP for complex multi-component improvements
 - Safe refactoring with comprehensive validation and rollback capabilities
 
-## MCP Integration
-- **Deepwiki MCP**: Framework-specific best practices and optimization patterns
+## Knowledge Inputs
+- **Repository Standards**: Framework-specific best practices and optimization patterns
 - **Zen MCP**: Consensus-backed validation for high-impact changes
 - **Rube MCP**: Coordinate code-quality follow-ups (tickets, release announcements, alerts)
 - **Persona Coordination**: Architect (structure), Performance (speed), Quality (maintainability), Security (safety)

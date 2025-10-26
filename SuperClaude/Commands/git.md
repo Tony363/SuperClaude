@@ -5,7 +5,7 @@ category: utility
 complexity: basic
 mcp-servers: []
 personas: []
-requires_evidence: true
+requires_evidence: false
 ---
 
 # /sc:git - Git Operations

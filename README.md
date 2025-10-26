@@ -146,7 +146,6 @@ heuristics to real provider clients.
 
 | Integration | Path | Status |
 |-------------|------|--------|
-| Deepwiki | `SuperClaude/MCP/deepwiki_integration.py` | Local doc lookup |
 | Zen | `SuperClaude/MCP/zen_integration.py` | Offline consensus helper piping `/sc:*` commands through deterministic votes |
 | Rube | `SuperClaude/MCP/rube_integration.py` | Automation hub for external SaaS workflows (defaults to dry-run offline) |
 

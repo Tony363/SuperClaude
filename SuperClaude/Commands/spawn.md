@@ -3,7 +3,7 @@ name: spawn
 description: "Meta-system task orchestration with intelligent breakdown and delegation"
 category: special
 complexity: high
-mcp-servers: [zen, deepwiki, rube]
+mcp-servers: [zen, rube]
 personas: []
 ---
 
@@ -34,7 +34,7 @@ Key behaviors:
 - Advanced dependency analysis and resource optimization across task hierarchies
 ## MCP Integration
 - **Zen MCP**: Consensus checkpoints for high-risk orchestration choices
-- **Deepwiki MCP**: Pattern lookup for domain-specific playbooks
+- **Knowledge Base**: Repository playbooks for domain-specific operations
 - **Rube MCP**: External automation dispatch (ticketing, notifications, CI triggers)
 
 ## Tool Coordination

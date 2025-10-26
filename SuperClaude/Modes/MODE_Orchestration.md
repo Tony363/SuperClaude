@@ -28,11 +28,11 @@
 
 | Task Type | Best Tool | Alternative |
 |-----------|-----------|-------------|
-| UI components | Deepwiki MCP | Manual coding |
+| UI components | Repository docs | Manual coding |
 | Deep analysis | Zen MCP | Native reasoning |
 | Symbol operations | UnifiedStore | Manual search |
 | Pattern edits | MultiEdit | Individual edits |
-| Documentation | Deepwiki MCP | Web search |
+| Documentation | Repository docs | Web search |
 | Browser testing | External Playwright/Cypress | Unit tests |
 | Multi-file edits | MultiEdit | Serial Edits |
 

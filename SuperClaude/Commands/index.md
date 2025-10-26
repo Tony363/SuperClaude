@@ -3,7 +3,7 @@ name: index
 description: "Generate comprehensive project documentation and knowledge base with intelligent organization"
 category: special
 complexity: standard
-mcp-servers: [deepwiki]
+mcp-servers: []
 personas: [architect, scribe, quality]
 ---
 
@@ -29,11 +29,11 @@ personas: [architect, scribe, quality]
 
 Key behaviors:
 - Multi-persona coordination (architect, scribe, quality) based on documentation scope and complexity
-- Deepwiki MCP integration for framework-specific patterns and documentation standards
+- Curated framework templates sourced from repository documentation standards
 - Intelligent organization with cross-referencing capabilities and automated maintenance
 
-## MCP Integration
-- **Deepwiki MCP**: Framework-specific documentation patterns and established standards
+## Knowledge Inputs
+- **Repository Standards**: Framework-specific documentation patterns and established conventions
 - **Persona Coordination**: Architect (structure), Scribe (content), Quality (validation)
 
 ## Tool Coordination
@@ -46,7 +46,7 @@ Key behaviors:
 - **Structure Analysis**: Project examination → component identification → logical organization → cross-referencing
 - **Documentation Types**: API docs → Structure docs → README → Knowledge base approaches
 - **Quality Validation**: Completeness assessment → accuracy verification → standard compliance → maintenance planning
-- **Framework Integration**: Deepwiki patterns → official standards → best practices → consistency validation
+- **Framework Integration**: Repository patterns → official standards → best practices → consistency validation
 
 ## Examples
 

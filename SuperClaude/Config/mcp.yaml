@@ -17,22 +17,6 @@ servers:
       - validation
     priority: high
 
-  deepwiki:
-    enabled: true
-    name: Documentation Repository
-    triggers:
-      - --deepwiki
-      - --docs
-      - /docs
-      - --library-docs
-    capabilities:
-      - documentation-fetch
-      - library-reference
-      - framework-patterns
-      - code-examples
-      - api-reference
-    priority: medium
-
   rube:
     enabled: true
     name: Rube Automation Hub

@@ -80,7 +80,7 @@ Use the most powerful tool available:
 - Symbol operations → UnifiedStore > manual search
 - Pattern edits → MultiEdit > individual changes
 - Web content → Fetch > WebSearch
-- Documentation → Deepwiki > web search
+- Documentation → Repository knowledge base > web search
 
 ## Quick Reference
 

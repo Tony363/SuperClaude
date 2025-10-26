@@ -67,9 +67,9 @@
 |-----------|-------------|------------|
 | Analysis | Zen MCP | "analysis_results" |
 | Implementation | MultiEdit | "code_changes" |
-| UI Components | Deepwiki MCP | "ui_components" |
+| UI Components | Repository docs | "ui_components" |
 | Testing | External Playwright/Cypress | "test_results" |
-| Documentation | Deepwiki MCP | "doc_patterns" |
+| Documentation | Repository docs | "doc_patterns" |
 
 ## Quality-Driven Agent Selection
 

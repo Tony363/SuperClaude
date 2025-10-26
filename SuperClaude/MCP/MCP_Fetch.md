@@ -19,7 +19,6 @@
 ## Works Best With
 - **Sequential**: Fetch provides content → Sequential analyzes and structures
 - **Filesystem**: Fetch retrieves → Filesystem saves locally for processing
-- **Deepwiki**: Complementary documentation sources
 
 ## Examples
 ```

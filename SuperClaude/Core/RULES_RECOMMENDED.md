@@ -137,7 +137,7 @@ Task Type → Recommended Tool:
 ├─ Code Analysis → Sequential-thinking
 ├─ Browser Testing → External Playwright/Cypress pipeline
 ├─ Symbol Operations → UnifiedStore
-├─ Documentation → MCP-Deepwiki
+├─ Documentation → Repository templates & standards
 └─ Pattern Search → Grep (not bash grep)
 ```
 

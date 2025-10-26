@@ -23,7 +23,6 @@ class MCPDocsComponent(Component):
         self.server_docs_map = {
             "fetch": "MCP_Fetch.md",
             "filesystem": "MCP_Filesystem.md",
-            "mcp-deepwiki": "MCP_Deepwiki.md",
             "zen": "MCP_Zen.md",
             "rube": "MCP_Rube.md"
         }

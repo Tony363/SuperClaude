@@ -146,15 +146,9 @@ async def example_mcp_integration():
 
     # Import MCP integrations
     from SuperClaude.MCP import (
-        DeepwikiIntegration,
         ZenIntegration,
         RubeIntegration,
     )
-
-    # Deepwiki documentation lookup
-    deepwiki = DeepwikiIntegration()
-    doc = await deepwiki.lookup("Next.js authentication best practices")
-    print(f"Doc lookup returned {len(doc['sections'])} relevant sections")
 
     # Zen multi-model consensus
     zen = ZenIntegration()

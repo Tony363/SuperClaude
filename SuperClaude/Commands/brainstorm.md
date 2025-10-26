@@ -3,7 +3,7 @@ name: brainstorm
 description: "Interactive requirements discovery through Socratic dialogue and systematic exploration"
 category: orchestration
 complexity: advanced
-mcp-servers: [zen, deepwiki]
+mcp-servers: [zen]
 personas: [architect, analyzer, frontend, backend, security, devops, project-manager]
 ---
 
@@ -37,7 +37,7 @@ Key behaviors:
 - Cross-session persistence with comprehensive requirements discovery documentation
 
 ## MCP Integration
-- **Deepwiki MCP**: Framework-specific feasibility assessment and pattern analysis
+- **Repository Knowledge Base**: Framework-specific feasibility assessment and pattern analysis
 - **Zen MCP**: Consensus building for conflicting stakeholder priorities
 - **UnifiedStore**: Cross-session persistence, memory management, and project context enhancement
 
@@ -66,7 +66,7 @@ Key behaviors:
 ```
 /sc:brainstorm "real-time collaboration features" --strategy agile --parallel
 # Parallel exploration paths with frontend, backend, and security personas
-# Deepwiki MCP for framework patterns with Zen MCP-driven analysis
+# Repository pattern references with Zen MCP-driven analysis
 ```
 
 ### Enterprise Solution Validation

@@ -15,10 +15,7 @@ from SuperClaude.Commands.registry import CommandRegistry
 from SuperClaude.ModelRouter.router import ModelRouter
 from SuperClaude.Quality.quality_scorer import QualityScorer
 from SuperClaude.Agents.extended_loader import ExtendedAgentLoader
-from SuperClaude.MCP import (
-    DeepwikiIntegration,
-    ZenIntegration,
-)
+from SuperClaude.MCP import ZenIntegration
 from SuperClaude.Testing.integration_framework import TestRunner, TestCase
 
 class TestCoreComponents(unittest.TestCase):
@@ -69,11 +66,6 @@ class TestCoreComponents(unittest.TestCase):
 
 class TestMCPIntegrations(unittest.TestCase):
     """Test MCP server integrations"""
-
-    def test_deepwiki_integration(self):
-        """Test Deepwiki documentation integration"""
-        deepwiki = DeepwikiIntegration()
-        self.assertIsNotNone(deepwiki)
 
     def test_zen_integration(self):
         """Test Zen multi-model integration"""
