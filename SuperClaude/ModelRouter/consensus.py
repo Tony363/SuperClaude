@@ -167,6 +167,17 @@ class ConsensusBuilder:
 
         return result
 
+    def _normalize_vote_response(self, response: Any) -> str:
+        """Normalize vote response for aggregation."""
+        if isinstance(response, dict):
+            if 'decision' in response:
+                return str(response['decision'])
+            try:
+                return json.dumps(response, sort_keys=True)
+            except TypeError:
+                return str(response)
+        return str(response)
+
     def _prepare_prompts(self,
                          base_prompt: str,
                          models: List[str],
@@ -324,42 +335,39 @@ class ConsensusBuilder:
 
         if vote_type == VoteType.UNANIMOUS:
             # All must agree
-            responses = [v.response for v in valid_votes]
-            if len(set(map(str, responses))) == 1:
+            responses = [self._normalize_vote_response(v.response) for v in valid_votes]
+            if len(set(responses)) == 1:
                 return True, valid_votes[0].response
             return False, None
 
         elif vote_type == VoteType.MAJORITY:
             # Simple majority
-            response_counts = {}
+            response_counts: Dict[str, int] = {}
+            response_map: Dict[str, Any] = {}
             for vote in valid_votes:
-                response_str = str(vote.response)
-                response_counts[response_str] = response_counts.get(response_str, 0) + 1
+                response_key = self._normalize_vote_response(vote.response)
+                response_counts[response_key] = response_counts.get(response_key, 0) + 1
+                response_map.setdefault(response_key, vote.response)
 
             # Find majority
-            total_votes = len(valid_votes)
-            for response_str, count in response_counts.items():
-                if count > total_votes / 2:
-                    # Find original response object
-                    for vote in valid_votes:
-                        if str(vote.response) == response_str:
-                            return True, vote.response
+            if len(response_counts) == 1:
+                response_key = next(iter(response_counts))
+                return True, response_map[response_key]
             return False, None
 
         elif vote_type == VoteType.QUORUM:
             # Minimum number must agree
-            response_counts = {}
-            response_map = {}
+            response_counts: Dict[str, int] = {}
+            response_map: Dict[str, Any] = {}
             for vote in valid_votes:
-                response_str = str(vote.response)
-                response_counts[response_str] = response_counts.get(response_str, 0) + 1
-                if response_str not in response_map:
-                    response_map[response_str] = vote.response
+                response_key = self._normalize_vote_response(vote.response)
+                response_counts[response_key] = response_counts.get(response_key, 0) + 1
+                response_map.setdefault(response_key, vote.response)
 
             # Check if any response meets quorum
-            for response_str, count in response_counts.items():
+            for response_key, count in response_counts.items():
                 if count >= quorum_size:
-                    return True, response_map[response_str]
+                    return True, response_map[response_key]
             return False, None
 
         elif vote_type == VoteType.WEIGHTED:

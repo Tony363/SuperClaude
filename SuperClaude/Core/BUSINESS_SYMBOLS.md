@@ -186,7 +186,6 @@ business_panel_config:
   
   # Integration
   mcp_zen_validation: true
-  mcp_deepwiki_patterns: true
   persona_coordination: true
 ```
 

@@ -34,12 +34,6 @@ class MCPComponent(Component):
                 "npm_package": "@modelcontextprotocol/server-filesystem", 
                 "required": True
             },
-            "mcp-deepwiki": {
-                "name": "mcp-deepwiki",
-                "description": "Technical documentation repository and code examples",
-                "npm_package": "@deepwiki/mcp-server",
-                "required": False
-            },
             "rube": {
                 "name": "rube",
                 "description": "Hosted automation hub (Composio Rube)",
@@ -55,7 +49,7 @@ class MCPComponent(Component):
         return {
             "name": "mcp",
             "version": __version__,
-            "description": "MCP server integration (Fetch, Filesystem, Deepwiki, Rube)",
+            "description": "MCP server integration (Fetch, Filesystem, Rube)",
             "category": "integration"
         }
     

@@ -28,7 +28,6 @@ Loads when specific MCP servers are used:
 @MCP_Fetch.md           # Activated by: web content retrieval, URL fetching
 @MCP_Filesystem.md      # Activated by: file operations, directory management
 @MCP_Zen.md             # Activated by: consensus validation, model comparisons
-@MCP_Deepwiki.md        # Activated by: documentation lookup, API research
 
 ### Extended Rules & Operations
 Additional guidelines and frameworks:
@@ -62,7 +61,6 @@ The framework intelligently loads components based on these triggers:
 - Web content retrieval → Loads MCP_Fetch.md
 - File operations → Loads MCP_Filesystem.md
 - Consensus validation → Loads MCP_Zen.md
-- Documentation lookup → Loads MCP_Deepwiki.md
 
 ### Quality & Optimization
 - Performance issues → Loads RULES_RECOMMENDED.md

@@ -1,6 +1,6 @@
 # MCP Server Integrations (Stub)
 
-SuperClaude bundles three MCP integrations (Zen, Deepwiki, Rube) with configuration stored under `SuperClaude/MCP`.
+SuperClaude bundles two MCP integrations (Zen, Rube) with configuration stored under `SuperClaude/MCP`.
 
 Refer to the core assets for the current connection details:
 

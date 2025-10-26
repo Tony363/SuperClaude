@@ -74,9 +74,9 @@ Specialized tools for enhanced capabilities.
   - Use for: Style enforcement, multi-file replacements, framework updates
 
 ### UI & Documentation  
-- **MCP-Deepwiki**: Technical documentation and code examples  
+- **Repository Docs**: Technical documentation and code examples  
   - Use for: React/Vue/Angular components, accessible UI, design systems
-- **Deepwiki**: Technical documentation, framework patterns  
+- **Knowledge Base**: Framework patterns curated within the project  
   - Use for: Library docs, API references, best practices
 - **Browser Automation**: External Playwright/Cypress pipelines (manual)  
   - Use for: Visual testing, user flows, accessibility validation
@@ -104,7 +104,7 @@ Quality dimensions: Correctness (40%), Completeness (30%), Code Quality (20%), P
 | Debug error | Task(root-cause-analyst) | Sequential |
 | Refactor code | Task(refactoring-expert) | MultiEdit |
 | Fetch web content | Fetch | WebSearch |
-| Get docs | Deepwiki | WebSearch |
+| Get docs | Repository Docs | WebSearch |
 | Rename symbol | UnifiedStore | Manual search |
 | Bulk edits | MultiEdit | Sequential edits |
 | Complex analysis | Sequential | Native reasoning |

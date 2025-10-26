@@ -1315,7 +1315,6 @@ class TestCommandExecutor:
 
         assert result.success is True
         assert result.status == 'plan-only'
-        assert 'deepwiki' in result.mcp_servers_used
         assert result.executed_operations, "Panel operations should be recorded"
         assert result.artifacts, "Business panel should emit an artifact"
 

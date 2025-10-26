@@ -3,7 +3,7 @@ name: explain
 description: "Provide clear explanations of code, concepts, and system behavior with educational clarity"
 category: workflow
 complexity: standard
-mcp-servers: [zen, deepwiki]
+mcp-servers: [zen]
 personas: [educator, architect, security]
 ---
 
@@ -29,12 +29,12 @@ personas: [educator, architect, security]
 
 Key behaviors:
 - Multi-persona coordination for domain expertise (educator, architect, security)
-- Framework-specific explanations via Deepwiki integration
+- Framework-specific explanations sourced from curated repository standards
 - Consensus-backed clarification via Zen MCP when multiple perspectives required
 - Adaptive explanation depth based on audience and complexity
 
-## MCP Integration
-- **Deepwiki MCP**: Framework documentation and official pattern explanations
+## Knowledge Inputs
+- **Repository Standards**: Framework documentation and official pattern explanations
 - **Zen MCP**: Cross-perspective validation for nuanced topics
 - **Persona Coordination**: Educator (learning), Architect (systems), Security (practices)
 
@@ -45,7 +45,7 @@ Key behaviors:
 
 ## Key Patterns
 - **Progressive Learning**: Basic concepts → intermediate details → advanced implementation
-- **Framework Integration**: Deepwiki documentation → accurate official patterns and practices
+- **Framework Integration**: Repository documentation → official patterns → best practices
 - **Multi-Domain Analysis**: Technical accuracy + educational clarity + security awareness
 - **Interactive Explanation**: Static content → examples → interactive exploration
 
@@ -61,7 +61,7 @@ Key behaviors:
 ### Framework Concept Explanation
 ```
 /sc:explain react-hooks --level intermediate --context react
-# Deepwiki integration for official React documentation patterns
+# Repository guidelines for official React documentation patterns
 # Structured explanation with progressive complexity
 ```
 

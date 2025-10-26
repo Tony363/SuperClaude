@@ -213,7 +213,7 @@ Task type → Best tool:
 ├─ Complex analysis → Task agent > native reasoning
 ├─ Code search → Grep > bash grep
 ├─ Web content → Fetch MCP > WebSearch  
-├─ Documentation → Deepwiki MCP > web search
+├─ Documentation → Repository knowledge base > web search
 └─ Browser testing → external Playwright/Cypress pipeline > unit tests
 ```
 

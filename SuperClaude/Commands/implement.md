@@ -3,7 +3,7 @@ name: implement
 description: "Feature and code implementation with intelligent persona activation and MCP integration"
 category: workflow
 complexity: standard
-mcp-servers: [zen, deepwiki]
+mcp-servers: [zen]
 personas: [architect, frontend, backend, security, qa-specialist]
 requires_evidence: true
 ---
@@ -33,13 +33,13 @@ requires_evidence: true
 
 Key behaviors:
 - Context-based persona activation (architect, frontend, backend, security, qa)
-- Framework-specific implementation via Deepwiki MCP guidance and curated playbooks
+- Framework-specific implementation via curated repository guidance and playbooks
 - Consensus validation on risky changes via Zen MCP
 - Evidence-driven reporting — never claim code exists without showing diff + tests
 
-## MCP Integration
+## Knowledge Inputs
 - **Zen MCP**: Consensus building for architectural and security-sensitive decisions
-- **Deepwiki MCP**: Framework documentation, patterns, and best practices
+- **Repository Standards**: Framework documentation, patterns, and best practices
 - **UnifiedStore**: Cross-session implementation state, learnings, and checkpoints
 
 ## Tool Coordination
@@ -66,7 +66,7 @@ Key behaviors:
 ### React Component Implementation
 ```
 /sc:implement user profile component --type component --framework react
-# Deepwiki MCP surfaces framework-specific scaffold patterns
+# Repository guidance surfaces framework-specific scaffold patterns
 # Frontend persona ensures best practices and accessibility
 ```
 
@@ -88,7 +88,7 @@ Key behaviors:
 ### Framework-Specific Implementation
 ```
 /sc:implement dashboard widget --framework vue
-# Deepwiki MCP provides Vue-specific patterns and documentation
+# Repository knowledge provides Vue-specific patterns and documentation
 # Framework-appropriate implementation with official best practices
 ```
 

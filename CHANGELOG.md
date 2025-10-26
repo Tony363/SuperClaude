@@ -12,7 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Regression coverage for UnifiedStore state management (`tests/test_worktree_state.py`).
 
 ### Changed
-- Removed Context7, Magic, MorphLLM, Playwright, and Serena MCP integrations; streamlined registry to Sequential, Zen, and Deepwiki.
+- Removed Context7, Magic, MorphLLM, Playwright, Serena, and Deepwiki MCP integrations; streamlined registry to Sequential and Zen.
 - Updated commands, modes, docs, and agents to reference UnifiedStore and remaining MCP servers.
 - Simplified installer components and MCP documentation to match current server lineup.
 

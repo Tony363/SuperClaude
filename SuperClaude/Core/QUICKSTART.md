@@ -60,7 +60,6 @@
 ### MCP Servers (use with --tools)
 - **Web**: fetch
 - **Files**: filesystem
-- **Docs**: mcp-deepwiki
 - **Consensus & Analysis**: zen
 - **Automation (opt-in)**: rube
 - **Browser**: external Playwright/Cypress pipelines (manual)

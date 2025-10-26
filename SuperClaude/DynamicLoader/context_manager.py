@@ -459,7 +459,6 @@ class DynamicContextManager:
         # Check for MCP tool patterns
         mcp_tools = {
             'mcp__zen': ['zen-mcp', 'consensus'],
-            'mcp__deepwiki': ['deepwiki-mcp', 'documentation'],
         }
 
         text = str(context).lower()

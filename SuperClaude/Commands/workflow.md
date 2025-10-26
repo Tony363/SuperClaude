@@ -3,7 +3,7 @@ name: workflow
 description: "Generate structured implementation workflows from PRDs and feature requirements"
 category: orchestration
 complexity: advanced
-mcp-servers: [zen, deepwiki, rube]
+mcp-servers: [zen, rube]
 personas: [architect, analyzer, frontend, backend, security, devops, project-manager]
 ---
 
@@ -29,13 +29,13 @@ personas: [architect, analyzer, frontend, backend, security, devops, project-man
 
 Key behaviors:
 - Multi-persona orchestration across architecture, frontend, backend, security, and devops domains
-- Advanced MCP coordination with intelligent routing for specialized workflow analysis
+- Advanced coordination with intelligent routing for specialized workflow analysis
 - Systematic execution with progressive workflow enhancement and parallel processing
 - Cross-session workflow management with comprehensive dependency tracking
 
-## MCP Integration
+## Knowledge Inputs
 - **Zen MCP**: Consensus validation for high-risk implementation decisions
-- **Deepwiki MCP**: Framework-specific workflow patterns and implementation best practices
+- **Repository Standards**: Framework-specific workflow patterns and implementation best practices
 - **Rube MCP**: Automate backlog updates, notifications, and downstream workflow triggers
 - **UnifiedStore**: Cross-session workflow persistence, memory management, and project context
 
@@ -64,7 +64,7 @@ Key behaviors:
 ```
 /sc:workflow "user authentication system" --strategy agile --parallel
 # Agile workflow generation with parallel task coordination
-# Deepwiki MCP for framework patterns and Zen MCP for dependency planning
+# Repository patterns for framework workflows and Zen MCP for dependency planning
 ```
 
 ### Enterprise Implementation Planning

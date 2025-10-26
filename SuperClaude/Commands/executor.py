@@ -327,11 +327,15 @@ class CommandExecutor:
                 output['consensus'] = consensus_result
 
             test_results = None
-            auto_run_tests = self._should_run_tests(parsed) or (
-                metadata.requires_evidence and parsed.name != 'test'
-            )
+            explicit_tests_requested = self._should_run_tests(parsed)
+            requires_evidence_auto = metadata.requires_evidence and parsed.name != 'test'
+            auto_run_tests = explicit_tests_requested or requires_evidence_auto
             if auto_run_tests:
-                if not os.environ.get("PYTEST_CURRENT_TEST"):
+                running_in_pytest = bool(os.environ.get("PYTEST_CURRENT_TEST"))
+                should_skip_due_to_pytest = (
+                    running_in_pytest and requires_evidence_auto and not explicit_tests_requested
+                )
+                if not should_skip_due_to_pytest:
                     test_results = self._run_requested_tests(parsed)
                 else:
                     test_results = {
@@ -437,10 +441,13 @@ class CommandExecutor:
                     output.setdefault('routing_decision', context.results['routing_decision'])
 
                 existing_status = output.get('status')
-                if existing_status and existing_status not in {'executed', 'plan-only', 'failed'}:
-                    output.setdefault('status_detail', existing_status)
-                if existing_status != 'failed':
+                output.setdefault('execution_status', derived_status)
+                if existing_status in {None, 'executed', 'plan-only'}:
                     output['status'] = derived_status
+                elif existing_status == 'failed':
+                    pass
+                else:
+                    output.setdefault('status_detail', derived_status)
 
             context.results['executed_operations'] = executed_operations
             context.results['applied_changes'] = applied_changes
@@ -547,6 +554,26 @@ class CommandExecutor:
                 )
                 if missing_evidence_msg not in context.errors:
                     context.errors.append(missing_evidence_msg)
+                if quality_assessment:
+                    adjusted_score = min(
+                        quality_assessment.overall_score,
+                        quality_assessment.threshold - 10.0,
+                        69.0
+                    )
+                    quality_assessment.overall_score = adjusted_score
+                    quality_assessment.passed = False
+                    serialized_assessment = self._serialize_assessment(quality_assessment)
+                    context.results['quality_assessment'] = serialized_assessment
+                    if isinstance(output, dict):
+                        output['quality_assessment'] = serialized_assessment
+                        iteration_history = context.results.get('quality_iteration_history')
+                        output.setdefault('quality_iteration_history', iteration_history or [])
+                    failure_msg = (
+                        f"Quality score {quality_assessment.overall_score:.1f} "
+                        f"(threshold {quality_assessment.threshold:.1f})"
+                    )
+                    if failure_msg not in context.errors:
+                        context.errors.append(failure_msg)
                 if isinstance(output, dict):
                     warnings_list = self._ensure_list(output, 'warnings')
                     warning_msg = (
@@ -556,6 +583,9 @@ class CommandExecutor:
                         warnings_list.append(warning_msg)
                     if missing_evidence_msg not in warnings_list:
                         warnings_list.append(missing_evidence_msg)
+                    if quality_assessment:
+                        if failure_msg not in warnings_list:
+                            warnings_list.append(failure_msg)
 
             context.errors = self._deduplicate(context.errors)
 
@@ -650,6 +680,11 @@ class CommandExecutor:
 
         server_configs = (mcp_config.get('servers') or {}) if isinstance(mcp_config, dict) else {}
 
+        def _record_warning(message: str) -> None:
+            warnings_list = context.results.setdefault('warnings', [])
+            if message not in warnings_list:
+                warnings_list.append(message)
+
         for server_name in required_servers:
             if server_name in self.active_mcp_servers:
                 context.mcp_servers.append(server_name)
@@ -663,7 +698,7 @@ class CommandExecutor:
                 enabled_flag = cfg.get('enabled', True)
                 if not self._is_truthy(enabled_flag):
                     logger.info(f"Skipping MCP server '{server_name}' because it is disabled in configuration.")
-                    context.errors.append(f"MCP server '{server_name}' disabled")
+                    _record_warning(f"MCP server '{server_name}' disabled")
                     continue
 
                 requires_network = bool(cfg.get('requires_network', False))
@@ -676,7 +711,7 @@ class CommandExecutor:
                         server_name,
                         network_mode or 'offline'
                     )
-                    context.errors.append(f"MCP server '{server_name}' unavailable (network mode)")
+                    _record_warning(f"MCP server '{server_name}' unavailable (network mode)")
                     continue
 
                 # Instantiate the integration. Prefer passing config if accepted.
@@ -992,9 +1027,11 @@ class CommandExecutor:
             cleaned, clean_errors = self._clean_build_artifacts(repo_root)
             if cleaned:
                 operations.extend(f"removed {path}" for path in cleaned)
-                context.results.setdefault('applied_changes', []).extend(
-                    f"delete {path}" for path in cleaned
-                )
+                cleanup_evidence = context.results.setdefault('applied_changes', [])
+                for path in cleaned:
+                    entry = f"delete {path}"
+                    if entry not in cleanup_evidence:
+                        cleanup_evidence.append(entry)
             if clean_errors:
                 warnings.extend(clean_errors)
 
@@ -1015,7 +1052,6 @@ class CommandExecutor:
             })
             op_label = f"{step['description']} (exit {result.get('exit_code')})"
             operations.append(op_label)
-            context.results.setdefault('applied_changes', []).append(op_label)
             if result.get('error'):
                 stderr = result.get('stderr') or result.get('error')
                 step_errors.append(f"{step['description']}: {stderr}")
@@ -1031,6 +1067,13 @@ class CommandExecutor:
         if operations:
             exec_ops = context.results.setdefault('executed_operations', [])
             exec_ops.extend(op for op in operations if op not in exec_ops)
+
+        if operations and not step_errors:
+            evidence_log = context.results.setdefault('applied_changes', [])
+            for op in operations:
+                entry = f"build:{op}"
+                if entry not in evidence_log:
+                    evidence_log.append(entry)
 
         summary_lines = [
             f"Build type: {build_type or 'default'}",
@@ -1132,7 +1175,6 @@ class CommandExecutor:
                 'error': result.get('error'),
             })
             operations.append(description)
-            context.results.setdefault('applied_changes', []).append(description)
             if result.get('error'):
                 stderr = result.get('stderr') or result.get('error')
                 warnings.append(f"{description}: {stderr}")
@@ -1144,7 +1186,13 @@ class CommandExecutor:
             _record(status_result, 'git status --short --branch')
             stdout = status_result.get('stdout', '')
             lines = [line for line in stdout.splitlines() if line and not line.startswith('##')]
-            staged = sum(1 for line in lines if line and line[0] not in {'?', ' '})
+            staged = sum(
+                1
+                for line in lines
+                if line
+                and not line.startswith('??')
+                and ((line[0] not in {' ', '?'}) or (len(line) > 1 and line[1] not in {' ', '?'}))
+            )
             unstaged = sum(1 for line in lines if len(line) > 1 and line[1] not in {' ', '?'})
             untracked = sum(1 for line in lines if line.startswith('??'))
             status_summary = {
@@ -3201,16 +3249,23 @@ class CommandExecutor:
             )
 
         if assessment:
+            score_value = assessment.overall_score
+            if derived_status == 'plan-only':
+                score_value = min(score_value, assessment.threshold - 10.0, 69.0)
+
             score_tags = dict(tags)
-            score_tags['score'] = f"{assessment.overall_score:.1f}"
+            score_tags['score'] = f"{score_value:.1f}"
             score_tags['threshold'] = f"{assessment.threshold:.1f}"
             self.monitor.record_metric(
                 f"{base}.quality_score",
-                assessment.overall_score,
+                score_value,
                 MetricType.GAUGE,
                 score_tags
             )
-            metric_name = f"{base}.quality_pass" if assessment.passed else f"{base}.quality_fail"
+            assessment_passed = bool(assessment.passed)
+            if derived_status == 'plan-only':
+                assessment_passed = False
+            metric_name = f"{base}.quality_pass" if assessment_passed else f"{base}.quality_fail"
             self.monitor.record_metric(metric_name, 1, MetricType.COUNTER, score_tags)
         else:
             self.monitor.record_metric(f"{base}.quality_missing", 1, MetricType.COUNTER, tags)
@@ -4309,15 +4364,35 @@ class CommandExecutor:
         Returns:
             List of CommandResult objects
         """
-        results = []
+        results: List[CommandResult] = []
+        skip_next_test = False
+
         for command_str in commands:
+            command_name: Optional[str] = None
+            try:
+                command_name = self.parser.parse(command_str).name
+            except Exception:
+                command_name = None
+
+            if skip_next_test and command_name == 'test':
+                skip_next_test = False
+                continue
+
             result = await self.execute(command_str)
             results.append(result)
 
-            # Stop chain if command fails
             if not result.success:
                 logger.warning(f"Command chain stopped due to failure: {command_str}")
+                skip_next_test = False
                 break
+
+            test_results = None
+            if isinstance(result.output, dict):
+                test_results = result.output.get('test_results')
+            if isinstance(test_results, dict) and test_results.get('passed'):
+                skip_next_test = True
+            else:
+                skip_next_test = False
 
         return results
 

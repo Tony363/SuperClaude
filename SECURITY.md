@@ -282,7 +282,7 @@ For organizations requiring extended security support:
 **Filesystem**: Local file access with sandboxed execution and permission guards
 **Sequential**: Reasoning engine with controlled execution scope and resource limits
 **Zen**: Consensus orchestration with deterministic validation paths
-**Deepwiki**: Documentation lookup constrained to vetted sources
+**Rube**: Automation hub with scoped OAuth delegation and dry-run defaults
 **UnifiedStore**: Session persistence with secure local storage and access controls
 
 **Network Security:**
