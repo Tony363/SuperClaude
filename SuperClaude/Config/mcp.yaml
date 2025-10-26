@@ -48,6 +48,21 @@ servers:
       - api-reference
     priority: medium
 
+  rube:
+    enabled: false
+    name: Rube Automation Hub
+    triggers:
+      - --rube
+      - --external
+    capabilities:
+      - automation-proxy
+      - cross-app-integration
+      - oauth-broker
+    priority: low
+    requires_network: true
+    endpoint: https://rube.app/mcp
+    env_toggle: SC_MCP_RUBE_ENABLED
+
 # Integration Configuration
 integration:
   auto_enable:

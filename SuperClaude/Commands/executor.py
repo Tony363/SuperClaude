@@ -646,6 +646,21 @@ class CommandExecutor:
 
             try:
                 cfg = server_configs.get(server_name, {}) if isinstance(server_configs, dict) else {}
+                if not isinstance(cfg, dict):
+                    cfg = {}
+
+                env_toggle = cfg.get('env_toggle')
+                enabled_flag = cfg.get('enabled', True)
+                env_value = os.getenv(env_toggle) if env_toggle else None
+
+                should_enable = self._is_truthy(env_value) if env_value is not None else self._is_truthy(enabled_flag)
+
+                if not should_enable:
+                    hint = f" (set {env_toggle}=true to enable)" if env_toggle else ""
+                    logger.info(f"Skipping MCP server '{server_name}' because it is disabled{hint}.")
+                    context.errors.append(f"MCP server '{server_name}' disabled")
+                    continue
+
                 # Instantiate the integration. Prefer passing config if accepted.
                 try:
                     instance = get_mcp_integration(server_name, config=cfg)

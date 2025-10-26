@@ -149,6 +149,7 @@ heuristics to real provider clients.
 | Sequential | `SuperClaude/MCP/integrations/sequential_integration.py` | Planning stub |
 | Deepwiki | `SuperClaude/MCP/deepwiki_integration.py` | Local doc lookup |
 | Zen | `SuperClaude/MCP/zen_integration.py` | Offline consensus helper piping `/sc:*` commands through deterministic votes |
+| Rube (optional) | `SuperClaude/MCP/rube_proxy.py` | Opt-in proxy for Composio Rube (`SC_MCP_RUBE_ENABLED=true`, network mode `online`) |
 
 Zen is intentionally a **local stub** — it never calls the public zen-mcp-server, does not require
 API keys, and only returns synthetic vote data so the framework stays deterministic. The triggers
@@ -160,7 +161,18 @@ the command result. Live Zen features such as continuation IDs, CLI bridges, or 
 deliberately out of scope for this offline build.
 
 All other legacy MCP adapters (Serena, MorphLLM, Context7, Playwright, etc.) have been retired
-and no longer ship with the framework.
+and no longer ship with the framework. The **Rube** connector stays disabled until you opt in via
+`SC_MCP_RUBE_ENABLED=true` *and* set `SC_NETWORK_MODE=online`. Once enabled, it prepares the proxy
+but stops short of issuing remote calls, allowing future phases to attach the Composio SDK safely.
+
+#### Enabling Rube MCP (Option A)
+
+1. Export the opt-in flag: `export SC_MCP_RUBE_ENABLED=true`.
+2. Allow outbound traffic by switching to an online network mode (for example `export SC_NETWORK_MODE=online`). SuperClaude defaults to offline, so the connector will remain dormant unless this is set.
+3. Optionally override settings in `SuperClaude/Config/mcp.yaml` (endpoint, OAuth token placeholder) before launching a command that declares `mcp_servers: [rube]`.
+4. Run your `/sc:` workflow. The executor will initialise the proxy and raise a clear error if additional credentials or SDK wiring is required.
+
+> ℹ️ Option A currently stops short of forwarding live requests; it only ensures that Rube activation is gated, opt-in, and ready for future phases that integrate the Composio client.
 
 ### CLI Tooling
 - Entry points `SuperClaude` / `superclaude` execute `SuperClaude/__main__.py`.

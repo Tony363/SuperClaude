@@ -28,13 +28,17 @@ from .integrations.sequential_integration import (
     SequentialIntegration,
 )
 
+from .rube_proxy import (
+    RubeProxyIntegration,
+)
+
 # Version info
 __version__ = "6.0.0-alpha"
 
 __all__ = [
     'ZenIntegration', 'ConsensusResult', 'ThinkingMode', 'ModelConfig', 'ConsensusType',
     'DeepwikiIntegration', 'DeepwikiDocument', 'DeepwikiSearchResult', 'DocumentationType',
-    'SequentialIntegration',
+    'SequentialIntegration', 'RubeProxyIntegration',
     'get_mcp_integration',
 ]
 
@@ -43,6 +47,7 @@ MCP_SERVERS: Dict[str, Type[Any]] = {
     'sequential': SequentialIntegration,
     'zen': ZenIntegration,
     'deepwiki': DeepwikiIntegration,
+    'rube': RubeProxyIntegration,
 }
 
 def get_mcp_integration(server_name: str, **kwargs):
