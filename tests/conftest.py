@@ -1,36 +1,32 @@
-"""Minimal asyncio support for pytest without external plugins."""
+"""Pytest fixtures and environment shims."""
 
-import asyncio
-import inspect
-
-import pytest
+import sys
+import types
 
 
-@pytest.hookimpl()
-def pytest_pyfunc_call(pyfuncitem):
-    """Execute coroutine tests using an event loop when pytest-asyncio is unavailable."""
-    test_function = pyfuncitem.obj
+class _PsutilProcessStub:
+    def cpu_percent(self) -> float:
+        return 0.0
 
-    if not inspect.iscoroutinefunction(test_function):
-        return None
+    def memory_info(self):
+        return types.SimpleNamespace(rss=0)
 
-    signature = inspect.signature(test_function)
-    accepts_kwargs = any(param.kind == inspect.Parameter.VAR_KEYWORD for param in signature.parameters.values())
-    funcargs = dict(pyfuncitem.funcargs)
-    if not accepts_kwargs:
-        allowed = set(signature.parameters.keys())
-        funcargs = {name: value for name, value in funcargs.items() if name in allowed}
+    def memory_percent(self) -> float:
+        return 0.0
 
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    try:
-        loop.run_until_complete(test_function(**funcargs))
-    finally:
-        try:
-            loop.run_until_complete(loop.shutdown_asyncgens())
-        except (RuntimeError, AttributeError):
-            pass
-        loop.close()
-        asyncio.set_event_loop(None)
+    def io_counters(self):
+        return types.SimpleNamespace(read_bytes=0, write_bytes=0)
 
-    return True
+    def num_threads(self) -> int:
+        return 1
+
+
+class _PsutilStub:
+    def __init__(self) -> None:
+        self.Process = lambda: _PsutilProcessStub()
+
+    def net_io_counters(self):
+        return types.SimpleNamespace(bytes_sent=0, bytes_recv=0)
+
+
+sys.modules.setdefault('psutil', _PsutilStub())

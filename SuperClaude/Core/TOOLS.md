@@ -70,7 +70,7 @@ Specialized tools for enhanced capabilities.
 - **Rube**: External automation and system orchestration  
   - Use for: Ticketing, notifications, CI/CD hooks
 - **Browser**: Local browser automation via Browser MCP  
-  - Use for: Visual validation, interactive workflow helpers
+  - Use for: Visual checks, accessibility spot-tests, and evidence capture triggered by `/sc:test --browser`
 
 ### UI & Documentation  
 - **Repository Docs**: Technical documentation and code examples  

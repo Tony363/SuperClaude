@@ -81,7 +81,7 @@ Use the most powerful tool available:
 - Pattern edits → MultiEdit > individual changes
 - Automation hooks → Rube > manual scripts
 - Consensus validation → Zen > single-model review
-- Browser validation → Browser MCP > ad-hoc steps
+- Browser validation → Browser MCP for targeted runs; complement with Playwright/Cypress for full suites
 - Documentation → Repository knowledge base > web search
 
 ## Quick Reference

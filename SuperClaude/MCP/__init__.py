@@ -20,12 +20,24 @@ from .rube_integration import (
     RubeIntegration,
 )
 
+from .browser_integration import (
+    BrowserIntegration,
+    BrowserConfig,
+    BrowserMode,
+    BrowserSnapshot,
+    BrowserTransport,
+    CLIBrowserTransport,
+    ScreenshotResult,
+)
+
 # Version info
 __version__ = "6.0.0-alpha"
 
 __all__ = [
     'ZenIntegration', 'ConsensusResult', 'ThinkingMode', 'ModelConfig', 'ConsensusType',
     'RubeIntegration',
+    'BrowserIntegration', 'BrowserConfig', 'BrowserMode', 'BrowserSnapshot', 'ScreenshotResult',
+    'BrowserTransport', 'CLIBrowserTransport',
     'get_mcp_integration',
 ]
 
@@ -33,6 +45,7 @@ __all__ = [
 MCP_SERVERS: Dict[str, Type[Any]] = {
     'zen': ZenIntegration,
     'rube': RubeIntegration,
+    'browser': BrowserIntegration,
 }
 
 def get_mcp_integration(server_name: str, **kwargs):

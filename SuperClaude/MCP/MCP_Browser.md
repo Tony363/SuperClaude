@@ -1,7 +1,9 @@
 # Browser MCP Server
 
 Browser MCP exposes a local Chromium instance to Claude Desktop so automated browsing,
-DOM inspection, and screenshot capture can be completed from a single command.
+DOM inspection, and screenshot capture can be performed directly from SuperClaude slash
+commands. The `/sc:test --browser` workflow routes requests through the Browser MCP
+integration so the same APIs are available in both the CLI and Claude Desktop.
 
 ## Capabilities
 

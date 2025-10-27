@@ -32,6 +32,28 @@ servers:
     endpoint: https://rube.app/mcp
     timeout_seconds: 60
 
+  browser:
+    enabled: false  # Opt-in for safety
+    name: Browser Automation
+    triggers:
+      - --browser
+      - --ui-test
+      - --visual
+    capabilities:
+      - dom-manipulation
+      - screenshot-capture
+      - ui-regression-testing
+      - selector-verification
+      - accessibility-testing
+    priority: medium
+    requires_network: false  # Local-only operation
+    config:
+      mode: headless  # headless, headed, or debug
+      viewport_width: 1280
+      viewport_height: 720
+      timeout: 30000  # milliseconds
+      wait_strategy: load  # none, idle, load, networkidle
+
 # Integration Configuration
 integration:
   auto_enable:

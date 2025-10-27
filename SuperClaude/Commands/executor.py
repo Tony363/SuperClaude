@@ -986,12 +986,116 @@ class CommandExecutor:
 
     async def _execute_test(self, context: CommandContext) -> Dict[str, Any]:
         """Execute test command."""
-        return {
+        coverage = context.command.parameters.get('coverage', True)
+        test_type = str(context.command.parameters.get('type', 'all') or 'all').lower()
+        browser_requested = (
+            context.command.flags.get('browser')
+            or self._is_truthy(context.command.parameters.get('browser'))
+        )
+
+        output: Dict[str, Any] = {
             'status': 'tests_started',
-            'coverage': context.command.parameters.get('coverage', True),
-            'type': context.command.parameters.get('type', 'all'),
-            'mode': context.behavior_mode
+            'coverage': coverage,
+            'type': test_type,
+            'mode': context.behavior_mode,
         }
+
+        if browser_requested:
+            browser_result = await self._execute_browser_tests(context, scenario_hint=test_type)
+            output['browser'] = browser_result
+            status = browser_result.get('status')
+            if status == 'browser_failed':
+                output['status'] = 'tests_failed'
+            else:
+                output['status'] = 'tests_with_browser'
+
+        return output
+
+    async def _execute_browser_tests(self, context: CommandContext, scenario_hint: str) -> Dict[str, Any]:
+        entry = self.active_mcp_servers.get('browser')
+        if not entry:
+            message = "Browser MCP server is not active; enable it in configuration."
+            context.errors.append(message)
+            return {
+                'status': 'browser_failed',
+                'error': message,
+            }
+
+        browser = entry.get('instance')
+        if browser is None:
+            message = "Browser MCP instance missing from activation registry."
+            context.errors.append(message)
+            return {
+                'status': 'browser_failed',
+                'error': message,
+            }
+
+        url = context.command.parameters.get('url')
+        if not url:
+            for argument in context.command.arguments:
+                if argument.startswith('http://') or argument.startswith('https://'):
+                    url = argument
+                    break
+
+        if not url:
+            message = "Browser tests require a target URL (use --url)."
+            context.errors.append(message)
+            return {
+                'status': 'browser_failed',
+                'error': message,
+            }
+
+        scenario = scenario_hint.lower()
+        if scenario not in {'visual', 'accessibility', 'e2e', 'all', 'ui'}:
+            scenario = 'visual'
+
+        steps: List[Dict[str, Any]] = []
+        try:
+            await browser.initialize()
+
+            navigate_result = await browser.navigate(url)
+            steps.append({'action': 'navigate', 'result': navigate_result})
+
+            capture_visual = scenario in {'visual', 'e2e', 'all', 'ui'}
+            capture_accessibility = scenario in {'accessibility', 'e2e', 'all'}
+
+            if capture_visual:
+                screenshot = await browser.screenshot(full_page=True)
+                steps.append({'action': 'screenshot', 'result': asdict(screenshot)})
+
+            if capture_accessibility:
+                snapshot = await browser.snapshot()
+                steps.append({'action': 'snapshot', 'result': asdict(snapshot)})
+                logs = await browser.get_console_logs()
+                steps.append({'action': 'console_logs', 'result': logs})
+
+            exec_ops = context.results.setdefault('executed_operations', [])
+            for step in steps:
+                label = f"browser:{step['action']}"
+                if label not in exec_ops:
+                    exec_ops.append(label)
+
+            context.results.setdefault('browser_steps', []).extend(steps)
+
+            return {
+                'status': 'browser_completed',
+                'scenario': scenario,
+                'url': url,
+                'steps': steps,
+            }
+        except Exception as exc:  # pragma: no cover - depends on runtime CLI availability
+            message = f"Browser MCP execution failed: {exc}"
+            logger.warning(message)
+            context.errors.append(message)
+            return {
+                'status': 'browser_failed',
+                'error': message,
+            }
+        finally:
+            try:
+                await browser.cleanup()
+            except Exception as cleanup_exc:  # pragma: no cover - best effort cleanup
+                logger.debug("Browser MCP cleanup encountered an error: %s", cleanup_exc)
 
     async def _execute_build(self, context: CommandContext) -> Dict[str, Any]:
         """Execute build command."""

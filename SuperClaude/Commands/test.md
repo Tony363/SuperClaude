@@ -3,7 +3,7 @@ name: test
 description: "Execute tests with coverage analysis and automated quality reporting"
 category: utility
 complexity: enhanced
-mcp-servers: []
+mcp-servers: [browser]
 personas: [qa-specialist]
 requires_evidence: true
 ---
@@ -36,7 +36,7 @@ Key behaviors:
 - Support continuous watch mode for development
 
 ## Testing Stack Guidance
-- **Browser Automation**: Recommend external Playwright or Cypress pipelines for e2e scenarios
+- **Browser Automation**: Invoke Browser MCP via `/sc:test --browser --url <https://...>` for visual/accessibility runs; complement with Playwright/Cypress for large suites
 - **QA Specialist Persona**: Activated for test analysis and quality assessment
 - **Enhanced Capabilities**: Cross-browser testing guidance, visual validation strategies, performance checks
 

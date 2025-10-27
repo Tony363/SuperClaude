@@ -64,6 +64,9 @@
   strategist heuristics—complex domains may still need follow-up until more upgrades land.
 - Roadmap features (live deployments, performance tuning, remote MCP servers) are not tied
   into the executor yet.
+- Browser MCP integration is opt-in; enable it in `SuperClaude/Config/mcp.yaml` or pass
+  `--browser` when invoking `/sc:test` to run lightweight visual/accessibility checks via the
+  local Browser MCP server.
 - Test suite targets unit and smoke scenarios; no end-to-end coverage for Claude Code IDE
   integrations is included.
 
