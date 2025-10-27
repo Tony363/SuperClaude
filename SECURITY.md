@@ -263,7 +263,7 @@ For organizations requiring extended security support:
 - Point-in-time recovery for configuration corruption
 - User data preservation during framework updates
 
-### MCP Server Security (6 Servers in V4)
+### MCP Server Security (Current Set)
 **MCP Server Communication:**
 - Secure protocol validation for all MCP server connections
 - Request/response integrity verification
@@ -278,11 +278,9 @@ For organizations requiring extended security support:
 
 **Individual Server Security:**
 
-**Fetch**: Remote content retrieval with request sanitization and rate limiting
-**Filesystem**: Local file access with sandboxed execution and permission guards
-**Sequential**: Reasoning engine with controlled execution scope and resource limits
 **Zen**: Consensus orchestration with deterministic validation paths
 **Rube**: Automation hub with scoped OAuth delegation and dry-run defaults
+**Browser**: Local Chromium bridge with sandboxed automation and credential gating
 **UnifiedStore**: Session persistence with secure local storage and access controls
 
 **Network Security:**

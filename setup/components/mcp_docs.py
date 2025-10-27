@@ -21,8 +21,6 @@ class MCPDocsComponent(Component):
         
         # Map server names to documentation files
         self.server_docs_map = {
-            "fetch": "MCP_Fetch.md",
-            "filesystem": "MCP_Filesystem.md",
             "zen": "MCP_Zen.md",
             "rube": "MCP_Rube.md",
             "browser": "MCP_Browser.md"

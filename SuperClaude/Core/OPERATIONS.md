@@ -212,7 +212,7 @@ Task type → Best tool:
 ├─ Multi-file edits → MultiEdit > individual Edits
 ├─ Complex analysis → Task agent > native reasoning
 ├─ Code search → Grep > bash grep
-├─ Web content → Fetch MCP > WebSearch  
+├─ Automation → Rube MCP > manual scripts
 ├─ Documentation → Repository knowledge base > web search
 └─ Browser testing → external Playwright/Cypress pipeline > unit tests
 ```

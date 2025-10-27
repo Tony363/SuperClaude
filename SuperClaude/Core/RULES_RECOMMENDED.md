@@ -29,8 +29,8 @@ For critical and important rules, see RULES_CRITICAL.md.
 - **MCP Server Usage**: Leverage specialized MCP servers for their strengths:
   - MultiEdit for bulk edits
   - Zen for consensus and risk validation
-  - external Playwright/Cypress pipelines for browser testing
-  - fetch for web content
+  - Rube for cross-system automation
+  - Browser MCP for local browser workflows
 - **Batch Operations**: Use MultiEdit over multiple Edits, batch Read calls, group operations
 - **Powerful Search**: Use Grep tool over bash grep, Glob over find, specialized search tools
 - **Efficiency First**: Choose speed and power over familiarity - use the fastest method available
@@ -132,10 +132,9 @@ For critical and important rules, see RULES_CRITICAL.md.
 ### Tool Selection Matrix
 ```
 Task Type → Recommended Tool:
-├─ Web Content → Fetch MCP
-├─ File Operations → Filesystem MCP
-├─ Code Analysis → Sequential-thinking
-├─ Browser Testing → External Playwright/Cypress pipeline
+├─ Automation → Rube MCP
+├─ Consensus Checks → Zen MCP
+├─ Browser Testing → Browser MCP
 ├─ Symbol Operations → UnifiedStore
 ├─ Documentation → Repository templates & standards
 └─ Pattern Search → Grep (not bash grep)

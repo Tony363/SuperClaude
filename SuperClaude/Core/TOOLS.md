@@ -65,13 +65,12 @@ Located in `Agents/Extended/` - organized by category for specialized needs:
 Specialized tools for enhanced capabilities.
 
 ### Core Development
-- **Sequential**: Multi-step reasoning, complex analysis  
-  - Use for: Debugging, architecture review, systematic problem solving
 - **Zen**: Multi-model consensus and validation  
   - Use for: Design reviews, risk assessments, cross-model agreement
-- **Fetch**: Web content retrieval and extraction
-- **Filesystem**: Secure file system operations  
-  - Use for: Style enforcement, multi-file replacements, framework updates
+- **Rube**: External automation and system orchestration  
+  - Use for: Ticketing, notifications, CI/CD hooks
+- **Browser**: Local browser automation via Browser MCP  
+  - Use for: Visual validation, interactive workflow helpers
 
 ### UI & Documentation  
 - **Repository Docs**: Technical documentation and code examples  
@@ -103,7 +102,7 @@ Quality dimensions: Correctness (40%), Completeness (30%), Code Quality (20%), P
 | Find unknown code | Task(general-purpose) | Grep/Glob |
 | Debug error | Task(root-cause-analyst) | Sequential |
 | Refactor code | Task(refactoring-expert) | MultiEdit |
-| Fetch web content | Fetch | WebSearch |
+| Automate external workflows | Rube | Manual scripts |
 | Get docs | Repository Docs | WebSearch |
 | Rename symbol | UnifiedStore | Manual search |
 | Bulk edits | MultiEdit | Sequential edits |
@@ -114,8 +113,8 @@ Quality dimensions: Correctness (40%), Completeness (30%), Code Quality (20%), P
 ```
 Unknown scope? → Task(general-purpose)
 Debugging? → Task(root-cause-analyst)
-Web content? → Fetch
-File operations? → Filesystem
+Need automation? → Rube
+Need consensus? → Zen
 Bulk edits? → MultiEdit
 Complex reasoning? → Sequential
 Browser testing? → External Playwright/Cypress pipeline

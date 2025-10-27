@@ -25,8 +25,8 @@ Loads when delegation or task management is needed:
 ### MCP Server Documentation
 Loads when specific MCP servers are used:
 
-@MCP_Fetch.md           # Activated by: web content retrieval, URL fetching
-@MCP_Filesystem.md      # Activated by: file operations, directory management
+@MCP_Rube.md            # Activated by: external automation workflows
+@MCP_Browser.md         # Activated by: local browser automation tooling
 @MCP_Zen.md             # Activated by: consensus validation, model comparisons
 
 ### Extended Rules & Operations
@@ -58,8 +58,8 @@ The framework intelligently loads components based on these triggers:
 - Complex workflows → Loads WORKFLOWS.md
 
 ### MCP Server Usage
-- Web content retrieval → Loads MCP_Fetch.md
-- File operations → Loads MCP_Filesystem.md
+- External automation → Loads MCP_Rube.md
+- Local browser automation → Loads MCP_Browser.md
 - Consensus validation → Loads MCP_Zen.md
 
 ### Quality & Optimization

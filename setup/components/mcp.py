@@ -2,7 +2,7 @@
 MCP component for MCP server integration
 """
 
-import os
+import os as os_module
 import subprocess
 import sys
 from typing import Dict, List, Tuple, Optional, Any
@@ -22,18 +22,6 @@ class MCPComponent(Component):
         
         # Define MCP servers to install
         self.mcp_servers = {
-            "fetch": {
-                "name": "fetch",
-                "description": "Fetch URLs and extract content from web pages",
-                "npm_package": "@modelcontextprotocol/server-fetch",
-                "required": True
-            },
-            "filesystem": {
-                "name": "filesystem",
-                "description": "File system operations with read/write capabilities",
-                "npm_package": "@modelcontextprotocol/server-filesystem", 
-                "required": True
-            },
             "rube": {
                 "name": "rube",
                 "description": "Hosted automation hub (Composio Rube)",
@@ -67,7 +55,7 @@ class MCPComponent(Component):
         return {
             "name": "mcp",
             "version": __version__,
-            "description": "MCP server integration (Fetch, Filesystem, Rube, Zen, Browser)",
+            "description": "MCP server integration (Zen, Rube, Browser)",
             "category": "integration"
         }
     
@@ -268,10 +256,12 @@ class MCPComponent(Component):
                 self._warn_hosted_server_requirements(server_info)
 
             if config.get("dry_run"):
-                self.logger.info(f"Would register hosted MCP server: claude mcp add -s user {server_name} {endpoint}")
+                self.logger.info(
+                    f"Would register hosted MCP server: claude mcp add -s user --transport http {server_name} {endpoint}"
+                )
                 return True
 
-            cmd = ["claude", "mcp", "add", "-s", "user", server_name, endpoint]
+            cmd = ["claude", "mcp", "add", "-s", "user", "--transport", "http", server_name, endpoint]
             try:
                 result = subprocess.run(
                     cmd,
@@ -280,11 +270,14 @@ class MCPComponent(Component):
                     timeout=120,
                     shell=(sys.platform == "win32")
                 )
-                if result.returncode == 0:
+                stdout = result.stdout.strip() if result.stdout else ""
+                stderr = result.stderr.strip() if result.stderr else ""
+
+                if result.returncode == 0 or "already exists" in stdout.lower() or "already exists" in stderr.lower():
                     self.logger.success(f"Successfully registered hosted MCP server: {server_name}")
                     return True
                 else:
-                    error_msg = result.stderr.strip() if result.stderr else "Unknown error"
+                    error_msg = stderr or "Unknown error"
                     self.logger.error(f"Failed to register hosted MCP server {server_name}: {error_msg}")
                     return False
             except subprocess.TimeoutExpired:
@@ -294,7 +287,7 @@ class MCPComponent(Component):
         # Custom command-based registration (e.g., Zen)
         command_env = server_info.get("command_env")
         if command_env:
-            command = os.environ.get(command_env, server_info.get("fallback_command"))
+            command = os_module.environ.get(command_env, server_info.get("fallback_command"))
             if not command:
                 self.logger.error(
                     f"Missing command for {server_name}. Set {command_env} or configure fallback_command."
@@ -303,7 +296,7 @@ class MCPComponent(Component):
 
             args_env = server_info.get("args_env")
             if args_env:
-                raw_args = os.environ.get(args_env)
+                raw_args = os_module.environ.get(args_env)
                 if raw_args:
                     try:
                         custom_args = shlex.split(raw_args)
@@ -369,8 +362,7 @@ class MCPComponent(Component):
                     display_info(f"Description: {api_key_desc}")
                     
                     # Check if API key is already set
-                    import os
-                    if not os.getenv(api_key_env):
+                    if not os_module.getenv(api_key_env):
                         display_warning(f"API key {api_key_env} not found in environment")
                         self.logger.warning(f"Proceeding without {api_key_env} - server may not function properly")
             
@@ -410,21 +402,17 @@ class MCPComponent(Component):
         api_key_env = server_info.get("api_key_env")
 
         if api_key_env:
-            if not os.getenv(api_key_env):
+            if not os_module.getenv(api_key_env):
                 display_warning(
                     f"Hosted MCP server '{server_name}' requires credentials. "
                     f"Set {api_key_env} before running automation."
                 )
                 self.logger.warning(
-                    "Hosted MCP server %s missing environment variable %s",
-                    server_name,
-                    api_key_env,
+                    f"Hosted MCP server '{server_name}' missing environment variable {api_key_env}"
                 )
             else:
                 self.logger.info(
-                    "Found credentials for hosted MCP server %s in %s",
-                    server_name,
-                    api_key_env,
+                    f"Found credentials for hosted MCP server '{server_name}' in {api_key_env}"
                 )
     
     def _uninstall_mcp_server(self, server_name: str) -> bool:

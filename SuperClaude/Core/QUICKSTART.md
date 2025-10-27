@@ -18,8 +18,8 @@
 
 ### "I need a UI component"
 ```
---tools fetch              # Or retrieve web content
-# Creates modern, accessible components
+--delegate                 # Picks the frontend specialist stack
+--mcp browser              # Optional: launch local browser automation helpers
 ```
 
 ### "I want to improve code"
@@ -36,7 +36,7 @@
 | Complex task (>3 steps) | `--task-manage` |
 | Find unknown code | `--delegate` |
 | Deep analysis | `--think 3` |
-| Web content | `--tools fetch` |
+| External automation | `--mcp rube` |
 | Production safety | `--safe-mode` |
 | Save tokens | `--uc` |
 
@@ -57,13 +57,11 @@
 - **Documentation**: technical-writer
 - **Performance**: performance-engineer
 
-### MCP Servers (use with --tools)
-- **Web**: fetch
-- **Files**: filesystem
+### MCP Servers (use with --mcp)
 - **Consensus & Analysis**: zen
 - **Automation (opt-in)**: rube
-- **Browser**: external Playwright/Cypress pipelines (manual)
-- **Persistence**: UnifiedStore (built-in, no --tools flag)
+- **Local Browser Automation**: browser
+- **Persistence**: UnifiedStore (built-in, no --mcp flag)
 
 ## Power Combos
 
@@ -110,7 +108,7 @@
 --brainstorm               # Explore requirements
 --task-manage             # Plan implementation
 --delegate                # Find existing auth
---tools fetch             # Fetch web content
+--mcp rube                # Leverage automation hooks
 --test                    # Validate everything
 ```
 

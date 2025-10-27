@@ -6,7 +6,7 @@
 |-----------|---------|
 | Don't know where to start | `--brainstorm` |
 | Code is broken | `--think 2 --delegate` |
-| Need web content | `--tools fetch` |
+| Need automation assist | `--mcp rube` |
 | Want to improve code | `--delegate --loop` |
 | Complex task (>3 steps) | `--task-manage` |
 | Production changes | `--safe-mode` |
@@ -23,7 +23,7 @@
 | `--loop` | Iterate until quality ≥70 |
 | `--safe-mode` | Production safety |
 | `--uc` | Save tokens |
-| `--tools [name]` | Enable specific MCP |
+| `--mcp [name]` | Enable specific MCP server |
 
 ## Task Agent Selection
 
@@ -41,10 +41,10 @@ Security → security-engineer
 ## MCP Tool Selection
 
 ```
-Web content → fetch
-File operations → filesystem
+Automation workflows → rube
+Consensus validation → zen
+Local browser automation → browser
 Bulk edits → MultiEdit
-Browser testing → external Playwright/Cypress pipelines
 ```
 
 ## Power Combinations

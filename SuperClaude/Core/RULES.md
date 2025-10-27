@@ -79,7 +79,9 @@ Use the most powerful tool available:
 - Multi-file edits → MultiEdit > sequential Edits
 - Symbol operations → UnifiedStore > manual search
 - Pattern edits → MultiEdit > individual changes
-- Web content → Fetch > WebSearch
+- Automation hooks → Rube > manual scripts
+- Consensus validation → Zen > single-model review
+- Browser validation → Browser MCP > ad-hoc steps
 - Documentation → Repository knowledge base > web search
 
 ## Quick Reference
