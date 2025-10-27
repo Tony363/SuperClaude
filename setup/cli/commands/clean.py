@@ -14,7 +14,7 @@ from datetime import datetime
 
 from setup.utils.ui import (
     display_header, display_info, display_success, display_error,
-    display_warning, prompt_confirmation, Colors
+    display_warning, confirm, Colors
 )
 from setup.utils.logger import get_logger
 from setup.services.settings import SettingsService
@@ -245,7 +245,7 @@ class CleanCommand:
             for name, _ in operations:
                 display_info(f"  • {name}")
 
-            if not prompt_confirmation("\nProceed with cleanup?"):
+            if not confirm("\nProceed with cleanup?", default=True):
                 display_info("Cleanup cancelled")
                 return 0
 
@@ -326,12 +326,6 @@ Examples:
 
     # Options
     options_group = parser.add_argument_group('options')
-    options_group.add_argument('--install-dir', type=Path, default=Path.home() / '.claude',
-                             help='Target install directory (default: ~/.claude)')
-    options_group.add_argument('--dry-run', action='store_true',
-                             help='Preview actions without making changes')
-    options_group.add_argument('--force', action='store_true',
-                             help='Force cleaning of valid metadata files')
     options_group.add_argument('--keep-recent', action='store_true',
                              help='Keep logs from last 7 days')
     options_group.add_argument('--validate', action='store_true',
