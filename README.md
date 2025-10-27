@@ -259,6 +259,16 @@ SuperClaude agent run "diagnose failing tests" --delegate --json
 Copy the generated context files into your Claude Code environment (the installer writes to
 `~/.claude/` by default), then invoke `/sc:*` commands inside the IDE.
 
+### Memory Profiles
+- `SuperClaude install` now defaults to a **minimal** memory bundle that keeps the essential
+  safety rules (`RULES_*`), quick-start guides, and concise workflow/operations summaries. This
+  trims the default Claude Code context by skipping large reference manuals such as
+  `AGENTS_EXTENDED.md` and the business-panel playbooks.
+- Install the full guidance bundle when you need the complete documentation:
+  `SuperClaude install --memory-profile full`.
+- You can reinstall at any time to switch profiles; the installer rewrites `~/.claude/*.md`
+  accordingly.
+
 ## Running Tests
 ```bash
 source .venv/bin/activate
@@ -278,6 +288,16 @@ Install `pytest-asyncio` inside the virtualenv if it is not already available:
 ```
 
 Benchmarks live under `benchmarks/` (`python benchmarks/run_benchmarks.py --suite smoke`).
+
+### Memory Footprint Audit
+Use the helper script to estimate the token footprint of the installed memory files:
+
+```bash
+PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 .venv/bin/python scripts/report_memory_tokens.py --install-dir ~/.claude
+```
+
+The script walks the target directory, prints per-file token estimates, and reports the total
+usage so you can confirm the chosen profile keeps the context within budget.
 
 ## Directory Highlights
 ```

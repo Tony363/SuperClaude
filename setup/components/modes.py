@@ -12,6 +12,12 @@ from ..services.claude_md import CLAUDEMdService
 
 class ModesComponent(Component):
     """SuperClaude behavioral modes component"""
+
+    MINIMAL_FILES = [
+        "MODE_Normal.md",
+        "MODE_Task_Management.md",
+        "MODE_Token_Efficiency.md",
+    ]
     
     def __init__(self, install_dir: Optional[Path] = None):
         """Initialize modes component"""
@@ -29,6 +35,28 @@ class ModesComponent(Component):
     def _install(self, config: Dict[str, Any]) -> bool:
         """Install modes component"""
         self.logger.info("Installing SuperClaude behavioral modes...")
+
+        profile = (config or {}).get("memory_profile", "minimal").lower()
+        all_files = set(self._discover_component_files())
+
+        if profile == "full":
+            selected_files = sorted(all_files)
+            self.logger.debug("Using full memory profile for modes component")
+        else:
+            minimal_files = [fname for fname in self.MINIMAL_FILES if fname in all_files]
+            missing = [fname for fname in self.MINIMAL_FILES if fname not in all_files]
+            if missing:
+                self.logger.warning(
+                    "Minimal mode files missing from source directory: %s",
+                    missing,
+                )
+            selected_files = minimal_files or sorted(all_files)
+            self.logger.info(
+                "Applying minimal memory profile for modes component (%d files)",
+                len(selected_files)
+            )
+
+        self.component_files = selected_files
 
         # Validate installation
         success, errors = self.validate_prerequisites()

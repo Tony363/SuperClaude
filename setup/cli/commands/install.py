@@ -76,6 +76,13 @@ Examples:
         action="store_true",
         help="Run system diagnostics and show installation help"
     )
+
+    parser.add_argument(
+        "--memory-profile",
+        choices=["minimal", "full"],
+        default="minimal",
+        help="Select the memory documentation profile to install (default: minimal)"
+    )
     
     return parser
 
@@ -484,7 +491,8 @@ def perform_installation(components: List[str], args: argparse.Namespace, config
             "force": args.force,
             "backup": not args.no_backup,
             "dry_run": args.dry_run,
-            "selected_mcp_servers": getattr(config_manager, '_installation_context', {}).get("selected_mcp_servers", [])
+            "selected_mcp_servers": getattr(config_manager, '_installation_context', {}).get("selected_mcp_servers", []),
+            "memory_profile": getattr(args, "memory_profile", "minimal")
         }
         
         success = installer.install_components(ordered_components, config)

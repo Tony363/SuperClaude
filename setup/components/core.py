@@ -13,6 +13,21 @@ from setup import __version__
 
 class CoreComponent(Component):
     """Core SuperClaude framework files component"""
+
+    MINIMAL_FILES = [
+        "AGENTS.md",
+        "CHEATSHEET.md",
+        "CLAUDE_CORE.md",
+        "FLAGS.md",
+        "PRINCIPLES.md",
+        "QUICKSTART.md",
+        "RULES.md",
+        "RULES_CRITICAL.md",
+        "RULES_RECOMMENDED.md",
+        "TOOLS.md",
+        "WORKFLOWS_SUMMARY.md",
+        "OPERATIONS_SUMMARY.md",
+    ]
     
     def __init__(self, install_dir: Optional[Path] = None):
         """Initialize core component"""
@@ -48,6 +63,28 @@ class CoreComponent(Component):
     def _install(self, config: Dict[str, Any]) -> bool:
         """Install core component"""
         self.logger.info("Installing SuperClaude core framework files...")
+
+        profile = (config or {}).get("memory_profile", "minimal").lower()
+        all_files = set(self._discover_component_files())
+
+        if profile == "full":
+            selected_files = sorted(all_files)
+            self.logger.debug("Using full memory profile for core component")
+        else:
+            minimal_files = [fname for fname in self.MINIMAL_FILES if fname in all_files]
+            missing = [fname for fname in self.MINIMAL_FILES if fname not in all_files]
+            if missing:
+                self.logger.warning(
+                    "Minimal profile files missing from source directory: %s",
+                    missing,
+                )
+            selected_files = minimal_files or sorted(all_files)
+            self.logger.info(
+                "Applying minimal memory profile for core component (%d files)",
+                len(selected_files)
+            )
+
+        self.component_files = selected_files
 
         return super()._install(config)
 
