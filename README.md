@@ -13,7 +13,7 @@
 ## Status Snapshot
 - Offline orchestration stack with reproducible artifacts, tests, and telemetry.
 - 22 `/sc:` command playbooks routed through an async executor with agent delegation.
-- CLI installer (under `setup/`) manages context files, MCP stubs, and upgrades.
+- CLI installer (under `setup/`) manages context files, MCP registrations (Zen/Rube/Browser), and upgrades.
 - Auto-implementation now materializes stub files under `SuperClaude/Implementation/Auto/`, so
   `/sc:implement` produces verifiable diffs even without bespoke agent output. The stubs satisfy
   the `requires_evidence` gate while still signalling that human polish is expected.
@@ -65,8 +65,8 @@
 - Roadmap features (live deployments, performance tuning, remote MCP servers) are not tied
   into the executor yet.
 - Browser MCP integration is opt-in; enable it in `SuperClaude/Config/mcp.yaml` or pass
-  `--browser` when invoking `/sc:test` to run lightweight visual/accessibility checks via the
-  local Browser MCP server.
+  `--browser` when invoking `/sc:test` to run lightweight visual/accessibility checks. The
+  local Claude CLI must have the Browser MCP server registered (`claude mcp add …`).
 - Test suite targets unit and smoke scenarios; no end-to-end coverage for Claude Code IDE
   integrations is included.
 
@@ -191,6 +191,10 @@ If the overrides are omitted, the fallback paths above are used for Zen, and the
 notes when the Rube API key is absent. Dry-run mode works without credentials, so you can finish the
 install entirely offline.
 
+The Browser integration calls `claude mcp call browser …` under the hood. Ensure the Claude CLI is
+on your `PATH` and that the Browser server is registered before running `/sc:test --browser` or the
+browser-focused pytest suite.
+
 #### Using Rube MCP
 
 1. Provide credentials via `SC_RUBE_API_KEY=<composio_token>` or the `api_key` field under `servers.rube` in `SuperClaude/Config/mcp.yaml`.
@@ -257,10 +261,20 @@ Copy the generated context files into your Claude Code environment (the installe
 
 ## Running Tests
 ```bash
+source .venv/bin/activate
 export PYENV_DISABLE_REHASH=1  # Required in sandboxed environments
-pytest -m "not slow" tests/
-pytest tests/test_commands.py -k implement
-pytest tests/test_model_router.py
+PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 pytest -m "not slow" tests/
+PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 pytest tests/test_commands.py -k implement
+PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 pytest tests/test_model_router.py
+
+# Browser MCP tests require pytest-asyncio
+PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 pytest -p pytest_asyncio tests/test_browser_mcp.py
+```
+
+Install `pytest-asyncio` inside the virtualenv if it is not already available:
+
+```bash
+.venv/bin/pip install pytest-asyncio
 ```
 
 Benchmarks live under `benchmarks/` (`python benchmarks/run_benchmarks.py --suite smoke`).
@@ -276,7 +290,7 @@ SuperClaude_Framework/
 │   ├── ModelRouter/           # Router, consensus, provider facades
 │   ├── Quality/quality_scorer.py
 │   ├── Monitoring/            # Metrics sinks
-│   └── MCP/                   # MCP stubs and adapters
+│   └── MCP/                   # MCP adapters (Zen, Rube, Browser)
 ├── setup/                     # CLI installer framework
 ├── tests/                     # Pytest suite (unit + smoke)
 └── Docs/                      # User, API, and developer guides
