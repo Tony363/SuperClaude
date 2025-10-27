@@ -24,8 +24,10 @@ class MCPDocsComponent(Component):
             "fetch": "MCP_Fetch.md",
             "filesystem": "MCP_Filesystem.md",
             "zen": "MCP_Zen.md",
-            "rube": "MCP_Rube.md"
+            "rube": "MCP_Rube.md",
+            "browser": "MCP_Browser.md"
         }
+        self.default_doc_servers = ["zen", "rube", "browser"]
         
         super().__init__(install_dir, Path(""))
     
@@ -40,8 +42,22 @@ class MCPDocsComponent(Component):
     
     def set_selected_servers(self, selected_servers: List[str]) -> None:
         """Set which MCP servers were selected for documentation installation"""
-        self.selected_servers = selected_servers
-        self.logger.debug(f"MCP docs will be installed for: {selected_servers}")
+        # Normalise and filter to the known documentation map while preserving order
+        seen = set()
+        filtered: List[str] = []
+        for server in selected_servers:
+            server_key = server.lower()
+            if server_key in self.server_docs_map and server_key not in seen:
+                filtered.append(server_key)
+                seen.add(server_key)
+            else:
+                if server_key not in self.server_docs_map:
+                    self.logger.debug(f"Skipping unknown MCP documentation target: {server}")
+        self.selected_servers = filtered
+        if self.selected_servers:
+            self.logger.debug(f"MCP docs will be installed for: {self.selected_servers}")
+        else:
+            self.logger.debug("No valid MCP documentation targets resolved after filtering")
     
     def get_files_to_install(self) -> List[Tuple[Path, Path]]:
         """
@@ -86,10 +102,17 @@ class MCPDocsComponent(Component):
         # Get selected servers from config
         selected_servers = config.get("selected_mcp_servers", [])
         if not selected_servers:
-            self.logger.info("No MCP servers selected - skipping documentation installation")
-            return True
+            # Fall back to default bundle when the install runs in non-interactive mode
+            fallback = [srv for srv in self.default_doc_servers if srv in self.server_docs_map]
+            self.logger.info(
+                f"No MCP servers selected - defaulting to documentation bundle: {', '.join(fallback)}"
+            )
+            selected_servers = fallback
         
         self.set_selected_servers(selected_servers)
+        if not self.selected_servers:
+            self.logger.info("No MCP documentation targets resolved - skipping installation")
+            return True
         
         # Update component files based on selection
         self.component_files = self._discover_component_files()

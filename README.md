@@ -157,6 +157,7 @@ heuristics to real provider clients.
 |-------------|------|--------|
 | Zen | `SuperClaude/MCP/zen_integration.py` | Offline consensus helper piping `/sc:*` commands through deterministic votes |
 | Rube | `SuperClaude/MCP/rube_integration.py` | Automation hub for external SaaS workflows (defaults to dry-run offline) |
+| Browser | `SuperClaude/MCP/MCP_Browser.md` | Installer auto-runs `claude mcp add browser npx @browsermcp/mcp@latest` |
 
 Zen is intentionally a **local stub** — it never calls the public zen-mcp-server, does not require
 API keys, and only returns synthetic vote data so the framework stays deterministic. The triggers
@@ -170,7 +171,18 @@ deliberately out of scope for this offline build.
 All other legacy MCP adapters (Serena, MorphLLM, Context7, Sequential Thinking, Playwright, etc.)
 have been retired and no longer ship with the framework. Deepwiki has been replaced by an internal
 knowledge base sourced from repository documentation. **Rube** now ships enabled by default and
-automatically falls back to dry-run mode whenever outbound traffic is disallowed.
+automatically falls back to dry-run mode whenever outbound traffic is disallowed. The installer now
+registers Browser (`npx @browsermcp/mcp@latest`), Rube (hosted endpoint), and Zen MCP (local
+checkout). Provide overrides before running `SuperClaude install`:
+
+```bash
+export ZEN_MCP_COMMAND=/home/tony/Desktop/zen-mcp-server/.zen_venv/bin/python
+export ZEN_MCP_ARGS="/home/tony/Desktop/zen-mcp-server/server.py"
+export SC_RUBE_API_KEY=<composio_token>
+```
+
+If the overrides are omitted, the fallback paths above are used for Zen, and the installer still warns
+when the Rube API key is missing.
 
 #### Using Rube MCP
 

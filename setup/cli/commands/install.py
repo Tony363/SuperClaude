@@ -178,50 +178,71 @@ def select_mcp_servers(registry: ComponentRegistry) -> List[str]:
             logger.error("Could not access MCP server information")
             return []
         
-        # Create MCP server menu
+        # Determine which servers should be offered interactively
         mcp_servers = mcp_instance.mcp_servers
-        server_options = []
+        selection_preference = getattr(mcp_instance, "selection_servers", None)
+        ordered_keys: List[str] = []
+        if selection_preference:
+            for key in selection_preference:
+                if key in mcp_servers and key not in ordered_keys:
+                    ordered_keys.append(key)
+        else:
+            ordered_keys = [
+                key for key, info in mcp_servers.items()
+                if not info.get("required", False)
+            ]
         
-        for server_key, server_info in mcp_servers.items():
-            description = server_info["description"]
+        if not ordered_keys:
+            logger.info("No optional MCP servers available for selection")
+            return []
+        
+        # Create MCP server menu
+        server_options = []
+        for server_key in ordered_keys:
+            server_info = mcp_servers[server_key]
+            description = server_info.get("description", "")
             api_key_note = " (requires API key)" if server_info.get("requires_api_key", False) else ""
             server_options.append(f"{server_key} - {description}{api_key_note}")
         
-        print(f"\n{Colors.CYAN}{Colors.BRIGHT}═══════════════════════════════════════════════════{Colors.RESET}")
-        print(f"{Colors.CYAN}{Colors.BRIGHT}Stage 1: MCP Server Selection (Optional){Colors.RESET}")
-        print(f"{Colors.CYAN}{Colors.BRIGHT}═══════════════════════════════════════════════════{Colors.RESET}")
-        print(f"\n{Colors.BLUE}MCP servers extend Claude Code with specialized capabilities.{Colors.RESET}")
-        print(f"{Colors.BLUE}Select servers to configure (you can always add more later):{Colors.RESET}")
-        
-        # Add option to skip MCP
-        server_options.append("Skip MCP Server installation")
-        
-        menu = Menu("Select MCP servers to configure:", server_options, multi_select=True)
-        selections = menu.display()
+        skip_index = None
+        if server_options:
+            print(f"\n{Colors.CYAN}{Colors.BRIGHT}═══════════════════════════════════════════════════{Colors.RESET}")
+            print(f"{Colors.CYAN}{Colors.BRIGHT}Stage 1: MCP Server Selection (Optional){Colors.RESET}")
+            print(f"{Colors.CYAN}{Colors.BRIGHT}═══════════════════════════════════════════════════{Colors.RESET}")
+            print(f"\n{Colors.BLUE}MCP servers extend Claude Code with specialized capabilities.{Colors.RESET}")
+            print(f"{Colors.BLUE}Select servers to configure (you can always add more later):{Colors.RESET}")
+            
+            server_options.append("Skip MCP Server installation")
+            skip_index = len(server_options) - 1
+            
+            menu = Menu("Select MCP servers to configure:", server_options, multi_select=True)
+            selections = menu.display()
+        else:
+            selections = []
         
         if not selections:
             logger.info("No MCP servers selected")
             return []
         
-        # Filter out the "skip" option and return server keys
-        server_keys = list(mcp_servers.keys())
-        selected_servers = []
+        if skip_index is not None and skip_index in selections:
+            selections = [idx for idx in selections if idx != skip_index]
+            if not selections:
+                logger.info("Skip option selected for MCP servers")
+                return []
         
-        for i in selections:
-            if i < len(server_keys):  # Not the "skip" option
-                selected_servers.append(server_keys[i])
+        # Map menu selections to server keys
+        selected_servers = []
+        for idx in selections:
+            if 0 <= idx < len(ordered_keys):
+                selected_servers.append(ordered_keys[idx])
         
         if selected_servers:
             logger.info(f"Selected MCP servers: {', '.join(selected_servers)}")
             
-            # NEW: Collect API keys for selected servers
             collected_keys = collect_api_keys_for_servers(selected_servers, mcp_instance)
             
-            # Set up environment variables
             if collected_keys:
                 setup_environment_variables(collected_keys)
-                
-                # Store keys for MCP component to use during installation
                 mcp_instance.collected_api_keys = collected_keys
         else:
             logger.info("No MCP servers selected")

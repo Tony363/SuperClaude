@@ -38,18 +38,36 @@ class MCPComponent(Component):
                 "name": "rube",
                 "description": "Hosted automation hub (Composio Rube)",
                 "hosted": True,
-                "required": True,
+                "required": False,
+                "http_endpoint": "https://rube.app/mcp",
+                "requires_api_key": True,
                 "api_key_env": "SC_RUBE_API_KEY",
                 "api_key_description": "Composio OAuth token for Rube MCP"
+            },
+            "zen": {
+                "name": "zen",
+                "description": "Local consensus helper (requires local zen-mcp-server checkout)",
+                "documentation_only": False,
+                "command_env": "ZEN_MCP_COMMAND",
+                "args_env": "ZEN_MCP_ARGS",
+                "fallback_command": "/home/tony/Desktop/zen-mcp-server/.zen_venv/bin/python",
+                "fallback_args": ["/home/tony/Desktop/zen-mcp-server/server.py"]
+            },
+            "browser": {
+                "name": "browser",
+                "description": "Chromium automation via Browser MCP",
+                "documentation_only": False,
+                "npm_package": "@browsermcp/mcp@latest"
             }
         }
+        self.selection_servers = ["zen", "rube", "browser"]
     
     def get_metadata(self) -> Dict[str, str]:
         """Get component metadata"""
         return {
             "name": "mcp",
             "version": __version__,
-            "description": "MCP server integration (Fetch, Filesystem, Rube)",
+            "description": "MCP server integration (Fetch, Filesystem, Rube, Zen, Browser)",
             "category": "integration"
         }
     
@@ -229,15 +247,100 @@ class MCPComponent(Component):
     
     def _install_mcp_server(self, server_info: Dict[str, Any], config: Dict[str, Any]) -> bool:
         """Install a single MCP server"""
+        if server_info.get("documentation_only"):
+            server_name = server_info.get("name", "unknown")
+            self.logger.info(
+                f"Skipping installation for documentation-only MCP server: {server_name}"
+            )
+            return True
+
         if server_info.get("install_method") == "uv":
             return self._install_uv_mcp_server(server_info, config)
 
         server_name = server_info["name"]
-        if server_info.get("hosted"):
-            self.logger.info(f"Skipping local installation for hosted MCP server: {server_name}")
-            if not config.get("dry_run", False):
+
+        # Hosted HTTP endpoint registration
+        if server_info.get("http_endpoint"):
+            endpoint = server_info["http_endpoint"]
+            self.logger.info(f"Registering hosted MCP server: {server_name}")
+
+            if server_info.get("hosted") and not config.get("dry_run", False):
                 self._warn_hosted_server_requirements(server_info)
-            return True
+
+            if config.get("dry_run"):
+                self.logger.info(f"Would register hosted MCP server: claude mcp add -s user {server_name} {endpoint}")
+                return True
+
+            cmd = ["claude", "mcp", "add", "-s", "user", server_name, endpoint]
+            try:
+                result = subprocess.run(
+                    cmd,
+                    capture_output=True,
+                    text=True,
+                    timeout=120,
+                    shell=(sys.platform == "win32")
+                )
+                if result.returncode == 0:
+                    self.logger.success(f"Successfully registered hosted MCP server: {server_name}")
+                    return True
+                else:
+                    error_msg = result.stderr.strip() if result.stderr else "Unknown error"
+                    self.logger.error(f"Failed to register hosted MCP server {server_name}: {error_msg}")
+                    return False
+            except subprocess.TimeoutExpired:
+                self.logger.error(f"Timeout registering hosted MCP server {server_name}")
+                return False
+
+        # Custom command-based registration (e.g., Zen)
+        command_env = server_info.get("command_env")
+        if command_env:
+            command = os.environ.get(command_env, server_info.get("fallback_command"))
+            if not command:
+                self.logger.error(
+                    f"Missing command for {server_name}. Set {command_env} or configure fallback_command."
+                )
+                return False
+
+            args_env = server_info.get("args_env")
+            if args_env:
+                raw_args = os.environ.get(args_env)
+                if raw_args:
+                    try:
+                        custom_args = shlex.split(raw_args)
+                    except ValueError as exc:
+                        self.logger.error(f"Invalid {args_env} value for {server_name}: {exc}")
+                        return False
+                else:
+                    custom_args = server_info.get("fallback_args", [])
+            else:
+                custom_args = server_info.get("fallback_args", [])
+
+            self.logger.info(f"Registering MCP server via custom command: {server_name}")
+            if config.get("dry_run"):
+                self.logger.info(
+                    f"Would register MCP server: claude mcp add -s user -- {server_name} {command} {' '.join(custom_args)}"
+                )
+                return True
+
+            cmd = ["claude", "mcp", "add", "-s", "user", "--", server_name, command, *custom_args]
+            try:
+                result = subprocess.run(
+                    cmd,
+                    capture_output=True,
+                    text=True,
+                    timeout=180,
+                    shell=(sys.platform == "win32")
+                )
+                if result.returncode == 0:
+                    self.logger.success(f"Successfully registered MCP server: {server_name}")
+                    return True
+                else:
+                    error_msg = result.stderr.strip() if result.stderr else "Unknown error"
+                    self.logger.error(f"Failed to register MCP server {server_name}: {error_msg}")
+                    return False
+            except subprocess.TimeoutExpired:
+                self.logger.error(f"Timeout registering MCP server {server_name}")
+                return False
 
         npm_package = server_info.get("npm_package")
 
@@ -445,7 +548,13 @@ class MCPComponent(Component):
             # Uninstall each MCP server
             uninstalled_count = 0
             
-            for server_name in self.mcp_servers.keys():
+            for server_name, server_info in self.mcp_servers.items():
+                if server_info.get("documentation_only"):
+                    self.logger.info(
+                        f"Skipping uninstall for documentation-only MCP server: {server_name}"
+                    )
+                    uninstalled_count += 1
+                    continue
                 if self._uninstall_mcp_server(server_name):
                     uninstalled_count += 1
             
