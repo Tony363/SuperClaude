@@ -38,6 +38,7 @@ from ..Modes.behavioral_manager import BehavioralMode, BehavioralModeManager
 from ..Quality.quality_scorer import QualityScorer, QualityAssessment
 from ..Core.worktree_manager import WorktreeManager
 from ..Monitoring.performance_monitor import get_monitor, MetricType
+from ..Monitoring.plan_only_logger import record_plan_only_event
 from ..Retrieval import RepoRetriever
 
 logger = logging.getLogger(__name__)
@@ -582,7 +583,12 @@ class CommandExecutor:
                         if failure_msg not in warnings_list:
                             warnings_list.append(failure_msg)
 
+            if derived_status == 'plan-only':
+                self._attach_plan_only_guidance(context, output if isinstance(output, dict) else None)
+
             context.errors = self._deduplicate(context.errors)
+
+            self._maybe_record_plan_only_event(parsed, context, derived_status, requires_evidence)
 
             self._record_requires_evidence_metrics(
                 parsed.name,
@@ -3472,6 +3478,122 @@ class CommandExecutor:
         outcome_metric = f"{base}.success" if success else f"{base}.failure"
         self.monitor.record_metric(outcome_metric, 1, MetricType.COUNTER, tags)
 
+    def _attach_plan_only_guidance(
+        self,
+        context: CommandContext,
+        output: Optional[Dict[str, Any]]
+    ) -> None:
+        guidance: List[str] = []
+
+        change_plan = context.results.get('change_plan') or []
+        suggested_paths: List[str] = []
+        for entry in change_plan:
+            path = entry.get('path') if isinstance(entry, dict) else None
+            if not path:
+                continue
+            path_str = str(path)
+            if path_str not in suggested_paths:
+                suggested_paths.append(path_str)
+
+        suppressed = [str(path) for path in context.results.get('suppressed_auto_stubs', []) or []]
+
+        if suggested_paths:
+            preview = ', '.join(suggested_paths[:3])
+            remaining = len(suggested_paths) - 3
+            if remaining > 0:
+                preview = f"{preview} (+{remaining} more)"
+            guidance.append(f"Suggested file targets: {preview}")
+
+        if suppressed:
+            preview = ', '.join(suppressed[:3])
+            remaining = len(suppressed) - 3
+            if remaining > 0:
+                preview = f"{preview} (+{remaining} more)"
+            guidance.append(f"Review withheld stub guidance for: {preview}")
+
+        if not guidance:
+            return
+
+        existing = context.results.setdefault('plan_only_guidance', [])
+        for line in guidance:
+            if line not in existing:
+                existing.append(line)
+
+        if isinstance(output, dict):
+            guidance_block = output.setdefault('guidance', {})
+            plan_list = guidance_block.setdefault('plan_only', [])
+            if isinstance(plan_list, list):
+                for line in guidance:
+                    if line not in plan_list:
+                        plan_list.append(line)
+
+        for line in guidance:
+            if line not in context.errors:
+                context.errors.append(line)
+
+    def _maybe_record_plan_only_event(
+        self,
+        parsed: ParsedCommand,
+        context: CommandContext,
+        derived_status: str,
+        requires_evidence: bool,
+    ) -> None:
+        if derived_status != 'plan-only':
+            return
+
+        event: Dict[str, Any] = {
+            'command': parsed.name,
+            'arguments': list(parsed.arguments),
+            'flags': sorted(parsed.flags.keys()),
+            'requires_evidence': requires_evidence,
+            'status': derived_status,
+            'session_id': context.session_id,
+            'auto_generated_stub': bool(context.results.get('auto_generated_stub')),
+            'missing_evidence': bool(context.results.get('missing_evidence')),
+            'plan_only_agents': list(context.results.get('plan_only_agents', [])),
+            'suppressed_auto_stubs': list(context.results.get('suppressed_auto_stubs', [])),
+            'guidance': list(context.results.get('plan_only_guidance', [])),
+        }
+
+        change_plan = context.results.get('change_plan') or []
+        if change_plan:
+            summary: List[Dict[str, Any]] = []
+            for entry in change_plan[:10]:
+                if not isinstance(entry, dict):
+                    continue
+                summary.append({
+                    'path': entry.get('path'),
+                    'intent': entry.get('intent'),
+                    'auto_stub': bool(entry.get('auto_stub')),
+                    'description': entry.get('description') or entry.get('summary') or entry.get('title'),
+                })
+            event['change_plan'] = summary
+            event['change_plan_count'] = len(change_plan)
+        else:
+            event['change_plan_count'] = 0
+
+        consensus = context.consensus_summary if isinstance(context.consensus_summary, dict) else None
+        if consensus:
+            event['consensus'] = {
+                'consensus_reached': consensus.get('consensus_reached'),
+                'models': consensus.get('models'),
+                'decision': consensus.get('final_decision'),
+            }
+        else:
+            event['consensus'] = None
+
+        errors = context.errors[:5]
+        if errors:
+            event['errors'] = errors
+
+        if context.results.get('retrieved_context'):
+            event['retrieval_hits'] = len(context.results['retrieved_context'])
+
+        try:
+            record_plan_only_event(event)
+        except Exception:
+            logger.debug('Failed to record plan-only event', exc_info=True)
+
     async def _dispatch_rube_actions(self, context: CommandContext, output: Any) -> List[str]:
         """Send orchestration data to Rube MCP when available."""
         if 'rube' not in context.mcp_servers:
@@ -4292,7 +4414,7 @@ class CommandExecutor:
                     except Exception:
                         logger.debug('Failed to record retrieval telemetry', exc_info=True)
 
-        for agent_name, agent in context.agent_instances.items():
+        for agent_name, agent in list(context.agent_instances.items()):
             try:
                 result = agent.execute(agent_payload)
             except Exception as exc:

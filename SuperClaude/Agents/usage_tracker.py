@@ -9,10 +9,11 @@ counts to the project metrics directory so maintenance tooling can surface
 from __future__ import annotations
 
 import json
-import os
 import threading
 from pathlib import Path
 from typing import Dict, Optional, Tuple
+
+from ..Monitoring.paths import get_metrics_dir
 
 _LOCK = threading.Lock()
 _CACHE: Dict[str, Dict[str, int]] = {}
@@ -20,37 +21,11 @@ _LOADED = False
 _USAGE_PATH: Optional[Path] = None
 
 
-def _detect_repo_root() -> Path:
-    """Locate the repository root (best-effort)."""
-    try:
-        current = Path.cwd().resolve()
-    except Exception:
-        current = Path.cwd()
-
-    for candidate in [current, *current.parents]:
-        if (candidate / ".git").exists():
-            return candidate
-    return current
-
-
-def _metrics_dir() -> Path:
-    """Determine (and create) the metrics directory."""
-    env_dir = os.environ.get("SUPERCLAUDE_METRICS_DIR")
-    if env_dir:
-        base = Path(env_dir).expanduser()
-        base.mkdir(parents=True, exist_ok=True)
-        return base
-
-    base = _detect_repo_root() / ".superclaude_metrics"
-    base.mkdir(parents=True, exist_ok=True)
-    return base
-
-
 def _usage_file() -> Path:
     """Return the path to the usage JSON file."""
     global _USAGE_PATH
     if _USAGE_PATH is None:
-        _USAGE_PATH = _metrics_dir() / "agent_usage.json"
+        _USAGE_PATH = get_metrics_dir() / "agent_usage.json"
     return _USAGE_PATH
 
 

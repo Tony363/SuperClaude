@@ -2,6 +2,7 @@
 Test command system functionality.
 """
 
+import json
 import os
 import sys
 from datetime import datetime, timedelta
@@ -813,6 +814,9 @@ class TestCommandExecutor:
         parser = CommandParser()
         executor = CommandExecutor(registry, parser)
 
+        from SuperClaude.Monitoring import plan_only_logger
+        monkeypatch.setattr(plan_only_logger, "_PLAN_ONLY_PATH", None, raising=False)
+
         async def fake_consensus(prompt: str, **kwargs):
             return {
                 'consensus_reached': True,
@@ -851,6 +855,7 @@ class TestCommandExecutor:
         error_text = "\n".join(result.errors)
         assert "Requires execution evidence but no repository changes were detected." in error_text
         assert "Auto-generated implementation stubs were withheld" in error_text
+        assert any("Suggested file targets" in err for err in result.errors)
 
         change_plan = result.output.get('change_plan') or []
         assert change_plan, "Change plan should include stub guidance"
@@ -865,6 +870,63 @@ class TestCommandExecutor:
         worktree_warnings = result.output.get('worktree_warnings') or []
         assert any("Auto-generated implementation stubs" in warning for warning in worktree_warnings), \
             "Worktree warnings should note that stubs were withheld"
+
+        guidance = (result.output.get('guidance') or {}).get('plan_only') or []
+        assert guidance, "Plan-only guidance should be surfaced in output"
+        assert any(line.startswith('Suggested file targets') for line in guidance)
+
+    @pytest.mark.asyncio
+    async def test_plan_only_event_written(self, monkeypatch, tmp_path):
+        """Plan-only outcomes should produce structured telemetry artifacts."""
+        monkeypatch.setenv("SUPERCLAUDE_METRICS_DIR", str(tmp_path))
+
+        registry = CommandRegistry()
+        parser = CommandParser()
+        executor = CommandExecutor(registry, parser)
+
+        async def fake_consensus(prompt: str, **kwargs):
+            return {
+                'consensus_reached': True,
+                'final_decision': {'decision': 'approve'},
+                'models': ['gpt-5', 'claude-opus-4.1'],
+            }
+
+        executor.consensus_facade.run_consensus = fake_consensus
+
+        def fake_run_requested_tests(self, parsed):
+            return {
+                'command': 'pytest -q',
+                'passed': True,
+                'pass_rate': 1.0,
+                'stdout': 'collected 0 items',
+                'stderr': '',
+                'duration_s': 0.05,
+                'exit_code': 0
+            }
+
+        monkeypatch.setattr(
+            CommandExecutor,
+            '_run_requested_tests',
+            fake_run_requested_tests,
+            raising=False
+        )
+
+        result = await executor.execute('/sc:implement sample feature')
+
+        assert result.success is False
+        assert result.status == 'plan-only'
+
+        plan_only_path = Path(tmp_path) / 'plan_only.jsonl'
+        assert plan_only_path.exists(), "Plan-only telemetry file should be created"
+
+        lines = [line for line in plan_only_path.read_text(encoding='utf-8').splitlines() if line.strip()]
+        assert lines, "Telemetry file should contain at least one entry"
+
+        payload = json.loads(lines[-1])
+        assert payload['command'] == 'implement'
+        assert payload['requires_evidence'] is True
+        assert payload['status'] == 'plan-only'
+        assert 'change_plan_count' in payload
 
     @pytest.mark.asyncio
     async def test_requires_evidence_blocks_on_consensus_failure(self, monkeypatch):
