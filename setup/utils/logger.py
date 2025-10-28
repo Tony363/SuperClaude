@@ -143,29 +143,29 @@ class Logger:
         except Exception:
             pass  # Ignore cleanup errors
     
-    def debug(self, message: str, **kwargs) -> None:
+    def debug(self, message: str, *args, **kwargs) -> None:
         """Log debug message"""
-        self.logger.debug(message, **kwargs)
+        self.logger.debug(message, *args, **kwargs)
         self.log_counts['debug'] += 1
-    
-    def info(self, message: str, **kwargs) -> None:
+
+    def info(self, message: str, *args, **kwargs) -> None:
         """Log info message"""
-        self.logger.info(message, **kwargs)
+        self.logger.info(message, *args, **kwargs)
         self.log_counts['info'] += 1
-    
-    def warning(self, message: str, **kwargs) -> None:
+
+    def warning(self, message: str, *args, **kwargs) -> None:
         """Log warning message"""
-        self.logger.warning(message, **kwargs)
+        self.logger.warning(message, *args, **kwargs)
         self.log_counts['warning'] += 1
-    
-    def error(self, message: str, **kwargs) -> None:
+
+    def error(self, message: str, *args, **kwargs) -> None:
         """Log error message"""
-        self.logger.error(message, **kwargs)
+        self.logger.error(message, *args, **kwargs)
         self.log_counts['error'] += 1
-    
-    def critical(self, message: str, **kwargs) -> None:
+
+    def critical(self, message: str, *args, **kwargs) -> None:
         """Log critical message"""
-        self.logger.critical(message, **kwargs)
+        self.logger.critical(message, *args, **kwargs)
         self.log_counts['critical'] += 1
     
     def success(self, message: str, **kwargs) -> None:
