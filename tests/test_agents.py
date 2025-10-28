@@ -285,6 +285,56 @@ async def test_delegate_extended_prefers_specialist(monkeypatch):
     assert delegation['candidates'][0]['agent'] == 'quality-specialist'
 
 
+@pytest.mark.unit
+def test_security_engineer_strategist_enriches_results():
+    from SuperClaude.Agents.core.security import SecurityEngineer
+
+    agent = SecurityEngineer({})
+    context = {
+        'task': 'Audit login handler for security issues and hardcoded secrets',
+        'code': (
+            "def insecure_login(user_input):\n"
+            "    token = 'hardcoded-secret'\n"
+            "    return eval(user_input)\n"
+        )
+    }
+
+    result = agent.execute(context)
+
+    audit = result.get('security_audit') or {}
+    assert audit.get('success') is True
+    assert audit.get('vulnerabilities'), "Security audit should detect vulnerabilities"
+    assert 'security_report' in result
+
+    follow_up = result.get('follow_up_actions') or []
+    assert any('security' in action.lower() for action in follow_up)
+
+
+@pytest.mark.unit
+def test_technical_writer_strategist_generates_documentation():
+    from SuperClaude.Agents.core.technical_writer import TechnicalWriter
+
+    agent = TechnicalWriter({})
+    context = {
+        'task': 'Write README documentation for the payment service',
+        'subject': 'Payment service integration',
+        'doc_type': 'readme',
+        'code': (
+            "class PaymentService:\n"
+            "    def charge(self, amount):\n"
+            "        pass\n"
+        )
+    }
+
+    result = agent.execute(context)
+
+    doc = result.get('documentation_artifact') or {}
+    assert doc.get('success') is True
+    assert result.get('documentation_body')
+    sections = doc.get('sections_created') or []
+    assert sections, "Documentation should outline sections"
+
+
 if __name__ == "__main__":
     # Run tests if executed directly
     pytest.main([__file__, "-v"])

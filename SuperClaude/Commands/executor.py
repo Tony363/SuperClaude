@@ -38,6 +38,7 @@ from ..Modes.behavioral_manager import BehavioralMode, BehavioralModeManager
 from ..Quality.quality_scorer import QualityScorer, QualityAssessment
 from ..Core.worktree_manager import WorktreeManager
 from ..Monitoring.performance_monitor import get_monitor, MetricType
+from ..Monitoring.paths import get_metrics_dir
 from ..Monitoring.plan_only_logger import record_plan_only_event
 from ..Retrieval import RepoRetriever
 
@@ -585,6 +586,26 @@ class CommandExecutor:
 
             if derived_status == 'plan-only':
                 self._attach_plan_only_guidance(context, output if isinstance(output, dict) else None)
+                if self._should_auto_trigger_quality_loop(context, derived_status) and not context.results.get('loop_assessment'):
+                    context.loop_enabled = True
+                    context.results['loop_auto_triggered'] = True
+                    loop_result = self._maybe_run_quality_loop(context, output)
+                    if loop_result:
+                        output = loop_result['output']
+                        loop_assessment = loop_result['assessment']
+                        if isinstance(output, dict):
+                            loop_state = output.setdefault('loop', {
+                                'requested': False,
+                                'auto_triggered': True,
+                                'max_iterations': context.loop_iterations or self.quality_scorer.MAX_ITERATIONS,
+                                'iterations_executed': context.results.get('loop_iterations_executed', 0),
+                                'assessment': context.results.get('loop_assessment'),
+                            })
+                            loop_state.setdefault('auto_triggered', True)
+                            loop_state['iterations_executed'] = context.results.get('loop_iterations_executed', 0)
+                            loop_state['assessment'] = context.results.get('loop_assessment')
+                        if loop_assessment and not quality_assessment:
+                            quality_assessment = loop_assessment
 
             context.errors = self._deduplicate(context.errors)
 
@@ -2027,6 +2048,8 @@ class CommandExecutor:
         """Apply the change plan using the worktree manager or a fallback writer."""
         stub_entries = [entry for entry in change_plan if entry.get('auto_stub')]
         material_changes = [entry for entry in change_plan if not entry.get('auto_stub')]
+        safe_apply_requested = self._safe_apply_requested(context)
+        safe_snapshot: Optional[Dict[str, Any]] = None
 
         if stub_entries:
             context.results['auto_generated_stub'] = True
@@ -2036,17 +2059,27 @@ class CommandExecutor:
                 if stub_path and stub_path not in suppressed:
                     suppressed.append(stub_path)
 
+            if safe_apply_requested:
+                safe_snapshot = self._write_safe_apply_snapshot(context, stub_entries)
+
         if not material_changes:
             warning = (
                 "Auto-generated implementation stubs were withheld; "
                 "no repository files were modified."
             )
-            return {
+            result: Dict[str, Any] = {
                 'applied': [],
                 'warnings': [warning],
                 'base_path': str(self.repo_root or Path.cwd()),
                 'session': 'stub-only'
             }
+            if safe_snapshot:
+                info = f"Auto-generated stubs saved to safe-apply scratch directory: {safe_snapshot['directory']}"
+                if info not in result['warnings']:
+                    result['warnings'].append(info)
+                result['safe_apply_directory'] = safe_snapshot['directory']
+                result['safe_apply_files'] = safe_snapshot.get('files', [])
+            return result
 
         try:
             manager = self._ensure_worktree_manager()
@@ -2072,6 +2105,12 @@ class CommandExecutor:
             )
             if warning not in result['warnings']:
                 result['warnings'].append(warning)
+            if safe_snapshot:
+                info = f"Auto-generated stubs saved to safe-apply scratch directory: {safe_snapshot['directory']}"
+                if info not in result['warnings']:
+                    result['warnings'].append(info)
+                result['safe_apply_directory'] = safe_snapshot['directory']
+                result['safe_apply_files'] = safe_snapshot.get('files', [])
         if 'base_path' not in result:
             result['base_path'] = str(self.repo_root or Path.cwd())
         return result
@@ -3511,6 +3550,16 @@ class CommandExecutor:
                 preview = f"{preview} (+{remaining} more)"
             guidance.append(f"Review withheld stub guidance for: {preview}")
 
+        safe_directory = context.results.get('safe_apply_directory')
+        if safe_directory:
+            guidance.append(f"Inspect safe-apply snapshot at {safe_directory}")
+
+        safe_files = context.results.get('safe_apply_files') or []
+        if safe_files and len(safe_files) <= 3:
+            guidance.append(
+                "Safe-apply files staged: " + ', '.join(str(path) for path in safe_files)
+            )
+
         if not guidance:
             return
 
@@ -3530,6 +3579,104 @@ class CommandExecutor:
         for line in guidance:
             if line not in context.errors:
                 context.errors.append(line)
+
+    def _safe_apply_requested(self, context: CommandContext) -> bool:
+        flags = context.command.flags
+        parameters = context.command.parameters
+        return any([
+            self._is_truthy(flags.get('safe-apply')),
+            self._is_truthy(flags.get('safe_apply')),
+            self._is_truthy(parameters.get('safe-apply')),
+            self._is_truthy(parameters.get('safe_apply')),
+        ])
+
+    def _should_auto_trigger_quality_loop(self, context: CommandContext, derived_status: str) -> bool:
+        if derived_status != 'plan-only':
+            return False
+        if context.loop_enabled:
+            return False
+        if not self._safe_apply_requested(context):
+            return False
+        if context.results.get('changed_files'):
+            return False
+        if context.results.get('safe_apply_snapshots') or context.results.get('safe_apply_directory'):
+            return True
+        return False
+
+    def _write_safe_apply_snapshot(
+        self,
+        context: CommandContext,
+        stubs: Sequence[Dict[str, Any]]
+    ) -> Optional[Dict[str, Any]]:
+        metrics_dir = get_metrics_dir()
+        base_dir = metrics_dir / 'safe_apply' / context.session_id
+        base_dir.mkdir(parents=True, exist_ok=True)
+        timestamp = datetime.utcnow().strftime('%Y%m%d%H%M%S')
+        snapshot_dir = base_dir / timestamp
+
+        saved_files: List[str] = []
+        created_any = False
+
+        for entry in stubs:
+            raw_path = entry.get('path')
+            content = entry.get('content', '')
+            if not raw_path or not isinstance(content, str):
+                continue
+
+            raw_string = str(raw_path).strip()
+            if not raw_string:
+                continue
+
+            rel_parts = [part for part in Path(raw_string).parts if part not in ('', '.')]
+            if not rel_parts:
+                continue
+            if rel_parts[0] == '..' or any(part == '..' for part in rel_parts):
+                continue
+
+            if raw_string.startswith(('/', '\\')) and len(rel_parts) > 1:
+                rel_parts = rel_parts[1:]
+
+            rel_path = Path(*rel_parts)
+
+            target = snapshot_dir / rel_path
+            target.parent.mkdir(parents=True, exist_ok=True)
+            try:
+                target.write_text(content, encoding='utf-8')
+            except Exception as exc:
+                logger.debug('Failed to write safe-apply stub %s: %s', target, exc)
+                continue
+
+            created_any = True
+            saved_files.append(str(target.relative_to(snapshot_dir)))
+
+        if not created_any:
+            return None
+
+        manifest = {
+            'directory': str(snapshot_dir),
+            'files': saved_files,
+        }
+
+        context.results.setdefault('safe_apply_snapshots', []).append(manifest)
+        context.results['safe_apply_directory'] = manifest['directory']
+        context.results['safe_apply_files'] = saved_files
+
+        self._prune_safe_apply_snapshots(base_dir)
+
+        return manifest
+
+    def _prune_safe_apply_snapshots(self, session_root: Path, keep: int = 3) -> None:
+        try:
+            candidates = [path for path in session_root.iterdir() if path.is_dir()]
+        except FileNotFoundError:
+            return
+
+        candidates.sort(key=lambda path: path.name, reverse=True)
+        for obsolete in candidates[keep:]:
+            try:
+                shutil.rmtree(obsolete)
+            except Exception as exc:
+                logger.debug('Safe-apply cleanup skipped for %s: %s', obsolete, exc)
 
     def _maybe_record_plan_only_event(
         self,
@@ -3553,6 +3700,7 @@ class CommandExecutor:
             'plan_only_agents': list(context.results.get('plan_only_agents', [])),
             'suppressed_auto_stubs': list(context.results.get('suppressed_auto_stubs', [])),
             'guidance': list(context.results.get('plan_only_guidance', [])),
+            'safe_apply_requested': self._safe_apply_requested(context),
         }
 
         change_plan = context.results.get('change_plan') or []
@@ -3588,6 +3736,12 @@ class CommandExecutor:
 
         if context.results.get('retrieved_context'):
             event['retrieval_hits'] = len(context.results['retrieved_context'])
+
+        snapshots = context.results.get('safe_apply_snapshots') or []
+        if snapshots:
+            event['safe_apply_snapshot'] = snapshots[-1]
+        if context.results.get('safe_apply_directory'):
+            event['safe_apply_directory'] = context.results['safe_apply_directory']
 
         try:
             record_plan_only_event(event)

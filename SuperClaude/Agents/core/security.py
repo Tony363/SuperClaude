@@ -12,9 +12,10 @@ import logging
 from pathlib import Path
 
 from ..base import BaseAgent
+from ..heuristic_markdown import HeuristicMarkdownAgent
 
 
-class SecurityEngineer(BaseAgent):
+class SecurityAnalysisAgent(BaseAgent):
     """
     Agent specialized in security analysis and vulnerability detection.
 
@@ -80,7 +81,7 @@ class SecurityEngineer(BaseAgent):
                 result['errors'].append("No content to analyze for security")
                 return result
 
-            self.logger.info(f"Starting security analysis: {task[:100]}...")
+        self.logger.info(f"Starting security analysis: {task[:100]}...")
 
             # Phase 1: Vulnerability scanning
             vulnerabilities = self._scan_vulnerabilities(code, files, scan_type)
@@ -122,6 +123,85 @@ class SecurityEngineer(BaseAgent):
 
         return result
 
+
+class SecurityEngineer(HeuristicMarkdownAgent):
+    """Strategist-tier security engineer combining heuristics with static analysis."""
+
+    STRATEGIST_TIER = True
+
+    SECURITY_KEYWORDS = {
+        'security', 'vulnerability', 'secure', 'auth', 'authentication',
+        'authorization', 'permission', 'encrypt', 'decrypt', 'hash', 'owasp',
+        'pentest', 'penetration', 'exploit', 'injection', 'xss', 'csrf',
+        'sql injection', 'security audit'
+    }
+
+    def __init__(self, config: Dict[str, Any]):
+        defaults = {
+            'name': 'security-engineer',
+            'description': 'Identify and mitigate security vulnerabilities',
+            'category': 'security',
+            'capability_tier': 'strategist'
+        }
+        merged = {**defaults, **config}
+        super().__init__(merged)
+
+        analysis_config = dict(merged)
+        self.analysis_agent = SecurityAnalysisAgent(analysis_config)
+        # Share logger to avoid duplicate configuration noise
+        self.analysis_agent.logger = self.logger
+
+    def validate(self, context: Dict[str, Any]) -> bool:
+        task = str(context.get('task', '')).lower()
+        if any(keyword in task for keyword in self.SECURITY_KEYWORDS):
+            return True
+        return super().validate(context) or self.analysis_agent.validate(context)
+
+    def execute(self, context: Dict[str, Any]) -> Dict[str, Any]:
+        result = super().execute(context)
+
+        audit = self.analysis_agent.execute(context)
+        result['security_audit'] = audit
+
+        if audit.get('success'):
+            vulnerabilities = audit.get('vulnerabilities') or []
+            recommendations = audit.get('recommendations') or []
+            report = audit.get('output') or ''
+
+            actions = self._ensure_list(result, 'actions_taken')
+            if vulnerabilities:
+                actions.append(f"Identified {len(vulnerabilities)} potential vulnerabilities")
+
+            if recommendations:
+                follow_up = self._ensure_list(result, 'follow_up_actions')
+                for rec in recommendations[:5]:
+                    if isinstance(rec, dict):
+                        text = rec.get('recommendation') or rec.get('summary')
+                    else:
+                        text = str(rec)
+                    if text:
+                        follow_up.append(f"Security recommendation: {text}")
+
+            if vulnerabilities and not result.get('status') == 'executed':
+                result.setdefault('warnings', []).append(
+                    f"Security audit uncovered {len(vulnerabilities)} vulnerability candidates; apply fixes before rerun."
+                )
+
+            if report:
+                result['security_report'] = report
+                if result.get('output'):
+                    result['output'] = f"{result['output']}\n\n## Security Audit\n{report}".strip()
+                else:
+                    result['output'] = report
+        else:
+            errors = audit.get('errors') or []
+            if errors:
+                warning_list = self._ensure_list(result, 'warnings')
+                for err in errors:
+                    if err not in warning_list:
+                        warning_list.append(err)
+
+        return result
     def validate(self, context: Dict[str, Any]) -> bool:
         """
         Check if this agent can handle the context.

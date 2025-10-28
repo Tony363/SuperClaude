@@ -25,16 +25,16 @@ Provide a focused remediation roadmap for the current limitations that remain re
    - Record stub-only plan runs with structured payloads in `.superclaude_metrics/plan_only.jsonl`.
    - Surface actionable guidance in CLI output summarizing missing diffs and suggested files.
    - _Success metric_: ≥90% of `/sc:implement` failures include explicit next-step hints.
-2. [ ] **Safe Apply Mode (Week 2)**
-   - Introduce a `--safe-apply` flag allowing operators to checkpoint generated stubs into a scratch worktree.
-   - Guard writes behind explicit confirmation and auto-clean after review.
-   - _Success metric_: No regression in `tests/test_commands.py::test_implement_stub_runs_fail_requires_evidence` while new tests cover safe-apply workflows.
+2. [x] **Safe Apply Mode (Week 2)**
+    - Introduce a `--safe-apply` flag allowing operators to checkpoint generated stubs into a scratch worktree.
+    - Guard writes behind explicit confirmation and auto-clean after review.
+    - _Success metric_: No regression in `tests/test_commands.py::test_implement_stub_runs_fail_requires_evidence` while new tests cover safe-apply workflows.
 3. [ ] **Quality Loop Integration (Week 3)**
    - Feed diff presence into the quality scorer to auto-request follow-up iterations when plan-only persists after safe apply.
    - _Success metric_: Quality loop emits remediation guidance in ≥80% of stub-only reruns during CI smoke tests.
 
 ## Workstream 2 – Strategist Upgrades for High-Traffic Personas
-1. **Persona Prioritization (Week 1)**
+1. [x] **Persona Prioritization (Week 1)**
    - Use `.superclaude_metrics/agent_usage.json` to rank extended personas by invocation frequency.
    - Finalize top 5 candidates and log decision in `.codex-os/product/decisions.md`.
    - _Success metric_: ADR created with rationale and rollout order.

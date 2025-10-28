@@ -10,9 +10,11 @@ import re
 import logging
 
 from ..base import BaseAgent
+from ..heuristic_markdown import HeuristicMarkdownAgent
+from ..heuristic_markdown import HeuristicMarkdownAgent
 
 
-class TechnicalWriter(BaseAgent):
+class TechnicalDocumentationAgent(BaseAgent):
     """
     Agent specialized in technical documentation creation.
 
@@ -112,6 +114,76 @@ class TechnicalWriter(BaseAgent):
 
         return result
 
+
+class TechnicalWriter(HeuristicMarkdownAgent):
+    """Strategist-class technical writer with heuristic planning and doc synthesis."""
+
+    STRATEGIST_TIER = True
+
+    DOC_KEYWORDS = {
+        'document', 'documentation', 'docs', 'readme', 'explain', 'describe',
+        'write docs', 'api docs', 'user guide', 'technical docs', 'comment'
+    }
+
+    def __init__(self, config: Dict[str, Any]):
+        defaults = {
+            'name': 'technical-writer',
+            'description': 'Create clear technical documentation',
+            'category': 'documentation',
+            'capability_tier': 'strategist'
+        }
+        merged = {**defaults, **config}
+        super().__init__(merged)
+
+        self.doc_agent = TechnicalDocumentationAgent(dict(merged))
+        self.doc_agent.logger = self.logger
+
+    def validate(self, context: Dict[str, Any]) -> bool:
+        task = str(context.get('task', '')).lower()
+        if any(keyword in task for keyword in self.DOC_KEYWORDS):
+            return True
+        subject = str(context.get('subject', '')).lower()
+        if any(keyword in subject for keyword in self.DOC_KEYWORDS):
+            return True
+        return super().validate(context) or self.doc_agent.validate(context)
+
+    def execute(self, context: Dict[str, Any]) -> Dict[str, Any]:
+        result = super().execute(context)
+
+        doc_result = self.doc_agent.execute(context)
+        result['documentation_artifact'] = doc_result
+
+        if doc_result.get('success'):
+            doc_output = doc_result.get('output') or ''
+            doc_type = doc_result.get('doc_type')
+            sections = doc_result.get('sections_created') or []
+
+            actions = self._ensure_list(result, 'actions_taken')
+            actions.append('Drafted structured documentation artifact')
+            if sections:
+                actions.append(f"Created documentation sections: {', '.join(sections[:5])}")
+
+            follow_up = self._ensure_list(result, 'follow_up_actions')
+            follow_up.append('Review generated documentation with stakeholders for accuracy.')
+
+            if doc_type:
+                follow_up.append(f"Ensure {doc_type} documentation stays in sync with implementation changes.")
+
+            if doc_output:
+                result['documentation_body'] = doc_output
+                if result.get('output'):
+                    result['output'] = f"{result['output']}\n\n## Documentation Draft\n{doc_output}".strip()
+                else:
+                    result['output'] = doc_output
+        else:
+            errors = doc_result.get('errors') or []
+            if errors:
+                warnings = self._ensure_list(result, 'warnings')
+                for err in errors:
+                    if err not in warnings:
+                        warnings.append(err)
+
+        return result
     def validate(self, context: Dict[str, Any]) -> bool:
         """
         Check if this agent can handle the context.

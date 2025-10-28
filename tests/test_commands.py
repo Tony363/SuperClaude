@@ -927,6 +927,105 @@ class TestCommandExecutor:
         assert payload['requires_evidence'] is True
         assert payload['status'] == 'plan-only'
         assert 'change_plan_count' in payload
+        assert payload.get('safe_apply_requested') is False
+
+    @pytest.mark.asyncio
+    async def test_safe_apply_writes_snapshot(self, monkeypatch, tmp_path):
+        """--safe-apply should persist stubs to a scratch directory without touching the repo."""
+        monkeypatch.setenv("SUPERCLAUDE_METRICS_DIR", str(tmp_path))
+
+        registry = CommandRegistry()
+        parser = CommandParser()
+        executor = CommandExecutor(registry, parser)
+
+        async def fake_consensus(prompt: str, **kwargs):
+            return {
+                'consensus_reached': True,
+                'final_decision': {'decision': 'approve'},
+                'models': ['gpt-5', 'claude-opus-4.1'],
+            }
+
+        executor.consensus_facade.run_consensus = fake_consensus
+
+        def fake_run_requested_tests(self, parsed):
+            return {
+                'command': 'pytest -q',
+                'passed': True,
+                'pass_rate': 1.0,
+                'stdout': 'collected 0 items',
+                'stderr': '',
+                'duration_s': 0.05,
+                'exit_code': 0
+            }
+
+        monkeypatch.setattr(
+            CommandExecutor,
+            '_run_requested_tests',
+            fake_run_requested_tests,
+            raising=False
+        )
+
+        quality_loop_calls = {'count': 0}
+
+        def fake_agentic_loop(output, context_data, improver_func=None, max_iterations=None, min_improvement=None):
+            from datetime import datetime
+            quality_loop_calls['count'] += 1
+            assessment = QualityAssessment(
+                overall_score=60.0,
+                metrics=[],
+                timestamp=datetime.utcnow(),
+                iteration=1,
+                passed=False,
+                threshold=70.0,
+                context=context_data,
+                improvements_needed=['apply real diff'],
+                metadata={}
+            )
+            history = [
+                IterationResult(
+                    iteration=0,
+                    input_quality=50.0,
+                    output_quality=60.0,
+                    improvements_applied=['capture stub guidance'],
+                    time_taken=0.1,
+                    success=False
+                )
+            ]
+            return output, assessment, history
+
+        monkeypatch.setattr(
+            executor.quality_scorer,
+            'agentic_loop',
+            fake_agentic_loop,
+            raising=False
+        )
+
+        result = await executor.execute('/sc:implement sample feature --safe-apply')
+
+        assert result.success is False
+        assert result.status == 'plan-only'
+
+        guidance = (result.output.get('guidance') or {}).get('plan_only') or []
+        assert any('safe-apply snapshot' in line for line in guidance)
+
+        safe_apply_root = tmp_path / 'safe_apply'
+        assert safe_apply_root.exists(), "Safe apply directory should be materialized"
+
+        session_dirs = list(safe_apply_root.rglob('*'))
+        assert session_dirs, "Safe apply snapshot should create nested directories"
+
+        snapshot_files = list(safe_apply_root.rglob('*.py'))
+        assert snapshot_files, "Stub files should be written to the safe-apply area"
+
+        payload_path = Path(tmp_path) / 'plan_only.jsonl'
+        payload_lines = [line for line in payload_path.read_text(encoding='utf-8').splitlines() if line.strip()]
+        payload = json.loads(payload_lines[-1])
+        assert payload.get('safe_apply_requested') is True
+        assert payload.get('safe_apply_directory')
+        assert quality_loop_calls['count'] == 1
+
+        loop_info = result.output.get('loop') or {}
+        assert loop_info.get('auto_triggered') is True
 
     @pytest.mark.asyncio
     async def test_requires_evidence_blocks_on_consensus_failure(self, monkeypatch):
