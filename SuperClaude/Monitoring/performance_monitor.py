@@ -230,6 +230,18 @@ class PerformanceMonitor:
             except Exception:
                 logger.debug("Failed to persist metric event via %s", sink, exc_info=True)
 
+    def record_event(self, event_type: str, data: Dict[str, Any]) -> None:
+        """Persist a structured monitoring event."""
+        payload = {
+            'type': event_type,
+            'data': dict(data),
+        }
+        for sink in self.sinks:
+            try:
+                sink.write_event(payload)
+            except Exception:
+                logger.debug("Failed to persist custom event via %s", sink, exc_info=True)
+
     def start_timer(self, name: str) -> Callable:
         """
         Start a timer for measuring execution time.

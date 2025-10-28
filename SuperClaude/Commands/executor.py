@@ -4,7 +4,9 @@ Command Executor for SuperClaude Framework.
 Orchestrates command execution with agent and MCP server integration.
 """
 
+import ast
 import asyncio
+import builtins
 import copy
 import importlib.util
 import json
@@ -31,10 +33,12 @@ from ..Agents.registry import AgentRegistry
 from ..Agents import usage_tracker as agent_usage_tracker
 from ..MCP import get_mcp_integration
 from ..ModelRouter.facade import ModelRouterFacade
+from ..ModelRouter.consensus import VoteType
 from ..Modes.behavioral_manager import BehavioralMode, BehavioralModeManager
 from ..Quality.quality_scorer import QualityScorer, QualityAssessment
 from ..Core.worktree_manager import WorktreeManager
 from ..Monitoring.performance_monitor import get_monitor, MetricType
+from ..Retrieval import RepoRetriever
 
 logger = logging.getLogger(__name__)
 
@@ -222,7 +226,9 @@ class CommandExecutor:
         self.behavior_manager = BehavioralModeManager()
         self.artifact_manager = CommandArtifactManager(base_path / "SuperClaude" / "Generated")
         self.consensus_facade = ModelRouterFacade()
+        self.consensus_policies = self._load_consensus_policies()
         self.quality_scorer = QualityScorer()
+        self.retriever = RepoRetriever(base_path)
         self.delegate_category_map = {
             'delegate_core': AgentCategory.CORE_DEVELOPMENT,
             'delegate-debug': AgentCategory.QUALITY_SECURITY,
@@ -585,7 +591,8 @@ class CommandExecutor:
                 success_flag,
                 quality_assessment,
                 static_issues,
-                context.consensus_summary
+                context.consensus_summary,
+                dict(context.results)
             )
 
             # Dispatch any Rube automation once metrics have been recorded.
@@ -3114,6 +3121,8 @@ class CommandExecutor:
                     issues.append(f"{rel_path}: python syntax error — {message}")
                 except Exception as exc:
                     issues.append(f"{rel_path}: python validation failed — {exc}")
+                else:
+                    issues.extend(self._python_semantic_issues(path, rel_path))
             elif path.suffix == '.json':
                 try:
                     json.loads(path.read_text(encoding='utf-8'))
@@ -3130,6 +3139,23 @@ class CommandExecutor:
                     issues.append(f"{rel_path}: yaml validation failed — {exc}")
 
         return issues
+
+    def _python_semantic_issues(self, path: Path, rel_path: str) -> List[str]:
+        """Run lightweight semantic checks for Python files."""
+        try:
+            source = path.read_text(encoding='utf-8')
+        except Exception as exc:
+            return [f"{rel_path}: unable to read file for semantic validation — {exc}"]
+
+        try:
+            tree = ast.parse(source, filename=str(path))
+        except SyntaxError:
+            # Already handled by py_compile, no extra issues here.
+            return []
+
+        analyzer = _PythonSemanticAnalyzer(path, self.repo_root)
+        analyzer.visit(tree)
+        return [f"{rel_path}: {issue}" for issue in analyzer.report()]
 
     def _generate_commit_message(self, repo_root: Path) -> str:
         """Generate a conventional commit message based on repository changes."""
@@ -3350,7 +3376,8 @@ class CommandExecutor:
         success: bool,
         assessment: Optional[QualityAssessment],
         static_issues: List[str],
-        consensus: Optional[Dict[str, Any]]
+        consensus: Optional[Dict[str, Any]],
+        context_snapshot: Optional[Dict[str, Any]] = None
     ) -> None:
         """Send telemetry for requires-evidence command outcomes."""
         if not requires_evidence or not self.monitor:
@@ -3403,6 +3430,27 @@ class CommandExecutor:
                 assessment_passed = False
             metric_name = f"{base}.quality_pass" if assessment_passed else f"{base}.quality_fail"
             self.monitor.record_metric(metric_name, 1, MetricType.COUNTER, score_tags)
+
+        snapshot = context_snapshot or {}
+        event_payload = {
+            'timestamp': datetime.now().isoformat(),
+            'command': command_name,
+            'requires_evidence': requires_evidence,
+            'status': derived_status,
+            'success': success,
+            'static_issues': static_issues,
+            'static_issue_count': len(static_issues),
+            'consensus_reached': bool(consensus.get('consensus_reached')) if isinstance(consensus, dict) else None,
+            'quality_score': assessment.overall_score if assessment else None,
+            'quality_threshold': assessment.threshold if assessment else None,
+            'consensus_vote_type': snapshot.get('consensus_vote_type'),
+            'consensus_quorum': snapshot.get('consensus_quorum_size'),
+            'plan_only': derived_status == 'plan-only',
+        }
+        try:
+            self.monitor.record_event('hallucination.guardrail', event_payload)
+        except Exception:
+            logger.debug('Failed to record hallucination event payload', exc_info=True)
         else:
             self.monitor.record_metric(f"{base}.quality_missing", 1, MetricType.COUNTER, tags)
 
@@ -4224,6 +4272,26 @@ class CommandExecutor:
             'mode_context': context.results.get('mode', {}),
         }
 
+        retrieved_context = []
+        if self.retriever and task_description:
+            retrieved_context = [hit.__dict__ for hit in self.retriever.retrieve(task_description, limit=5)]
+            if retrieved_context:
+                agent_payload['retrieved_context'] = retrieved_context
+                context.results['retrieved_context'] = retrieved_context
+                if self.monitor:
+                    try:
+                        self.monitor.record_event(
+                            'hallucination.retrieval',
+                            {
+                                'timestamp': datetime.now().isoformat(),
+                                'command': context.command.name,
+                                'query': task_description[:120],
+                                'hit_count': len(retrieved_context),
+                            }
+                        )
+                    except Exception:
+                        logger.debug('Failed to record retrieval telemetry', exc_info=True)
+
         for agent_name, agent in context.agent_instances.items():
             try:
                 result = agent.execute(agent_payload)
@@ -4593,9 +4661,14 @@ class CommandExecutor:
     ) -> Dict[str, Any]:
         """Run consensus builder and attach the result to the context."""
         prompt = self._build_consensus_prompt(context, output)
+        policy = self._resolve_consensus_policy(context.command.name if context.command else None)
+        vote_type = policy.get('vote_type', VoteType.MAJORITY)
+        quorum_size = max(2, int(policy.get('quorum_size', 2)))
         try:
             result = await self.consensus_facade.run_consensus(
                 prompt,
+                vote_type=vote_type,
+                quorum_size=quorum_size,
                 context=context.results,
                 think_level=think_level,
                 task_type=task_type
@@ -4608,6 +4681,8 @@ class CommandExecutor:
 
         context.consensus_summary = result
         context.results['consensus'] = result
+        context.results['consensus_vote_type'] = vote_type.value if isinstance(vote_type, VoteType) else str(vote_type)
+        context.results['consensus_quorum_size'] = quorum_size
         if result.get('routing_decision'):
             context.results['routing_decision'] = result['routing_decision']
         if result.get('models'):
@@ -4631,6 +4706,62 @@ class CommandExecutor:
                     warnings_list.append(message)
 
         return result
+
+    def _load_consensus_policies(self) -> Dict[str, Any]:
+        """Load consensus policies from configuration."""
+        base_dir = Path(__file__).resolve().parent.parent
+        cfg_path = base_dir / "Config" / "consensus_policies.yaml"
+        if not cfg_path.exists():
+            return {'defaults': {'vote_type': VoteType.MAJORITY, 'quorum_size': 2}, 'commands': {}}
+
+        try:
+            with cfg_path.open('r', encoding='utf-8') as handle:
+                data = yaml.safe_load(handle) or {}
+        except Exception as exc:
+            logger.warning("Failed to load consensus policy config %s: %s", cfg_path, exc)
+            data = {}
+
+        defaults = data.get('defaults') or {}
+        commands = data.get('commands') or {}
+
+        def _normalize_vote(value):
+            if isinstance(value, VoteType):
+                return value
+            try:
+                return VoteType[str(value).upper()]
+            except Exception:
+                return VoteType.MAJORITY
+
+        defaults_normalized = {
+            'vote_type': _normalize_vote(defaults.get('vote_type', VoteType.MAJORITY)),
+            'quorum_size': int(defaults.get('quorum_size', 2) or 2),
+        }
+
+        command_maps: Dict[str, Dict[str, Any]] = {}
+        for name, cfg in commands.items():
+            if not isinstance(cfg, dict):
+                continue
+            vote_raw = cfg.get('vote_type', defaults_normalized['vote_type'])
+            quorum_raw = cfg.get('quorum_size', defaults_normalized['quorum_size'])
+            command_maps[name] = {
+                'vote_type': _normalize_vote(vote_raw),
+                'quorum_size': int(quorum_raw or defaults_normalized['quorum_size']),
+            }
+
+        return {
+            'defaults': defaults_normalized,
+            'commands': command_maps,
+        }
+
+    def _resolve_consensus_policy(self, command_name: Optional[str]) -> Dict[str, Any]:
+        """Resolve consensus policy for a command name."""
+        defaults = self.consensus_policies.get('defaults', {})
+        commands = self.consensus_policies.get('commands', {})
+        if command_name and command_name in commands:
+            policy = dict(defaults)
+            policy.update(commands[command_name])
+            return policy
+        return dict(defaults)
 
     def register_hook(self, hook_type: str, hook_func: Callable) -> None:
         """
@@ -4735,3 +4866,235 @@ class CommandExecutor:
                 final_results.append(result)
 
         return final_results
+
+
+class _PythonSemanticAnalyzer(ast.NodeVisitor):
+    """Very lightweight semantic analyzer for Python files."""
+
+    _BUILTINS = set(dir(builtins)) | {
+        'self', 'cls', '__name__', '__file__', '__package__', '__doc__', '__all__', '__annotations__'
+    }
+
+    def __init__(self, file_path: Path, repo_root: Optional[Path]):
+        self.file_path = Path(file_path)
+        self.repo_root = Path(repo_root) if repo_root else self.file_path.parent
+        self.scopes: List[Set[str]] = [set(self._BUILTINS)]
+        self.missing_imports: List[str] = []
+        self.unresolved_names: Set[str] = set()
+        self.imported_symbols: Set[str] = set()
+        self.module_name = self._derive_module_name()
+
+    def _derive_module_name(self) -> Optional[str]:
+        try:
+            relative = self.file_path.relative_to(self.repo_root)
+        except ValueError:
+            return None
+        parts = list(relative.with_suffix('').parts)
+        if parts and parts[-1] == '__init__':
+            parts = parts[:-1]
+        return '.'.join(parts) if parts else None
+
+    # Scope helpers --------------------------------------------------
+
+    def _push_scope(self) -> None:
+        self.scopes.append(set())
+
+    def _pop_scope(self) -> None:
+        if len(self.scopes) > 1:
+            self.scopes.pop()
+
+    def _define(self, name: str) -> None:
+        if name:
+            self.scopes[-1].add(name)
+
+    def _is_defined(self, name: str) -> bool:
+        return any(name in scope for scope in reversed(self.scopes))
+
+    # Visitors -------------------------------------------------------
+
+    def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
+        self._define(node.name)
+        for decorator in node.decorator_list:
+            self.visit(decorator)
+        self._push_scope()
+        self._define_arguments(node.args)
+        for stmt in node.body:
+            self.visit(stmt)
+        self._pop_scope()
+
+    def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef) -> None:
+        self.visit_FunctionDef(node)  # type: ignore[arg-type]
+
+    def visit_ClassDef(self, node: ast.ClassDef) -> None:
+        self._define(node.name)
+        for base in node.bases:
+            self.visit(base)
+        self._push_scope()
+        for stmt in node.body:
+            self.visit(stmt)
+        self._pop_scope()
+
+    def visit_Import(self, node: ast.Import) -> None:
+        for alias in node.names:
+            defined = alias.asname or alias.name.split('.')[0]
+            self._define(defined)
+            self.imported_symbols.add(defined)
+            self._validate_import(alias.name, level=0)
+
+    def visit_ImportFrom(self, node: ast.ImportFrom) -> None:
+        module = node.module or ''
+        for alias in node.names:
+            if alias.name == '*':
+                continue
+            defined = alias.asname or alias.name
+            self._define(defined)
+            self.imported_symbols.add(defined)
+        self._validate_import(module, level=node.level or 0)
+
+    def visit_Assign(self, node: ast.Assign) -> None:
+        for target in node.targets:
+            self._define_target(target)
+        self.visit(node.value)
+
+    def visit_AnnAssign(self, node: ast.AnnAssign) -> None:
+        if node.target:
+            self._define_target(node.target)
+        if node.annotation:
+            self.visit(node.annotation)
+        if node.value:
+            self.visit(node.value)
+
+    def visit_AugAssign(self, node: ast.AugAssign) -> None:
+        self.visit(node.target)
+        self.visit(node.value)
+
+    def visit_For(self, node: ast.For) -> None:
+        self.visit(node.iter)
+        self._define_target(node.target)
+        self._push_scope()
+        for stmt in node.body:
+            self.visit(stmt)
+        self._pop_scope()
+        for stmt in node.orelse:
+            self.visit(stmt)
+
+    def visit_AsyncFor(self, node: ast.AsyncFor) -> None:
+        self.visit_For(node)  # type: ignore[arg-type]
+
+    def visit_With(self, node: ast.With) -> None:
+        for item in node.items:
+            self.visit(item.context_expr)
+            if item.optional_vars:
+                self._define_target(item.optional_vars)
+        self._push_scope()
+        for stmt in node.body:
+            self.visit(stmt)
+        self._pop_scope()
+
+    def visit_AsyncWith(self, node: ast.AsyncWith) -> None:
+        self.visit_With(node)  # type: ignore[arg-type]
+
+    def visit_Name(self, node: ast.Name) -> None:
+        if isinstance(node.ctx, ast.Load):
+            if not self._is_defined(node.id) and node.id not in self.imported_symbols:
+                self.unresolved_names.add(node.id)
+        elif isinstance(node.ctx, (ast.Store, ast.Param)):
+            self._define(node.id)
+
+    def visit_ListComp(self, node: ast.ListComp) -> None:
+        self._visit_comprehension(node.generators, node.elt)
+
+    def visit_SetComp(self, node: ast.SetComp) -> None:
+        self._visit_comprehension(node.generators, node.elt)
+
+    def visit_GeneratorExp(self, node: ast.GeneratorExp) -> None:
+        self._visit_comprehension(node.generators, node.elt)
+
+    def visit_DictComp(self, node: ast.DictComp) -> None:
+        self._visit_comprehension(node.generators, node.key, node.value)
+
+    def _visit_comprehension(self, generators: List[ast.comprehension], *exprs: ast.AST) -> None:
+        self._push_scope()
+        for comp in generators:
+            self.visit(comp.iter)
+            self._define_target(comp.target)
+            for if_clause in comp.ifs:
+                self.visit(if_clause)
+        for expr in exprs:
+            self.visit(expr)
+        self._pop_scope()
+
+    def visit_Attribute(self, node: ast.Attribute) -> None:
+        self.visit(node.value)
+
+    # Helper operations -----------------------------------------------
+
+    def _define_arguments(self, args: ast.arguments) -> None:
+        for arg in list(args.posonlyargs) + list(args.args) + list(args.kwonlyargs):
+            self._define(arg.arg)
+        if args.vararg:
+            self._define(args.vararg.arg)
+        if args.kwarg:
+            self._define(args.kwarg.arg)
+
+    def _define_target(self, target: ast.AST) -> None:
+        if isinstance(target, ast.Name):
+            self._define(target.id)
+        elif isinstance(target, (ast.Tuple, ast.List)):
+            for elt in target.elts:
+                self._define_target(elt)
+        elif isinstance(target, ast.Attribute):
+            self.visit(target.value)
+        elif isinstance(target, ast.Subscript):
+            self.visit(target.value)
+            self.visit(target.slice)
+
+    def _validate_import(self, module: str, level: int) -> None:
+        module = module or ''
+        candidate = self._resolve_module_name(module, level)
+        if not candidate:
+            return
+
+        if self._module_exists(candidate):
+            return
+
+        try:
+            spec = importlib.util.find_spec(candidate)
+        except Exception:
+            spec = None
+
+        if spec is None:
+            self.missing_imports.append(f"missing import '{candidate}'")
+
+    def _resolve_module_name(self, module: str, level: int) -> Optional[str]:
+        if level == 0:
+            return module
+
+        if not self.module_name:
+            return module
+
+        parts = self.module_name.split('.')
+        if level > len(parts):
+            return module
+
+        base = parts[:-level]
+        if module:
+            base.append(module)
+        return '.'.join(base) if base else module
+
+    def _module_exists(self, module_name: str) -> bool:
+        parts = module_name.split('.')
+        candidate_dir = self.repo_root.joinpath(*parts)
+        if candidate_dir.with_suffix('.py').exists():
+            return True
+        if candidate_dir.exists() and (candidate_dir / '__init__.py').exists():
+            return True
+        return False
+
+    def report(self) -> List[str]:
+        issues: List[str] = []
+        issues.extend(self.missing_imports)
+        unresolved = sorted(self.unresolved_names - self._BUILTINS - set(self.imported_symbols))
+        for name in unresolved:
+            issues.append(f"unresolved symbol '{name}'")
+        return issues

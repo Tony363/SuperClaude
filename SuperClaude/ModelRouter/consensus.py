@@ -341,7 +341,7 @@ class ConsensusBuilder:
             return False, None
 
         elif vote_type == VoteType.MAJORITY:
-            # Simple majority
+            # Simple majority (more than half of votes)
             response_counts: Dict[str, int] = {}
             response_map: Dict[str, Any] = {}
             for vote in valid_votes:
@@ -349,10 +349,10 @@ class ConsensusBuilder:
                 response_counts[response_key] = response_counts.get(response_key, 0) + 1
                 response_map.setdefault(response_key, vote.response)
 
-            # Find majority
-            if len(response_counts) == 1:
-                response_key = next(iter(response_counts))
-                return True, response_map[response_key]
+            total_votes = len(valid_votes)
+            for response_key, count in response_counts.items():
+                if count > total_votes / 2:
+                    return True, response_map[response_key]
             return False, None
 
         elif vote_type == VoteType.QUORUM:

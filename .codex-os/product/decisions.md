@@ -19,3 +19,8 @@
 - **Context:** `/sc:implement` succeeded with only auto-generated stubs, letting hallucinated change plans satisfy the `requires_evidence` check while still demanding human follow-up.
 - **Decision:** Treat auto stubs as plan-only evidence, suppress writing them to the repository, and fail the guardrail until genuine file modifications are applied.
 - **Consequences:** Stub guidance still appears in the change plan, but commands now exit with actionable errors and quality failures until developers supply real diffs. Tests cover the new behaviour and README documents the stricter guardrail.
+
+## 2025-10-28 – Consensus Calibration & Retrieval Grounding
+- **Context:** Consensus enforcement and guardrail telemetry existed but defaulted to single-model heuristics without semantic validation or observable alerting. Agents operated without shared retrieval context, encouraging speculative plans.
+- **Decision:** Introduced command-specific consensus policies with quorum rules, deterministic offline executors, and semantic validators that block unresolved imports or symbols. Added hallucination telemetry events, CI guard scripts, and repository retriever hooks feeding agents contextual snippets.
+- **Consequences:** `/sc:` commands requiring evidence now fail when the ensemble cannot reach quorum, and plan-only spikes trigger monitoring events ready for CI gating. Agents automatically attach repo context before planning, reducing hallucination risk and providing auditable artifacts for reviewers.

@@ -47,6 +47,7 @@ class ModelRouterFacade:
         *,
         models: Optional[List[str]] = None,
         vote_type: VoteType = VoteType.MAJORITY,
+        quorum_size: int = 2,
         context: Optional[Dict[str, Any]] = None,
         think_level: Optional[int] = None,
         task_type: str = "consensus",
@@ -79,6 +80,7 @@ class ModelRouterFacade:
                 prompt,
                 models=selected_models,
                 vote_type=vote_type,
+                quorum_size=quorum_size,
                 context=context_payload,
             )
         except Exception as exc:
@@ -90,12 +92,14 @@ class ModelRouterFacade:
                 "routing_decision": self._serialize_routing(routing_decision) if routing_decision else None,
                 "think_level": effective_think,
                 "offline": self.offline_mode,
+                "quorum_size": quorum_size,
             }
 
         payload = self._serialize_consensus(result)
         payload["models"] = selected_models
         payload["think_level"] = effective_think
         payload["offline"] = self.offline_mode
+        payload["quorum_size"] = quorum_size
         if routing_decision:
             payload["routing_decision"] = self._serialize_routing(routing_decision)
         return payload
@@ -345,35 +349,51 @@ class ModelRouterFacade:
             self.consensus.register_executor(model_name, executor)
 
     def _default_executor(self, model_name: str, prompt: str) -> Dict[str, Any]:
-        """Simple heuristic executor used in offline mode."""
+        """Deterministic heuristic executor used in offline mode."""
         prompt_lower = prompt.lower()
-        negative_keywords = ("fail", "error", "bug", "reject", "issue", "missing")
-        positive_keywords = ("pass", "success", "complete", "approve", "ready", "implement", "implementation")
+        negative_keywords = ("fail", "error", "bug", "reject", "issue", "missing", "panic")
+        positive_keywords = ("pass", "success", "complete", "approve", "ready", "implement", "implementation", "ship")
+
+        import hashlib
+
+        hashed = hashlib.sha1(f"{model_name}:{prompt_lower}".encode("utf-8"))
+        score = int(hashed.hexdigest()[:8], 16) / 0xFFFFFFFF
 
         if any(word in prompt_lower for word in negative_keywords):
             decision = "revise"
-            confidence = 0.55
-            reasoning = "Signals of failure detected; recommending revision."
+            confidence = round(0.45 + (1 - score) * 0.35, 2)
+            reasoning = "Failure cues detected in prompt context; requesting revision."
         elif any(word in prompt_lower for word in positive_keywords):
-            decision = "approve"
-            confidence = 0.78
-            reasoning = "Positive completion phrases detected."
+            decision = "approve" if score > 0.25 else "revise"
+            confidence = round(0.55 + score * 0.4, 2) if decision == "approve" else round(0.4 + score * 0.2, 2)
+            reasoning = (
+                "Strong success language present; approving with confidence." if decision == "approve"
+                else "Positive language detected but heuristic vote recommends revision for caution."
+            )
         else:
-            decision = "approve"
-            confidence = 0.72
-            reasoning = "No risk signals detected; approving by default."
+            decision = "approve" if score >= 0.5 else "revise"
+            confidence = round(0.5 + abs(0.5 - score), 2)
+            reasoning = (
+                "Neutral prompt; defaulting to approval after balanced heuristic." if decision == "approve"
+                else "Neutral prompt but heuristic variance triggered revision recommendation."
+            )
 
         token_estimate = max(32, len(prompt) // 4)
 
         return {
-            "response": decision,
+            "response": {
+                "decision": decision,
+                "confidence": confidence,
+                "reasoning": reasoning,
+            },
             "confidence": confidence,
             "reasoning": reasoning,
             "tokens_used": token_estimate,
             "metadata": {
                 "model": model_name,
-                "heuristic": "keyword",
+                "heuristic": "deterministic_offline",
                 "offline": True,
+                "score": score,
             },
         }
 
