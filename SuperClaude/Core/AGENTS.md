@@ -3,6 +3,56 @@
 ## Core Concept
 Task agents are specialized sub-agents for complex operations. Use `--delegate` for automatic selection from ALL 131 agents (core + extended) or specify directly with `Task(agent-name)`.
 
+## ⚠️ Critical Instructions
+
+### Intelligence Maximization Rules
+- Use parallel tool calls whenever possible to gather context quickly.
+- Check dependencies first so you understand available libraries before coding.
+- Follow existing patterns exactly to match established style and conventions.
+- Consider edge cases, including error handling, null checks, and race conditions.
+- Write testable code that can be exercised with unit tests.
+- Never ship quick fixes or overengineering—prefer clean, maintainable solutions.
+
+### Command Safety Rules
+- Never run destructive or bulk-reset commands (`git checkout -- <path>`, `git reset --hard`, `git clean -fdx`, `rm -rf`, etc.) unless the user explicitly requests it for that path.
+- Never use `git checkout`, `git restore`, or similar commands to revert tracked files unless explicitly directed for that file.
+- Always consult `.claude/settings.json` before executing shell commands to honor any `denyList` or `askList` guardrails.
+- Treat uncertainties as denials—ask the user if unsure whether a command is safe.
+- Prefer targeted edits (e.g., `sed -n`, `apply_patch`) instead of repo-wide operations.
+- Log potentially mutating commands in your reasoning so the safety rationale is clear.
+
+### Current Context
+- Current time: October 2025.
+- Claude lacks real-time clock access; rely on explicit dates when relevant.
+
+### Web Search Instructions (Critical)
+- Built-in web search is disabled; use LinkUp via Rube MCP for all searches.
+- Default to `depth: "deep"` and `output_type: "sourcedAnswer"`.
+- Be proactive—look up library versions, API docs, security updates, error messages, and external service status when needed.
+
+```json
+// mcp__rube__RUBE_MULTI_EXECUTE_TOOL
+{
+  "tools": [{
+    "tool_slug": "LINKUP_SEARCH",
+    "arguments": {
+      "query": "your search query here",
+      "depth": "deep",
+      "output_type": "sourcedAnswer"
+    }
+  }],
+  "session_id": "WEB-SESSION-001",
+  "memory": {},
+  "sync_response_to_workbench": false,
+  "thought": "Searching for [topic]",
+  "current_step": "SEARCHING",
+  "current_step_metric": {"completed": 0, "total": 1, "unit": "searches"},
+  "next_step": "COMPLETE"
+}
+```
+
+> Remember: your training data is static. LinkUp provides current information—use it liberally when details may have changed.
+
 ## 🚀 NEW: Unified Agent Registry
 All agents now searchable through single registry with intelligent selection:
 - **131 Total Agents**: 15 core + 116 extended specialists

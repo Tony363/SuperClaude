@@ -1,87 +1,88 @@
 ---
 title: Product & Codebase Analysis
-date: 2025-10-15
-version: 1
+date: 2025-10-27
+version: 2
 inputs:
-  product_docs: []
+  product_docs: [decisions.md]
   specs_sampled: []
-repo_ref: master@3f135f0
+repo_ref: main@d151479
 ---
 
 # 1. Executive Summary
-- **Mission fit:** The framework targets multi-agent orchestration for Claude Code, but top-level product artifacts are missing so intent must be inferred from in-repo docs.
-- **Overall health:** Yellow — strong modular scaffolding exists, yet key anti-hallucination controls remain disconnected or stubbed, so high-value safeguards are not enforced in practice.
+- **Mission fit:** Framework is positioned as an offline-first orchestrator that delivers verifiable code changes through agent collaboration; recent guardrail decisions reinforce evidence-first delivery but downstream integrations remain incomplete.
+- **Overall health:** Yellow — the command executor now enforces consensus, auto-tests, static validation, and telemetry for `requires_evidence` flows, yet hallucination controls still rely on stubs and lack semantic validation or calibrated model ensembles.
 - **Top 3 risks:**
-  - Multi-model consensus builder is defined but never invoked, leaving decisions to a single model and increasing hallucination risk (SuperClaude/ModelRouter/consensus.py:61).
-  - Critical `/sc:*` workflows return plan-only responses because the executor lacks real agent integrations despite requiring evidence (SuperClaude/Commands/executor.py:183, SuperClaude/Commands/executor.py:396).
-  - Quality scoring logic penalizes missing evidence, but nothing feeds it during normal command execution so low-quality outputs slip through unchecked (SuperClaude/Quality/quality_scorer.py:482, SuperClaude/Commands/executor.py:199).
+  - ConsensusBuilder lacks real model executors, so consensus gates degrade to single-model behavior despite enforcement hooks (`SuperClaude/ModelRouter/consensus.py`).
+  - Static validation only performs syntax/JSON/YAML checks, leaving semantic hallucinations (missing imports, dead symbols) undetected (`SuperClaude/Commands/executor.py:3097-3230`).
+  - Metrics for plan-only outcomes flow to the monitor, but no dashboards or thresholds act on them, so regressions remain invisible in practice (`SuperClaude/Commands/executor.py:3345-3394`).
 - **Top 3 recommendations:**
-  - Wire the consensus builder into validator/validator-agents for `/sc:implement` and similar commands to obtain cross-model agreement before reporting success.
-  - Run quality scoring and static validation automatically for any command marked `requires_evidence` so hallucinated diffs are blocked with actionable feedback.
-  - Track plan-only outcomes as hallucination metrics via the monitoring layer to surface hotspots and regression signals.
+  - Wire real multi-model executors into `ConsensusBuilder` with calibrated agreement thresholds per command criticality.
+  - Layer semantic validation (AST import checks, module existence, dependency inventory) ahead of success to surface hallucinated references.
+  - Turn hallucination telemetry into actionable alerts and regression dashboards (e.g., treat plan-only spikes as CI failures).
 
 # 2. Product Context
-- No local `.codex-os/product` docs exist; roadmap in `ROADMAP.md` covers older milestones (v4–v5) and does not match v6 messaging, so we lack authoritative goals or KPIs.
-- Users appear to be Claude Code operators who need reliable agent orchestration, with success tied to producing verifiable code changes backed by tests and evidence.
-- Constraints: offline execution (no network), git-based evidence, emphasis on MCP integrations, yet current artifacts do not define explicit non-goals or SLAs.
+- Decisions log (2025-10-17, 2025-10-25, 2025-10-26) documents MCP consolidation, UnifiedStore adoption, and stricter `requires_evidence` handling, but no mission/roadmap docs exist locally.
+- Intended users are Claude Code operators who need verifiable diffs with offline guarantees; success metrics would center on executed vs plan-only rates, loop iterations required, and quality scores.
+- Constraints: offline mode by default, limited MCP roster (Sequential, Zen, Deepwiki), reliance on git/git tests for evidence, and absence of networked verification.
 
 # 3. Architecture Overview
-- **Layers:** `/sc:` command parser & registry (SuperClaude/Commands/parser.py, SuperClaude/Commands/registry.py:115) → command executor enforcing evidence & test hooks (SuperClaude/Commands/executor.py:136-233) → agent registry/selector (SuperClaude/Agents/registry.py:37, SuperClaude/Agents/selector.py:33) → coordination strategies with consensus/competitive modes (SuperClaude/Coordination/agent_coordinator.py:143-561) → model router & consensus builder (SuperClaude/ModelRouter/router.py:44-275, SuperClaude/ModelRouter/consensus.py:61) → quality scoring & worktree gating (SuperClaude/Quality/quality_scorer.py:81-540, SuperClaude/Core/worktree_manager.py:21-210) → monitoring sinks (SuperClaude/Monitoring/performance_monitor.py:33-180).
-- **Data flow:** commands capture flags (e.g., `requires_evidence`) and snapshot git changes, agents mostly derive from Markdown configs, model router provides ensemble suggestions, worktree manager can run pytest and feed quality scoring but only when invoked directly.
-- **External services:** MCP integrations enumerated in `Config/mcp.yaml`, but executors only instantiate stubs; no live API callers are present in repo.
+- **Entry:** `/sc:` commands parsed via registry metadata (`SuperClaude/Commands/registry.py`) and executed through `CommandExecutor`.
+- **Coordination:** Executor loads personas, activates configured MCP servers, runs command-specific logic, enforces consensus via `_ensure_consensus`, launches tests, snapshots diffs, and aggregates artifacts (`SuperClaude/Commands/executor.py:300-620`).
+- **Quality loop:** Optional loop re-invokes quality scorer to improve outputs until thresholds met (`SuperClaude/Quality/quality_scorer.py`).
+- **Consensus:** `ConsensusBuilder` supports majority/quorum voting but ships without bound executors; router provides ensemble members yet defaults to placeholders (`SuperClaude/ModelRouter/router.py`, `SuperClaude/ModelRouter/consensus.py`).
+- **Observability:** `PerformanceMonitor` persists metrics through SQLite/JSONL sinks; executor emits requires-evidence counters and quality scores when monitor is present (`SuperClaude/Monitoring/performance_monitor.py`, `SuperClaude/Commands/executor.py:3345-3394`).
+- **Assumptions:** Most agents remain config-driven stubs; quality gating depends on local repo state and cannot fetch external truth sources.
 
 ```mermaid
 flowchart LR
-  CLI["/sc: command"] --> Parser
+  CLI[/sc: command/] --> Parser
   Parser --> Executor
   Executor -->|personas| Agents
-  Agents --> Coordinator
-  Coordinator --> Router
-  Router --> Consensus
-  Executor -->|git diff/tests| Worktree
-  Worktree --> Quality
+  Executor --> MCP
+  Executor --> Consensus
+  Executor --> Tests
+  Executor --> Quality
   Quality --> Executor
   Executor --> Monitor
+  Executor --> Worktree
+  Worktree --> Quality
 ```
-
-- **Assumptions:** Agents currently return structured dicts but rarely touch disk; consensus builder and monitoring are optional utilities awaiting deeper integration.
+- **Notes:** UnifiedStore handles session persistence; Rube automations execute after telemetry, but no hallucination-specific remediation is triggered automatically.
 
 # 4. Quality & Health
-- **Tests:** Pytest suite covers registry, executor, router, and loaders (tests/test_commands.py, tests/test_model_router.py, tests/test_extended_loader.py). No end-to-end proof that agent outputs modify files or pass quality gates.
-- **Lint/format:** `pyproject.toml` defines `black`, `flake8`, and `mypy`, but automation is absent; formatter adherence relies on manual execution.
-- **Security/deps:** Runtime deps minimal, but no policy to validate MCP credentials or sanitize shell inputs; placeholder subprocess calls run in trusted mode.
-- **Performance:** PerformanceMonitor collects system metrics (SuperClaude/Monitoring/performance_monitor.py:33-180) yet nothing records hallucination-related events or model error rates.
-- **Documentation:** README is detailed, but roadmap is outdated and there is no spec library; many markdown guides describe aspirational behavior rather than shipped code.
-- **Observability:** Monitoring sinks exist (JSONL/SQLite) but no integration from command executor, so quality regressions are invisible unless users inspect logs manually.
+- **Tests:** Pytest suite covers command parsing, model router, worktree state, and MCP coverage; there is still no end-to-end test that ensures an `implement` run produces non-stub diffs under guardrail enforcement.
+- **Lint/format:** `pyproject.toml` defines `black`, `flake8`, `mypy`, yet CI configuration for automatic enforcement is not present.
+- **Security/deps:** Guardrails block auto stubs, but shell invocations and MCP activation rely on local trust; dependency auditing routines are absent.
+- **Performance:** Monitoring captures CPU/memory and custom metrics, but hallucination outcomes are not correlated with loop iteration counts or model usage.
+- **Documentation:** README and CHANGELOG describe v6 ambitions; no up-to-date roadmap/spec gives measurable hallucination targets.
+- **Observability:** Metrics sinks exist, yet no dashboards, alerts, or regression thresholds are configured; loop/consensus outcomes are only stored in command outputs.
 
 # 5. Roadmap Alignment
-- Published roadmap (ROADMAP.md) targets v4–v5 stabilization and basic agents, whereas codebase advertises v6 features; planned anti-hallucination workstreams (e.g., consensus, quality gates) remain unfinished or disconnected.
-- No active specs or task breakdowns were found, so there is no authoritative acceptance criteria for hallucination suppression.
+- Decisions emphasize MCP simplification and guardrail tightening, aligning with hallucination mitigation intent, but lack downstream items (e.g., semantic validators, consensus calibration). Without specs or roadmap artifacts, team cannot prioritize mitigation milestones.
 
 # 6. Risks
 | ID | Risk | Area | Likelihood | Impact | Notes |
 |----|------|------|------------|--------|-------|
-| R1 | Consensus builder unused so high-risk commands rely on single-model output | Model orchestration | High | 5 | Only defined in code, never invoked (SuperClaude/ModelRouter/consensus.py:61); consensus option in coordinator just compares agent confidences. |
-| R2 | Executor reports plan-only stubs without remediation path | Command execution | High | 4 | `/sc:implement` returns placeholder dict (SuperClaude/Commands/executor.py:396) so users get no actionable rewrite despite evidence requirement. |
-| R3 | Quality scoring not integrated with executor; hallucination signals ignored | Quality gating | Medium | 4 | Scorer expects evidence but executor does not feed assessments (SuperClaude/Quality/quality_scorer.py:482, SuperClaude/Commands/executor.py:199). |
-| R4 | Roadmap and docs outdated leading to misaligned expectations | Product alignment | Medium | 3 | README promises 131 agents but most are markdown configs; roadmap still references v4 goals. |
-| R5 | Lack of telemetry on plan-only failures | Monitoring | Medium | 3 | Performance monitor never records executor outcomes, so hallucination regressions remain invisible. |
+| R1 | Consensus gate falls back to single-model behavior | Model routing | High | 5 | ConsensusBuilder ships without registered executors; enforcement simply annotates outputs. |
+| R2 | Static validation misses semantic hallucinations | Validation | High | 4 | Only syntax/JSON/YAML checks run; unresolved imports or wrong APIs slip through. |
+| R3 | Telemetry unused for feedback loops | Monitoring | Medium | 4 | Metrics recorded but no thresholds/dashboards trigger remediation. |
+| R4 | Lack of integration tests for `requires_evidence` flows | QA | Medium | 3 | Guardrail regressions may slip into releases unnoticed. |
 
 # 7. Recommendations (Prioritized)
 | # | Title | Why | Outcome | Effort | Impact | Owner |
 |---|-------|-----|---------|--------|--------|-------|
-| 1 | Integrate ConsensusBuilder into validator pipeline | Unlock multi-model cross-check before success is reported | Reduced hallucinations via agreement threshold | M | 5 | Agent platform |
-| 2 | Invoke QualityScorer for every `requires_evidence` command | Convert missing evidence into actionable remediation instead of silent failure | Automatic rejection of hallucinated diffs with guidance | M | 4 | Framework core |
-| 3 | Add syntactic & import validation for generated code | Catch hallucinated modules/functions before user sees them | Early failure on invalid code snippets | S | 4 | Framework core |
-| 4 | Emit hallucination telemetry to PerformanceMonitor | Track plan-only & failed evidence outcomes | Hotspot visibility and regression alerts | S | 3 | Monitoring |
-| 5 | Update roadmap & specs with hallucination safeguards | Align product intent with actual capabilities | Clear targets for future anti-hallucination work | S | 2 | Product |
-| 6 | Extend tests to cover all `requires_evidence` commands | Prevent regressions where commands silently skip evidence checks | CI guardrail for hallucination controls | S | 3 | QA |
-| 7 | Provide real agent implementations for top personas | Replace placeholder outputs with executable workflows | Deliver end-to-end changes backed by evidence | L | 5 | Agent platform |
+| 1 | Register real model executors for consensus voting | Enforced consensus currently uses placeholder outputs | Deterministic cross-model validation before success | M | 5 | Agent platform |
+| 2 | Implement semantic static validation (imports, symbols, API schemas) | Syntax-only checks miss hallucinated references | Fail fast on missing modules/functions | M | 4 | Framework core |
+| 3 | Add golden-path integration tests for `implement`/`build` | Guardrail regressions slip through without E2E checks | CI blocks hallucinated plan-only completions | S | 4 | QA |
+| 4 | Calibrate consensus thresholds per command criticality | Uniform majority vote may under- or over-block | Tuned quorum/unanimous rules reduce false positives/negatives | S | 3 | Agent platform |
+| 5 | Turn telemetry into alerts & dashboards | Metrics exist but nobody consumes them | Plan-only spikes trigger CI failure or pager | S | 3 | DevOps |
+| 6 | Maintain hallucination failure corpus for quality scorer | Scorer lacks examples to learn from | Iterative loop surfaces known failure classes | M | 3 | Framework core |
+| 7 | Provide retrieval-grounding hook for agents | Agents rely on prompt-only memory | Context-grounded plans reduce speculative outputs | L | 5 | Agent platform |
 
 # 8. Plan
-- **Milestone 1 (Week 1):** Connect consensus builder and quality scorer to command executor, ship telemetry for plan-only events, add regression tests for `/sc:implement`.
-- **Milestone 2 (Week 2):** Deliver syntactic validation, refresh roadmap/spec artifacts, and pilot one end-to-end agent flow demonstrating evidence-backed code changes.
+- **Milestone 1 (Week 1):** Wire consensus executors, enable semantic validators, and extend CI with integration tests covering `implement` and `build` success/failure paths.
+- **Milestone 2 (Week 2):** Stand up hallucination telemetry dashboards, add alert thresholds, curate failure corpus, and document calibrated consensus policies.
 
 # 9. Appendix
-- Commands executed: `bash --noprofile --norc -lc "ls"`, `bash --noprofile --norc -lc "sed -n '1,160p' README.md"`, `bash --noprofile --norc -lc "rg -n 'requires_evidence' SuperClaude/Commands/registry.py"`, `bash --noprofile --norc -lc "rg -n 'derived_status' SuperClaude/Commands/executor.py"`, `bash --noprofile --norc -lc "git log -n 10 --oneline --decorate --graph"`, `bash --noprofile --norc -lc \"sed -n '1,80p' ROADMAP.md\"`.
-- Assumptions: No product specs available; MCP integrations treated as stubs; network-disabled environment prevents live API validation.
+- Commands executed: `ls`, `ls -a`, `ls .codex-os`, `ls .codex-os/product`, `cat ~/.codex-os/instructions/core/analyze-product.md`, `cat .codex-os/product/analysis.md`, `ls SuperClaude`, `rg -n "requires_evidence" SuperClaude`, `sed -n '300,420p' SuperClaude/Commands/executor.py`, `sed -n '420,520p' SuperClaude/Commands/executor.py`, `sed -n '520,640p' SuperClaude/Commands/executor.py`, `sed -n '640,840p' SuperClaude/Commands/executor.py`, `sed -n '3097,3230p' SuperClaude/Commands/executor.py`, `sed -n '3340,3405p' SuperClaude/Commands/executor.py`, `sed -n '1,200p' SuperClaude/ModelRouter/consensus.py`, `sed -n '1,200p' SuperClaude/Quality/quality_scorer.py`, `sed -n '1,200p' SuperClaude/Monitoring/performance_monitor.py`, `cat .git/HEAD`, `cat .git/refs/heads/main`.
+- Assumptions: Offline execution enforced; agent personas remain stub implementations; external truth sources unavailable.
