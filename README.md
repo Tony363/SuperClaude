@@ -14,11 +14,10 @@
 - Offline orchestration stack with reproducible artifacts, tests, and telemetry.
 - 22 `/sc:` command playbooks routed through an async executor with agent delegation.
 - CLI installer (under `setup/`) manages context files, MCP registrations (Zen/Rube/Browser), and upgrades.
-- Auto-implementation now materializes stub files under `SuperClaude/Implementation/Auto/`, so
-  `/sc:implement` produces verifiable diffs even without bespoke agent output. The stubs satisfy
-  the `requires_evidence` gate while still signalling that human polish is expected.
-- Requires-evidence guardrails now downgrade quality scores when no repo changes are present,
-  emit iteration history, and surface plan-only metrics so failing workflows are visible in CI.
+- Consensus guardrails now load per-command quorum policies from `SuperClaude/Config/consensus_policies.yaml`
+  and record deterministic multi-model votes even in offline mode.
+- Requires-evidence guardrails integrate semantic Python validation, retrieval-grounded agent context, and
+  structured telemetry so plan-only regressions become visible in CI dashboards.
 - Automatic pytest runs triggered by `/sc:implement` or other commands no longer re-run the
   trailing `/sc:test` step when the auto-run already passed, reducing redundant suites.
 - Passing `--cleanup` to `/sc:implement` purges stale auto-generated stubs older than seven days,
@@ -40,16 +39,27 @@
 - The auto-implementation pipeline synthesises change-plan stubs (Python, TypeScript, Markdown,
   etc.) in `SuperClaude/Implementation/Auto/`, so `/sc:implement` yields concrete repository diffs
   even when only high-level guidance is available.
-- `ModelRouterFacade` routes thinking depth and consensus requests, falling back to
-  deterministic heuristics when no API keys are provided.
+- Consensus enforcement now honours per-command quorum/majority policies and serialises
+  vote metadata (models, reasoning, agreements) into the command result for downstream tooling.
+- Offline runs use deterministic ensemble heuristics so consensus is reproducible while still
+  flagging disagreement scenarios.
+- Python semantic validation leverages `_PythonSemanticAnalyzer` to catch missing imports and
+  unresolved symbols before a `requires_evidence` command can succeed.
+- `RepoRetriever` supplies agents with on-disk context, and retrieval telemetry records how often
+  grounding data is attached to change plans.
 - Test orchestration skips redundant `/sc:test` invocations when an auto-run already produced
   passing evidence, keeping command chains snappy inside the IDE and in CI.
 - `QualityScorer` enforces eight scoring dimensions and can loop up to five times when
   a `requires_evidence` command returns without acceptable quality.
 - `PerformanceMonitor` records metrics to `.superclaude_metrics/metrics.db` (SQLite) and
-  JSONL sinks so executions can be audited offline.
+  JSONL sinks so executions can be audited offline. Structured `hallucination.guardrail` events feed
+  dashboards and CI guards.
 - Agent usage telemetry persists to `.superclaude_metrics/agent_usage.json`, enabling the
   generated markdown report (`scripts/report_agent_usage.py`) to spotlight the most active personas.
+- CI guardrails can call `scripts/check_hallucination_metrics.py` to fail builds when plan-only
+  rates exceed the configured threshold.
+- Targeted regression tests (`tests/test_hallucination_guardrails.py`) cover consensus policies,
+  semantic validation, retrieval hits, and telemetry emission.
 
 ## Current Limitations
 - Consensus, model routing, and MCP servers default to heuristic stubs unless you export
@@ -135,9 +145,12 @@ heuristics to real provider clients.
 - `SuperClaude/ModelRouter/router.py` ranks eight models by task type, token budget, and
   availability.
 - `SuperClaude/ModelRouter/facade.py` registers provider executors when credentials exist and
-  otherwise uses deterministic heuristics (keyword-based approval/decline).
-- Consensus payloads include per-model votes, synthesized decisions, and offline flags so
-  downstream tools understand how the decision was reached.
+  otherwise uses deterministic heuristics. Offline mode produces deterministic votes that respect
+  the configured quorum rules.
+- `SuperClaude/Config/consensus_policies.yaml` defines per-command vote types (majority/quorum)
+  and minimum agreement thresholds consumed by `_ensure_consensus`.
+- Consensus payloads include per-model votes, synthesized decisions, vote type, quorum size, and
+  offline flags so downstream tools understand how the decision was reached.
 
 ### Quality & Worktree Guardrails
 - `SuperClaude/Core/worktree_manager.py` writes change plans into the repo (main tree or
@@ -146,13 +159,18 @@ heuristics to real provider clients.
   security, performance, scalability, testability, and usability with configurable weights.
 - Commands tagged `requires_evidence` fail if no diff is detected; fallback evidence lives in
   `SuperClaude/Implementation/*.md`.
+- Semantic validation hooks (`_python_semantic_issues`) run automatically during guardrail checks
+  and are exposed via `scripts/semantic_validate.py` for manual linting or CI usage.
 
 ### Monitoring & Telemetry
 - `SuperClaude/Monitoring/performance_monitor.py` records timers, counters, and resource usage.
 - Default sinks write to `.superclaude_metrics/metrics.db` (SQLite) and
   `.superclaude_metrics/events.jsonl`.
-- CLI helpers in `tests/test_commands.py` assert that metrics fire for plan-only vs. executed
-  paths.
+- Guardrail events are logged under the `hallucination.guardrail` topic, enabling dashboards such
+  as `Docs/monitoring/hallucination_dashboard.json` and CI enforcement via
+  `scripts/check_hallucination_metrics.py`.
+- CLI helpers and dedicated tests assert that metrics fire for plan-only vs. executed paths and
+  that consensus failures are counted.
 
 ### MCP Integrations
 
