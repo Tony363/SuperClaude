@@ -17,7 +17,9 @@
 - Consensus guardrails now load per-command quorum policies from `SuperClaude/Config/consensus_policies.yaml`
   and record deterministic multi-model votes even in offline mode.
 - Requires-evidence guardrails integrate semantic Python validation, retrieval-grounded agent context, and
-  structured telemetry so plan-only regressions become visible in CI dashboards.
+  structured telemetry so plan-only regressions become visible in CI dashboards. Safe-apply snapshots let
+  `/sc:implement --safe-apply` stash synthesized stubs under `.superclaude_metrics/safe_apply/` while
+  auto-triggered quality loops chase real diffs.
 - Automatic pytest runs triggered by `/sc:implement` or other commands no longer re-run the
   trailing `/sc:test` step when the auto-run already passed, reducing redundant suites.
 - Passing `--cleanup` to `/sc:implement` purges stale auto-generated stubs older than seven days,
@@ -35,10 +37,13 @@
   `SuperClaude/Implementation` and `SuperClaude/Generated`.
 - 15 core Python agents plus 116 extended personas now execute through Python classes generated
   from their Markdown playbooks, all loaded on demand with caching, matching, and delegation via
-  `AgentLoader` and `ExtendedAgentLoader`.
+  `AgentLoader` and `ExtendedAgentLoader`; high-traffic personas such as `security-engineer`
+  and `technical-writer` now layer strategist heuristics atop their legacy analysis engines.
 - The auto-implementation pipeline synthesises change-plan stubs (Python, TypeScript, Markdown,
   etc.) in `SuperClaude/Implementation/Auto/`, so `/sc:implement` yields concrete repository diffs
-  even when only high-level guidance is available.
+  even when only high-level guidance is available. When run with `--safe-apply`, those stubs are
+  checkpointed to `.superclaude_metrics/safe_apply/<session>/<timestamp>/` for manual inspection
+  while the guardrails continue to reject plan-only results.
 - Consensus enforcement now honours per-command quorum/majority policies and serialises
   vote metadata (models, reasoning, agreements) into the command result for downstream tooling.
 - Offline runs use deterministic ensemble heuristics so consensus is reproducible while still
@@ -50,12 +55,15 @@
 - Test orchestration skips redundant `/sc:test` invocations when an auto-run already produced
   passing evidence, keeping command chains snappy inside the IDE and in CI.
 - `QualityScorer` enforces eight scoring dimensions and can loop up to five times when
-  a `requires_evidence` command returns without acceptable quality.
+  a `requires_evidence` command returns without acceptable quality, automatically initiating a
+  remediation loop whenever `--safe-apply` leaves the repository untouched.
 - `PerformanceMonitor` records metrics to `.superclaude_metrics/metrics.db` (SQLite) and
   JSONL sinks so executions can be audited offline. Structured `hallucination.guardrail` events feed
   dashboards and CI guards.
 - Agent usage telemetry persists to `.superclaude_metrics/agent_usage.json`, enabling the
   generated markdown report (`scripts/report_agent_usage.py`) to spotlight the most active personas.
+- Plan-only outcomes append structured rows to `.superclaude_metrics/plan_only.jsonl`, capturing
+  withheld stubs, safe-apply snapshot paths, and auto-triggered quality loops for CI dashboards.
 - CI guardrails can call `scripts/check_hallucination_metrics.py` to fail builds when plan-only
   rates exceed the configured threshold.
 - Targeted regression tests (`tests/test_hallucination_guardrails.py`) cover consensus policies,
@@ -65,13 +73,15 @@
 - Consensus, model routing, and MCP servers default to heuristic stubs unless you export
   `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GOOGLE_API_KEY`, or `XAI_API_KEY`.
 - Auto-generated change plans still synthesize stub guidance under `SuperClaude/Implementation/Auto/`,
-  but the guardrails keep them as plan-only evidence—`/sc:implement` will fail the
-  `requires_evidence` gate until a human applies real repository changes.
+  and even with `--safe-apply` staging those stubs in `.superclaude_metrics/safe_apply/` the guardrails
+  keep them as plan-only evidence—`/sc:implement` fails the `requires_evidence` gate until a human
+  applies real repository changes.
 - Framework documentation lookups run from the repository’s curated knowledge base; the former
   Deepwiki MCP connector has been removed from this offline bundle.
 - Extended personas now share heuristic wrappers with static validation and strategist
-  escalation, while the highest-traffic personas (e.g., `fullstack-developer`) ship with full
-  strategist heuristics—complex domains may still need follow-up until more upgrades land.
+  escalation; the highest-traffic personas (e.g., `fullstack-developer`, `security-engineer`,
+  `technical-writer`) ship with full strategist heuristics—complex domains may still need
+  follow-up until more upgrades land.
 - Roadmap features (live deployments, performance tuning, remote MCP servers) are not tied
   into the executor yet.
 - Browser MCP integration is opt-in; enable it in `SuperClaude/Config/mcp.yaml` or pass
