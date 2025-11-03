@@ -92,36 +92,21 @@ class GenericMarkdownAgent(BaseAgent):
                 executed_operations
             )
 
-            auto_stub_generated = bool(context.get('auto_stub_generated'))
-
             if synthesized_changes:
                 result['proposed_changes'] = synthesized_changes
-                if not auto_stub_generated:
-                    result['actions_taken'].extend(
-                        f"write {change['path']}" for change in synthesized_changes
-                    )
+                result['actions_taken'].extend(
+                    f"write {change['path']}" for change in synthesized_changes
+                )
                 if executed_operations:
                     result['actions_taken'].extend(executed_operations)
 
-                if auto_stub_generated:
-                    result['auto_generated_stub'] = True
-                    warning = (
-                        "Auto-generated implementation stub prepared; "
-                        "no concrete repository changes were executed."
-                    )
-                    if warning not in result['warnings']:
-                        result['warnings'].append(warning)
-                    result['output'] = self._generate_plan_output(task, execution_plan)
-                    result['success'] = False
-                    result['status'] = 'plan-only'
-                else:
-                    result['output'] = self._generate_output(
-                        task,
-                        execution_plan,
-                        result['actions_taken']
-                    )
-                    result['success'] = True
-                    result['status'] = 'executed'
+                result['output'] = self._generate_output(
+                    task,
+                    execution_plan,
+                    result['actions_taken']
+                )
+                result['success'] = True
+                result['status'] = 'executed'
             elif executed_operations:
                 result['actions_taken'].extend(executed_operations)
                 result['output'] = self._generate_output(
@@ -452,23 +437,6 @@ class GenericMarkdownAgent(BaseAgent):
 
         if executed_operations:
             return change_entries
-
-        stub_extension = self._infer_extension(context, task)
-        stub_path = self._build_stub_path(task, stub_extension)
-        stub_content = self._render_stub_content(
-            task=task,
-            planned_actions=planned_actions,
-            extension=stub_extension,
-        )
-
-        context['auto_stub_generated'] = True
-
-        change_entries.append({
-            'path': stub_path,
-            'content': stub_content,
-            'mode': 'replace',
-            'auto_stub': True
-        })
 
         return change_entries
 

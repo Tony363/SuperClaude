@@ -6,8 +6,6 @@ from typing import Any, Dict, List, Tuple
 
 import pytest
 
-pytest.importorskip('pytest_asyncio')
-
 from SuperClaude.Commands import (
     CommandExecutor,
     CommandParser,
@@ -19,13 +17,12 @@ from SuperClaude.MCP import (
     BrowserIntegration,
     BrowserMode,
     BrowserSnapshot,
-    BrowserTransport,
     ScreenshotResult,
 )
 from SuperClaude.Modes.behavioral_manager import BehavioralMode
 
 
-class MockTransport(BrowserTransport):
+class MockTransport:
     """Deterministic transport used for unit testing."""
 
     def __init__(self) -> None:
@@ -92,54 +89,50 @@ class MockTransport(BrowserTransport):
         self.closed = True
 
 
-@pytest.mark.asyncio
-async def test_browser_integration_initializes_transport():
+def test_browser_integration_initializes_transport():
     transport = MockTransport()
     browser = BrowserIntegration(config={'enabled': True}, transport=transport)
 
     assert browser.enabled is True
     assert transport.initialized is False
 
-    await browser.initialize()
+    asyncio.run(browser.initialize())
 
     assert transport.initialized is True
     assert browser.session_active is True
 
 
-@pytest.mark.asyncio
-async def test_browser_navigation_invokes_transport():
+def test_browser_navigation_invokes_transport():
     transport = MockTransport()
     browser = BrowserIntegration(config={'enabled': True}, transport=transport)
 
-    await browser.initialize()
-    result = await browser.navigate('https://example.com')
+    asyncio.run(browser.initialize())
+    result = asyncio.run(browser.navigate('https://example.com'))
 
     assert result['url'] == 'https://example.com'
     assert transport.calls[0][0] == 'browser.navigate'
 
 
-@pytest.mark.asyncio
-async def test_browser_snapshot_returns_dataclass():
+def test_browser_snapshot_returns_dataclass():
     transport = MockTransport()
     browser = BrowserIntegration(config={'enabled': True}, transport=transport)
 
-    await browser.initialize()
-    await browser.navigate('https://example.com')
-    snapshot = await browser.snapshot()
+    asyncio.run(browser.initialize())
+    asyncio.run(browser.navigate('https://example.com'))
+    snapshot = asyncio.run(browser.snapshot())
 
     assert isinstance(snapshot, BrowserSnapshot)
     assert snapshot.url == 'https://example.com'
     assert isinstance(snapshot.accessibility_tree, dict)
 
 
-@pytest.mark.asyncio
-async def test_browser_screenshot_returns_metadata():
+def test_browser_screenshot_returns_metadata():
     transport = MockTransport()
     browser_config = BrowserConfig(mode=BrowserMode.headless, viewport_width=800, viewport_height=600)
     browser = BrowserIntegration(config={'enabled': True}, browser_config=browser_config, transport=transport)
 
-    await browser.initialize()
-    result = await browser.screenshot(full_page=True)
+    asyncio.run(browser.initialize())
+    result = asyncio.run(browser.screenshot(full_page=True))
 
     assert isinstance(result, ScreenshotResult)
     assert result.width == 800
@@ -147,41 +140,37 @@ async def test_browser_screenshot_returns_metadata():
     assert transport.calls[-1][0] == 'browser.screenshot'
 
 
-@pytest.mark.asyncio
-async def test_browser_console_logs():
+def test_browser_console_logs():
     transport = MockTransport()
     browser = BrowserIntegration(config={'enabled': True}, transport=transport)
 
-    await browser.initialize()
-    await browser.navigate('https://example.com')
-    logs = await browser.get_console_logs()
+    asyncio.run(browser.initialize())
+    asyncio.run(browser.navigate('https://example.com'))
+    logs = asyncio.run(browser.get_console_logs())
 
     assert len(logs) == 2
     assert '[mock] log 1' in logs[0]
 
 
-@pytest.mark.asyncio
-async def test_browser_cleanup_closes_transport():
+def test_browser_cleanup_closes_transport():
     transport = MockTransport()
     browser = BrowserIntegration(config={'enabled': True}, transport=transport)
 
-    await browser.initialize()
-    await browser.cleanup()
+    asyncio.run(browser.initialize())
+    asyncio.run(browser.cleanup())
 
     assert transport.closed is True
     assert browser.session_active is False
 
 
-@pytest.mark.asyncio
-async def test_browser_disabled_raises_runtime_error():
+def test_browser_disabled_raises_runtime_error():
     browser = BrowserIntegration(config={'enabled': False}, transport=MockTransport())
 
     with pytest.raises(RuntimeError):
-        await browser.navigate('https://example.com')
+        asyncio.run(browser.navigate('https://example.com'))
 
 
-@pytest.mark.asyncio
-async def test_execute_browser_tests_helper(monkeypatch):
+def test_execute_browser_tests_helper(monkeypatch):
     registry = CommandRegistry()
     parser = CommandParser(registry=registry)
     executor = CommandExecutor(registry, parser)
@@ -208,7 +197,7 @@ async def test_execute_browser_tests_helper(monkeypatch):
         'config': {'enabled': True},
     }
 
-    result = await executor._execute_browser_tests(context, scenario_hint='visual')
+    result = asyncio.run(executor._execute_browser_tests(context, scenario_hint='visual'))
 
     assert result['status'] == 'browser_completed'
     assert result['url'] == 'https://example.com'

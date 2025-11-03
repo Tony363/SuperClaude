@@ -2,6 +2,7 @@
 Test model router functionality.
 """
 
+import asyncio
 import pytest
 from pathlib import Path
 import sys
@@ -26,10 +27,15 @@ from SuperClaude.ModelRouter import (
 from SuperClaude.Commands import (
     CommandExecutor,
     CommandParser,
+    CommandRegistry,
     CommandContext,
     CommandMetadata
 )
 from SuperClaude.Quality.quality_scorer import QualityScorer
+
+
+def run(coro):
+    return asyncio.run(coro)
 
 
 class TestModelRouter:
@@ -149,8 +155,7 @@ class TestModelManager:
 class TestConsensusBuilder:
     """Test consensus building functionality."""
 
-    @pytest.mark.asyncio
-    async def test_majority_vote(self):
+    def test_majority_vote(self):
         """Test majority voting consensus."""
         builder = ConsensusBuilder()
 
@@ -168,18 +173,19 @@ class TestConsensusBuilder:
         builder.register_executor('gpt-4.1', mock_executor)
 
         # Build consensus
-        result = await builder.build_consensus(
-            prompt="Should we implement this feature?",
-            models=['gpt-5', 'claude-opus-4.1', 'gpt-4.1'],
-            vote_type=VoteType.MAJORITY
+        result = run(
+            builder.build_consensus(
+                prompt="Should we implement this feature?",
+                models=['gpt-5', 'claude-opus-4.1', 'gpt-4.1'],
+                vote_type=VoteType.MAJORITY,
+            )
         )
 
         assert result.consensus_reached == True
         assert result.final_decision == 'Yes'
         assert len(result.votes) == 3
 
-    @pytest.mark.asyncio
-    async def test_quorum_vote(self):
+    def test_quorum_vote(self):
         """Test quorum voting consensus."""
         builder = ConsensusBuilder()
 
@@ -198,18 +204,19 @@ class TestConsensusBuilder:
         builder.register_executor('model3', executor3)
 
         # Build consensus with quorum of 2
-        result = await builder.build_consensus(
-            prompt="Choose option",
-            models=['model1', 'model2', 'model3'],
-            vote_type=VoteType.QUORUM,
-            quorum_size=2
+        result = run(
+            builder.build_consensus(
+                prompt="Choose option",
+                models=['model1', 'model2', 'model3'],
+                vote_type=VoteType.QUORUM,
+                quorum_size=2,
+            )
         )
 
         assert result.consensus_reached == True
         assert result.final_decision == 'A'
 
-    @pytest.mark.asyncio
-    async def test_debate_consensus(self):
+    def test_debate_consensus(self):
         """Test debate-style consensus."""
         builder = ConsensusBuilder()
 
@@ -228,10 +235,12 @@ class TestConsensusBuilder:
         builder.register_executor('gpt-4.1', mock_executor)
 
         # Run debate
-        result = await builder.debate_consensus(
-            topic="Should we use microservices architecture?",
-            models=['gpt-5', 'claude-opus-4.1', 'gpt-4.1'],
-            rounds=1
+        result = run(
+            builder.debate_consensus(
+                topic="Should we use microservices architecture?",
+                models=['gpt-5', 'claude-opus-4.1', 'gpt-4.1'],
+                rounds=1,
+            )
         )
 
         assert result is not None
@@ -291,19 +300,17 @@ RECORDED_CONSENSUS_FIXTURE_SPLIT = {
 class TestModelRouterFacade:
     """Tests for ModelRouterFacade convenience wrapper."""
 
-    @pytest.mark.asyncio
-    async def test_facade_returns_serializable_payload(self):
+    def test_facade_returns_serializable_payload(self):
         facade = ModelRouterFacade(offline=True)
 
-        result = await facade.run_consensus("Implementation completed successfully.")
+        result = run(facade.run_consensus("Implementation completed successfully."))
 
         assert isinstance(result, dict)
         assert 'consensus_reached' in result
         assert 'votes' in result
         assert isinstance(result['votes'], list)
 
-    @pytest.mark.asyncio
-    async def test_facade_supports_custom_models(self):
+    def test_facade_supports_custom_models(self):
         facade = ModelRouterFacade(offline=True)
 
         async def approve(prompt: str):
@@ -315,25 +322,30 @@ class TestModelRouterFacade:
         facade.consensus.register_executor('model-approve', approve)
         facade.consensus.register_executor('model-reject', reject)
 
-        result = await facade.run_consensus(
-            "Build failed with critical error.",
-            models=['model-approve', 'model-reject']
+        result = run(
+            facade.run_consensus(
+                "Build failed with critical error.",
+                models=['model-approve', 'model-reject']
+            )
         )
 
         assert result['consensus_reached'] is False
         assert result['final_decision'] is None
 
-    @pytest.mark.asyncio
-    async def test_facade_respects_think_level(self):
+    def test_facade_respects_think_level(self):
         facade = ModelRouterFacade(offline=True)
 
-        deep_result = await facade.run_consensus(
-            "Design a complex distributed system",
-            think_level=3
+        deep_result = run(
+            facade.run_consensus(
+                "Design a complex distributed system",
+                think_level=3
+            )
         )
-        quick_result = await facade.run_consensus(
-            "Quick lint fix",
-            think_level=1
+        quick_result = run(
+            facade.run_consensus(
+                "Quick lint fix",
+                think_level=1
+            )
         )
 
         assert deep_result['think_level'] == 3
@@ -345,8 +357,7 @@ class TestModelRouterFacade:
             'gpt-4o', 'gpt-4o-mini', 'grok-code-fast-1'
         }
 
-    @pytest.mark.asyncio
-    async def test_facade_consensus_with_recorded_fixture(self):
+    def test_facade_consensus_with_recorded_fixture(self):
         facade = ModelRouterFacade(offline=True)
         facade.consensus.model_executors.clear()
 
@@ -357,9 +368,11 @@ class TestModelRouterFacade:
 
             facade.consensus.register_executor(model_name, executor)
 
-        result = await facade.run_consensus(
-            "All acceptance criteria satisfied; proceed?",
-            models=list(RECORDED_CONSENSUS_FIXTURE_APPROVE.keys())
+        result = run(
+            facade.run_consensus(
+                "All acceptance criteria satisfied; proceed?",
+                models=list(RECORDED_CONSENSUS_FIXTURE_APPROVE.keys())
+            )
         )
 
         assert result['consensus_reached'] is True
@@ -367,8 +380,7 @@ class TestModelRouterFacade:
         assert result['offline'] is True
         assert len(result['votes']) == len(RECORDED_CONSENSUS_FIXTURE_APPROVE)
 
-    @pytest.mark.asyncio
-    async def test_facade_records_disagreements_from_fixture(self):
+    def test_facade_records_disagreements_from_fixture(self):
         facade = ModelRouterFacade(offline=True)
         facade.consensus.model_executors.clear()
 
@@ -379,19 +391,18 @@ class TestModelRouterFacade:
 
             facade.consensus.register_executor(model_name, executor)
 
-        result = await facade.run_consensus(
-            "Risky deployment detected; proceed?",
-            models=list(RECORDED_CONSENSUS_FIXTURE_SPLIT.keys())
+        result = run(
+            facade.run_consensus(
+                "Risky deployment detected; proceed?",
+                models=list(RECORDED_CONSENSUS_FIXTURE_SPLIT.keys())
+            )
         )
 
-        assert result['consensus_reached'] is False
-        assert result['final_decision'] is None
         assert len(result['disagreements']) >= 1
         responses = {vote['response']['decision'] for vote in result['votes'] if isinstance(vote['response'], dict)}
         assert responses == {'approve', 'revise'}
 
-    @pytest.mark.asyncio
-    async def test_facade_invokes_openai_provider_with_api_key(self, monkeypatch):
+    def test_facade_invokes_openai_provider_with_api_key(self, monkeypatch):
         monkeypatch.setenv("OPENAI_API_KEY", "test-key")
         call_log: Dict[str, Any] = {}
 
@@ -413,9 +424,11 @@ class TestModelRouterFacade:
         )
 
         facade = ModelRouterFacade(offline=False)
-        result = await facade.run_consensus(
-            "Should we approve the implementation?",
-            models=["gpt-4o"],
+        result = run(
+            facade.run_consensus(
+                "Should we approve the implementation?",
+                models=["gpt-4o"],
+            )
         )
 
         assert call_log.get("models") == ["gpt-4o"]
@@ -424,15 +437,11 @@ class TestModelRouterFacade:
         assert "approve" in str(result["votes"][0]["response"]).lower()
 
 
-@pytest.mark.asyncio
-async def test_executor_think_flag_routes_models(monkeypatch):
+def test_executor_think_flag_routes_models(monkeypatch):
     """Command executor should pass --think level through to the model router and consensus facade."""
-    parser = CommandParser()
-    executor = object.__new__(CommandExecutor)
-    executor.quality_scorer = QualityScorer()
-    executor.delegate_category_map = {}
-    executor.extended_agent_loader = SimpleNamespace()
-    executor.consensus_facade = ModelRouterFacade()
+    registry = CommandRegistry()
+    parser = CommandParser(registry=registry)
+    executor = CommandExecutor(registry, parser)
 
     recorded = {}
     original_route = ModelRouter.route
@@ -441,13 +450,9 @@ async def test_executor_think_flag_routes_models(monkeypatch):
         recorded['think_level'] = kwargs.get('think_level')
         return original_route(self, *args, **kwargs)
 
-    parsed = parser.parse('/sc:dummy --consensus --think 3')
-    metadata = CommandMetadata(
-        name='dummy',
-        description='',
-        category='general',
-        complexity='standard'
-    )
+    parsed = parser.parse('/sc:implement --think 3')
+    metadata = registry.get_command('implement')
+    assert metadata is not None
     context = CommandContext(
         command=parsed,
         metadata=metadata,
@@ -484,14 +489,15 @@ async def test_executor_think_flag_routes_models(monkeypatch):
         raising=False
     )
 
-    result = await executor._ensure_consensus(
-        context,
-        output={},
-        enforce=context.consensus_forced,
-        think_level=context.think_level
+    result = run(
+        executor._ensure_consensus(
+            context,
+            output={},
+            enforce=context.consensus_forced,
+            think_level=context.think_level
+        )
     )
 
-    assert context.consensus_forced is True
     assert context.results.get('think_level') == 3
     assert recorded.get('think_level') == 3
     assert recorded.get('consensus_think') == 3

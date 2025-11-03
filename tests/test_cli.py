@@ -2,13 +2,13 @@
 Test CLI functionality and argument parsing.
 """
 
-import pytest
+import argparse
 import sys
 from pathlib import Path
-from unittest.mock import patch, MagicMock
-import argparse
 
-# Add parent directory to path
+import pytest
+
+# Add parent directory to path for direct module imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 
@@ -76,40 +76,43 @@ def test_operation_modules():
         assert isinstance(desc, str)
         assert len(desc) > 0
 
-
-@patch('SuperClaude.__main__.display_error')
-@patch('SuperClaude.__main__.display_header')
-def test_main_no_args(mock_header, mock_error):
-    """Test main function with no arguments shows available operations."""
+def test_main_no_args(monkeypatch, capsys):
+    """Running the CLI with no args should list available operations."""
     from SuperClaude.__main__ import main
 
-    with patch('sys.argv', ['SuperClaude']):
-        result = main()
-        assert result == 0
-        # Should display header when no operation provided
-        mock_header.assert_called()
+    monkeypatch.setattr(sys, 'argv', ['SuperClaude'])
+    exit_code = main()
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert "Available operations" in captured.out
 
 
-@patch('SuperClaude.__main__.display_error')
-def test_main_invalid_operation(mock_error):
-    """Test main function with invalid operation."""
+def test_main_invalid_operation(monkeypatch, capsys):
+    """Invalid operations should return exit code 1 and print an error."""
     from SuperClaude.__main__ import main
 
-    with patch('sys.argv', ['SuperClaude', 'invalid_op']):
-        result = main()
-        assert result == 1
-        # Should display error for unknown operation
-        mock_error.assert_called()
+    monkeypatch.setattr(sys, 'argv', ['SuperClaude', 'invalid_op'])
+    exit_code = main()
+    captured = capsys.readouterr()
+
+    assert exit_code == 1
+    assert "Unknown operation" in captured.out
 
 
-def test_main_keyboard_interrupt():
-    """Test that KeyboardInterrupt is handled gracefully."""
-    from SuperClaude.__main__ import main
+def test_main_keyboard_interrupt(monkeypatch, capsys):
+    """If parser setup raises KeyboardInterrupt the CLI should exit cleanly."""
+    import SuperClaude.__main__ as cli
 
-    with patch('SuperClaude.__main__.create_parser') as mock_parser:
-        mock_parser.side_effect = KeyboardInterrupt()
-        result = main()
-        assert result == 130  # Standard exit code for keyboard interrupt
+    def raising_create_parser():
+        raise KeyboardInterrupt()
+
+    monkeypatch.setattr(cli, 'create_parser', raising_create_parser)
+    exit_code = cli.main()
+    captured = capsys.readouterr()
+
+    assert exit_code == 130
+    assert "Operation cancelled by user" in captured.out
 
 
 def test_fallback_functions():

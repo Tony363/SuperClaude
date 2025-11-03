@@ -65,7 +65,6 @@ dev_requirements = [
     'pre-commit>=3.0',
     'coverage>=7.0',
     'pytest-cov>=4.0',
-    'pytest-mock>=3.10',
     'sphinx>=6.0',
     'sphinx-rtd-theme>=1.2',
 ]

@@ -27,6 +27,7 @@ setup_dir = project_root / "setup"
 DEFAULT_INSTALL_DIR = Path.home() / ".claude"
 
 # Try to import utilities from the setup package
+SETUP_IMPORT_FAILED = False
 try:
     from setup.utils.ui import (
         display_header, display_info, display_success, display_error,
@@ -47,7 +48,7 @@ except ImportError:
             from setup import DEFAULT_INSTALL_DIR
         except ImportError:
             # Still failing, use fallbacks
-            pass
+            SETUP_IMPORT_FAILED = True
 
     # Provide minimal fallback functions and constants if imports fail
     class Colors:
@@ -64,6 +65,8 @@ except ImportError:
         ERROR = 40
         INFO = 20
         DEBUG = 10
+
+    SETUP_IMPORT_FAILED = True
 
 
 def create_global_parser() -> argparse.ArgumentParser:
@@ -218,6 +221,12 @@ def handle_legacy_fallback(op: str, args: argparse.Namespace) -> int:
 
 def main() -> int:
     """Main entry point"""
+    if SETUP_IMPORT_FAILED:
+        display_error(
+            "SuperClaude setup utilities are unavailable. Install the setup package before running the CLI."
+        )
+        return 2
+
     try:
         parser, subparsers, global_parser = create_parser()
         operations = register_operation_parsers(subparsers, global_parser)

@@ -1,11 +1,8 @@
 """Browser MCP integration for SuperClaude slash commands.
 
 This module provides an asynchronous bridge between the SuperClaude framework
-and the local Browser MCP server.  At runtime the integration delegates browser
-operations to the Browser MCP via the Claude CLI (`claude mcp call ...`).  The
-design keeps the transport pluggable so unit tests can provide a mocked
-transport without touching the CLI, while production invocations default to the
-CLI transport.
+and the local Browser MCP server. Runtime invocations delegate browser
+operations to the Browser MCP via the Claude CLI (``claude mcp call ...``).
 """
 
 from __future__ import annotations
@@ -76,20 +73,7 @@ class ScreenshotResult:
     timestamp: str = field(default_factory=lambda: datetime.now().isoformat())
 
 
-class BrowserTransport:
-    """Abstract transport used by :class:`BrowserIntegration`."""
-
-    async def initialize(self, config: Dict[str, Any], browser_config: BrowserConfig) -> None:
-        raise NotImplementedError
-
-    async def invoke(self, tool: str, payload: Dict[str, Any]) -> Dict[str, Any]:
-        raise NotImplementedError
-
-    async def close(self) -> None:
-        """Clean up transport resources (optional)."""
-
-
-class CLIBrowserTransport(BrowserTransport):
+class CLIBrowserTransport:
     """Transport that talks to Browser MCP via the Claude CLI."""
 
     def __init__(self, cli_path: Optional[str] = None, server_name: str = "browser", timeout: int = 120):
@@ -169,7 +153,7 @@ class BrowserIntegration:
         self,
         config: Optional[Dict[str, Any]] = None,
         browser_config: Optional[BrowserConfig] = None,
-        transport: Optional[BrowserTransport] = None,
+        transport: Optional[Any] = None,
         test_mode: bool = False,
     ) -> None:
         self.config = config or {}

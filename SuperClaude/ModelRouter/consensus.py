@@ -302,16 +302,8 @@ class ConsensusBuilder:
                 logger.error(f"Executor failed for {model_name}: {e}")
                 raise
 
-        # Fallback to mock execution (for testing)
-        logger.warning(f"No executor registered for {model_name}, using mock response")
-        return ModelVote(
-            model_name=model_name,
-            response=f"Mock response from {model_name}",
-            confidence=0.75,
-            reasoning="This is a mock response for testing",
-            tokens_used=100,
-            execution_time=(datetime.now() - start_time).total_seconds()
-        )
+        # No executor configured – surface an explicit failure so gather() records it.
+        raise RuntimeError(f"No consensus executor registered for model '{model_name}'")
 
     def _analyze_votes(self,
                        votes: List[ModelVote],

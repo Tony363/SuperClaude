@@ -25,7 +25,6 @@ from .browser_integration import (
     BrowserConfig,
     BrowserMode,
     BrowserSnapshot,
-    BrowserTransport,
     CLIBrowserTransport,
     ScreenshotResult,
 )
@@ -37,7 +36,7 @@ __all__ = [
     'ZenIntegration', 'ConsensusResult', 'ThinkingMode', 'ModelConfig', 'ConsensusType',
     'RubeIntegration',
     'BrowserIntegration', 'BrowserConfig', 'BrowserMode', 'BrowserSnapshot', 'ScreenshotResult',
-    'BrowserTransport', 'CLIBrowserTransport',
+    'CLIBrowserTransport',
     'get_mcp_integration',
 ]
 

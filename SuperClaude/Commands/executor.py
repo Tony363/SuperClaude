@@ -441,6 +441,8 @@ class CommandExecutor:
             applied_changes = self._deduplicate(applied_changes)
 
             derived_status = 'executed' if applied_changes else 'plan-only'
+            if context.errors:
+                derived_status = 'failed'
 
             if isinstance(output, dict):
                 output['executed_operations'] = executed_operations
@@ -947,6 +949,35 @@ class CommandExecutor:
         )
 
         change_plan = self._derive_change_plan(context, agent_result)
+        context.results['change_plan'] = change_plan
+
+        if not change_plan:
+            error = "Implementation aborted: no concrete change plan was generated."
+            context.errors.append(error)
+            warnings_list = context.results.setdefault('worktree_warnings', [])
+            if error not in warnings_list:
+                warnings_list.append(error)
+            context.results['status'] = 'failed'
+
+            output = {
+                'status': 'failed',
+                'summary': summary,
+                'agents': context.agents,
+                'mcp_servers': context.mcp_servers,
+                'parameters': context.command.parameters,
+                'artifact': artifact_path,
+                'agent_notes': agent_result['notes'],
+                'agent_warnings': agent_result['warnings'],
+                'mode': context.behavior_mode,
+                'execution_mode': 'fast-codex' if context.fast_codex_active else 'standard',
+                'codex_suggestions': codex_output,
+                'change_plan': [],
+                'applied_files': [],
+                'errors': [error],
+            }
+            output['fast_codex'] = context.results.get('fast_codex')
+            return output
+
         change_result = self._apply_change_plan(context, change_plan)
         change_warnings = change_result.get('warnings') or []
         applied_files = change_result.get('applied') or []
@@ -963,17 +994,13 @@ class CommandExecutor:
             applied_list.extend(f"apply {path}" for path in applied_files)
             context.results['applied_changes'] = self._deduplicate(applied_list)
         else:
-            if context.results.get('auto_generated_stub'):
-                context.errors.append(
-                    "Auto-generated implementation stubs were withheld; no repository changes were applied."
-                )
-            else:
-                context.errors.append("Worktree manager produced no repository changes")
+            error = "Implementation produced a change plan but no repository updates were applied."
+            context.errors.append(error)
+            context.results.setdefault('worktree_warnings', []).append(error)
 
-        context.results['change_plan'] = change_plan
         context.results['worktree_session'] = change_result.get('session')
 
-        status = 'executed' if applied_files else 'implementation_started'
+        status = 'executed' if applied_files else 'failed'
 
         output = {
             'status': status,
@@ -1002,38 +1029,6 @@ class CommandExecutor:
 
         if artifact_path:
             output['executed_operations'] = context.results.get('agent_operations', [])
-
-        cleanup_details: Optional[Dict[str, Any]] = None
-        if self._flag_present(context.command, 'cleanup'):
-            repo_root = Path(self.repo_root or Path.cwd())
-            auto_root = repo_root / 'SuperClaude' / 'Implementation' / 'Auto'
-            ttl_param = (
-                context.command.parameters.get('cleanup-ttl')
-                or context.command.parameters.get('cleanup_ttl')
-            )
-            ttl_days = self._clamp_int(ttl_param, 0, 365, 7) if ttl_param is not None else 7
-            removed, skipped = self._cleanup_auto_stubs(auto_root, ttl_days=ttl_days)
-            if removed or skipped:
-                cleanup_details = {
-                    'removed': removed,
-                    'skipped': skipped,
-                    'ttl_days': ttl_days,
-                }
-                operations = context.results.setdefault('executed_operations', [])
-                operations.extend(f"cleanup removed {path}" for path in removed)
-                context.results['executed_operations'] = self._deduplicate(operations)
-                if skipped:
-                    warning_bucket = context.results.setdefault('agent_warnings', [])
-                    warning_bucket.extend(f"cleanup skipped {item}" for item in skipped)
-                    context.results['agent_warnings'] = self._deduplicate(warning_bucket)
-                logger.info(
-                    "Auto-stub cleanup removed %d file(s); skipped %d entry(ies)",
-                    len(removed),
-                    len(skipped),
-                )
-
-        if cleanup_details:
-            output['auto_stub_cleanup'] = cleanup_details
 
         return output
 
@@ -1674,10 +1669,7 @@ class CommandExecutor:
             for key in ('proposed_changes', 'generated_files', 'file_updates', 'changes'):
                 plan.extend(self._extract_agent_change_specs(agent_output.get(key)))
 
-        if plan:
-            return plan
-
-        return self._build_default_change_plan(context, agent_result, label=label)
+        return plan
 
     def _extract_agent_change_specs(self, candidate: Any) -> List[Dict[str, Any]]:
         """Normalise agent-proposed change structures into change descriptors."""
@@ -1708,14 +1700,11 @@ class CommandExecutor:
 
     def _normalize_change_descriptor(self, descriptor: Dict[str, Any]) -> Dict[str, Any]:
         """Ensure change descriptors retain metadata flags like auto_stub."""
-        normalized = {
+        return {
             'path': str(descriptor.get('path')),
             'content': descriptor.get('content', ''),
             'mode': descriptor.get('mode', 'replace'),
         }
-        if descriptor.get('auto_stub'):
-            normalized['auto_stub'] = True
-        return normalized
 
     def _build_default_change_plan(
         self,
@@ -2074,47 +2063,35 @@ class CommandExecutor:
 
     def _apply_change_plan(self, context: CommandContext, change_plan: List[Dict[str, Any]]) -> Dict[str, Any]:
         """Apply the change plan using the worktree manager or a fallback writer."""
-        stub_entries = [entry for entry in change_plan if entry.get('auto_stub')]
-        material_changes = [entry for entry in change_plan if not entry.get('auto_stub')]
+        if not change_plan:
+            return {
+                'applied': [],
+                'warnings': ['No change entries provided to apply.'],
+                'base_path': str(self.repo_root or Path.cwd()),
+                'session': 'empty'
+            }
+
         safe_apply_requested = self._safe_apply_requested(context)
-        safe_snapshot: Optional[Dict[str, Any]] = None
-
-        if stub_entries:
-            context.results['auto_generated_stub'] = True
-            suppressed = context.results.setdefault('suppressed_auto_stubs', [])
-            for entry in stub_entries:
-                stub_path = entry.get('path')
-                if stub_path and stub_path not in suppressed:
-                    suppressed.append(stub_path)
-
-            if safe_apply_requested:
-                safe_snapshot = self._write_safe_apply_snapshot(context, stub_entries)
-
-        if not material_changes:
-            warning = (
-                "Auto-generated implementation stubs were withheld; "
-                "no repository files were modified."
-            )
+        if safe_apply_requested:
+            snapshot = self._write_safe_apply_snapshot(context, change_plan)
+            warning = "Safe-apply requested; changes saved to scratch directory without modifying the repository."
             result: Dict[str, Any] = {
                 'applied': [],
                 'warnings': [warning],
                 'base_path': str(self.repo_root or Path.cwd()),
-                'session': 'stub-only'
+                'session': 'safe-apply',
             }
-            if safe_snapshot:
-                info = f"Auto-generated stubs saved to safe-apply scratch directory: {safe_snapshot['directory']}"
-                if info not in result['warnings']:
-                    result['warnings'].append(info)
-                result['safe_apply_directory'] = safe_snapshot['directory']
-                result['safe_apply_files'] = safe_snapshot.get('files', [])
+            if snapshot:
+                result['safe_apply_directory'] = snapshot['directory']
+                result['safe_apply_files'] = snapshot.get('files', [])
             return result
 
         try:
             manager = self._ensure_worktree_manager()
             if manager:
-                result = manager.apply_changes(material_changes)
+                result = manager.apply_changes(change_plan)
             else:
-                result = self._apply_changes_fallback(material_changes)
+                result = self._apply_changes_fallback(change_plan)
         except Exception as exc:
             logger.error(f"Failed to apply change plan: {exc}")
             context.errors.append(f"Failed to apply change plan: {exc}")
@@ -2127,18 +2104,6 @@ class CommandExecutor:
 
         result.setdefault('warnings', [])
         result.setdefault('applied', [])
-        if stub_entries:
-            warning = (
-                "Auto-generated implementation stubs were withheld from the repository."
-            )
-            if warning not in result['warnings']:
-                result['warnings'].append(warning)
-            if safe_snapshot:
-                info = f"Auto-generated stubs saved to safe-apply scratch directory: {safe_snapshot['directory']}"
-                if info not in result['warnings']:
-                    result['warnings'].append(info)
-                result['safe_apply_directory'] = safe_snapshot['directory']
-                result['safe_apply_files'] = safe_snapshot.get('files', [])
         if 'base_path' not in result:
             result['base_path'] = str(self.repo_root or Path.cwd())
         return result
@@ -2947,92 +2912,6 @@ class CommandExecutor:
 
         return removed, errors
 
-    def _cleanup_auto_stubs(self, auto_root: Path, ttl_days: int = 7) -> Tuple[List[str], List[str]]:
-        """
-        Remove stale auto-generated stubs older than the provided TTL.
-
-        Returns:
-            Tuple of (removed_paths, skipped_messages)
-        """
-        removed: List[str] = []
-        skipped: List[str] = []
-
-        if ttl_days < 0:
-            ttl_days = 0
-
-        if not auto_root.exists():
-            return removed, skipped
-
-        cutoff = datetime.now() - timedelta(days=ttl_days)
-        repo_root = Path(self.repo_root or Path.cwd())
-        cleaned_directories: Set[Path] = set()
-
-        for stub_file in auto_root.rglob('*'):
-            if not stub_file.is_file():
-                continue
-            if stub_file.suffix in {'.pyc', '.pyo'}:
-                continue
-            if stub_file.name == '__init__.py':
-                continue
-
-            try:
-                if not self._is_auto_stub(stub_file):
-                    continue
-
-                if ttl_days >= 0:
-                    modified_at = datetime.fromtimestamp(stub_file.stat().st_mtime)
-                    if modified_at > cutoff:
-                        continue
-
-                if self._git_has_modifications(stub_file):
-                    skipped.append(f"{self._relative_to_repo_path(stub_file)} (pending git changes)")
-                    continue
-
-                stub_file.unlink()
-                removed.append(self._relative_to_repo_path(stub_file))
-                cleaned_directories.add(stub_file.parent)
-            except Exception as exc:
-                skipped.append(f"{self._relative_to_repo_path(stub_file)} ({exc})")
-
-        # Attempt to prune empty directories created by cleanup
-        for directory in sorted(cleaned_directories, key=lambda p: len(p.parts), reverse=True):
-            if directory == auto_root:
-                continue
-            try:
-                directory.relative_to(repo_root)
-            except ValueError:
-                continue
-            try:
-                directory.rmdir()
-            except OSError:
-                continue
-
-        return removed, skipped
-
-    def _is_auto_stub(self, stub_file: Path) -> bool:
-        """Check whether the given file matches the auto-stub template."""
-        try:
-            content = stub_file.read_text(encoding='utf-8', errors='ignore')
-        except Exception:
-            return False
-
-        if "Auto-generated implementation stub" not in content and "Auto-generated Implementation Stub" not in content:
-            return False
-
-        sentinel_phrases = [
-            "Replace auto-generated stub once implementation is complete",
-            "Auto-generated Implementation Stub —",
-            "Auto-generated placeholder",
-        ]
-        for phrase in sentinel_phrases:
-            if phrase in content:
-                return True
-
-        if "NotImplementedError" in content and "Auto-generated" in content:
-            return True
-
-        return False
-
     def _git_has_modifications(self, file_path: Path) -> bool:
         """Check whether git reports pending changes for the path (excluding untracked files)."""
         if not self.repo_root or not (self.repo_root / '.git').exists():
@@ -3603,21 +3482,12 @@ class CommandExecutor:
             if path_str not in suggested_paths:
                 suggested_paths.append(path_str)
 
-        suppressed = [str(path) for path in context.results.get('suppressed_auto_stubs', []) or []]
-
         if suggested_paths:
             preview = ', '.join(suggested_paths[:3])
             remaining = len(suggested_paths) - 3
             if remaining > 0:
                 preview = f"{preview} (+{remaining} more)"
             guidance.append(f"Suggested file targets: {preview}")
-
-        if suppressed:
-            preview = ', '.join(suppressed[:3])
-            remaining = len(suppressed) - 3
-            if remaining > 0:
-                preview = f"{preview} (+{remaining} more)"
-            guidance.append(f"Review withheld stub guidance for: {preview}")
 
         safe_directory = context.results.get('safe_apply_directory')
         if safe_directory:
@@ -3764,10 +3634,8 @@ class CommandExecutor:
             'requires_evidence': requires_evidence,
             'status': derived_status,
             'session_id': context.session_id,
-            'auto_generated_stub': bool(context.results.get('auto_generated_stub')),
             'missing_evidence': bool(context.results.get('missing_evidence')),
             'plan_only_agents': list(context.results.get('plan_only_agents', [])),
-            'suppressed_auto_stubs': list(context.results.get('suppressed_auto_stubs', [])),
             'guidance': list(context.results.get('plan_only_guidance', [])),
             'safe_apply_requested': self._safe_apply_requested(context),
         }
@@ -3781,7 +3649,6 @@ class CommandExecutor:
                 summary.append({
                     'path': entry.get('path'),
                     'intent': entry.get('intent'),
-                    'auto_stub': bool(entry.get('auto_stub')),
                     'description': entry.get('description') or entry.get('summary') or entry.get('title'),
                 })
             event['change_plan'] = summary
@@ -4748,9 +4615,6 @@ class CommandExecutor:
         warnings: List[str],
     ) -> str:
         """Normalize an agent's raw result into aggregated collections."""
-        if result.get('auto_generated_stub'):
-            context.results['auto_generated_stub'] = True
-
         actions = self._normalize_evidence_value(result.get('actions_taken'))
         plans = self._normalize_evidence_value(result.get('planned_actions'))
         warning_entries = self._normalize_evidence_value(result.get('warnings'))
