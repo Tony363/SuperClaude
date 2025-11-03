@@ -27,6 +27,7 @@ class CommandMetadata:
     mcp_servers: List[str] = field(default_factory=list)
     personas: List[str] = field(default_factory=list)
     triggers: List[str] = field(default_factory=list)
+    flags: List[Dict[str, Any]] = field(default_factory=list)
     parameters: Dict[str, Any] = field(default_factory=dict)
     file_path: str = ""
     content: str = ""
@@ -97,6 +98,10 @@ class CommandRegistry:
 
             frontmatter = yaml.safe_load(frontmatter_match.group(1))
 
+            if frontmatter.get('archived'):
+                logger.info(f"Skipping archived command: {file_path.name}")
+                return None
+
             # Extract command content
             command_content = content[frontmatter_match.end():]
 
@@ -109,6 +114,7 @@ class CommandRegistry:
                 mcp_servers=frontmatter.get('mcp-servers', []),
                 personas=frontmatter.get('personas', []),
                 triggers=self._extract_triggers(command_content),
+                flags=frontmatter.get('flags', []) or [],
                 parameters=self._extract_parameters(command_content),
                 file_path=str(file_path),
                 content=command_content,

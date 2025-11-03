@@ -6,6 +6,17 @@ complexity: standard
 mcp-servers: [zen]
 personas: [architect, frontend, backend, security, qa-specialist]
 requires_evidence: true
+flags:
+  - name: fast-codex
+    description: >
+      Skip multi-persona orchestration and route through the Codex implementer path
+      for quick diffs. Guardrails (evidence, telemetry, MCP) remain enforced.
+    type: boolean
+    default: false
+    guardrails:
+      - >
+        Falls back to the full persona set when consensus, security, or evidence
+        checks require broader coverage.
 ---
 
 # /sc:implement - Feature Implementation
@@ -23,6 +34,17 @@ requires_evidence: true
 /sc:implement [feature-description] [--type component|api|service|feature] [--framework react|vue|express] [--safe] [--with-tests]
 ```
 **Usage**: Type this in Claude Code conversation to activate implementation behavioral mode with coordinated expertise and systematic development approach.
+
+### Quick Codex Flow (`--fast-codex`)
+- Prefer for low-risk or repetitive edits where rapid Codex execution is desired.
+- Activates a streamlined `codex-implementer` persona instead of the full architect/front/back/security set.
+- Guardrails remain: evidence capture, telemetry tagging, MCP integrations, and `requires_evidence` enforcement.
+- Automatically falls back to standard mode when consensus, security, or evidence gates trigger.
+
+**Example**
+```
+/sc:implement refactor logging middleware --fast-codex
+```
 
 ## Behavioral Flow
 1. **Analyze**: Examine implementation requirements and detect technology context
@@ -90,6 +112,12 @@ Key behaviors:
 /sc:implement dashboard widget --framework vue
 # Repository knowledge provides Vue-specific patterns and documentation
 # Framework-appropriate implementation with official best practices
+```
+
+### Fast Codex Shortcut
+```
+/sc:implement legacy cleanup --fast-codex --with-tests
+# Codex persona runs streamlined diff creation while evidence guardrails stay active
 ```
 
 ## Boundaries

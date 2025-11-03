@@ -59,6 +59,11 @@ class AgentLoader:
         # Ensure agents are discovered
         self.registry.discover_agents()
 
+        try:
+            self.registry.load_core_agent_classes()
+        except Exception as exc:  # pragma: no cover - defensive guard
+            self.logger.debug(f"Unable to load core agent classes: {exc}")
+
         # Load trigger configuration if available
         self.triggers = self._load_triggers()
 

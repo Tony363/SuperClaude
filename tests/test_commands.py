@@ -26,6 +26,7 @@ from SuperClaude.Commands import (
 from SuperClaude.Commands import executor as executor_module
 from SuperClaude.Quality.quality_scorer import QualityAssessment, IterationResult, QualityScorer
 from SuperClaude.Modes.behavioral_manager import BehavioralMode
+from SuperClaude.Agents.core.codex_implementer import CodexImplementer
 
 
 class TestCommandRegistry:
@@ -70,6 +71,14 @@ class TestCommandRegistry:
         assert isinstance(mcp_servers, list)
         assert 'zen' in mcp_servers
 
+    def test_fast_codex_flag_metadata(self):
+        """Implement command should publish the fast-codex flag."""
+        registry = CommandRegistry()
+        command = registry.get_command('implement')
+        assert command is not None
+        flag_names = {flag.get('name') for flag in command.flags}
+        assert 'fast-codex' in flag_names
+
 
 class TestCommandParser:
     """Test command parsing functionality."""
@@ -93,6 +102,13 @@ class TestCommandParser:
         assert parsed.name == 'implement'
         assert parsed.flags['safe'] == True
         assert 'with-tests' in parsed.flags or 'with_tests' in parsed.flags
+
+    def test_parse_fast_codex_flag(self):
+        """Ensure the parser recognises --fast-codex."""
+        parser = CommandParser()
+        parsed = parser.parse('/sc:implement --fast-codex')
+        assert parsed.name == 'implement'
+        assert parsed.flags.get('fast-codex') is True or parsed.flags.get('fast_codex') is True
 
     def test_parse_with_parameters(self):
         """Test parsing command with parameters."""
@@ -287,6 +303,170 @@ class TestCommandExecutor:
                 impl_dir.rmdir()
             except OSError:
                 pass
+
+    @pytest.mark.asyncio
+    async def test_fast_codex_execution_mode(self):
+        """--fast-codex should activate Codex persona without guardrail bypass."""
+        registry = CommandRegistry()
+        parser = CommandParser()
+        executor = CommandExecutor(registry, parser)
+
+        result = await executor.execute('/sc:implement --fast-codex')
+
+        assert result.output.get('execution_mode') == 'fast-codex'
+        fast_state = result.output.get('fast_codex') or {}
+        assert fast_state.get('requested') is True
+        assert fast_state.get('active') is True
+        assert 'codex-implementer' in (result.output.get('agents') or [])
+        errors = ' '.join(result.errors)
+        assert 'Requires execution evidence' in errors
+
+        repo_root = executor.repo_root or Path.cwd()
+        for artifact_path in result.artifacts:
+            (repo_root / artifact_path).unlink(missing_ok=True)
+
+        impl_dir = repo_root / 'SuperClaude' / 'Implementation'
+        if impl_dir.exists():
+            try:
+                impl_dir.rmdir()
+            except OSError:
+                pass
+
+    @pytest.mark.asyncio
+    async def test_fast_codex_falls_back_when_safe_flag_set(self):
+        """--fast-codex should defer to standard persona when --safe is present."""
+        registry = CommandRegistry()
+        parser = CommandParser()
+        executor = CommandExecutor(registry, parser)
+
+        result = await executor.execute('/sc:implement --fast-codex --safe')
+
+        assert result.output.get('execution_mode') == 'standard'
+        fast_state = result.output.get('fast_codex') or {}
+        assert fast_state.get('active') is False
+        assert 'safety-requested' in (fast_state.get('blocked') or [])
+        errors = ' '.join(result.errors)
+        assert 'Requires execution evidence' in errors
+
+        repo_root = executor.repo_root or Path.cwd()
+        for artifact_path in result.artifacts:
+            (repo_root / artifact_path).unlink(missing_ok=True)
+
+        impl_dir = repo_root / 'SuperClaude' / 'Implementation'
+        if impl_dir.exists():
+            try:
+                impl_dir.rmdir()
+            except OSError:
+                pass
+
+    @pytest.mark.asyncio
+    async def test_fast_codex_requires_evidence_blocks_plan_only(self, monkeypatch):
+        """Requires-evidence guardrails must stay active in fast Codex mode."""
+        registry = CommandRegistry()
+        parser = CommandParser()
+        executor = CommandExecutor(registry, parser)
+
+        def fake_apply_change_plan(self, context, change_plan):
+            return {
+                'applied': [],
+                'warnings': [],
+                'session': None,
+                'base_path': None,
+            }
+
+        monkeypatch.setattr(
+            CommandExecutor,
+            '_apply_change_plan',
+            fake_apply_change_plan,
+            raising=False
+        )
+
+        result = await executor.execute('/sc:implement --fast-codex')
+
+        assert result.success is False
+        assert result.output.get('execution_mode') == 'fast-codex'
+        errors = ' '.join(result.errors)
+        assert 'Requires execution evidence' in errors
+
+        repo_root = executor.repo_root or Path.cwd()
+        for artifact_path in result.artifacts:
+            (repo_root / artifact_path).unlink(missing_ok=True)
+
+        impl_dir = repo_root / 'SuperClaude' / 'Implementation'
+        if impl_dir.exists():
+            try:
+                impl_dir.rmdir()
+            except OSError:
+                pass
+
+    @pytest.mark.asyncio
+    async def test_fast_codex_captures_codex_suggestions(self, monkeypatch):
+        """Codex persona surfaces structured suggestions when the backend responds."""
+        payload = {
+            "summary": "Create fast-codex marker",
+            "changes": [
+                {
+                    "path": "SuperClaude/Implementation/Auto/fast-codex-test.md",
+                    "content": "# Fast Codex Marker\n\nGenerated by test.\n",
+                    "mode": "replace",
+                }
+            ],
+            "model": "mock-codex",
+        }
+
+        def fake_run_requested_tests(self, parsed):
+            return {
+                "command": "pytest -q",
+                "passed": True,
+                "pass_rate": 1.0,
+                "stdout": "collected 0 items",
+                "stderr": "",
+                "duration_s": 0.01,
+                "exit_code": 0,
+            }
+
+        monkeypatch.setattr(
+            CommandExecutor,
+            "_run_requested_tests",
+            fake_run_requested_tests,
+            raising=False,
+        )
+
+        registry = CommandRegistry()
+        parser = CommandParser()
+        executor = CommandExecutor(registry, parser)
+
+        agent = executor.agent_loader.load_agent('codex-implementer')
+        original_execute = agent.execute
+
+        def fake_execute(context):
+            result = original_execute(context)
+            result['codex_suggestions'] = payload
+            metadata = result.setdefault('metadata', {})
+            metadata['codex'] = {
+                'summary': payload['summary'],
+                'generated_at': 'test-ts',
+                'model': payload['model'],
+            }
+            return result
+
+        agent.execute = fake_execute
+        executor.agent_loader._cache['codex-implementer']['agent'] = agent
+
+        result = await executor.execute('/sc:implement --fast-codex')
+
+        assert result.output.get('execution_mode') == 'fast-codex'
+        fast_state = result.output.get('fast_codex') or {}
+        assert fast_state.get('active') is True
+        suggestions = result.output.get('codex_suggestions')
+        assert suggestions == payload
+
+        repo_root = executor.repo_root or Path.cwd()
+        for artifact_path in result.artifacts:
+            (repo_root / artifact_path).unlink(missing_ok=True)
+
+        target_path = repo_root / payload["changes"][0]["path"]
+        target_path.unlink(missing_ok=True)
 
     @pytest.mark.asyncio
     async def test_build_command_runs_pipeline(self, monkeypatch):

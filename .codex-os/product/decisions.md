@@ -1,5 +1,10 @@
 # Decisions Log
 
+## 2025-11-03 – Fast Codex Implementation Path
+- **Context:** `/sc:implement` required the full multi-persona stack even for low-risk edits, adding coordination overhead when the goal was a small diff. Product plan `fast-codex-execution-plan.md` targeted a streamlined flag that still honoured `requires_evidence`, telemetry, and MCP guardrails.
+- **Decision:** Introduce a `--fast-codex` flag that routes the implement command through a dedicated `codex-implementer` persona, records execution-mode telemetry (`commands.fast_codex.*`), and falls back to the standard persona cohort when consensus or security flags are present.
+- **Consequences:** Quick-edit workflows gain a lighter path while observability and evidence requirements remain intact. Tests cover flag parsing, mode toggling, and guardrail enforcement, and documentation now explains when to prefer the fast mode versus the canonical flow.
+
 ## 2025-10-17 – MCP Coverage Guardrail
 - **Context:** CLI commands and documentation referenced the `morphllm` MCP server, but no integration was registered. New CLI flags (`--think`, `--loop`, `--consensus`, `--delegate`) required end-to-end validation to prevent future regressions.
 - **Decision:** Ship a deterministic `MorphLLMIntegration` stub with a packaged recipe catalog and register it in the MCP factory. Added a smoke test that instantiates every enabled MCP server and verifies MorphLLM planning output. Documented runtime requirements for the new flags in the README.

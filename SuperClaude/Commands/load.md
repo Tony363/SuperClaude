@@ -1,12 +1,17 @@
+---
 name: load
-description: "Session lifecycle management with UnifiedStore-backed project context loading"
-category: session
-complexity: standard
-mcp-servers: []
+description: "Archived /sc:load command retained for historical reference"
+category: legacy
+complexity: deprecated
+archived: true
+requires_evidence: false
 personas: []
 ---
+# /sc:load (Archived)
 
-# /sc:load - Project Context Loading
+> This command has been retired. Use `/sc:workflow --resume` to rehydrate
+> projects or `/sc:cleanup --restore` for checkpoint recovery. Historical
+> documentation is kept below for completeness.
 
 ## Triggers
 - Session initialization and project context loading requests

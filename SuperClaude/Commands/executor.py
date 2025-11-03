@@ -172,6 +172,10 @@ class CommandContext:
     consensus_forced: bool = False
     delegated_agents: List[str] = field(default_factory=list)
     delegation_strategy: Optional[str] = None
+    active_personas: List[str] = field(default_factory=list)
+    fast_codex_requested: bool = False
+    fast_codex_active: bool = False
+    fast_codex_blocked: List[str] = field(default_factory=list)
 
 
 @dataclass
@@ -312,6 +316,18 @@ class CommandExecutor:
 
             # Select and load required agents
             await self._load_agents(context)
+            if context.fast_codex_active and not context.agent_instances:
+                context.fast_codex_blocked.append('agent-unavailable')
+                context.fast_codex_active = False
+                context.results['execution_mode'] = 'standard'
+                context.active_personas = list(context.metadata.personas or [])
+                context.results['fast_codex'] = {
+                    'requested': True,
+                    'active': False,
+                    'personas': context.active_personas,
+                    'blocked': context.fast_codex_blocked,
+                }
+                await self._load_agents(context)
 
             pre_change_snapshot = self._snapshot_repo_changes()
 
@@ -776,7 +792,7 @@ class CommandExecutor:
         """
         loader = self.agent_loader or AgentLoader()
 
-        required_personas = context.metadata.personas or []
+        required_personas = context.active_personas or context.metadata.personas or []
 
         for persona in required_personas:
             try:
@@ -844,7 +860,8 @@ class CommandExecutor:
             'devops': 'devops-architect',
             'python': 'python-expert',
             'refactoring': 'refactoring-expert',
-            'documentation': 'technical-writer'
+            'documentation': 'technical-writer',
+            'codex-implementer': 'codex-implementer'
         }
         return persona_to_agent.get(persona)
 
@@ -883,9 +900,17 @@ class CommandExecutor:
         """Execute implementation command."""
         agent_result = self._run_agent_pipeline(context)
 
+        codex_output = None
+        codex_agent_output = context.agent_outputs.get('codex-implementer')
+        if isinstance(codex_agent_output, dict):
+            codex_output = codex_agent_output.get('codex_suggestions')
+            if codex_output:
+                context.results['codex_suggestions'] = codex_output
+
         summary_lines = [
             f"Implementation request for: {' '.join(context.command.arguments) or 'unspecified scope'}",
             f"Mode: {context.behavior_mode}",
+            f"Execution mode: {'fast-codex' if context.fast_codex_active else 'standard'}",
             f"Agents engaged: {', '.join(context.agents) or 'none'}",
         ]
 
@@ -960,10 +985,13 @@ class CommandExecutor:
             'agent_notes': agent_result['notes'],
             'agent_warnings': agent_result['warnings'],
             'mode': context.behavior_mode,
+            'execution_mode': 'fast-codex' if context.fast_codex_active else 'standard',
+            'codex_suggestions': codex_output,
             'change_plan': change_plan,
             'applied_files': applied_files,
             'worktree_session': change_result.get('session'),
         }
+        output['fast_codex'] = context.results.get('fast_codex')
 
         base_path = change_result.get('base_path')
         if base_path:
@@ -3428,9 +3456,13 @@ class CommandExecutor:
         if not requires_evidence or not self.monitor:
             return
 
+        snapshot = context_snapshot or {}
+        execution_mode = str(snapshot.get('execution_mode') or 'standard')
+
         tags = {
             'command': command_name,
-            'status': derived_status
+            'status': derived_status,
+            'mode': execution_mode
         }
 
         base = "commands.requires_evidence"
@@ -3476,7 +3508,42 @@ class CommandExecutor:
             metric_name = f"{base}.quality_pass" if assessment_passed else f"{base}.quality_fail"
             self.monitor.record_metric(metric_name, 1, MetricType.COUNTER, score_tags)
 
-        snapshot = context_snapshot or {}
+        fast_codex_state = {}
+        raw_fast_codex = snapshot.get('fast_codex')
+        if isinstance(raw_fast_codex, dict):
+            fast_codex_state = raw_fast_codex
+
+        if fast_codex_state:
+            fast_tags = {
+                'command': command_name,
+                'mode': execution_mode,
+                'active': str(bool(fast_codex_state.get('active')))
+            }
+            self.monitor.record_metric(
+                "commands.fast_codex.requested",
+                1,
+                MetricType.COUNTER,
+                fast_tags
+            )
+            if fast_codex_state.get('active'):
+                self.monitor.record_metric(
+                    "commands.fast_codex.active",
+                    1,
+                    MetricType.COUNTER,
+                    fast_tags
+                )
+            else:
+                blocked = fast_codex_state.get('blocked') or []
+                blocked_tags = dict(fast_tags)
+                if blocked:
+                    blocked_tags['blocked'] = ','.join(sorted(str(reason) for reason in blocked))
+                self.monitor.record_metric(
+                    "commands.fast_codex.blocked",
+                    1,
+                    MetricType.COUNTER,
+                    blocked_tags
+                )
+
         event_payload = {
             'timestamp': datetime.now().isoformat(),
             'command': command_name,
@@ -3491,6 +3558,8 @@ class CommandExecutor:
             'consensus_vote_type': snapshot.get('consensus_vote_type'),
             'consensus_quorum': snapshot.get('consensus_quorum_size'),
             'plan_only': derived_status == 'plan-only',
+            'execution_mode': execution_mode,
+            'fast_codex': snapshot.get('fast_codex'),
         }
         try:
             self.monitor.record_event('hallucination.guardrail', event_payload)
@@ -4234,6 +4303,7 @@ class CommandExecutor:
         context.results['consensus_forced'] = context.consensus_forced
 
         self._apply_auto_delegation(context)
+        self._apply_fast_codex_mode(context)
 
     def _resolve_think_level(self, parsed: ParsedCommand) -> Dict[str, Any]:
         """Resolve requested think level (1-3) from command flags/parameters."""
@@ -4403,6 +4473,59 @@ class CommandExecutor:
             }
         }
         context.results['delegated_agents'] = context.delegated_agents
+
+    def _apply_fast_codex_mode(self, context: CommandContext) -> None:
+        """Configure fast Codex execution mode when the flag is present."""
+        parsed = context.command
+        metadata = context.metadata
+
+        context.results.setdefault('execution_mode', 'standard')
+        context.active_personas = list(metadata.personas or [])
+        context.fast_codex_active = False
+        context.fast_codex_blocked = []
+
+        supported = any(
+            isinstance(flag, dict) and (flag.get('name') or '').replace('_', '-').lower() == 'fast-codex'
+            for flag in (metadata.flags or [])
+        )
+        requested = supported and (
+            self._flag_present(parsed, 'fast-codex') or self._flag_present(parsed, 'fast_codex')
+        )
+        context.fast_codex_requested = requested
+
+        if not requested:
+            context.results['fast_codex'] = {
+                'requested': False,
+                'active': False,
+                'personas': context.active_personas
+            }
+            return
+
+        block_reasons: List[str] = []
+        if context.consensus_forced:
+            block_reasons.append('consensus-required')
+        if self._flag_present(parsed, 'safe') or self._flag_present(parsed, 'security'):
+            block_reasons.append('safety-requested')
+
+        if block_reasons:
+            context.fast_codex_blocked = block_reasons
+            context.results['fast_codex'] = {
+                'requested': True,
+                'active': False,
+                'personas': context.active_personas,
+                'blocked': block_reasons
+            }
+            context.results['execution_mode'] = 'standard'
+            return
+
+        context.fast_codex_active = True
+        context.active_personas = ['codex-implementer']
+        context.results['execution_mode'] = 'fast-codex'
+        context.results['fast_codex'] = {
+            'requested': True,
+            'active': True,
+            'personas': context.active_personas
+        }
 
     def _build_delegation_context(self, context: CommandContext) -> Dict[str, Any]:
         """Construct context payload for delegate selection."""

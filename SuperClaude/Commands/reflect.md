@@ -1,12 +1,16 @@
+---
 name: reflect
-description: "Task reflection and validation using built-in analysis and UnifiedStore context"
-category: special
-complexity: standard
-mcp-servers: []
+description: "Archived /sc:reflect command retained for historical reference"
+category: legacy
+complexity: deprecated
+archived: true
+requires_evidence: false
 personas: []
 ---
+# /sc:reflect (Archived)
 
-# /sc:reflect - Task Reflection and Validation
+> Successor workflows now live under `/sc:workflow --review` and the
+> `/sc:test` quality gates. The original guidance is preserved below.
 
 ## Triggers
 - Task completion requiring validation and quality assessment

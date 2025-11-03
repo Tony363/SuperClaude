@@ -20,6 +20,9 @@
   structured telemetry so plan-only regressions become visible in CI dashboards. Safe-apply snapshots let
   `/sc:implement --safe-apply` stash synthesized stubs under `.superclaude_metrics/safe_apply/` while
   auto-triggered quality loops chase real diffs.
+- `/sc:implement --fast-codex` activates a lean Codex implementer persona for low-risk edits while
+  telemetry and guardrails record the `fast-codex` execution mode and enforce fallbacks for consensus or
+  security-sensitive runs.
 - Automatic pytest runs triggered by `/sc:implement` or other commands no longer re-run the
   trailing `/sc:test` step when the auto-run already passed, reducing redundant suites.
 - Passing `--cleanup` to `/sc:implement` purges stale auto-generated stubs older than seven days,
@@ -131,6 +134,14 @@ heuristics to real provider clients.
 - `SuperClaude/Commands/registry.py` discovers 22 Markdown playbooks with YAML front matter.
 - `SuperClaude/Commands/executor.py` orchestrates agent selection, change plans, consensus,
   optional pytest runs, quality scoring, and metric emission.
+
+#### Fast Codex Mode
+- `--fast-codex` trims `/sc:implement` down to the `codex-implementer` persona for quick diffs.
+- Guardrails stay active: `requires_evidence`, consensus checks, and MCP activation still run.
+- Telemetry surfaces `commands.fast_codex.*` metrics and the command result includes
+  `execution_mode: fast-codex` alongside the usual artifacts.
+- When `--safe`, `--consensus`, or missing Codex agent prerequisites appear, the executor
+  automatically falls back to the standard multi-persona cohort.
 
 ### Agent System
 - 15 core Python agents live in `SuperClaude/Agents/core/` (one class per domain).

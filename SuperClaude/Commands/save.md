@@ -1,12 +1,18 @@
+---
 name: save
-description: "Session lifecycle management with UnifiedStore-backed persistence"
-category: session
-complexity: standard
-mcp-servers: []
+description: "Archived /sc:save command retained for historical reference"
+category: legacy
+complexity: deprecated
+archived: true
+requires_evidence: false
 personas: []
 ---
 
-# /sc:save - Session Context Persistence
+# /sc:save (Archived)
+
+> This command has been retired. Unified session persistence now lives in
+> `/sc:workflow` and `/sc:cleanup`. The material below is preserved for teams
+> auditing older playbooks.
 
 ## Triggers
 - Session completion and project context persistence needs

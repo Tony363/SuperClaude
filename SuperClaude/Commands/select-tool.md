@@ -1,12 +1,16 @@
+---
 name: select-tool
-description: "Intelligent MCP tool selection across Zen and optional Rube integrations"
-category: special
-complexity: high
-mcp-servers: []
+description: "Archived /sc:select-tool command retained for historical reference"
+category: legacy
+complexity: deprecated
+archived: true
+requires_evidence: false
 personas: []
 ---
+# /sc:select-tool (Archived)
 
-# /sc:select-tool - Intelligent Tool Selection
+> The modern tool routing flow now lives in `/sc:workflow --delegate`. This
+> entry remains for teams auditing historical playbooks.
 
 ## Triggers
 - Operations requiring optimal MCP tool selection across Zen and optional Rube integrations
