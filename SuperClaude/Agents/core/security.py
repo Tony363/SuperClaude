@@ -81,12 +81,14 @@ class SecurityAnalysisAgent(BaseAgent):
                 result['errors'].append("No content to analyze for security")
                 return result
 
-        self.logger.info(f"Starting security analysis: {task[:100]}...")
+            self.logger.info(f"Starting security analysis: {task[:100]}...")
 
             # Phase 1: Vulnerability scanning
             vulnerabilities = self._scan_vulnerabilities(code, files, scan_type)
             result['vulnerabilities'] = vulnerabilities
-            result['actions_taken'].append(f"Scanned for {len(self.vulnerability_patterns)} vulnerability types")
+            result['actions_taken'].append(
+                f"Scanned for {len(self.vulnerability_patterns)} vulnerability types"
+            )
 
             # Phase 2: OWASP Top 10 assessment
             owasp_issues = self._assess_owasp_risks(code, vulnerabilities)
@@ -94,7 +96,9 @@ class SecurityAnalysisAgent(BaseAgent):
 
             # Phase 3: Best practices validation
             practice_violations = self._check_best_practices(code, files)
-            result['actions_taken'].append(f"Validated {len(self.security_best_practices)} best practices")
+            result['actions_taken'].append(
+                f"Validated {len(self.security_best_practices)} best practices"
+            )
 
             # Phase 4: Risk assessment
             risk_level = self._calculate_risk_level(vulnerabilities, owasp_issues)
@@ -109,8 +113,12 @@ class SecurityAnalysisAgent(BaseAgent):
 
             # Phase 6: Create security report
             report = self._generate_security_report(
-                task, vulnerabilities, owasp_issues, practice_violations,
-                risk_level, recommendations
+                task,
+                vulnerabilities,
+                owasp_issues,
+                practice_violations,
+                risk_level,
+                recommendations,
             )
             result['output'] = report
 
@@ -122,6 +130,15 @@ class SecurityAnalysisAgent(BaseAgent):
             result['errors'].append(str(e))
 
         return result
+
+    def validate(self, context: Dict[str, Any]) -> bool:
+        """Basic validation: require some code, files, or explicit task."""
+        if not context:
+            return False
+        task = context.get('task')
+        files = context.get('files') or []
+        code = context.get('code')
+        return bool((task and task.strip()) or files or (code and code.strip()))
 
 
 class SecurityEngineer(HeuristicMarkdownAgent):
@@ -147,9 +164,12 @@ class SecurityEngineer(HeuristicMarkdownAgent):
         super().__init__(merged)
 
         analysis_config = dict(merged)
-        self.analysis_agent = SecurityAnalysisAgent(analysis_config)
-        # Share logger to avoid duplicate configuration noise
-        self.analysis_agent.logger = self.logger
+        try:
+            self.analysis_agent = SecurityAnalysisAgent(analysis_config)
+            self.analysis_agent.logger = self.logger
+        except Exception as exc:
+            self.logger.debug(f"SecurityAnalysisAgent unavailable: {exc}")
+            self.analysis_agent = None
 
     def validate(self, context: Dict[str, Any]) -> bool:
         task = str(context.get('task', '')).lower()
@@ -159,6 +179,9 @@ class SecurityEngineer(HeuristicMarkdownAgent):
 
     def execute(self, context: Dict[str, Any]) -> Dict[str, Any]:
         result = super().execute(context)
+
+        if not self.analysis_agent:
+            return result
 
         audit = self.analysis_agent.execute(context)
         result['security_audit'] = audit

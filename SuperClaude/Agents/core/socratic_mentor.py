@@ -389,7 +389,7 @@ class SocraticMentor(BaseAgent):
         # Identify potential misconceptions
         if 'always' in question_lower or 'never' in question_lower:
             assessment['misconceptions'].append('Absolute thinking')
-        if 'best' in question_lower without 'context':
+        if 'best' in question_lower and 'context' not in question_lower:
             assessment['misconceptions'].append('Context-independent solutions')
 
         # Infer learning style

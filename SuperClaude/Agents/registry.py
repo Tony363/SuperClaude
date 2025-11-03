@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Dict, List, Optional, Type, Any
 import importlib.util
 import json
+import sys
 
 from .base import BaseAgent
 from .parser import AgentMarkdownParser
@@ -196,6 +197,7 @@ class AgentRegistry:
                     )
                     if spec and spec.loader:
                         module = importlib.util.module_from_spec(spec)
+                        sys.modules[spec.name] = module
                         spec.loader.exec_module(module)
 
                         # Find the agent class
