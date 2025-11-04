@@ -7,7 +7,7 @@ Provides unified interface for all OpenAI models with streaming and function cal
 import json
 import logging
 import os
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import datetime, timedelta
 from typing import Any, AsyncIterator, Dict, List, Optional
 
@@ -215,25 +215,23 @@ class OpenAIClient:
         """
         request.stream = True
 
-        # Check rate limits
+        # Check rate limits ahead of the synthesized streaming fallback.
         await self.rate_limiter.acquire(request)
 
+        # We currently rely on the non-streaming completion endpoint and
+        # progressively yield the returned content so callers still receive
+        # incremental output without fake placeholders.
+        streamed_request = replace(request, stream=False)
+
         try:
-            # In real implementation, stream from API
-            # async with aiohttp.ClientSession() as session:
-            #     ... make streaming request ...
-            #     async for chunk in response.content:
-            #         yield chunk
-
-            # Mock streaming
-            response = f"Streaming response from {request.model}"
-            for word in response.split():
-                yield word + " "
-                await asyncio.sleep(0.1)
-
-        except Exception as e:
-            logger.error(f"Streaming error: {e}")
+            response = await self.complete(streamed_request)
+        except Exception as exc:
+            logger.error("Streaming error during completion fallback: %s", exc)
             raise
+
+        for chunk in self._chunk_stream_text(response.content):
+            yield chunk
+
 
     async def complete_with_thinking(
         self,
@@ -305,6 +303,13 @@ Use structured reasoning and consider multiple angles.
         )
 
         return await self.complete(request)
+
+    def _chunk_stream_text(self, content: str, *, chunk_size: int = 128) -> List[str]:
+        """Split completion content into chunks for streaming fallback."""
+        if not content:
+            return [""]
+
+        return [content[i:i + chunk_size] for i in range(0, len(content), chunk_size)]
 
     def estimate_cost(self, request: CompletionRequest) -> Dict[str, float]:
         """

@@ -6,7 +6,7 @@ Provides unified interface for X.AI's Grok models with code analysis capabilitie
 
 import logging
 import os
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import datetime, timedelta
 from typing import Any, AsyncIterator, Dict, List, Optional
 
@@ -419,21 +419,16 @@ Consider edge cases, performance implications, and best practices.
         # Check rate limits
         await self.rate_limiter.acquire(request)
 
+        completion_request = replace(request, stream=False)
+
         try:
-            # In real implementation, stream from API
-            # X.AI uses SSE for streaming
-            # async with aiohttp.ClientSession() as session:
-            #     ... streaming implementation ...
-
-            # Mock streaming
-            response = f"Streaming from {request.model}"
-            for word in response.split():
-                yield word + " "
-                await asyncio.sleep(0.1)
-
-        except Exception as e:
-            logger.error(f"Streaming error: {e}")
+            response = await self.complete(completion_request)
+        except Exception as exc:
+            logger.error("Streaming error during completion fallback: %s", exc)
             raise
+
+        for chunk in self._chunk_stream_text(response.content):
+            yield chunk
 
     def estimate_cost(self, request: GrokRequest) -> Dict[str, float]:
         """
@@ -470,6 +465,13 @@ Consider edge cases, performance implications, and best practices.
     def get_model_info(self, model: str) -> Optional[Dict[str, Any]]:
         """Get model configuration info."""
         return self.MODEL_CONFIGS.get(model)
+
+    def _chunk_stream_text(self, content: str, *, chunk_size: int = 128) -> List[str]:
+        """Split Grok content into deterministic streaming chunks."""
+        if not content:
+            return [""]
+
+        return [content[i:i + chunk_size] for i in range(0, len(content), chunk_size)]
 
     def _build_payload(self, request: GrokRequest) -> Dict[str, Any]:
         """Build API request payload."""

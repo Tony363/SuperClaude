@@ -6,7 +6,7 @@ Provides unified interface for Google's Gemini models with long context support.
 
 import logging
 import os
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import datetime, timedelta
 from typing import Any, AsyncIterator, Dict, List, Optional
 
@@ -316,22 +316,16 @@ Analyze this problem systematically:
         # Check rate limits
         await self.rate_limiter.acquire(request)
 
+        completion_request = replace(request)
+
         try:
-            # In real implementation, stream from API
-            # Gemini uses streamGenerateContent endpoint
-            # async with aiohttp.ClientSession() as session:
-            #     url = f"{self.config.endpoint}/models/{model}:streamGenerateContent"
-            #     ... streaming implementation ...
-
-            # Mock streaming
-            response = f"Streaming from Gemini: {request.prompt[:30]}..."
-            for word in response.split():
-                yield word + " "
-                await asyncio.sleep(0.1)
-
-        except Exception as e:
-            logger.error(f"Streaming error: {e}")
+            response = await self.complete(completion_request)
+        except Exception as exc:
+            logger.error("Streaming error during completion fallback: %s", exc)
             raise
+
+        for chunk in self._chunk_stream_text(response.text):
+            yield chunk
 
     def count_tokens(self, text: str) -> int:
         """
@@ -346,6 +340,13 @@ Analyze this problem systematically:
         # In real implementation, use Google's tokenizer
         # For now, rough approximation
         return len(text) // 4
+
+    def _chunk_stream_text(self, content: str, *, chunk_size: int = 128) -> List[str]:
+        """Split Gemini content into deterministic streaming chunks."""
+        if not content:
+            return [""]
+
+        return [content[i:i + chunk_size] for i in range(0, len(content), chunk_size)]
 
     def estimate_cost(self, request: GeminiRequest) -> Dict[str, float]:
         """

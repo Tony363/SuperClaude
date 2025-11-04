@@ -516,8 +516,8 @@ This code of conduct draws inspiration from several established community standa
 
 **Policy Maintenance:**
 
-**Last Updated**: December 2024 (SuperClaude Framework v4.0)
-**Next Review**: June 2025 (Semi-annual review cycle)
+**Last Updated**: November 2025 (SuperClaude Framework v6.0)
+**Next Review**: May 2026 (Semi-annual review cycle)
 **Version**: 6.0.0-alpha (Aligned with v6 community structure and governance)
 
 **Review Schedule:**

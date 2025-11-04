@@ -6,7 +6,7 @@ Provides unified interface for Anthropic's Claude models with streaming support.
 
 import logging
 import os
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import datetime, timedelta
 from typing import Any, AsyncIterator, Dict, List, Optional
 
@@ -198,36 +198,16 @@ class AnthropicClient:
         # Check rate limits
         await self.rate_limiter.acquire(request)
 
+        completion_request = replace(request, stream=False)
+
         try:
-            # In real implementation, stream from API
-            # async with aiohttp.ClientSession() as session:
-            #     headers = {
-            #         "x-api-key": self.config.api_key,
-            #         "anthropic-version": self.config.api_version,
-            #         "content-type": "application/json"
-            #     }
-            #
-            #     payload = self._build_payload(request)
-            #
-            #     async with session.post(
-            #         f"{self.config.endpoint}/messages",
-            #         headers=headers,
-            #         json=payload,
-            #         timeout=self.config.timeout
-            #     ) as response:
-            #         async for line in response.content:
-            #             # Parse SSE and yield content
-            #             yield content
-
-            # Mock streaming
-            response = f"Streaming response from Claude Opus 4.1"
-            for word in response.split():
-                yield word + " "
-                await asyncio.sleep(0.1)
-
-        except Exception as e:
-            logger.error(f"Streaming error: {e}")
+            response = await self.complete(completion_request)
+        except Exception as exc:
+            logger.error("Streaming error during completion fallback: %s", exc)
             raise
+
+        for chunk in self._chunk_stream_text(response.content):
+            yield chunk
 
     async def complete_with_system(
         self,
@@ -256,6 +236,13 @@ class AnthropicClient:
         )
 
         return await self.complete(request)
+
+    def _chunk_stream_text(self, content: str, *, chunk_size: int = 128) -> List[str]:
+        """Split Claude content into deterministic chunks for streaming."""
+        if not content:
+            return [""]
+
+        return [content[i:i + chunk_size] for i in range(0, len(content), chunk_size)]
 
     async def validate_response(
         self,
@@ -297,14 +284,9 @@ Provide:
 
         result = await self.complete(validation_request)
 
-        # Parse validation response (in real implementation)
-        return {
-            "valid": True,  # Mock result
-            "confidence": 0.9,
-            "issues": [],
-            "suggestions": [],
-            "raw_response": result.content
-        }
+        parsed = self._parse_validation_response(result.content)
+        parsed["raw_response"] = result.content
+        return parsed
 
     def estimate_cost(self, request: ClaudeRequest) -> Dict[str, float]:
         """
@@ -355,6 +337,54 @@ Provide:
                 return config
 
         return None
+
+    def _parse_validation_response(self, text: str) -> Dict[str, Any]:
+        """Parse validation output from Claude into structured data."""
+        import re
+
+        lines = [line.strip() for line in text.splitlines() if line.strip()]
+        verdict: Optional[bool] = None
+        confidence: Optional[float] = None
+        issues: List[str] = []
+        suggestions: List[str] = []
+        collector: Optional[List[str]] = None
+
+        for line in lines:
+            normalized = line.lower()
+
+            if verdict is None:
+                if normalized in {"yes", "valid: yes", "valid - yes"} or ("yes" in normalized and "no" not in normalized):
+                    verdict = True
+                elif normalized in {"no", "valid: no", "valid - no"} or ("no" in normalized and "yes" not in normalized):
+                    verdict = False
+
+            if confidence is None and "confidence" in normalized:
+                match = re.search(r"([01](?:\.\d+)?)", normalized)
+                if match:
+                    try:
+                        confidence = float(match.group(1))
+                    except ValueError:
+                        confidence = None
+
+            if normalized.startswith("issues"):
+                collector = issues
+                continue
+            if normalized.startswith("suggest"):
+                collector = suggestions
+                continue
+
+            if collector is not None and (line.startswith("-") or line.startswith("*")):
+                collector.append(line.lstrip("-* "))
+                continue
+
+            collector = None
+
+        return {
+            "valid": verdict if verdict is not None else False,
+            "confidence": confidence if confidence is not None else 0.0,
+            "issues": issues,
+            "suggestions": suggestions,
+        }
 
     def _build_payload(self, request: ClaudeRequest) -> Dict[str, Any]:
         """Build API request payload."""

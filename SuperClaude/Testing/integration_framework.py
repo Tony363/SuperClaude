@@ -5,6 +5,7 @@ Provides comprehensive testing for component interactions, MCP servers, and agen
 """
 
 import asyncio
+import inspect
 import logging
 from typing import Dict, List, Any, Optional, Callable, Tuple
 from dataclasses import dataclass, field
@@ -75,6 +76,36 @@ class TestResult:
     artifacts: Dict[str, Any] = field(default_factory=dict)
     metrics: Dict[str, Any] = field(default_factory=dict)
     timestamp: datetime = field(default_factory=datetime.now)
+
+
+@dataclass
+class InteractionCheck:
+    """Structured artifact returned by interaction tests."""
+
+    interaction: str
+    components: List[str]
+    health: Dict[str, Dict[str, Any]]
+    capabilities: Dict[str, Dict[str, Any]]
+    handshake: List[Dict[str, Any]]
+
+    def __bool__(self) -> bool:  # pragma: no cover - simple truthiness helper
+        return all(item.get("healthy", False) for item in self.health.values()) and all(
+            entry.get("success", True) for entry in self.handshake
+        )
+
+
+@dataclass
+class WorkflowStepCheck:
+    """Structured artifact returned by workflow step tests."""
+
+    step_id: str
+    name: str
+    deliverables: List[str]
+    component_results: List[Dict[str, Any]]
+    dependency_count: int
+
+    def __bool__(self) -> bool:  # pragma: no cover - simple truthiness helper
+        return all(result.get("success", True) for result in self.component_results)
 
 
 @dataclass
@@ -469,22 +500,325 @@ class IntegrationTestRunner:
         else:
             return func()
 
+    async def _run_health_probe(self, component: Any) -> Dict[str, Any]:
+        """Execute available health probe hooks on a component."""
+        probe_names = ["health_check", "check_health", "status", "ping"]
+        for name in probe_names:
+            probe = getattr(component, name, None)
+            if not callable(probe):
+                continue
+            try:
+                result = probe()
+                if asyncio.iscoroutine(result):
+                    result = await result
+                healthy = self._interpret_health_result(result)
+                return {"healthy": healthy, "details": result, "method": name}
+            except Exception as exc:  # pragma: no cover - defensive branch
+                return {"healthy": False, "details": str(exc), "method": name}
+
+        return {"healthy": True, "details": "No probe available", "method": None}
+
+    def _interpret_health_result(self, value: Any) -> bool:
+        """Normalise health probe output."""
+        if isinstance(value, bool):
+            return value
+        if isinstance(value, dict):
+            status = str(value.get("status", "")).lower()
+            healthy = value.get("healthy")
+            if isinstance(healthy, bool):
+                return healthy
+            if status:
+                return status in {"ok", "healthy", "pass", "passing"}
+        if isinstance(value, str):
+            return value.lower() not in {"error", "fail", "failing", "unhealthy"}
+        return True
+
+    async def _evaluate_interaction_capability(self, component: Any, interaction_type: str) -> Dict[str, Any]:
+        """Determine whether a component supports a given interaction type."""
+        candidate_methods = [
+            f"supports_{interaction_type}",
+            f"can_{interaction_type}",
+            "supports_interaction",
+            "can_handle",
+        ]
+
+        for method_name in candidate_methods:
+            method = getattr(component, method_name, None)
+            if not callable(method):
+                continue
+
+            try:
+                signature = inspect.signature(method)
+            except (TypeError, ValueError):  # pragma: no cover - builtins
+                signature = None
+
+            try:
+                if signature is None or len(signature.parameters) == 0:
+                    result = method()
+                else:
+                    result = method(interaction_type)
+                if asyncio.iscoroutine(result):
+                    result = await result
+                return {
+                    "supported": bool(result),
+                    "method": method_name,
+                    "details": result,
+                }
+            except Exception as exc:  # pragma: no cover - defensive branch
+                return {"supported": False, "method": method_name, "details": str(exc)}
+
+        # Fall back to attribute presence or callable handlers
+        has_named_attr = hasattr(component, interaction_type)
+        return {
+            "supported": has_named_attr,
+            "method": interaction_type if has_named_attr else None,
+            "details": "Attribute lookup" if has_named_attr else "No capability hooks",
+        }
+
+    async def _execute_interaction_checks(
+        self,
+        components: Dict[str, Any],
+        interaction_type: str,
+    ) -> List[Dict[str, Any]]:
+        """Invoke interaction handlers between component pairs."""
+        results: List[Dict[str, Any]] = []
+        items = list(components.items())
+
+        for idx, (source_id, source_component) in enumerate(items):
+            for jdx, (target_id, target_component) in enumerate(items):
+                if idx == jdx:
+                    continue
+
+                callable_obj, args = self._resolve_interaction_callable(
+                    source_component,
+                    target_component,
+                    interaction_type,
+                )
+
+                if callable_obj is None:
+                    results.append(
+                        {
+                            "source": source_id,
+                            "target": target_id,
+                            "success": True,
+                            "method": None,
+                            "details": "No explicit handler; treated as compatible",
+                        }
+                    )
+                    continue
+
+                try:
+                    response = callable_obj(*args)
+                    if asyncio.iscoroutine(response):
+                        response = await response
+                    success = True if response is None else bool(response)
+                    results.append(
+                        {
+                            "source": source_id,
+                            "target": target_id,
+                            "success": success,
+                            "method": callable_obj.__name__,
+                            "details": response,
+                        }
+                    )
+                except Exception as exc:  # pragma: no cover - defensive branch
+                    results.append(
+                        {
+                            "source": source_id,
+                            "target": target_id,
+                            "success": False,
+                            "method": callable_obj.__name__,
+                            "details": str(exc),
+                        }
+                    )
+
+        return results
+
+    def _resolve_interaction_callable(
+        self,
+        component: Any,
+        partner: Any,
+        interaction_type: str,
+    ) -> Tuple[Optional[Callable], List[Any]]:
+        """Identify an interaction handler and its argument list."""
+        candidates = [
+            f"handle_{interaction_type}",
+            "handle_interaction",
+            "interact_with",
+            "execute",
+            "__call__",
+        ]
+
+        for name in candidates:
+            method = getattr(component, name, None)
+            if not callable(method):
+                continue
+
+            try:
+                signature = inspect.signature(method)
+            except (TypeError, ValueError):
+                signature = None
+
+            if signature is None:
+                return method, [partner, interaction_type]
+
+            params = list(signature.parameters.values())
+            if not params:
+                return method, []
+            if len(params) == 1:
+                return method, [partner]
+            if len(params) >= 2:
+                return method, [partner, interaction_type]
+
+        return None, []
+
+    async def _execute_workflow_step(self, component: Any, step: Dict[str, Any]) -> Dict[str, Any]:
+        """Execute a workflow step against a component if possible."""
+        candidates = [
+            "execute_step",
+            "run_step",
+            "execute",
+            "__call__",
+        ]
+
+        for name in candidates:
+            method = getattr(component, name, None)
+            if not callable(method):
+                continue
+
+            try:
+                signature = inspect.signature(method)
+            except (TypeError, ValueError):
+                signature = None
+
+            try:
+                if signature is None or len(signature.parameters) == 0:
+                    outcome = method()
+                else:
+                    outcome = method(step)
+                if asyncio.iscoroutine(outcome):
+                    outcome = await outcome
+                success = True if outcome is None else bool(outcome)
+                return {
+                    "success": success,
+                    "method": name,
+                    "details": outcome,
+                }
+            except Exception as exc:  # pragma: no cover - defensive branch
+                return {
+                    "success": False,
+                    "method": name,
+                    "details": str(exc),
+                }
+
+        return {
+            "success": True,
+            "method": None,
+            "details": "No executable workflow hook; considered informational",
+        }
+
     def _create_interaction_test(self, interaction_type: str) -> Callable:
         """Create interaction test function."""
         async def test_func(components: Dict[str, Any], runner: 'IntegrationTestRunner'):
-            # Mock interaction test
-            comp_ids = list(components.keys())
-            logger.debug(f"Testing {interaction_type} between {comp_ids}")
-            return True
+            if len(components) < 2:
+                raise AssertionError("Interaction tests require at least two components")
+
+            component_ids = list(components.keys())
+            logger.debug(
+                "Testing %s interaction between components: %s",
+                interaction_type,
+                component_ids,
+            )
+
+            health: Dict[str, Dict[str, Any]] = {}
+            capabilities: Dict[str, Dict[str, Any]] = {}
+
+            for component_id, component in components.items():
+                health[component_id] = await runner._run_health_probe(component)
+                capabilities[component_id] = await runner._evaluate_interaction_capability(
+                    component,
+                    interaction_type,
+                )
+
+            unhealthy = [cid for cid, entry in health.items() if not entry.get("healthy", False)]
+            if unhealthy:
+                raise AssertionError(
+                    f"Interaction '{interaction_type}' blocked by failing health checks: {unhealthy}"
+                )
+
+            unsupported = [
+                cid for cid, entry in capabilities.items() if not entry.get("supported", False)
+            ]
+            if unsupported:
+                raise AssertionError(
+                    f"Components lack support for '{interaction_type}' interaction: {unsupported}"
+                )
+
+            handshake = await runner._execute_interaction_checks(components, interaction_type)
+            failed_links = [entry for entry in handshake if not entry.get("success", True)]
+            if failed_links:
+                raise AssertionError(
+                    f"Interaction '{interaction_type}' failed for links: {failed_links}"
+                )
+
+            return InteractionCheck(
+                interaction=interaction_type,
+                components=component_ids,
+                health=health,
+                capabilities=capabilities,
+                handshake=handshake,
+            )
 
         return test_func
 
     def _create_workflow_step_test(self, step: Dict[str, Any]) -> Callable:
         """Create workflow step test function."""
         async def test_func(components: Dict[str, Any], runner: 'IntegrationTestRunner'):
-            # Mock workflow step test
-            logger.debug(f"Executing workflow step: {step['name']}")
-            return True
+            required_fields = {"id", "name", "phase"}
+            missing = [field for field in required_fields if field not in step]
+            if missing:
+                raise AssertionError(
+                    f"Workflow step missing required fields: {missing}"
+                )
+
+            deliverables = step.get("deliverables", [])
+            if not deliverables:
+                raise AssertionError(
+                    f"Workflow step '{step['id']}' must declare at least one deliverable"
+                )
+
+            component_ids = step.get("components", []) or list(components.keys())
+            missing_components = [
+                comp_id for comp_id in component_ids if comp_id not in runner.component_registry
+            ]
+            if missing_components:
+                raise AssertionError(
+                    f"Workflow step references unregistered components: {missing_components}"
+                )
+
+            component_results: List[Dict[str, Any]] = []
+            for comp_id in component_ids:
+                component = runner.component_registry[comp_id]
+                execution = await runner._execute_workflow_step(component, step)
+                component_results.append({"component": comp_id, **execution})
+
+            failed_components = [
+                result["component"] for result in component_results if not result.get("success", True)
+            ]
+            if failed_components:
+                raise AssertionError(
+                    f"Workflow step '{step['id']}' failed for components: {failed_components}"
+                )
+
+            dependency_count = len(step.get("dependencies", []))
+
+            return WorkflowStepCheck(
+                step_id=step["id"],
+                name=step.get("name") or step.get("title", step["id"]),
+                deliverables=deliverables,
+                component_results=component_results,
+                dependency_count=dependency_count,
+            )
 
         return test_func
 
