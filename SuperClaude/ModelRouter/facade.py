@@ -75,6 +75,22 @@ class ModelRouterFacade:
         if routing_decision:
             context_payload.setdefault('routing_decision', self._serialize_routing(routing_decision))
 
+        missing_executors = [model for model in selected_models if model not in self.consensus.model_executors]
+        if missing_executors:
+            message = (
+                "No consensus executors registered for: " + ", ".join(sorted(missing_executors))
+            )
+            logger.error(message)
+            return {
+                "consensus_reached": False,
+                "error": message,
+                "models": selected_models,
+                "routing_decision": self._serialize_routing(routing_decision) if routing_decision else None,
+                "think_level": effective_think,
+                "offline": self.offline_mode,
+                "quorum_size": quorum_size,
+            }
+
         try:
             result = await self.consensus.build_consensus(
                 prompt,
@@ -105,21 +121,22 @@ class ModelRouterFacade:
         return payload
 
     def _initialize_executors(self) -> None:
-        """Initialise consensus executors for available providers or fall back."""
+        """Initialise consensus executors for available providers."""
         self.consensus.model_executors.clear()
 
         if self.offline_mode:
-            logger.info("ModelRouterFacade running in offline mode; using heuristic executors.")
-            self._register_default_executors()
+            logger.warning(
+                "ModelRouterFacade running in offline mode without automatic consensus executors. "
+                "Register executors manually or configure live providers."
+            )
             return
 
         missing = self._register_provider_executors()
         if missing:
             logger.warning(
-                "Falling back to deterministic consensus executors for models without live adapters: %s",
+                "No consensus executors registered for models without available providers: %s",
                 ", ".join(sorted(missing))
             )
-            self._register_default_executors(models=missing)
         if len(missing) == len(self.router.MODEL_CAPABILITIES):
             # No providers registered successfully; keep offline semantics for telemetry.
             self.offline_mode = True
@@ -156,16 +173,7 @@ class ModelRouterFacade:
             return None
 
         async def executor(prompt: str, *, model=model_name, provider_enum=provider) -> Dict[str, Any]:
-            try:
-                return await self._execute_provider_model(provider_enum, model, prompt)
-            except Exception as exc:
-                logger.warning(
-                    "Consensus provider %s for %s failed (%s); falling back to heuristic response.",
-                    provider_enum.value,
-                    model,
-                    exc
-                )
-                return self._default_executor(model, prompt)
+            return await self._execute_provider_model(provider_enum, model, prompt)
 
         return executor
 
@@ -337,65 +345,6 @@ class ModelRouterFacade:
             })
         payload["votes"] = votes
         return payload
-
-    def _register_default_executors(self, models: Optional[List[str]] = None) -> None:
-        """Install deterministic executors for offline consensus."""
-        target_models = models or list(self.router.MODEL_CAPABILITIES.keys())
-        for model_name in target_models:
-
-            async def executor(prompt: str, *, model=model_name) -> Dict[str, Any]:
-                return self._default_executor(model, prompt)
-
-            self.consensus.register_executor(model_name, executor)
-
-    def _default_executor(self, model_name: str, prompt: str) -> Dict[str, Any]:
-        """Deterministic heuristic executor used in offline mode."""
-        prompt_lower = prompt.lower()
-        negative_keywords = ("fail", "error", "bug", "reject", "issue", "missing", "panic")
-        positive_keywords = ("pass", "success", "complete", "approve", "ready", "implement", "implementation", "ship")
-
-        import hashlib
-
-        hashed = hashlib.sha1(f"{model_name}:{prompt_lower}".encode("utf-8"))
-        score = int(hashed.hexdigest()[:8], 16) / 0xFFFFFFFF
-
-        if any(word in prompt_lower for word in negative_keywords):
-            decision = "revise"
-            confidence = round(0.45 + (1 - score) * 0.35, 2)
-            reasoning = "Failure cues detected in prompt context; requesting revision."
-        elif any(word in prompt_lower for word in positive_keywords):
-            decision = "approve" if score > 0.25 else "revise"
-            confidence = round(0.55 + score * 0.4, 2) if decision == "approve" else round(0.4 + score * 0.2, 2)
-            reasoning = (
-                "Strong success language present; approving with confidence." if decision == "approve"
-                else "Positive language detected but heuristic vote recommends revision for caution."
-            )
-        else:
-            decision = "approve" if score >= 0.5 else "revise"
-            confidence = round(0.5 + abs(0.5 - score), 2)
-            reasoning = (
-                "Neutral prompt; defaulting to approval after balanced heuristic." if decision == "approve"
-                else "Neutral prompt but heuristic variance triggered revision recommendation."
-            )
-
-        token_estimate = max(32, len(prompt) // 4)
-
-        return {
-            "response": {
-                "decision": decision,
-                "confidence": confidence,
-                "reasoning": reasoning,
-            },
-            "confidence": confidence,
-            "reasoning": reasoning,
-            "tokens_used": token_estimate,
-            "metadata": {
-                "model": model_name,
-                "heuristic": "deterministic_offline",
-                "offline": True,
-                "score": score,
-            },
-        }
 
     def _build_chat_messages(self, prompt: str) -> List[Dict[str, str]]:
         system_prompt = self._build_system_prompt()

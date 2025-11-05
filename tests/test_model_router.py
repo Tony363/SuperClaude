@@ -303,12 +303,15 @@ class TestModelRouterFacade:
     def test_facade_returns_serializable_payload(self):
         facade = ModelRouterFacade(offline=True)
 
+        _register_uniform_stub_executors(facade)
+
         result = run(facade.run_consensus("Implementation completed successfully."))
 
         assert isinstance(result, dict)
         assert 'consensus_reached' in result
         assert 'votes' in result
         assert isinstance(result['votes'], list)
+        assert result['consensus_reached'] is True
 
     def test_facade_supports_custom_models(self):
         facade = ModelRouterFacade(offline=True)
@@ -334,6 +337,8 @@ class TestModelRouterFacade:
 
     def test_facade_respects_think_level(self):
         facade = ModelRouterFacade(offline=True)
+
+        _register_uniform_stub_executors(facade)
 
         deep_result = run(
             facade.run_consensus(
@@ -401,6 +406,18 @@ class TestModelRouterFacade:
         assert len(result['disagreements']) >= 1
         responses = {vote['response']['decision'] for vote in result['votes'] if isinstance(vote['response'], dict)}
         assert responses == {'approve', 'revise'}
+
+    def test_facade_reports_missing_executors(self):
+        facade = ModelRouterFacade(offline=True)
+        result = run(
+            facade.run_consensus(
+                "Should fail when no executors are available?",
+                models=['gpt-4o'],
+            )
+        )
+
+        assert result['consensus_reached'] is False
+        assert 'No consensus executors registered' in result['error']
 
     def test_facade_invokes_openai_provider_with_api_key(self, monkeypatch):
         monkeypatch.setenv("OPENAI_API_KEY", "test-key")
@@ -505,3 +522,26 @@ def test_executor_think_flag_routes_models(monkeypatch):
     assert result['think_level'] == 3
     assert context.consensus_summary is not None
     assert context.consensus_summary.get('think_level') == 3
+def _register_uniform_stub_executors(facade: ModelRouterFacade, decision: str = 'approve') -> None:
+    """Register simple deterministic executors for every known model."""
+
+    for model_name in facade.router.MODEL_CAPABILITIES.keys():
+
+        async def executor(prompt: str, *, model=model_name) -> Dict[str, Any]:
+            reasoning = f"{model} voting {decision} for prompt"
+            return {
+                'response': {
+                    'decision': decision,
+                    'confidence': 0.8,
+                    'reasoning': reasoning,
+                },
+                'confidence': 0.8,
+                'reasoning': reasoning,
+                'tokens_used': max(32, len(prompt) // 4),
+                'metadata': {
+                    'model': model,
+                    'source': 'uniform_stub',
+                }
+            }
+
+        facade.consensus.register_executor(model_name, executor)

@@ -1,25 +1,29 @@
-# Command Catalogue (Stub)
+# Command Catalogue
 
-All `/sc:` commands advertised in the README resolve to the implementations in
-`SuperClaude/Commands`. Until the full manual is restored, start here:
+The table below summarises the `/sc:*` commands available in the current build
+and the artefacts they generate.
 
-- [Operations Manual](../../SuperClaude/Core/OPERATIONS.md) — Priorities, rules,
-  and execution guidance for each command group.
-- [Command executor module](../../SuperClaude/Commands/executor.py) — Source of
-  the CLI dispatcher.
+| Command              | Purpose                                            | Key Artefacts |
+| -------------------- | -------------------------------------------------- | ------------- |
+| `/sc:implement`      | Plan and apply code changes with guardrails        | `SuperClaude/Implementation/`, metrics, optional diff |
+| `/sc:test`           | Run project tests with flag translation            | Test logs, metrics, exit status |
+| `/sc:workflow`       | Expand a PRD/spec into actionable steps            | Markdown plan under `SuperClaude/Implementation/` |
+| `/sc:business-panel` | Generate stakeholder-facing status reports         | Markdown artefact + telemetry entry |
+| `/sc:analyze`        | Perform static analysis and risk assessment        | Risk summary, metrics |
+| `/sc:improve`        | Refine existing modules (e.g., readability passes) | Updated files + plan summary |
+| `/sc:reflect`        | Record post-change retrospectives                  | Markdown reflections with next steps |
+| `/sc:save` / `/sc:load` | Persist or restore workspace sessions          | UnifiedStore SQLite snapshots |
 
-## Using This Stub
+## Flags Common to Most Commands
 
-- `SuperClaude --help` lists the live command set.
-- Each subcommand module inside `SuperClaude/Commands` contains richly
-  documented docstrings that mirror the v6 workflow.
+- `--think <1-3>`: Controls reasoning depth and consensus quorum selection.
+- `--consensus`: Forces multi-model votes regardless of command defaults.
+- `--fast-codex`: Routes implementation work through the lean Codex persona
+  (requires live API keys).
+- `--safe`: Disables risky modes such as fast-codex and enforces stricter
+  guardrails.
+- `--delegate <agent>`: Pin execution to a specific agent.
+- `--loop`: Allow iterative agent hand-offs until success criteria are met.
 
-### Fast Codex Shortcut
-- `/sc:implement --fast-codex` loads the lean `codex-implementer` persona for small, high-confidence diffs.
-- Guardrails remain active—if consensus is forced or `--safe` is present, the executor falls back to the
-  standard multi-persona implementation path.
-- Command results surface `execution_mode` and `fast_codex` payloads so telemetry and automation can
-  distinguish fast-mode runs from the canonical workflow.
-
-Future updates will expand this file with walkthroughs, examples, and advanced
-scenarios without breaking existing links.
+See the individual command modules under `SuperClaude/Commands/` for extended
+options and YAML front matter describing required context.

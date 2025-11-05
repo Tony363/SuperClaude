@@ -1,65 +1,185 @@
 #!/usr/bin/env python3
-"""
-Lightweight benchmarking harness for SuperClaude.
+"""SuperClaude benchmark harness.
 
-The README references `python benchmarks/run_benchmarks.py` for validating the
-stack. This script currently proxies to fast smoke tests so the command succeeds
-while the dedicated performance suite is under construction.
+Runs curated pytest and CLI checks while recording execution time so the project
+has a tangible performance signal instead of a placeholder script.
 """
 
 from __future__ import annotations
 
 import argparse
-import sys
-from pathlib import Path
+import os
 import subprocess
-from typing import Sequence
+import sys
+import textwrap
+from dataclasses import dataclass
+from pathlib import Path
+from time import perf_counter
+from typing import Iterable, List, Mapping, MutableMapping, Sequence
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
-def run_pytest(targets: Sequence[str]) -> int:
-    """Execute pytest for the given targets relative to the repository root."""
-    try:
-        import pytest  # type: ignore
-    except ImportError:
-        cmd = ["pytest", "-q", *targets]
-        completed = subprocess.run(cmd, cwd=REPO_ROOT, check=False)
-        return completed.returncode
-    else:
-        absolute_targets = [str(REPO_ROOT / target) for target in targets]
-        return pytest.main(["-q", *absolute_targets])
+@dataclass
+class BenchmarkCase:
+    """Single benchmark case to execute."""
+
+    name: str
+    command: Sequence[str]
+    description: str
+    env: Mapping[str, str] | None = None
+
+
+@dataclass
+class BenchmarkResult:
+    name: str
+    description: str
+    duration_s: float
+    success: bool
+    returncode: int
+    stdout: str
+    stderr: str
+
+
+def _pytest_case(name: str, target: str, description: str) -> BenchmarkCase:
+    env = {
+        **os.environ,
+        "PYTEST_DISABLE_PLUGIN_AUTOLOAD": "1",
+    }
+    return BenchmarkCase(
+        name=name,
+        command=("pytest", "-q", target),
+        description=description,
+        env=env,
+    )
+
+
+def _cli_case(name: str, command: Sequence[str], description: str) -> BenchmarkCase:
+    return BenchmarkCase(name=name, command=command, description=description)
+
+
+SUITES: Mapping[str, List[BenchmarkCase]] = {
+    "smoke": [
+        _pytest_case(
+            "version-tests",
+            "tests/test_version.py",
+            "Validate version metadata stays in sync.",
+        ),
+        _cli_case(
+            "cli-help",
+            (sys.executable, "-m", "SuperClaude", "--help"),
+            "Ensure the SuperClaude CLI responds to --help.",
+        ),
+    ],
+    "integration": [
+        _pytest_case(
+            "integration-tests",
+            "tests/test_integration.py",
+            "Exercise high-level integration tests.",
+        ),
+        _pytest_case(
+            "worktree-tests",
+            "tests/test_worktree_state.py",
+            "Check worktree guardrail behaviour.",
+        ),
+    ],
+    "full": [
+        BenchmarkCase(
+            name="quality-suite",
+            command=("pytest", "-m", "not slow", "tests"),
+            description="Run the primary pytest suite (excluding slow markers).",
+            env={
+                **os.environ,
+                "PYTEST_DISABLE_PLUGIN_AUTOLOAD": "1",
+            },
+        ),
+        _cli_case(
+            "benchmark-report",
+            (sys.executable, "scripts/report_agent_usage.py"),
+            "Generate the agent usage report to confirm telemetry parsing.",
+        ),
+    ],
+}
+
+
+def run_case(case: BenchmarkCase) -> BenchmarkResult:
+    env: MutableMapping[str, str] = dict(os.environ)
+    if case.env:
+        env.update(case.env)
+
+    start = perf_counter()
+    completed = subprocess.run(
+        case.command,
+        cwd=REPO_ROOT,
+        env=env,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    duration = perf_counter() - start
+
+    return BenchmarkResult(
+        name=case.name,
+        description=case.description,
+        duration_s=duration,
+        success=completed.returncode == 0,
+        returncode=completed.returncode,
+        stdout=completed.stdout,
+        stderr=completed.stderr,
+    )
+
+
+def _format_result(result: BenchmarkResult) -> str:
+    status = "PASS" if result.success else "FAIL"
+    return (
+        f"[{status:4}] {result.name:<20} {result.duration_s:6.2f}s — {result.description}"
+    )
+
+
+def _print_details(result: BenchmarkResult) -> None:
+    if result.stdout.strip():
+        print(textwrap.indent(result.stdout.rstrip(), prefix="    >> "))
+    if result.stderr.strip():
+        print(textwrap.indent(result.stderr.rstrip(), prefix="    !! "))
 
 
 def main(argv: Sequence[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(
-        description="SuperClaude benchmark harness (placeholder)."
-    )
+    parser = argparse.ArgumentParser(description="SuperClaude benchmark harness")
     parser.add_argument(
         "--suite",
-        choices=("smoke", "integration", "full"),
+        choices=tuple(SUITES.keys()),
         default="smoke",
-        help="Benchmark suite to execute (defaults to the fast smoke tests).",
+        help="Benchmark suite to execute (defaults to smoke).",
+    )
+    parser.add_argument(
+        "--verbose",
+        action="store_true",
+        help="Print stdout/stderr from each benchmark case.",
     )
     args = parser.parse_args(argv)
 
-    if args.suite == "smoke":
-        targets = ["tests/test_version.py"]
-    elif args.suite == "integration":
-        targets = ["tests/test_integration.py"]
-    else:  # full
-        targets = [
-            "tests/test_version.py",
-            "tests/test_integration.py",
-        ]
+    cases: Iterable[BenchmarkCase] = SUITES[args.suite]
+    print(f"Running {args.suite} benchmark suite…")
 
-    print(f"Running {args.suite} benchmark suite using pytest…")
-    exit_code = run_pytest(targets)
-    if exit_code == 0:
-        print("✅ Benchmark harness completed without failures.")
-    else:
-        print("❌ Benchmark harness reported failures.", file=sys.stderr)
-    return exit_code
+    results = [run_case(case) for case in cases]
+    for result in results:
+        print(_format_result(result))
+        if args.verbose:
+            _print_details(result)
+
+    success = all(result.success for result in results)
+    total_time = sum(result.duration_s for result in results)
+    print(f"Total time: {total_time:.2f}s")
+
+    if not success:
+        failing = [r for r in results if not r.success]
+        print(f"\nFailures: {len(failing)}", file=sys.stderr)
+        for result in failing:
+            print(_format_result(result), file=sys.stderr)
+            _print_details(result)
+        return 1
+
+    return 0
 
 
 if __name__ == "__main__":

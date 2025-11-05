@@ -1,24 +1,55 @@
-# MCP Server Integrations (Stub)
+# MCP Server Integrations
 
-SuperClaude bundles three MCP integrations (Zen, Rube, and Browser) with configuration stored under `SuperClaude/MCP`.
+SuperClaude ships with three Model Context Protocol (MCP) servers. This guide
+explains how to configure each one and how they behave now that mock fallbacks
+have been removed.
 
-Refer to the core assets for the current connection details:
+## 1. Configuration Overview
 
-- [MCP integration module](../../SuperClaude/MCP/__init__.py)
-- [Core tooling reference](../../SuperClaude/Core/TOOLS.md)
+- Edit `SuperClaude/Config/mcp.yaml` to enable/disable servers or to override
+  endpoints.
+- The CLI honours `SC_NETWORK_MODE`. Set it to `offline` to skip network calls,
+  `online` for full access, or `debug` to log request payloads.
+- Server-specific environment variables:
+  - `SC_ZEN_OFFLINE=1` to force Zen into offline mode (requires manual executor
+    registration).
+  - `SC_RUBE_API_KEY` for Rube automation calls.
+  - `SC_BROWSER_MODE=on` to collect snapshots from the Browser MCP.
 
-## Getting Started
+## 2. Zen Integration (Consensus)
 
-- Run `SuperClaude install --components mcp` to provision the recommended set.
-- Export `SC_NETWORK_MODE=online` (or edit `SuperClaude/Config/mcp.yaml`) when you want Rube to execute live automation. Without network access it automatically returns dry-run payloads.
-- Provide a Composio token via `SC_RUBE_API_KEY` or the `servers.rube.api_key` field to authorise requests.
-- Use `SC_RUBE_MODE=dry-run` to force simulation even when the network is available.
-- Enable Browser MCP by setting `SC_BROWSER_MODE=on` (or `--browser` flag on `/sc:test`); register the local Claude Browser server before running linked commands.
+- The Zen adapter now uses `ModelRouterFacade.run_consensus`, which means it
+  requires the same provider executors as the rest of the framework.
+- When no executors are available the integration raises `RuntimeError` and the
+  command fails fast—there is no heuristic fallback.
+- Provide API keys or register in-memory executors during tests:
 
-Each integration exposes helper utilities:
-- `ZenIntegration` handles consensus orchestration and thinking modes.
-- `RubeIntegration` bridges to Composio-backed automations with first-class dry-run telemetry.
-- `BrowserIntegration` records console logs, snapshots, and lightweight accessibility checks when network policies permit.
+  ```python
+  from SuperClaude.ModelRouter import ModelRouterFacade
 
-This placeholder keeps the README link working while the full integration guide
-is reconstructed.
+  facade = ModelRouterFacade(offline=True)
+  facade.consensus.register_executor('gpt-4o', my_executor)
+  ```
+
+## 3. Rube Integration (Automation)
+
+- Enable by setting `servers.rube.enabled: true` in `mcp.yaml` and exporting
+  `SC_RUBE_API_KEY`.
+- Use `SC_RUBE_MODE=dry-run` to simulate responses without hitting the network.
+- Errors bubble up with actionable messages (e.g., missing token, HTTP failure)
+  so automation scripts can abort cleanly.
+
+## 4. Browser Integration
+
+- Provide `SC_BROWSER_MODE=on` (or pass `--browser` to relevant commands) to
+  collect console logs and snapshots.
+- When network policies disallow browser access the integration reports a
+  skipped snapshot rather than returning placeholder data.
+
+## 5. Troubleshooting
+
+- Check `.superclaude_metrics/mcp.log` for detailed request/response traces.
+- Use `python -m SuperClaude.MCP --list` to confirm available integrations.
+- Run `python benchmarks/run_benchmarks.py --suite integration` after changing
+  MCP settings; the suite exercises Rube and Browser paths alongside the main
+  workflow tests.
