@@ -15,8 +15,12 @@ import sys
 import argparse
 import subprocess
 import difflib
+import importlib
+import os
+import shlex
+import textwrap
 from pathlib import Path
-from typing import Dict, Callable
+from typing import Callable, Dict, Optional
 
 # Add the local 'setup' directory to the Python import path
 current_dir = Path(__file__).parent
@@ -28,45 +32,184 @@ DEFAULT_INSTALL_DIR = Path.home() / ".claude"
 
 # Try to import utilities from the setup package
 SETUP_IMPORT_FAILED = False
-try:
+_BOOTSTRAP_SKIP_VALUES = {"1", "true", "yes", "on"}
+
+
+def _import_setup_symbols():
     from setup.utils.ui import (
-        display_header, display_info, display_success, display_error,
-        display_warning, Colors
+        display_header,
+        display_info,
+        display_success,
+        display_error,
+        display_warning,
+        Colors,
     )
     from setup.utils.logger import setup_logging, get_logger, LogLevel
-    from setup import DEFAULT_INSTALL_DIR
-except ImportError:
-    # If imports fail, try adding setup directory to path
+    from setup import DEFAULT_INSTALL_DIR as setup_default_dir
+    return (
+        display_header,
+        display_info,
+        display_success,
+        display_error,
+        display_warning,
+        Colors,
+        setup_logging,
+        get_logger,
+        LogLevel,
+        setup_default_dir,
+    )
+
+
+def _handle_setup_import_failure(error: ImportError, *, retry: bool) -> None:
+    """
+    Attempt to bootstrap the setup package or exit with actionable guidance.
+    """
+    global SETUP_IMPORT_FAILED
+
+    skip_bootstrap = (
+        os.environ.get("SUPERCLAUDE_SKIP_BOOTSTRAP", "").strip().lower()
+        in _BOOTSTRAP_SKIP_VALUES
+    )
+
+    attempted = False
+    bootstrap_error: Optional[str] = None
+
+    if not skip_bootstrap and not retry:
+        bootstrap_cmd = [
+            sys.executable,
+            "-m",
+            "pip",
+            "install",
+            "-e",
+            str(project_root),
+        ]
+        cmd_display = " ".join(shlex.quote(part) for part in bootstrap_cmd)
+        sys.stderr.write(
+            f"[SuperClaude] setup imports failed ({error}).\n"
+            f"[SuperClaude] Attempting bootstrap via: {cmd_display}\n"
+        )
+        try:
+            result = subprocess.run(
+                bootstrap_cmd,
+                check=True,
+                cwd=str(project_root),
+            )
+            attempted = True
+        except subprocess.CalledProcessError as bootstrap_exc:
+            attempted = True
+            bootstrap_error = (
+                f"bootstrap command exited with status {bootstrap_exc.returncode}"
+            )
+        except FileNotFoundError as bootstrap_exc:
+            attempted = True
+            bootstrap_error = f"pip executable not found: {bootstrap_exc}"
+        except Exception as bootstrap_exc:  # noqa: BLE001 - surface failure
+            attempted = True
+            bootstrap_error = str(bootstrap_exc)
+        else:
+            if result.returncode == 0:
+                importlib.invalidate_caches()
+                return
+            bootstrap_error = f"bootstrap command exited with status {result.returncode}"
+
+    error_desc = str(error) or error.__class__.__name__
+    cmd_display = f"{sys.executable} -m pip install -e {shlex.quote(str(project_root))}"
+
+    reason_lines = []
+    if skip_bootstrap:
+        reason_lines.append(
+            "Automatic bootstrapping is disabled (SUPERCLAUDE_SKIP_BOOTSTRAP is set)."
+        )
+    elif attempted:
+        reason_lines.append(
+            f"Automatic bootstrap attempt failed: {bootstrap_error or 'unknown error'}."
+        )
+
+    guidance = textwrap.dedent(
+        f"""
+        SuperClaude CLI requires the bundled setup package but it could not be imported ({error_desc}).
+        """
+    ).strip()
+
+    if reason_lines:
+        guidance = f"{guidance}\n\n" + "\n".join(reason_lines)
+
+    guidance = (
+        f"{guidance}\n\n"
+        "To resolve the issue:\n"
+        "  1. Activate your preferred virtual environment (if applicable).\n"
+        f"  2. Install SuperClaude in editable mode:\n     {cmd_display}\n"
+        "  3. Re-run the SuperClaude command.\n\n"
+        "Set SUPERCLAUDE_SKIP_BOOTSTRAP=1 to bypass automatic installation attempts.\n"
+    )
+
+    SETUP_IMPORT_FAILED = True
+    raise SystemExit(guidance)
+
+
+try:
+    (
+        display_header,
+        display_info,
+        display_success,
+        display_error,
+        display_warning,
+        Colors,
+        setup_logging,
+        get_logger,
+        LogLevel,
+        DEFAULT_INSTALL_DIR,
+    ) = _import_setup_symbols()
+except ImportError as import_error:
     if setup_dir.exists():
         sys.path.insert(0, str(setup_dir.parent))
         try:
-            from setup.utils.ui import (
-                display_header, display_info, display_success, display_error,
-                display_warning, Colors
-            )
-            from setup.utils.logger import setup_logging, get_logger, LogLevel
-            from setup import DEFAULT_INSTALL_DIR
-        except ImportError:
-            # Still failing, use fallbacks
-            SETUP_IMPORT_FAILED = True
-
-    # Provide minimal fallback functions and constants if imports fail
-    class Colors:
-        RED = YELLOW = GREEN = CYAN = RESET = ""
-
-    def display_error(msg): print(f"[ERROR] {msg}")
-    def display_warning(msg): print(f"[WARN] {msg}")
-    def display_success(msg): print(f"[OK] {msg}")
-    def display_info(msg): print(f"[INFO] {msg}")
-    def display_header(title, subtitle): print(f"{title} - {subtitle}")
-    def get_logger(): return None
-    def setup_logging(*args, **kwargs): pass
-    class LogLevel:
-        ERROR = 40
-        INFO = 20
-        DEBUG = 10
-
-    SETUP_IMPORT_FAILED = True
+            (
+                display_header,
+                display_info,
+                display_success,
+                display_error,
+                display_warning,
+                Colors,
+                setup_logging,
+                get_logger,
+                LogLevel,
+                DEFAULT_INSTALL_DIR,
+            ) = _import_setup_symbols()
+        except ImportError as retry_error:
+            _handle_setup_import_failure(retry_error, retry=False)
+            try:
+                (
+                    display_header,
+                    display_info,
+                    display_success,
+                    display_error,
+                    display_warning,
+                    Colors,
+                    setup_logging,
+                    get_logger,
+                    LogLevel,
+                    DEFAULT_INSTALL_DIR,
+                ) = _import_setup_symbols()
+            except ImportError as final_error:
+                _handle_setup_import_failure(final_error, retry=True)
+    else:
+        _handle_setup_import_failure(import_error, retry=False)
+        try:
+            (
+                display_header,
+                display_info,
+                display_success,
+                display_error,
+                display_warning,
+                Colors,
+                setup_logging,
+                get_logger,
+                LogLevel,
+                DEFAULT_INSTALL_DIR,
+            ) = _import_setup_symbols()
+        except ImportError as final_error:
+            _handle_setup_import_failure(final_error, retry=True)
 
 
 def create_global_parser() -> argparse.ArgumentParser:

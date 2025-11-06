@@ -11,6 +11,7 @@ from datetime import datetime, timedelta
 from typing import Any, AsyncIterator, Dict, List, Optional
 
 from .http_utils import HTTPClientError, post_json
+from ..Monitoring.performance_monitor import get_monitor
 
 logger = logging.getLogger(__name__)
 
@@ -107,6 +108,7 @@ class GoogleClient:
         self.rate_limiter = RateLimiter(config.rate_limit_rpm, config.rate_limit_tpm)
         self.token_counter = TokenCounter()
         self.provider = "google"
+        self.monitor = get_monitor()
 
     async def complete(self, request: GeminiRequest) -> GeminiResponse:
         """
@@ -188,6 +190,13 @@ class GoogleClient:
             response.model,
             response.token_count.get("total_tokens", 0),
         )
+        if self.monitor:
+            self.monitor.record_token_usage(
+                model=response.model,
+                provider=self.provider,
+                usage=response.token_count,
+                metadata={"endpoint": "generateContent"},
+            )
         return response
 
     async def complete_long_context(

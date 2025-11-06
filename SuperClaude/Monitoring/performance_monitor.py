@@ -107,6 +107,8 @@ class PerformanceMonitor:
         self.start_time = datetime.now()
         self.is_monitoring = False
         self.monitor_task = None
+        self.token_usage_counters = defaultdict(lambda: {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0, "calls": 0})
+        self.token_usage_history = deque(maxlen=10000)
 
         # Persistence sinks (best-effort)
         self.sinks: List[MetricsSink] = []
@@ -177,10 +179,14 @@ class PerformanceMonitor:
     def get_metrics(self) -> Dict[str, Any]:
         """Return a simplified metrics snapshot for quick checks."""
         snap = self.snapshots[-1] if self.snapshots else None
+        tokens_snapshot = self.token_usage_counters.get("aggregate", {})
         return {
             'cpu_percent': getattr(snap, 'cpu_percent', 0.0),
             'memory_percent': getattr(snap, 'memory_percent', 0.0),
-            'token_count': 0,
+            'token_prompt_total': tokens_snapshot.get('prompt_tokens', 0),
+            'token_completion_total': tokens_snapshot.get('completion_tokens', 0),
+            'token_total': tokens_snapshot.get('total_tokens', 0),
+            'token_calls': tokens_snapshot.get('calls', 0)
         }
 
     def record_metric(
@@ -229,6 +235,98 @@ class PerformanceMonitor:
                 sink.write_event(event)
             except Exception:
                 logger.debug("Failed to persist metric event via %s", sink, exc_info=True)
+
+    def record_token_usage(
+        self,
+        *,
+        model: Optional[str],
+        provider: Optional[str],
+        usage: Dict[str, int],
+        metadata: Optional[Dict[str, Any]] = None
+    ) -> None:
+        """
+        Record token usage statistics for model invocations.
+
+        Args:
+            model: Model identifier (optional).
+            provider: Provider name (optional).
+            usage: Dict containing token counts (prompt_tokens, completion_tokens, total_tokens).
+            metadata: Additional context (optional).
+        """
+        model_key = model or "unknown"
+        provider_key = provider or "unknown"
+        prompt_tokens = int(usage.get("prompt_tokens", 0))
+        completion_tokens = int(usage.get("completion_tokens", 0))
+        total_tokens = int(usage.get("total_tokens", prompt_tokens + completion_tokens))
+
+        timestamp = datetime.now()
+
+        entry = {
+            "timestamp": timestamp.isoformat(),
+            "model": model_key,
+            "provider": provider_key,
+            "prompt_tokens": prompt_tokens,
+            "completion_tokens": completion_tokens,
+            "total_tokens": total_tokens,
+            "metadata": metadata or {},
+        }
+        self.token_usage_history.append(entry)
+
+        for key in {"aggregate", provider_key, model_key, f"{provider_key}:{model_key}"}:
+            bucket = self.token_usage_counters[key]
+            bucket["prompt_tokens"] += prompt_tokens
+            bucket["completion_tokens"] += completion_tokens
+            bucket["total_tokens"] += total_tokens
+            bucket["calls"] += 1
+
+        self.record_metric(
+            "token.usage.total",
+            float(total_tokens),
+            MetricType.COUNTER,
+            tags={"provider": provider_key, "model": model_key},
+        )
+        self.record_metric(
+            "token.usage.prompt",
+            float(prompt_tokens),
+            MetricType.COUNTER,
+            tags={"provider": provider_key, "model": model_key},
+        )
+        self.record_metric(
+            "token.usage.completion",
+            float(completion_tokens),
+            MetricType.COUNTER,
+            tags={"provider": provider_key, "model": model_key},
+        )
+
+        token_event = {
+            "type": "token_usage",
+            "data": {
+                **entry,
+                "counters": [
+                    {
+                        "key": "aggregate",
+                        **self.token_usage_counters["aggregate"],
+                    },
+                    {
+                        "key": provider_key,
+                        **self.token_usage_counters[provider_key],
+                    },
+                    {
+                        "key": model_key,
+                        **self.token_usage_counters[model_key],
+                    },
+                    {
+                        "key": f"{provider_key}:{model_key}",
+                        **self.token_usage_counters[f"{provider_key}:{model_key}"],
+                    },
+                ],
+            },
+        }
+        for sink in self.sinks:
+            try:
+                sink.write_event(token_event)
+            except Exception:
+                logger.debug("Failed to persist token usage event via %s", sink, exc_info=True)
 
     def record_event(self, event_type: str, data: Dict[str, Any]) -> None:
         """Persist a structured monitoring event."""

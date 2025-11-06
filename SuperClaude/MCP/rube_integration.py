@@ -12,6 +12,7 @@ import asyncio
 import json
 import logging
 import os
+import time
 from typing import Any, Awaitable, Callable, Dict, Optional
 
 logger = logging.getLogger(__name__)
@@ -23,6 +24,23 @@ except ImportError:  # pragma: no cover - httpx may not be installed
 
 
 AsyncSender = Callable[[str, Dict[str, Any]], Awaitable[Dict[str, Any]]]
+
+
+class RubeInvocationError(RuntimeError):
+    """Structured error raised when a live Rube MCP invocation fails."""
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        status: Optional[int] = None,
+        code: Optional[str] = None,
+        details: Optional[Dict[str, Any]] = None,
+    ):
+        super().__init__(message)
+        self.status = status
+        self.code = code
+        self.details = details or {}
 
 
 class RubeIntegration:
@@ -57,6 +75,13 @@ class RubeIntegration:
         self._dry_run = False
         self._http_sender = http_sender
         self._client: Optional["httpx.AsyncClient"] = None  # type: ignore[name-defined]
+        self.max_retries = max(0, int(self.config.get("max_retries", 2)))
+        self.retry_backoff_seconds = max(0.1, float(self.config.get("retry_backoff_seconds", 0.5)))
+        self.max_retry_delay = max(
+            self.retry_backoff_seconds, float(self.config.get("max_retry_delay", 8.0))
+        )
+        self.telemetry_enabled = bool(self.config.get("telemetry_enabled", True))
+        self.telemetry_label = self.config.get("telemetry_label", "rube_mcp")
 
     @property
     def enabled(self) -> bool:
@@ -140,17 +165,7 @@ class RubeIntegration:
             }
 
         sender = self._http_sender or self._send_via_httpx
-
-        try:
-            response = await sender(self.endpoint, request_body)
-        except Exception as exc:  # pragma: no cover - network errors depend on environment
-            logger.error("Rube MCP request failed: %s", exc)
-            raise RuntimeError(f"Rube MCP request failed: {exc}") from exc
-
-        if not isinstance(response, dict):
-            raise RuntimeError("Unexpected Rube MCP response format.")
-
-        return response
+        return await self._invoke_with_retries(sender, request_body, tool)
 
     async def _send_via_httpx(self, url: str, body: Dict[str, Any]) -> Dict[str, Any]:
         """Send a request using httpx (live mode)."""
@@ -179,3 +194,174 @@ class RubeIntegration:
             return True
 
         return False
+
+    async def _invoke_with_retries(
+        self,
+        sender: AsyncSender,
+        request_body: Dict[str, Any],
+        tool: str,
+    ) -> Dict[str, Any]:
+        """Invoke the sender with retry/backoff and telemetry."""
+
+        max_attempts = max(1, 1 + self.max_retries)
+        attempt = 0
+
+        while attempt < max_attempts:
+            attempt += 1
+            start = time.perf_counter()
+            try:
+                response = await sender(self.endpoint, request_body)
+                duration = time.perf_counter() - start
+                if not isinstance(response, dict):
+                    raise RuntimeError("Unexpected Rube MCP response format.")
+                self._record_telemetry("success", tool, request_body, attempt, duration)
+                return response
+            except Exception as exc:
+                duration = time.perf_counter() - start
+                retryable = self._is_retryable(exc)
+                if attempt >= max_attempts or not retryable:
+                    self._record_telemetry(
+                        "failure",
+                        tool,
+                        request_body,
+                        attempt,
+                        duration,
+                        error=exc,
+                        extra={"retryable": retryable},
+                    )
+                    error_details = self._format_error(exc)
+                    error_details.update(
+                        {
+                            "tool": tool,
+                            "attempts": attempt,
+                            "endpoint": self.endpoint,
+                            "retryable": retryable,
+                        }
+                    )
+                    raise RubeInvocationError(
+                        f"Rube MCP request failed after {attempt} attempt(s)",
+                        status=error_details.get("status"),
+                        code=error_details.get("code"),
+                        details=error_details,
+                    ) from exc
+
+                delay = min(
+                    self.max_retry_delay,
+                    self.retry_backoff_seconds * (2 ** (attempt - 1)),
+                )
+                self._record_telemetry(
+                    "retry",
+                    tool,
+                    request_body,
+                    attempt,
+                    duration,
+                    error=exc,
+                    extra={"retry_delay_seconds": round(delay, 4)},
+                )
+                await asyncio.sleep(delay)
+
+        # Should never reach here due to the loop logic.
+        raise RubeInvocationError("Rube MCP invocation exhausted retries unexpectedly.")
+
+    def _is_retryable(self, exc: Exception) -> bool:
+        """Determine if an exception is retryable."""
+        transient_types = (asyncio.TimeoutError,)
+        if httpx is not None:
+            transient_types = transient_types + (
+                httpx.TransportError,  # type: ignore[attr-defined]
+                httpx.TimeoutException,  # type: ignore[attr-defined]
+            )
+
+        if isinstance(exc, transient_types):
+            return True
+
+        message = str(exc).lower()
+        transient_tokens = ("timeout", "temporarily", "again later", "rate limit", "429")
+        return any(token in message for token in transient_tokens)
+
+    def _record_telemetry(
+        self,
+        outcome: str,
+        tool: str,
+        request_body: Dict[str, Any],
+        attempt: int,
+        duration: float,
+        *,
+        error: Optional[Exception] = None,
+        extra: Optional[Dict[str, Any]] = None,
+    ) -> None:
+        """Emit structured telemetry for each invocation outcome."""
+        if not self.telemetry_enabled:
+            return
+
+        payload_keys = sorted(request_body.get("payload", {}).keys())
+        event = {
+            "label": self.telemetry_label,
+            "event": "rube_mcp.invoke",
+            "tool": tool,
+            "outcome": outcome,
+            "attempt": attempt,
+            "duration_ms": round(duration * 1000, 3),
+            "endpoint": self.endpoint,
+            "dry_run": self._dry_run,
+            "payload_keys": payload_keys,
+            "scopes": list(self.scopes),
+        }
+
+        if extra:
+            event.update(extra)
+
+        if error:
+            event["error"] = self._summarize_error(error)
+
+        log_line = "[RubeMCP] %s"
+        log_payload = json.dumps(event, default=str)
+        if outcome == "success":
+            logger.info(log_line, log_payload)
+        elif outcome == "retry":
+            logger.warning(log_line, log_payload)
+        else:
+            logger.error(log_line, log_payload)
+
+    def _summarize_error(self, exc: Exception) -> Dict[str, Any]:
+        """Provide a compact summary of an exception for telemetry."""
+        summary: Dict[str, Any] = {
+            "type": exc.__class__.__name__,
+            "message": str(exc),
+        }
+        response = getattr(exc, "response", None)
+        if response is not None:
+            summary["status"] = getattr(response, "status_code", None)
+        return summary
+
+    def _format_error(self, exc: Exception) -> Dict[str, Any]:
+        """Produce a detailed, structured error payload."""
+        details = self._summarize_error(exc)
+        response = getattr(exc, "response", None)
+        if response is not None:
+            details["status"] = getattr(response, "status_code", None)
+            details["code"] = getattr(response, "reason_phrase", None)
+            try:
+                details["response_body"] = response.json()
+            except Exception:  # pragma: no cover - defensive
+                text = response.text
+                details["response_body"] = self._truncate(text)
+            headers = {
+                k: v
+                for k, v in response.headers.items()
+                if k.lower().startswith("x-")
+            }
+            if headers:
+                details["response_headers"] = headers
+            request = getattr(response, "request", None)
+            if request is not None:
+                details["method"] = getattr(request, "method", None)
+                details["url"] = str(getattr(request, "url", "")) or None
+        return details
+
+    @staticmethod
+    def _truncate(value: str, limit: int = 512) -> str:
+        """Truncate long strings for error reporting."""
+        if len(value) <= limit:
+            return value
+        return value[:limit] + "...<truncated>"
