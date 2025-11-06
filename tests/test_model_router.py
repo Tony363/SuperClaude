@@ -3,6 +3,9 @@ Test model router functionality.
 """
 
 import asyncio
+import copy
+import hashlib
+import json
 import pytest
 from pathlib import Path
 import sys
@@ -36,6 +39,53 @@ from SuperClaude.Quality.quality_scorer import QualityScorer
 
 def run(coro):
     return asyncio.run(coro)
+
+
+@pytest.fixture(scope="module")
+def consensus_fixtures(fixture_root) -> Dict[str, Dict[str, Dict[str, Any]]]:
+    base = fixture_root / "consensus"
+    return {
+        "approve": json.loads((base / "approve.json").read_text(encoding="utf-8")),
+        "split": json.loads((base / "split.json").read_text(encoding="utf-8")),
+    }
+
+
+def _build_fixture_executor(payload: Dict[str, Any]):
+    template = copy.deepcopy(payload)
+
+    async def executor(prompt: str) -> Dict[str, Any]:
+        token_estimate = len(prompt.split()) or 1
+        metadata = copy.deepcopy(template.get("metadata", {}))
+        metadata["prompt_hash"] = hashlib.sha1(prompt.encode("utf-8")).hexdigest()
+        return {
+            "response": copy.deepcopy(template.get("response")),
+            "confidence": template.get("confidence", 0.75),
+            "reasoning": template.get("reasoning", "deterministic fixture response"),
+            "tokens_used": max(template.get("tokens_used", 0), token_estimate),
+            "metadata": metadata,
+        }
+
+    return executor
+
+
+def _deterministic_executor(decision: Any, confidence: float = 0.8, provider: str = "test"):
+    async def executor(prompt: str) -> Dict[str, Any]:
+        tokens = len(prompt.split()) or 1
+        metadata = {
+            "provider": provider,
+            "decision": decision,
+            "prompt_hash": hashlib.sha1(prompt.encode("utf-8")).hexdigest(),
+        }
+        reasoning = f"Deterministic verdict '{decision}' for prompt of {tokens} tokens"
+        return {
+            "response": decision,
+            "confidence": confidence,
+            "reasoning": reasoning,
+            "tokens_used": tokens,
+            "metadata": metadata,
+        }
+
+    return executor
 
 
 class TestModelRouter:
@@ -159,18 +209,9 @@ class TestConsensusBuilder:
         """Test majority voting consensus."""
         builder = ConsensusBuilder()
 
-        # Mock executor for testing
-        async def mock_executor(prompt):
-            return {
-                'response': 'Yes',
-                'confidence': 0.8,
-                'reasoning': 'Test reasoning',
-                'tokens_used': 100
-            }
-
-        builder.register_executor('gpt-5', mock_executor)
-        builder.register_executor('claude-opus-4.1', mock_executor)
-        builder.register_executor('gpt-4.1', mock_executor)
+        builder.register_executor('gpt-5', _deterministic_executor('Yes', confidence=0.82, provider='openai'))
+        builder.register_executor('claude-opus-4.1', _deterministic_executor('Yes', confidence=0.78, provider='anthropic'))
+        builder.register_executor('gpt-4.1', _deterministic_executor('Yes', confidence=0.75, provider='openai'))
 
         # Build consensus
         result = run(
@@ -189,19 +230,9 @@ class TestConsensusBuilder:
         """Test quorum voting consensus."""
         builder = ConsensusBuilder()
 
-        # Mock executors with different responses
-        async def executor1(prompt):
-            return {'response': 'A', 'confidence': 0.9, 'reasoning': 'Reason A', 'tokens_used': 100}
-
-        async def executor2(prompt):
-            return {'response': 'A', 'confidence': 0.8, 'reasoning': 'Reason A2', 'tokens_used': 100}
-
-        async def executor3(prompt):
-            return {'response': 'B', 'confidence': 0.7, 'reasoning': 'Reason B', 'tokens_used': 100}
-
-        builder.register_executor('model1', executor1)
-        builder.register_executor('model2', executor2)
-        builder.register_executor('model3', executor3)
+        builder.register_executor('model1', _deterministic_executor('A', confidence=0.9, provider='test'))
+        builder.register_executor('model2', _deterministic_executor('A', confidence=0.8, provider='test'))
+        builder.register_executor('model3', _deterministic_executor('B', confidence=0.7, provider='test'))
 
         # Build consensus with quorum of 2
         result = run(
@@ -220,19 +251,25 @@ class TestConsensusBuilder:
         """Test debate-style consensus."""
         builder = ConsensusBuilder()
 
-        # Mock executors
-        async def mock_executor(prompt):
-            stance = "FOR" if "FOR" in prompt else "AGAINST" if "AGAINST" in prompt else "NEUTRAL"
+        async def debate_executor(prompt: str) -> Dict[str, Any]:
+            if "FOR" in prompt.upper():
+                decision = {'decision': 'approve', 'stance': 'FOR'}
+            elif "AGAINST" in prompt.upper():
+                decision = {'decision': 'revise', 'stance': 'AGAINST'}
+            else:
+                decision = {'decision': 'neutral', 'stance': 'NEUTRAL'}
+            tokens = len(prompt.split()) or 1
             return {
-                'response': f"Response {stance}",
+                'response': decision,
                 'confidence': 0.75,
-                'reasoning': f"Reasoning for {stance}",
-                'tokens_used': 150
+                'reasoning': f"Debate response for stance {decision['stance']}",
+                'tokens_used': tokens,
+                'metadata': {'prompt_hash': hashlib.sha1(prompt.encode('utf-8')).hexdigest()},
             }
 
-        builder.register_executor('gpt-5', mock_executor)
-        builder.register_executor('claude-opus-4.1', mock_executor)
-        builder.register_executor('gpt-4.1', mock_executor)
+        builder.register_executor('gpt-5', debate_executor)
+        builder.register_executor('claude-opus-4.1', debate_executor)
+        builder.register_executor('gpt-4.1', debate_executor)
 
         # Run debate
         result = run(
@@ -246,55 +283,6 @@ class TestConsensusBuilder:
         assert result is not None
         assert len(result.votes) == 3
         assert result.synthesis is not None
-
-
-RECORDED_CONSENSUS_FIXTURE_APPROVE = {
-    'gpt-5': {
-        'response': {'decision': 'approve', 'notes': 'Primary reviewer satisfied.'},
-        'confidence': 0.88,
-        'reasoning': 'Comprehensive testing evidence and quality loop passed.',
-        'tokens_used': 180,
-        'metadata': {'fixture': 'approve', 'provider': 'openai'}
-    },
-    'claude-opus-4.1': {
-        'response': {'decision': 'approve', 'notes': 'Risk profile acceptable.'},
-        'confidence': 0.82,
-        'reasoning': 'Security and maintainability concerns resolved.',
-        'tokens_used': 160,
-        'metadata': {'fixture': 'approve', 'provider': 'anthropic'}
-    },
-    'gpt-4.1': {
-        'response': {'decision': 'approve', 'notes': 'Fallback review matches.'},
-        'confidence': 0.76,
-        'reasoning': 'No outstanding issues detected.',
-        'tokens_used': 140,
-        'metadata': {'fixture': 'approve', 'provider': 'openai'}
-    }
-}
-
-RECORDED_CONSENSUS_FIXTURE_SPLIT = {
-    'gpt-5': {
-        'response': {'decision': 'approve', 'notes': 'Meets success criteria.'},
-        'confidence': 0.74,
-        'reasoning': 'Feature passes regression tests.',
-        'tokens_used': 150,
-        'metadata': {'fixture': 'split', 'provider': 'openai'}
-    },
-    'claude-opus-4.1': {
-        'response': {'decision': 'revise', 'notes': 'Observability gap discovered.'},
-        'confidence': 0.71,
-        'reasoning': 'Lack of monitoring in rollout plan.',
-        'tokens_used': 155,
-        'metadata': {'fixture': 'split', 'provider': 'anthropic'}
-    },
-    'gpt-4.1': {
-        'response': {'decision': 'revise', 'notes': 'Tests insufficient.'},
-        'confidence': 0.69,
-        'reasoning': 'Negative scenario missing coverage.',
-        'tokens_used': 148,
-        'metadata': {'fixture': 'split', 'provider': 'openai'}
-    }
-}
 
 
 class TestModelRouterFacade:
@@ -362,44 +350,40 @@ class TestModelRouterFacade:
             'gpt-4o', 'gpt-4o-mini', 'grok-code-fast-1'
         }
 
-    def test_facade_consensus_with_recorded_fixture(self):
+    def test_facade_consensus_with_recorded_fixture(self, consensus_fixtures):
         facade = ModelRouterFacade(offline=True)
         facade.consensus.model_executors.clear()
 
-        for model_name, payload in RECORDED_CONSENSUS_FIXTURE_APPROVE.items():
+        approve_fixture = consensus_fixtures["approve"]
 
-            async def executor(prompt: str, *, result=payload) -> Dict[str, Any]:
-                return result
-
-            facade.consensus.register_executor(model_name, executor)
+        for model_name, payload in approve_fixture.items():
+            facade.consensus.register_executor(model_name, _build_fixture_executor(payload))
 
         result = run(
             facade.run_consensus(
                 "All acceptance criteria satisfied; proceed?",
-                models=list(RECORDED_CONSENSUS_FIXTURE_APPROVE.keys())
+                models=list(approve_fixture.keys())
             )
         )
 
         assert result['consensus_reached'] is True
         assert result['final_decision']['decision'] == 'approve'
         assert result['offline'] is True
-        assert len(result['votes']) == len(RECORDED_CONSENSUS_FIXTURE_APPROVE)
+        assert len(result['votes']) == len(approve_fixture)
 
-    def test_facade_records_disagreements_from_fixture(self):
+    def test_facade_records_disagreements_from_fixture(self, consensus_fixtures):
         facade = ModelRouterFacade(offline=True)
         facade.consensus.model_executors.clear()
 
-        for model_name, payload in RECORDED_CONSENSUS_FIXTURE_SPLIT.items():
+        split_fixture = consensus_fixtures["split"]
 
-            async def executor(prompt: str, *, result=payload) -> Dict[str, Any]:
-                return result
-
-            facade.consensus.register_executor(model_name, executor)
+        for model_name, payload in split_fixture.items():
+            facade.consensus.register_executor(model_name, _build_fixture_executor(payload))
 
         result = run(
             facade.run_consensus(
                 "Risky deployment detected; proceed?",
-                models=list(RECORDED_CONSENSUS_FIXTURE_SPLIT.keys())
+                models=list(split_fixture.keys())
             )
         )
 
@@ -528,7 +512,8 @@ def _register_uniform_stub_executors(facade: ModelRouterFacade, decision: str = 
     for model_name in facade.router.MODEL_CAPABILITIES.keys():
 
         async def executor(prompt: str, *, model=model_name) -> Dict[str, Any]:
-            reasoning = f"{model} voting {decision} for prompt"
+            tokens = len(prompt.split()) or 1
+            reasoning = f"{model} voting {decision} for prompt ({tokens} tokens)"
             return {
                 'response': {
                     'decision': decision,
@@ -537,10 +522,11 @@ def _register_uniform_stub_executors(facade: ModelRouterFacade, decision: str = 
                 },
                 'confidence': 0.8,
                 'reasoning': reasoning,
-                'tokens_used': max(32, len(prompt) // 4),
+                'tokens_used': max(32, tokens * 4),
                 'metadata': {
                     'model': model,
                     'source': 'uniform_stub',
+                    'prompt_hash': hashlib.sha1(prompt.encode('utf-8')).hexdigest(),
                 }
             }
 

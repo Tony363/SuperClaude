@@ -22,75 +22,100 @@ from SuperClaude.MCP import (
 from SuperClaude.Modes.behavioral_manager import BehavioralMode
 
 
-class MockTransport:
-    """Deterministic transport used for unit testing."""
+class InMemoryBrowserTransport:
+    """Deterministic transport that maintains lightweight browser state."""
 
     def __init__(self) -> None:
         self.initialized = False
         self.closed = False
         self.calls: List[Tuple[str, Dict[str, Any]]] = []
+        self.current_url: str = "about:blank"
+        self.console_history: List[str] = []
+        self.viewport = (1280, 720)
 
     async def initialize(self, config: Dict[str, Any], browser_config: BrowserConfig) -> None:
         self.initialized = True
+        self.viewport = (browser_config.viewport_width, browser_config.viewport_height)
+        self.console_history.append("[transport] session initialised")
 
     async def invoke(self, tool: str, payload: Dict[str, Any]) -> Dict[str, Any]:
         self.calls.append((tool, payload))
 
         if tool == 'browser.navigate':
             url = payload['url']
+            self.current_url = url
+            self.console_history.append(f"[transport] navigated to {url}")
             return {
                 'status': 'success',
                 'url': url,
-                'title': f"Mock page for {url}",
+                'title': f"In-memory page for {url}",
                 'loaded': True,
             }
         if tool == 'browser.click':
-            return {'status': 'success', 'selector': payload['selector'], 'clicked': True}
+            selector = payload['selector']
+            self.console_history.append(f"[transport] clicked {selector}")
+            return {'status': 'success', 'selector': selector, 'clicked': True}
         if tool == 'browser.type':
-            return {'status': 'success', 'selector': payload['selector'], 'entered': payload['text']}
+            selector = payload['selector']
+            text = payload['text']
+            self.console_history.append(f"[transport] typed '{text}' into {selector}")
+            return {'status': 'success', 'selector': selector, 'entered': text}
         if tool == 'browser.snapshot':
-            url = payload.get('url', 'about:blank')
+            url = payload.get('url', self.current_url)
             return {
                 'snapshot': {
                     'url': url,
-                    'title': 'Mock Snapshot',
+                    'title': f"Snapshot for {url}",
                     'accessibility_tree': {'role': 'document', 'children': []},
-                    'console_logs': ['[mock] DOM ready'],
+                    'console_logs': list(self.console_history[-5:]),
                     'timestamp': datetime.now().isoformat(),
                 }
             }
         if tool == 'browser.screenshot':
+            width = payload['config']['viewport']['width']
+            height = payload['config']['viewport']['height']
+            size_bytes = max(1, width * height // 6)
             return {
                 'screenshot': {
                     'path': payload['path'],
                     'format': 'png',
-                    'width': payload['config']['viewport']['width'],
-                    'height': payload['config']['viewport']['height'],
-                    'size_bytes': 2048,
+                    'width': width,
+                    'height': height,
+                    'size_bytes': size_bytes,
                     'timestamp': datetime.now().isoformat(),
                 }
             }
         if tool == 'browser.console_logs':
-            return {'logs': ['[mock] log 1', '[mock] log 2']}
+            return {'logs': list(self.console_history)}
         if tool == 'browser.select':
-            return {'status': 'success', 'selector': payload['selector'], 'values': payload['values']}
+            selector = payload['selector']
+            values = payload['values']
+            self.console_history.append(f"[transport] selected {values} in {selector}")
+            return {'status': 'success', 'selector': selector, 'values': values}
         if tool == 'browser.press_key':
-            return {'status': 'success', 'key': payload['key']}
+            key = payload['key']
+            self.console_history.append(f"[transport] pressed {key}")
+            return {'status': 'success', 'key': key}
         if tool == 'browser.back':
+            self.console_history.append("[transport] navigated back")
             return {'status': 'success', 'action': 'back'}
         if tool == 'browser.forward':
+            self.console_history.append("[transport] navigated forward")
             return {'status': 'success', 'action': 'forward'}
         if tool == 'browser.hover':
-            return {'status': 'success', 'selector': payload['selector']}
+            selector = payload['selector']
+            self.console_history.append(f"[transport] hovered {selector}")
+            return {'status': 'success', 'selector': selector}
 
         return {'status': 'success'}
 
     async def close(self) -> None:
         self.closed = True
+        self.console_history.append("[transport] session closed")
 
 
 def test_browser_integration_initializes_transport():
-    transport = MockTransport()
+    transport = InMemoryBrowserTransport()
     browser = BrowserIntegration(config={'enabled': True}, transport=transport)
 
     assert browser.enabled is True
@@ -103,7 +128,7 @@ def test_browser_integration_initializes_transport():
 
 
 def test_browser_navigation_invokes_transport():
-    transport = MockTransport()
+    transport = InMemoryBrowserTransport()
     browser = BrowserIntegration(config={'enabled': True}, transport=transport)
 
     asyncio.run(browser.initialize())
@@ -114,7 +139,7 @@ def test_browser_navigation_invokes_transport():
 
 
 def test_browser_snapshot_returns_dataclass():
-    transport = MockTransport()
+    transport = InMemoryBrowserTransport()
     browser = BrowserIntegration(config={'enabled': True}, transport=transport)
 
     asyncio.run(browser.initialize())
@@ -127,7 +152,7 @@ def test_browser_snapshot_returns_dataclass():
 
 
 def test_browser_screenshot_returns_metadata():
-    transport = MockTransport()
+    transport = InMemoryBrowserTransport()
     browser_config = BrowserConfig(mode=BrowserMode.headless, viewport_width=800, viewport_height=600)
     browser = BrowserIntegration(config={'enabled': True}, browser_config=browser_config, transport=transport)
 
@@ -141,19 +166,19 @@ def test_browser_screenshot_returns_metadata():
 
 
 def test_browser_console_logs():
-    transport = MockTransport()
+    transport = InMemoryBrowserTransport()
     browser = BrowserIntegration(config={'enabled': True}, transport=transport)
 
     asyncio.run(browser.initialize())
     asyncio.run(browser.navigate('https://example.com'))
     logs = asyncio.run(browser.get_console_logs())
 
-    assert len(logs) == 2
-    assert '[mock] log 1' in logs[0]
+    assert len(logs) >= 2
+    assert any('[transport]' in entry for entry in logs)
 
 
 def test_browser_cleanup_closes_transport():
-    transport = MockTransport()
+    transport = InMemoryBrowserTransport()
     browser = BrowserIntegration(config={'enabled': True}, transport=transport)
 
     asyncio.run(browser.initialize())
@@ -164,7 +189,7 @@ def test_browser_cleanup_closes_transport():
 
 
 def test_browser_disabled_raises_runtime_error():
-    browser = BrowserIntegration(config={'enabled': False}, transport=MockTransport())
+    browser = BrowserIntegration(config={'enabled': False}, transport=InMemoryBrowserTransport())
 
     with pytest.raises(RuntimeError):
         asyncio.run(browser.navigate('https://example.com'))
@@ -178,7 +203,7 @@ def test_execute_browser_tests_helper(monkeypatch):
     metadata = registry.get_command('test')
     assert metadata is not None
 
-    transport = MockTransport()
+    transport = InMemoryBrowserTransport()
     browser = BrowserIntegration(config={'enabled': True}, transport=transport)
 
     parsed = parser.parse('/sc:test https://example.com --browser --type visual')

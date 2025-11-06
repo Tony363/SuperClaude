@@ -5,6 +5,7 @@ Integration tests for SuperClaude Framework v6.0.0-alpha
 
 import unittest
 import asyncio
+import tempfile
 from pathlib import Path
 import sys
 
@@ -29,8 +30,11 @@ class TestCoreComponents(unittest.TestCase):
     def test_agent_loader(self):
         """Test agent loading system"""
         loader = AgentLoader()
-        self.assertIsNotNone(loader)
-        # Mock test as actual loading would require agent files
+        agent = loader.load_agent("general-purpose")
+        self.assertIsNotNone(agent)
+        result = agent.execute({"task": "Draft release notes for the latest sprint"})
+        self.assertIn('status', result)
+        self.assertTrue(result['status'] in {'executed', 'plan-only'})
 
     def test_extended_agent_loader(self):
         """Test extended agent loading"""
@@ -42,8 +46,9 @@ class TestCoreComponents(unittest.TestCase):
     def test_model_router(self):
         """Test model routing"""
         router = ModelRouter()
-        self.assertIsNotNone(router)
-        # Mock test for model selection
+        decision = router.route(task_type='standard', think_level=2)
+        self.assertIn(decision.primary_model, router.MODEL_CAPABILITIES)
+        self.assertGreater(decision.confidence, 0)
 
     def test_quality_scorer(self):
         """Test quality scoring system"""
@@ -217,8 +222,7 @@ class TestAsyncComponents(unittest.TestCase):
         """Test async command registry"""
         async def test():
             registry = CommandRegistry()
-            # Mock test as actual loading would require command files
-            return True
+            return 'implement' in registry.commands
 
         result = run_async_test(test())
         self.assertTrue(result)
@@ -227,9 +231,16 @@ class TestAsyncComponents(unittest.TestCase):
         """Test async worktree manager"""
         async def test():
             from SuperClaude.Core.worktree_manager import WorktreeManager
-            # Mock test as actual git operations would require a repo
-            manager = WorktreeManager("/tmp/test-repo")
-            return manager is not None
+            repo_root = Path(tempfile.mkdtemp())
+            manager = WorktreeManager(str(repo_root))
+            applied = manager.apply_changes([
+                {
+                    "path": "docs/example.txt",
+                    "content": "hello world",
+                    "mode": "replace",
+                }
+            ])
+            return 'docs/example.txt' in applied.get('applied', [])
 
         result = run_async_test(test())
         self.assertTrue(result)

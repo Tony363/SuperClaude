@@ -9,33 +9,32 @@ from SuperClaude.Commands.executor import CommandExecutor
 from SuperClaude.Commands.parser import CommandParser
 from SuperClaude.Commands.registry import CommandRegistry
 from SuperClaude.ModelRouter.consensus import ConsensusBuilder, ModelVote, VoteType
+from SuperClaude.Monitoring.performance_monitor import PerformanceMonitor
+from SuperClaude.Monitoring.sink import MetricsSink
 from SuperClaude.Retrieval import RepoRetriever
 
 
-class DummyMonitor:
+class MemorySink(MetricsSink):
     def __init__(self) -> None:
-        self.metrics = []
         self.events = []
 
-    def record_metric(self, name, value, metric_type, tags=None):  # noqa: D401
-        self.metrics.append((name, value, metric_type, tags))
-
-    def record_event(self, event_type, data):  # noqa: D401
-        self.events.append((event_type, data))
+    def write_event(self, event):  # noqa: D401
+        self.events.append(event)
 
 
-def build_executor(tmp_path: Path) -> CommandExecutor:
+def build_executor(tmp_path: Path) -> tuple[CommandExecutor, MemorySink]:
     registry = CommandRegistry()
     parser = CommandParser(registry)
     executor = CommandExecutor(registry, parser)
     executor.repo_root = tmp_path
-    executor.monitor = DummyMonitor()
+    sink = MemorySink()
+    executor.monitor = PerformanceMonitor(config={"persist_metrics": False}, sinks=[sink])
     executor.retriever = RepoRetriever(tmp_path)
-    return executor
+    return executor, sink
 
 
 def test_consensus_policy_overrides(tmp_path):
-    executor = build_executor(tmp_path)
+    executor, _ = build_executor(tmp_path)
     policy = executor._resolve_consensus_policy('implement')
     assert policy['vote_type'] == VoteType.QUORUM
     assert policy['quorum_size'] == 3
@@ -59,7 +58,7 @@ def test_consensus_majority_detects_agreement():
 
 
 def test_static_validation_detects_import_error(tmp_path):
-    executor = build_executor(tmp_path)
+    executor, _ = build_executor(tmp_path)
     file_path = tmp_path / 'module.py'
     file_path.write_text('import nonexistent_module\n\nprint(value)', encoding='utf-8')
 
@@ -84,7 +83,7 @@ def test_retriever_returns_hits(tmp_path):
 
 
 def test_record_requires_evidence_event_records_payload(tmp_path):
-    executor = build_executor(tmp_path)
+    executor, sink = build_executor(tmp_path)
     monitor = executor.monitor
 
     executor._record_requires_evidence_metrics(
@@ -98,5 +97,6 @@ def test_record_requires_evidence_event_records_payload(tmp_path):
         {'consensus_vote_type': 'majority', 'consensus_quorum_size': 2},
     )
 
-    assert any(name.endswith('missing_evidence') for name, *_ in monitor.metrics)
-    assert any(event[0] == 'hallucination.guardrail' for event in monitor.events)
+    metric_names = [metric.name for metrics in monitor.metrics.values() for metric in metrics]
+    assert any(name.endswith('missing_evidence') for name in metric_names)
+    assert any(event.get('event_type') == 'hallucination.guardrail' for event in sink.events)

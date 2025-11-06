@@ -1,32 +1,45 @@
-"""Pytest fixtures and environment shims."""
+"""Shared pytest configuration for SuperClaude test suite."""
 
-import sys
-import types
+from __future__ import annotations
 
+import os
+import shutil
+from pathlib import Path
 
-class _PsutilProcessStub:
-    def cpu_percent(self) -> float:
-        return 0.0
+import pytest
 
-    def memory_info(self):
-        return types.SimpleNamespace(rss=0)
-
-    def memory_percent(self) -> float:
-        return 0.0
-
-    def io_counters(self):
-        return types.SimpleNamespace(read_bytes=0, write_bytes=0)
-
-    def num_threads(self) -> int:
-        return 1
+from SuperClaude.Agents import usage_tracker
 
 
-class _PsutilStub:
-    def __init__(self) -> None:
-        self.Process = lambda: _PsutilProcessStub()
+@pytest.fixture(scope="session", autouse=True)
+def configure_test_environment(tmp_path_factory: pytest.TempPathFactory) -> Path:
+    """Set deterministic environment defaults for the test session."""
 
-    def net_io_counters(self):
-        return types.SimpleNamespace(bytes_sent=0, bytes_recv=0)
+    metrics_dir = tmp_path_factory.mktemp("metrics")
+    os.environ.setdefault("SUPERCLAUDE_METRICS_DIR", str(metrics_dir))
+    os.environ.setdefault("SUPERCLAUDE_OFFLINE_MODE", "1")
+    os.environ.setdefault("SC_NETWORK_MODE", "offline")
+
+    yield Path(metrics_dir)
+
+    # Ensure metric artefacts from one run do not leak into another.
+    usage_tracker.reset_usage_stats(for_tests=True)
+    if Path(metrics_dir).exists():
+        shutil.rmtree(metrics_dir, ignore_errors=True)
 
 
-sys.modules.setdefault('psutil', _PsutilStub())
+@pytest.fixture(autouse=True)
+def reset_agent_usage() -> None:
+    """Clear agent usage counters before and after every test."""
+
+    usage_tracker.reset_usage_stats(for_tests=True)
+    yield
+    usage_tracker.reset_usage_stats(for_tests=True)
+
+
+@pytest.fixture(scope="session")
+def fixture_root() -> Path:
+    """Return the path containing test fixtures."""
+
+    return Path(__file__).parent / "fixtures"
+

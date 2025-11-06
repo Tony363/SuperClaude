@@ -1,8 +1,8 @@
-"""
-Test CLI functionality and argument parsing.
-"""
+"""Test CLI functionality and argument parsing."""
 
 import argparse
+import os
+import subprocess
 import sys
 from pathlib import Path
 
@@ -76,43 +76,58 @@ def test_operation_modules():
         assert isinstance(desc, str)
         assert len(desc) > 0
 
-def test_main_no_args(monkeypatch, capsys):
+def _cli_env() -> dict:
+    env = os.environ.copy()
+    env.setdefault("SUPERCLAUDE_OFFLINE_MODE", "1")
+    env.setdefault("SC_NETWORK_MODE", "offline")
+    return env
+
+
+def test_main_no_args():
     """Running the CLI with no args should list available operations."""
-    from SuperClaude.__main__ import main
+    result = subprocess.run(
+        [sys.executable, "-m", "SuperClaude"],
+        capture_output=True,
+        text=True,
+        env=_cli_env(),
+    )
 
-    monkeypatch.setattr(sys, 'argv', ['SuperClaude'])
-    exit_code = main()
-    captured = capsys.readouterr()
-
-    assert exit_code == 0
-    assert "Available operations" in captured.out
+    assert result.returncode == 0
+    assert "Available operations" in result.stdout
 
 
-def test_main_invalid_operation(monkeypatch, capsys):
+def test_main_invalid_operation():
     """Invalid operations should return exit code 1 and print an error."""
-    from SuperClaude.__main__ import main
+    result = subprocess.run(
+        [sys.executable, "-m", "SuperClaude", "invalid_op"],
+        capture_output=True,
+        text=True,
+        env=_cli_env(),
+    )
 
-    monkeypatch.setattr(sys, 'argv', ['SuperClaude', 'invalid_op'])
-    exit_code = main()
-    captured = capsys.readouterr()
-
-    assert exit_code == 1
-    assert "Unknown operation" in captured.out
+    assert result.returncode == 1
+    assert "Unknown operation" in result.stdout
 
 
-def test_main_keyboard_interrupt(monkeypatch, capsys):
-    """If parser setup raises KeyboardInterrupt the CLI should exit cleanly."""
-    import SuperClaude.__main__ as cli
+def test_main_keyboard_interrupt():
+    """KeyboardInterrupt during parser creation exits with 130."""
+    script = (
+        "import SuperClaude.__main__ as cli\n"
+        "def raising():\n"
+        "    raise KeyboardInterrupt()\n"
+        "cli.create_parser = raising\n"
+        "exit(cli.main())\n"
+    )
 
-    def raising_create_parser():
-        raise KeyboardInterrupt()
+    result = subprocess.run(
+        [sys.executable, "-c", script],
+        capture_output=True,
+        text=True,
+        env=_cli_env(),
+    )
 
-    monkeypatch.setattr(cli, 'create_parser', raising_create_parser)
-    exit_code = cli.main()
-    captured = capsys.readouterr()
-
-    assert exit_code == 130
-    assert "Operation cancelled by user" in captured.out
+    assert result.returncode == 130
+    assert "Operation cancelled by user" in result.stdout
 
 
 def test_fallback_functions():
