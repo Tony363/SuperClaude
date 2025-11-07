@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import subprocess
 from pathlib import Path
 
@@ -23,13 +24,34 @@ def command_workspace(tmp_path, monkeypatch):
 
 
 @pytest.fixture
+def codex_cli_stub(tmp_path, monkeypatch):
+    script = tmp_path / "codex-cli-stub.py"
+    script.write_text(
+        "#!/usr/bin/env python3\n"
+        "import json, sys\n"
+        "args = sys.argv[1:]\n"
+        "if not args or args[0] != 'exec':\n"
+        "    sys.exit(1)\n"
+        "# Accept extra flags like --full-auto and --json\n"
+        "payload = {\"summary\": \"Codex CLI stub\", \"changes\": []}\n"
+        "print(json.dumps(payload))\n",
+        encoding="utf-8",
+    )
+    script.chmod(0o755)
+    monkeypatch.setenv("SUPERCLAUDE_CODEX_CLI", str(script))
+    monkeypatch.delenv("SUPERCLAUDE_CODEX_ARGS", raising=False)
+    monkeypatch.setenv("SUPERCLAUDE_CODEX_ARGS", "--json")
+    return script
+
+
+@pytest.fixture
 def executor(command_workspace):
     registry = CommandRegistry()
     parser = CommandParser()
     return CommandExecutor(registry, parser)
 
 
-def test_implement_fast_codex_requires_evidence(executor):
+def test_implement_fast_codex_requires_evidence(executor, codex_cli_stub):
     result = asyncio.run(executor.execute("/sc:implement telemetry guardrail --fast-codex"))
 
     assert result.status == "failed"
@@ -52,7 +74,7 @@ def test_implement_fast_codex_requires_evidence(executor):
         assert Path(artifact).exists()
 
 
-def test_implement_safe_apply_fails_without_plan(executor, command_workspace):
+def test_implement_safe_apply_fails_without_plan(executor, command_workspace, codex_cli_stub):
     result = asyncio.run(
         executor.execute("/sc:implement snapshot stub --fast-codex --safe-apply")
     )
@@ -66,7 +88,7 @@ def test_implement_safe_apply_fails_without_plan(executor, command_workspace):
     assert not safe_root.exists()
 
 
-def test_fast_codex_respects_safe_flag(executor):
+def test_fast_codex_respects_safe_flag(executor, codex_cli_stub):
     result = asyncio.run(executor.execute("/sc:implement guarded flow --fast-codex --safe"))
 
     fast_state = result.output.get("fast_codex") or {}
@@ -74,6 +96,15 @@ def test_fast_codex_respects_safe_flag(executor):
     assert fast_state.get("active") is False
     assert "safety-requested" in (fast_state.get("blocked") or [])
     assert any("no concrete change plan" in error.lower() for error in result.errors)
+
+
+def test_fast_codex_requires_cli(monkeypatch, command_workspace):
+    monkeypatch.setenv("SUPERCLAUDE_CODEX_CLI", "codex-missing-binary")
+    registry = CommandRegistry()
+    parser = CommandParser()
+    exec_instance = CommandExecutor(registry, parser)
+    with pytest.raises(RuntimeError, match="Codex CLI is required"):
+        asyncio.run(exec_instance.execute("/sc:implement demo feature --fast-codex"))
 
 
 def test_business_panel_produces_artifact(executor):

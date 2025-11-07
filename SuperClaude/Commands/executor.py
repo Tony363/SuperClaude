@@ -31,6 +31,7 @@ from ..Agents.loader import AgentLoader
 from ..Agents.extended_loader import ExtendedAgentLoader, AgentCategory, MatchScore
 from ..Agents.registry import AgentRegistry
 from ..Agents import usage_tracker as agent_usage_tracker
+from ..APIClients.codex_cli import CodexCLIClient, CodexCLIUnavailable
 from ..MCP import get_mcp_integration
 from ..ModelRouter.facade import ModelRouterFacade
 from ..ModelRouter.consensus import VoteType
@@ -908,6 +909,35 @@ class CommandExecutor:
             codex_output = codex_agent_output.get('codex_suggestions')
             if codex_output:
                 context.results['codex_suggestions'] = codex_output
+            cli_meta = codex_agent_output.get('codex_cli')
+            if cli_meta:
+                fast_state = context.results.get('fast_codex') or {}
+                fast_state.setdefault('requested', context.fast_codex_requested)
+                fast_state.setdefault('active', context.fast_codex_active)
+                fast_state['cli'] = {
+                    'duration_s': cli_meta.get('duration_s'),
+                    'returncode': cli_meta.get('returncode'),
+                }
+                context.results['fast_codex'] = fast_state
+                context.results['fast_codex_cli'] = True
+                if self.monitor:
+                    try:
+                        self.monitor.record_event(
+                            'commands.fast_codex.cli',
+                            {
+                                'timestamp': datetime.now().isoformat(),
+                                'duration_s': cli_meta.get('duration_s'),
+                                'returncode': cli_meta.get('returncode'),
+                            },
+                        )
+                        self.monitor.record_metric(
+                            'commands.fast_codex.cli.duration',
+                            float(cli_meta.get('duration_s', 0.0)),
+                            MetricType.TIMER,
+                            tags={'mode': 'fast-codex'},
+                        )
+                    except Exception:
+                        logger.debug('Failed to record fast-codex CLI telemetry', exc_info=True)
 
         summary_lines = [
             f"Implementation request for: {' '.join(context.command.arguments) or 'unspecified scope'}",
@@ -3581,6 +3611,31 @@ class CommandExecutor:
                     blocked_tags
                 )
 
+        if snapshot.get('fast_codex_cli'):
+            cli_tags = {
+                'command': command_name,
+                'mode': execution_mode,
+            }
+            self.monitor.record_metric(
+                "commands.fast_codex.cli.used",
+                1,
+                MetricType.COUNTER,
+                cli_tags,
+            )
+            cli_state = snapshot.get('fast_codex') or {}
+            cli_detail = cli_state.get('cli') or {}
+            try:
+                duration_value = float(cli_detail.get('duration_s', 0.0))
+            except (TypeError, ValueError):
+                duration_value = 0.0
+            if duration_value:
+                self.monitor.record_metric(
+                    "commands.fast_codex.cli.duration",
+                    duration_value,
+                    MetricType.TIMER,
+                    cli_tags,
+                )
+
         event_payload = {
             'timestamp': datetime.now().isoformat(),
             'command': command_name,
@@ -3597,6 +3652,7 @@ class CommandExecutor:
             'plan_only': derived_status == 'plan-only',
             'execution_mode': execution_mode,
             'fast_codex': snapshot.get('fast_codex'),
+            'fast_codex_cli': snapshot.get('fast_codex_cli'),
         }
         try:
             self.monitor.record_event('hallucination.guardrail', event_payload)
@@ -4543,6 +4599,12 @@ class CommandExecutor:
             context.results['execution_mode'] = 'standard'
             return
 
+        if not CodexCLIClient.is_available():
+            raise CodexCLIUnavailable(
+                "Codex CLI is required for --fast-codex. Install the 'codex' CLI or "
+                "set SUPERCLAUDE_CODEX_CLI to its path."
+            )
+
         context.fast_codex_active = True
         context.active_personas = ['codex-implementer']
         context.results['execution_mode'] = 'fast-codex'
@@ -4694,6 +4756,7 @@ class CommandExecutor:
             'parameters': context.command.parameters,
             'mode': context.behavior_mode,
             'mode_context': context.results.get('mode', {}),
+            'repo_root': str(self.repo_root or Path.cwd()),
         }
 
         retrieved_context = []
@@ -4720,6 +4783,11 @@ class CommandExecutor:
             try:
                 result = agent.execute(agent_payload)
             except Exception as exc:
+                if context.fast_codex_active and agent_name == 'codex-implementer':
+                    raise RuntimeError(
+                        "Codex CLI invocation failed in fast-codex mode. "
+                        "Install or repair the codex CLI to continue."
+                    ) from exc
                 warning = f"{agent_name}: execution error — {exc}"
                 logger.error(warning)
                 context.errors.append(warning)

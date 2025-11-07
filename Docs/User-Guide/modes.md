@@ -14,6 +14,8 @@ posture quickly.
 ## Fast Codex Mode
 
 - Activate with `--fast-codex` (only on implementation commands).
+- Requires the Codex CLI (`codex exec`) to be installed or referenced via
+  `SUPERCLAUDE_CODEX_CLI`; the command aborts if the binary is missing.
 - Loads the `codex-implementer` strategist, which now records Codex payloads
   when API keys are available. If keys are missing the mode falls back to the
   standard persona stack and emits a warning.

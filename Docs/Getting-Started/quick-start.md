@@ -49,7 +49,8 @@ for future comparisons.
 
 ## 5. Iterate Quickly
 
-- Use `--fast-codex` for low-risk diffs once you have supplied API keys.
+- Use `--fast-codex` for low-risk diffs once you have supplied API keys and the
+  `codex` CLI is installed locally.
 - Combine `--safe` with `--consensus` when touching security-sensitive modules.
 - Capture notes with `/sc:document` after significant edits; it writes concise
   summaries you can attach to PRs.

@@ -24,7 +24,7 @@ and the artefacts they generate.
 - `--think <1-3>`: Controls reasoning depth and consensus quorum selection.
 - `--consensus`: Forces multi-model votes regardless of command defaults.
 - `--fast-codex`: Routes implementation work through the lean Codex persona
-  (requires live API keys).
+  (requires live API keys and the `codex` CLI on your PATH).
 - `--safe`: Disables risky modes such as fast-codex and enforces stricter
   guardrails.
 - `--delegate <agent>`: Pin execution to a specific agent.

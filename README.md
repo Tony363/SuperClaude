@@ -137,6 +137,8 @@ heuristics to real provider clients.
 
 #### Fast Codex Mode
 - `--fast-codex` trims `/sc:implement` down to the `codex-implementer` persona for quick diffs.
+- Requires the Codex CLI (`codex exec`) to be installed or referenced via
+  `SUPERCLAUDE_CODEX_CLI`; the command fails fast if the binary is unavailable.
 - Guardrails stay active: `requires_evidence`, consensus checks, and MCP activation still run.
 - Telemetry surfaces `commands.fast_codex.*` metrics and the command result includes
   `execution_mode: fast-codex` alongside the usual artifacts.
