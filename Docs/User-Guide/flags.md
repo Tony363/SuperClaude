@@ -11,7 +11,7 @@ guardrails. Combine them to match the risk profile of your change.
 | `--consensus` | `/sc:workflow --consensus` | Forces multi-model voting even if the command does not require it by default. |
 | `--fast-codex` | `/sc:implement --fast-codex` | Switches to the codex-implementer persona for quick diffs. Requires live Codex/OpenAI credentials. |
 | `--safe` | `/sc:implement --safe` | Disables risky shortcuts (fast-codex, auto-apply) and raises the quality gate threshold. |
-| `--delegate <agent>` | `/sc:reflect --delegate technical-writer` | Pins execution to a specific agent when you know who should lead. |
+| `--delegate <agent>` | `/sc:document release-notes --delegate technical-writer` | Pins execution to a specific agent when you know who should lead. |
 | `--loop` | `/sc:improve --loop` | Allows the executor to re-plan with additional agents until success criteria are met. |
 | `--cwd <path>` | Pass on CLI | Run commands against a different repository without changing your working directory. |
 

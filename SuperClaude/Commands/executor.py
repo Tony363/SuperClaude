@@ -1706,6 +1706,78 @@ class CommandExecutor:
             'mode': descriptor.get('mode', 'replace'),
         }
 
+    def _assess_stub_requirement(
+        self,
+        context: CommandContext,
+        agent_result: Dict[str, Any],
+        *,
+        default_reason: Optional[str] = None,
+    ) -> Tuple[str, Optional[str]]:
+        """
+        Decide whether to emit an auto-generated stub or queue a follow-up action.
+
+        Returns:
+            Tuple of (action, reason) where action is 'stub', 'followup', or 'none'.
+        """
+        applied_changes = context.results.get('applied_changes') or []
+        if applied_changes:
+            return 'none', None
+
+        status = str(agent_result.get('status') or "").lower()
+        if status == 'executed':
+            return 'none', None
+
+        explicit_followup = agent_result.get('requires_followup')
+        if isinstance(explicit_followup, str):
+            return 'followup', explicit_followup
+        if explicit_followup:
+            return 'followup', default_reason or "Agent requested follow-up handling."
+
+        errors = agent_result.get('errors') or []
+        if errors:
+            return 'followup', errors[0]
+
+        if context.metadata.requires_evidence:
+            return 'stub', default_reason or "Command requires implementation evidence."
+
+        if status == 'plan-only':
+            return 'followup', default_reason or "Plan-only response provided without concrete changes."
+
+        return 'followup', default_reason or "Automation unable to produce concrete changes."
+
+    def _queue_followup(
+        self,
+        context: CommandContext,
+        reason: str,
+        *,
+        source: str,
+        metadata: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
+        """Queue a follow-up item for manual resolution."""
+        entry = {
+            'type': 'followup',
+            'command': context.command.name,
+            'session': context.session_id,
+            'reason': reason,
+            'source': source,
+            'created_at': datetime.utcnow().isoformat(),
+            'metadata': metadata or {},
+        }
+
+        followups = context.results.setdefault('requires_followup', [])
+        existing = next((item for item in followups if item.get('reason') == reason and item.get('source') == source), None)
+        if existing:
+            return existing
+
+        followups.append(entry)
+
+        if self.monitor:
+            tags = {'command': context.command.name, 'source': source}
+            self.monitor.record_event('commands.followup', entry)
+            self.monitor.record_metric('commands.followup.queued', 1, MetricType.COUNTER, tags)
+
+        return entry
+
     def _build_default_change_plan(
         self,
         context: CommandContext,
@@ -1721,39 +1793,39 @@ class CommandExecutor:
 
         plan: List[Dict[str, Any]] = []
 
-        stub_entry = self._build_auto_stub_entry(
+        action, reason = self._assess_stub_requirement(
             context,
             agent_result,
-            slug=slug,
-            session_fragment=session_fragment,
-            label_suffix=label_suffix,
+            default_reason="Agent did not provide concrete changes.",
         )
-        if stub_entry:
-            plan.append(stub_entry)
 
-        evidence_entry = self._build_default_evidence_entry(
-            context,
-            agent_result,
-            slug=slug,
-            session_fragment=session_fragment,
-            label_suffix=label_suffix,
-        )
-        if evidence_entry:
-            plan.append(evidence_entry)
-
-        if not plan:
-            # Fallback to a minimal note so downstream guardrails have something to inspect.
-            rel_path = (
-                Path('SuperClaude') /
-                'Implementation' /
-                f"{slug}-{session_fragment}{label_suffix or ''}.md"
+        if action == 'stub':
+            stub_entry = self._build_auto_stub_entry(
+                context,
+                agent_result,
+                slug=slug,
+                session_fragment=session_fragment,
+                label_suffix=label_suffix,
             )
-            plan.append({
-                'path': str(rel_path),
-                'content': '# Auto-generated placeholder\n',
-                'mode': 'replace',
-                'auto_stub': True
-            })
+            if stub_entry:
+                plan.append(stub_entry)
+
+            evidence_entry = self._build_default_evidence_entry(
+                context,
+                agent_result,
+                slug=slug,
+                session_fragment=session_fragment,
+                label_suffix=label_suffix,
+            )
+            if evidence_entry:
+                plan.append(evidence_entry)
+        elif action == 'followup':
+            self._queue_followup(
+                context,
+                reason or "Agent output lacked actionable change plan.",
+                source='default-change-plan',
+                metadata={'label': label},
+            )
 
         return plan
 
@@ -2393,25 +2465,56 @@ class CommandExecutor:
             }
         )
 
-        change_entry = self._build_generic_stub_change(context, summary)
-        apply_result = self._apply_change_plan(context, [change_entry])
-        applied_files = apply_result.get('applied', [])
-        change_warnings = apply_result.get('warnings', []) or []
-        if change_warnings:
-            context.errors.extend(change_warnings)
+        fallback_reason = f"Generic fallback handler invoked for /sc:{command.name}"
+        decision, decision_reason = self._assess_stub_requirement(
+            context,
+            {
+                'status': 'plan-only',
+                'requires_followup': False,
+                'errors': [],
+            },
+            default_reason=fallback_reason,
+        )
 
-        if applied_files:
-            applied_log = context.results.setdefault('applied_changes', [])
-            for path in applied_files:
-                applied_log.append(f"apply {path}")
-            context.results['applied_changes'] = self._deduplicate(applied_log)
+        change_plan_entries: List[Dict[str, Any]] = []
+        applied_files: List[str] = []
+        change_warnings: List[str] = []
+        followup_record: Optional[Dict[str, Any]] = None
 
-        plan_entries = context.results.setdefault('change_plan', [])
-        if not any(
-            isinstance(existing, dict) and existing.get('path') == change_entry.get('path')
-            for existing in plan_entries
-        ):
-            plan_entries.append(change_entry)
+        if decision == 'stub':
+            change_entry = self._build_generic_stub_change(context, summary)
+            change_plan_entries.append(change_entry)
+
+            apply_result = self._apply_change_plan(context, change_plan_entries)
+            applied_files = apply_result.get('applied', [])
+            change_warnings = apply_result.get('warnings', []) or []
+            if change_warnings:
+                context.errors.extend(change_warnings)
+
+            if applied_files:
+                applied_log = context.results.setdefault('applied_changes', [])
+                for path in applied_files:
+                    applied_log.append(f"apply {path}")
+                context.results['applied_changes'] = self._deduplicate(applied_log)
+
+            plan_entries = context.results.setdefault('change_plan', [])
+            if not any(
+                isinstance(existing, dict) and existing.get('path') == change_entry.get('path')
+                for existing in plan_entries
+            ):
+                plan_entries.append(change_entry)
+        else:
+            followup_record = self._queue_followup(
+                context,
+                decision_reason or fallback_reason,
+                source='generic-fallback',
+                metadata={
+                    'arguments': command.arguments,
+                    'flags': list(command.flags.keys()),
+                },
+            )
+            if followup_record:
+                change_warnings.append(followup_record['reason'])
 
         context.results.setdefault('executed_operations', [])
         context.results['executed_operations'].extend(operations)
@@ -2428,13 +2531,15 @@ class CommandExecutor:
             'arguments': command.arguments,
             'mode': context.behavior_mode,
             'summary': summary,
-            'change_plan': [change_entry],
+            'change_plan': change_plan_entries,
             'applied_files': applied_files,
         }
         if artifact:
             output['artifact'] = artifact
         if change_warnings:
             output['warnings'] = change_warnings
+        if followup_record:
+            output['followup'] = followup_record
         return output
 
     def _generate_workflow_steps(

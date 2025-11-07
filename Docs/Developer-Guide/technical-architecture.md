@@ -76,7 +76,7 @@ contributors can map features to code quickly.
 
 - Session artefacts and change plans are written into the workspace under
   `SuperClaude/Implementation/` and `.superclaude_metrics/`.
-- Saved sessions use the UnifiedStore (SQLite at `~/.superclaude/session.db`).
+- Saved sessions use the UnifiedStore (SQLite at `~/.claude/unified_store.db`).
 - Configuration lives in `SuperClaude/Config/`; consensus policies and MCP
   adapters read YAML files from this directory.
 

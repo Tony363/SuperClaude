@@ -49,7 +49,8 @@ have been removed.
 ## 5. Troubleshooting
 
 - Check `.superclaude_metrics/mcp.log` for detailed request/response traces.
-- Use `python -m SuperClaude.MCP --list` to confirm available integrations.
+- Use `python -m SuperClaude.MCP --list` to confirm available integrations, or
+  `python -m SuperClaude.MCP --describe rube --json` for structured metadata.
 - Run `python benchmarks/run_benchmarks.py --suite integration` after changing
   MCP settings; the suite exercises Rube and Browser paths alongside the main
   workflow tests.

@@ -51,8 +51,8 @@ for future comparisons.
 
 - Use `--fast-codex` for low-risk diffs once you have supplied API keys.
 - Combine `--safe` with `--consensus` when touching security-sensitive modules.
-- Capture notes with `/sc:reflect` after significant edits; the command writes
-  contextual Markdown artefacts you can attach to PRs.
+- Capture notes with `/sc:document` after significant edits; it writes concise
+  summaries you can attach to PRs.
 
 You now have a repeatable workflow from prompt to diff with telemetry and
 benchmarks baked in.

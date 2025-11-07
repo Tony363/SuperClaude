@@ -15,7 +15,7 @@ Use these habits to stay productive once you have the framework installed.
 5. **Tighten loops with `--think`.** Begin with `--think 1` for small fixes and
    escalate if you need deeper analysis. Higher levels activate more expensive
    models when available.
-6. **Persist sessions intentionally.** Save long-running work with `/sc:save`
-   and clean up using `/sc:cleanup` once merged.
+6. **Persist sessions intentionally.** Capture tarball snapshots with
+   `SuperClaude backup --create` and clean up using `/sc:cleanup` once merged.
 7. **Document decisions.** Update `.codex-os/product/decisions.md` whenever a
    command introduces a new pattern, dependency, or workflow.

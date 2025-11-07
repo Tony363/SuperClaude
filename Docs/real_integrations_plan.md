@@ -1,45 +1,69 @@
-# Real Integrations Roadmap
+# Real Integrations Status (November 2025)
 
-## CLI Setup Fallbacks (`SuperClaude/__main__.py:53-64`)
-- Replace print-only shims with a bootstrap check that installs required setup assets or exits with actionable instructions.
-- **Best practices:** fail fast when dependencies are missing, add integration tests that bootstrap the CLI in a clean virtual environment, and ensure logging always flows through the standard logger stack.
-- **Pros:** predictable logging, easier support.
-- **Cons:** stricter startup can frustrate rapid prototyping unless you ship a one-command fixer.
+All items from the original roadmap have shipped. This document now serves as a
+living status report plus ideas for future hardening. The sections capture the
+current implementation, remaining risks, and optional follow-up experiments.
 
-## Rube MCP Dry-Run Responses (`SuperClaude/MCP/rube_integration.py:133-140`)
-- Keep dry-run as an explicit test-only mode, but implement live HTTP calls with retries, structured error mapping, and telemetry.
-- **Best practices:** feature flags, contract tests against a sandbox MCP server, exponential backoff, and request-level observability.
-- **Pros:** unlocks real workflows, accurate telemetry.
-- **Cons:** introduces network brittleness, demands secret management and rate limiting.
+## CLI Setup Bootstrap (`SuperClaude/__main__.py`)
+- **Current state:** the entry point attempts an editable install automatically
+  and exits with explicit guidance when imports fail.
+- **What to monitor next:** surface aggregated telemetry about bootstrap
+  failures to spot flaky environments sooner.
+- **Nice-to-have:** add a smoke test that runs the bootstrap flow inside the
+  benchmark harness’s virtualenv job.
 
-## Token Metrics Stub (`SuperClaude/Monitoring/performance_monitor.py:177-184`)
-- Feed true usage data from token counters and model responses; persist running aggregates.
-- **Best practices:** centralize token accounting, expose async hooks that increment counters, and backfill historical metrics to avoid graph discontinuities.
-- **Pros:** trustworthy performance dashboards, better capacity planning.
-- **Cons:** plumbing through every model path raises coupling and needs strong regression tests.
+## Rube MCP Live Mode (`SuperClaude/MCP/rube_integration.py`)
+- **Current state:** live HTTP calls include retry with backoff, structured
+  error propagation, and telemetry tags (`rube_mcp`). Dry-run remains available
+  via `SC_RUBE_MODE=dry-run`.
+- **What to monitor next:** record circuit-breaker metrics once we add provider
+  rate limits and expose a health summary in `.superclaude_metrics`.
+- **Nice-to-have:** ship contract fixtures for partner sandboxes so CI can run
+  smoke requests when credentials exist.
 
-## Auto-Generated Implementation Stubs (`SuperClaude/Commands/executor.py:1724-2044`)
-- Replace blanket stub emission with capability negotiation so artifacts only appear when the command genuinely cannot execute.
-- **Best practices:** add a “requires_followup” queue, track stub aging, surface unresolved items in CI dashboards, and require owner acknowledgement before release.
-- **Pros:** clearer signal on unfinished work, less placeholder drift.
-- **Cons:** higher engineering overhead, slower perceived responsiveness when automation must pause.
+## Token Accounting (`SuperClaude/Monitoring/performance_monitor.py`)
+- **Current state:** every provider invocation updates cumulative counters and
+  writes token events to registered sinks.
+- **What to monitor next:** pipe the aggregate counters into the CLI summary so
+  local operators can spot spikes without digging into JSONL files.
+- **Nice-to-have:** expose Prometheus-friendly gauges when the daemon runs
+  inside long-lived automation.
 
-## Plan-Only Agent Outputs (`SuperClaude/Agents/generic.py:45-125`, `SuperClaude/Agents/core/general_purpose.py:250-318`)
-- Invest in minimal viable implementations or enforce delegation to specialists that can act; treat plan-only as an explicit failure mode.
-- **Best practices:** calibrate capability scoring thresholds with telemetry, auto-escalate repeated plan-only responses, and write unit tests that demand concrete actions for common scenarios.
-- **Pros:** richer automation, better user trust.
-- **Cons:** increases agent complexity, risks partial actions without strong safeguards.
+## Evidence & Stub Handling (`SuperClaude/Commands/executor.py`)
+- **Current state:** the executor now differentiates between true stubs and
+  actionable follow-ups, queuing `commands.followup` metrics when automation
+  cannot produce evidence.
+- **What to monitor next:** add dashboards for queued follow-ups versus
+  auto-applied stubs to detect stale automation debt.
+- **Nice-to-have:** expire follow-ups automatically once a human resolves the
+  referenced plan.
 
-## Health Check Mock (`SuperClaude/Testing/integration_framework.py:503-519`)
-- Require real probes, default to “unknown” rather than “healthy,” and document the contract each component must satisfy.
-- **Best practices:** define a response schema, fail CI when a component lacks a probe, and add synthetic canaries to validate the probe pipeline.
-- **Pros:** early fault detection, meaningful dashboards.
-- **Cons:** component teams must author probes, more noisy failures during rollout.
+## Plan-Only Agents (`SuperClaude/Agents/*`)
+- **Current state:** plan-only responses are treated as failure modes; repeated
+  occurrences raise telemetry and trigger follow-ups.
+- **What to monitor next:** correlate plan-only rates with specific personas to
+  decide where to invest in deeper implementations.
+- **Nice-to-have:** allow command authors to register remediation scripts for
+  frequent plan-only scenarios.
 
-## Cross-Cutting Best Practices
-1. **Contract clarity:** document expected behavior (and error modes) before replacing mocks; run contract tests whenever the integration surface changes.
-2. **Progressive rollout:** use feature flags or staged environments to catch regressions while real integrations harden.
-3. **Observability first:** log structured events, emit metrics, and propagate trace IDs before shipping live integrations.
-4. **Fail loud and early:** drop silent fallbacks; surface missing dependencies or live-call failures in telemetry and user-visible status.
-5. **Security and secrets hygiene:** centralize API keys, rotate credentials, and ensure mocks never log secrets.
-6. **Testing strategy:** pair live-integration tests (against sandboxes) with deterministic contract tests to maintain coverage without flakiness.
+## Health Probes (`SuperClaude/Testing/integration_framework.py`)
+- **Current state:** components default to “unknown” until real probes validate
+  readiness; CI fails when expected probes are missing.
+- **What to monitor next:** add synthetic probes for MCP servers so we can
+  detect credential drift ahead of production incidents.
+- **Nice-to-have:** push probe results to the same telemetry sink as token
+  events to simplify dashboards.
+
+## Cross-Cutting Practices
+1. **Contract clarity:** keep behaviour documents close to the code to reduce
+   drift; update them alongside interface changes.
+2. **Progressive rollout:** continue using feature flags or staged env toggles
+   when integrations expand.
+3. **Observability first:** extend structured logging to new automation paths
+   before rolling them out.
+4. **Fail loud and early:** prefer surfaced errors over silent fallbacks so
+   operators can triage quickly.
+5. **Secrets hygiene:** centralise API key retrieval and ensure dry-run paths
+   never log sensitive material.
+6. **Testing strategy:** pair sandbox calls with deterministic contract tests
+   to keep coverage without increasing flakiness.

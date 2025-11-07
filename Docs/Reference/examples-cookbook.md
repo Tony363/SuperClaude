@@ -28,19 +28,20 @@ captures consensus metadata for audit.
 ## Save, Pause, and Resume
 
 ```bash
-python -m SuperClaude /sc:save --name friday-refactor --notes "Pending tests"
-python -m SuperClaude /sc:load friday-refactor --cwd ~/repos/app
+SuperClaude backup --create --output ~/repos/app/.claude/backups/latest.tar.gz
+SuperClaude backup --restore ~/repos/app/.claude/backups/latest.tar.gz --cwd ~/repos/app
 ```
 
 Use this when you need to switch branches without losing telemetry or plan
-artefacts.
+artefacts. The backup command snapshots `.superclaude_metrics/`, change plans,
+and the UnifiedStore database.
 
 ## Quickly Review Telemetry
 
 ```bash
 python scripts/report_agent_usage.py
-python -m SuperClaude /sc:reflect "document telemetry" --delegate technical-writer
+python -m SuperClaude /sc:document telemetry-dashboard --type guide --style brief
 ```
 
-The report summarises agent activity, while `/sc:reflect` captures follow-up
-notes for the team.
+The report summarises agent activity, while `/sc:document` produces a focused
+summary you can attach to retrospectives or status updates.

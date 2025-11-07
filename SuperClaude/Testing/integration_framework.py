@@ -514,9 +514,24 @@ class IntegrationTestRunner:
                 healthy = self._interpret_health_result(result)
                 return {"healthy": healthy, "details": result, "method": name}
             except Exception as exc:  # pragma: no cover - defensive branch
-                return {"healthy": False, "details": str(exc), "method": name}
+                logger.error("Health probe %s for %s failed: %s", name, component, exc)
+                return {
+                    "healthy": False,
+                    "details": {"error": str(exc)},
+                    "method": name,
+                }
 
-        return {"healthy": True, "details": "No probe available", "method": None}
+        logger.error(
+            "Component %s does not expose a supported health probe. "
+            "Implement one of %s returning a dict with 'status'/'healthy' fields.",
+            getattr(component, "__class__", type(component)).__name__,
+            probe_names,
+        )
+        return {
+            "healthy": False,
+            "details": {"error": "No health probe implemented."},
+            "method": None,
+        }
 
     def _interpret_health_result(self, value: Any) -> bool:
         """Normalise health probe output."""

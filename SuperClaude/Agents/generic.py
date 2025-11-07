@@ -118,10 +118,17 @@ class GenericMarkdownAgent(BaseAgent):
                 result['success'] = True
                 result['status'] = 'executed'
             else:
+                followup_reason = (
+                    f"{self.name} produced plan-only guidance for task '{task}'. "
+                    "Escalating for specialist follow-up."
+                )
                 result['warnings'].append(
-                    "No concrete file or command changes detected; returning plan-only guidance."
+                    "No concrete file or command changes detected; escalating to follow-up."
                 )
                 result['output'] = self._generate_plan_output(task, execution_plan)
+                result['requires_followup'] = followup_reason
+                result['status'] = 'followup'
+                result['success'] = False
 
             # Log execution
             self.log_execution(context, result)
@@ -161,8 +168,8 @@ class GenericMarkdownAgent(BaseAgent):
         # Check if task matches agent capabilities
         confidence = self.can_handle_task(task)
 
-        # Accept if confidence is above threshold
-        return confidence > 0.3
+        # Accept if confidence is above calibrated threshold
+        return confidence >= 0.5
 
     def _build_execution_plan(
         self, task: str, parameters: Dict[str, Any]

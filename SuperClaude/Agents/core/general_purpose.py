@@ -101,7 +101,7 @@ class GeneralPurposeAgent(BaseAgent):
                 result['delegated_to'] = delegation_result['agent_name']
             else:
                 # Handle directly
-                result.update(self._handle_directly(task, context))
+                result.update(self._handle_directly(task, context, delegation_result))
 
             # Log execution
             self.log_execution(context, result)
@@ -141,7 +141,8 @@ class GeneralPurposeAgent(BaseAgent):
             'should_delegate': False,
             'agent_name': None,
             'confidence': 0.0,
-            'reason': ''
+            'reason': '',
+            'suggestions': []
         }
 
         # Skip delegation if components not available
@@ -157,6 +158,7 @@ class GeneralPurposeAgent(BaseAgent):
 
         # Get agent suggestions
         suggestions = self.selector.get_agent_suggestions(task, top_n=3)
+        decision['suggestions'] = suggestions
 
         if suggestions:
             # Check top suggestion
@@ -180,6 +182,7 @@ class GeneralPurposeAgent(BaseAgent):
                 decision['reason'] = f"Confidence too low ({confidence:.2f})"
         else:
             decision['reason'] = "No matching specialists"
+            decision['suggestions'] = suggestions
 
         return decision
 
@@ -232,7 +235,10 @@ class GeneralPurposeAgent(BaseAgent):
             }
 
     def _handle_directly(
-        self, task: str, context: Dict[str, Any]
+        self,
+        task: str,
+        context: Dict[str, Any],
+        delegation_result: Dict[str, Any]
     ) -> Dict[str, Any]:
         """
         Handle task directly without delegation.
@@ -301,22 +307,45 @@ class GeneralPurposeAgent(BaseAgent):
             status = 'executed'
             actions_taken.extend(executed_ops)
         else:
-            warnings.append("No concrete repository operations were executed; providing plan-only guidance.")
+            warning_msg = "No concrete repository operations were executed; escalating to follow-up."
+            warnings.append(warning_msg)
+            status = 'followup'
+            success = False
 
-        return {
+        response_body = self._render_direct_response(
+            task,
+            ''.join(output_lines),
+            planned_steps,
+            executed_ops
+        )
+
+        result_payload: Dict[str, Any] = {
             'success': success,
             'status': status,
-            'output': self._render_direct_response(
-                task,
-                ''.join(output_lines),
-                planned_steps,
-                executed_ops
-            ),
+            'output': response_body,
             'actions_taken': actions_taken,
             'planned_actions': planned_steps,
             'warnings': warnings,
             'errors': []
         }
+
+        if status == 'followup':
+            followup_reason = delegation_result.get('reason') or "General-purpose agent could not perform the requested work."
+            suggestions = delegation_result.get('suggestions') or self.selector.get_agent_suggestions(task, top_n=3)
+            if suggestions:
+                suggested_agents = [name for name, _ in suggestions if name != self.name]
+            else:
+                suggested_agents = []
+
+            if suggested_agents:
+                followup_reason = (
+                    f"{followup_reason} Recommended specialists: {', '.join(suggested_agents[:3])}."
+                )
+                result_payload['followup_suggestions'] = suggested_agents
+
+            result_payload['requires_followup'] = followup_reason
+
+        return result_payload
 
     def _extract_executed_operations(self, context: Dict[str, Any]) -> List[str]:
         """

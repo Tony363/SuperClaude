@@ -15,4 +15,4 @@
 ## Preventive Checklist
 - Keep repository retriever up to date by calling `RepoRetriever.refresh()` after large structural changes.
 - Record telemetry dashboards updates in `Docs/monitoring/hallucination_dashboard.json` for shared visualization.
-- Add new regression cases to `tests/integration/test_requires_evidence.py` whenever a hallucination bug is fixed.
+- Add new regression cases to `tests/test_hallucination_guardrails.py` whenever a hallucination bug is fixed.
