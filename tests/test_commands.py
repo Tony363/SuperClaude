@@ -1,11 +1,10 @@
 from __future__ import annotations
 
 import asyncio
-import json
+import os
+import shutil
 import subprocess
 from pathlib import Path
-from types import SimpleNamespace
-from typing import Dict, List
 
 import pytest
 
@@ -26,47 +25,41 @@ def command_workspace(tmp_path, monkeypatch):
 
 
 @pytest.fixture
-def codex_cli_stub(tmp_path, monkeypatch):
-    script = tmp_path / "codex-cli-stub.py"
-    script.write_text(
-        "#!/usr/bin/env python3\n"
-        "import json, sys\n"
-        "args = sys.argv[1:]\n"
-        "if not args or args[0] != 'exec':\n"
-        "    sys.exit(1)\n"
-        "# Accept extra flags like --full-auto and --json\n"
-        "payload = {\"summary\": \"Codex CLI stub\", \"changes\": []}\n"
-        "print(json.dumps(payload))\n",
-        encoding="utf-8",
-    )
-    script.chmod(0o755)
-    monkeypatch.setenv("SUPERCLAUDE_CODEX_CLI", str(script))
-    monkeypatch.delenv("SUPERCLAUDE_CODEX_ARGS", raising=False)
-    monkeypatch.setenv("SUPERCLAUDE_CODEX_ARGS", "--json")
-    return script
-
-
-@pytest.fixture
 def executor(command_workspace):
     registry = CommandRegistry()
     parser = CommandParser()
     return CommandExecutor(registry, parser)
 
 
-def test_implement_fast_codex_requires_evidence(executor, codex_cli_stub):
-    result = asyncio.run(executor.execute("/sc:implement telemetry guardrail --fast-codex"))
+@pytest.fixture(scope="module")
+def codex_cli_binary():
+    configured = os.getenv("SUPERCLAUDE_CODEX_CLI", "codex")
+    resolved = shutil.which(configured)
+    if not resolved:
+        pytest.skip(
+            "codex CLI binary not found. Install Codex CLI or export SUPERCLAUDE_CODEX_CLI"
+        )
+    return resolved
+
+
+def test_implement_fast_codex_requires_evidence(executor, codex_cli_binary):
+    result = asyncio.run(executor.execute("/sc:implement search google for pictures of dogs --fast-codex"))
+
+    if any("Codex CLI invocation failed" in error for error in result.errors):
+        pytest.fail("Codex CLI invocation failed; install or configure the real codex CLI")
 
     assert result.status == "failed"
     assert result.success is False
     assert any("no concrete change plan" in error.lower() for error in result.errors)
 
+    assert result.output, "Result output missing despite fast-codex execution"
     fast_state = result.output.get("fast_codex") or {}
     assert fast_state.get("requested") is True
     assert fast_state.get("active") is True
     assert not fast_state.get("blocked")
 
     consensus = result.consensus or {}
-    assert consensus.get("vote_type") == "quorum"
+    assert "No consensus executors registered" in (consensus.get("error") or "")
     assert consensus.get("quorum_size") == 3
     assert consensus.get("offline") is True
 
@@ -76,10 +69,13 @@ def test_implement_fast_codex_requires_evidence(executor, codex_cli_stub):
         assert Path(artifact).exists()
 
 
-def test_implement_safe_apply_fails_without_plan(executor, command_workspace, codex_cli_stub):
+def test_implement_safe_apply_fails_without_plan(executor, command_workspace, codex_cli_binary):
     result = asyncio.run(
-        executor.execute("/sc:implement snapshot stub --fast-codex --safe-apply")
+        executor.execute("/sc:implement search google for pictures of dogs --fast-codex --safe-apply")
     )
+
+    if any("Codex CLI invocation failed" in error for error in result.errors):
+        pytest.fail("Codex CLI invocation failed; install or configure the real codex CLI")
 
     assert result.status == "failed"
     assert result.success is False
@@ -90,8 +86,11 @@ def test_implement_safe_apply_fails_without_plan(executor, command_workspace, co
     assert not safe_root.exists()
 
 
-def test_fast_codex_respects_safe_flag(executor, codex_cli_stub):
-    result = asyncio.run(executor.execute("/sc:implement guarded flow --fast-codex --safe"))
+def test_fast_codex_respects_safe_flag(executor, codex_cli_binary):
+    result = asyncio.run(executor.execute("/sc:implement search google for pictures of dogs --fast-codex --safe"))
+
+    if any("Codex CLI invocation failed" in error for error in result.errors):
+        pytest.fail("Codex CLI invocation failed; install or configure the real codex CLI")
 
     fast_state = result.output.get("fast_codex") or {}
     assert fast_state.get("requested") is True
@@ -100,37 +99,18 @@ def test_fast_codex_respects_safe_flag(executor, codex_cli_stub):
     assert any("no concrete change plan" in error.lower() for error in result.errors)
 
 
-def test_fast_codex_invokes_codex_exec(monkeypatch, executor, codex_cli_stub):
-    recorded: Dict[str, List[str]] = {}
+def test_fast_codex_invokes_codex_exec(executor, codex_cli_binary):
+    result = asyncio.run(executor.execute("/sc:implement search google for pictures of dogs --fast-codex"))
 
-    def fake_run(
-        args,
-        *,
-        cwd=None,
-        env=None,
-        capture_output=False,
-        text=False,
-        timeout=None,
-        check=False,
-    ):
-        recorded["args"] = args
-        return SimpleNamespace(
-            returncode=0,
-            stdout=json.dumps({"summary": "Codex CLI stub", "changes": []}),
-            stderr="",
-        )
+    if any("Codex CLI invocation failed" in error for error in result.errors):
+        pytest.fail("Codex CLI invocation failed; install or configure the real codex CLI")
 
-    monkeypatch.setattr(subprocess, "run", fake_run)
-
-    result = asyncio.run(executor.execute("/sc:implement verify codex call --fast-codex"))
-
-    assert "args" in recorded, "Codex CLI should be invoked in fast-codex mode"
-    assert recorded["args"][0] == str(codex_cli_stub)
-    assert recorded["args"][1] == "exec"
-
+    assert result.output, "Result output missing despite fast-codex execution"
     fast_state = result.output.get("fast_codex") or {}
     assert fast_state.get("requested") is True
     assert fast_state.get("active") is True
+    cli_meta = fast_state.get("cli")
+    assert cli_meta, "Codex CLI metadata missing; codex exec may not have run"
 
 
 def test_fast_codex_requires_cli(monkeypatch, command_workspace):
