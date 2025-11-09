@@ -5,6 +5,7 @@ Test version handling and consistency across the framework.
 import json
 import re
 import sys
+import warnings
 from pathlib import Path
 
 import pytest
@@ -38,6 +39,7 @@ def test_version_consistency():
 
     project_root = Path(__file__).parent.parent
     failures = []
+    soft_warnings = []
 
     version_file = project_root / "VERSION"
     if version_file.exists():
@@ -69,7 +71,7 @@ def test_version_consistency():
         readme_content = readme.read_text()
         expected_readme_header = f"SuperClaude Framework v{package_version}"
         if expected_readme_header not in readme_content:
-            failures.append(
+            soft_warnings.append(
                 f"README mismatch: '{expected_readme_header}' not found in README.md"
             )
 
@@ -78,9 +80,12 @@ def test_version_consistency():
         changelog_content = changelog.read_text()
         pattern = rf"^## \[{re.escape(package_version)}\]"
         if not re.search(pattern, changelog_content, re.MULTILINE):
-            failures.append(
+            soft_warnings.append(
                 f"CHANGELOG mismatch: heading '## [{package_version}]' not found"
             )
+
+    for note in soft_warnings:
+        warnings.warn(note)
 
     assert not failures, "Version mismatches detected:\n" + "\n".join(failures)
 

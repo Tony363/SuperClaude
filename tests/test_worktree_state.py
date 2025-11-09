@@ -53,6 +53,13 @@ class TestWorktreeStateManager(unittest.TestCase):
         self.manager.remove_state("wt-demo")
         self.assertNotIn("worktree_wt-demo", self.store.list_memories(prefix="worktree_"))
 
+    def test_duplicate_updates_overwrite_previous_state(self):
+        self.manager.update_state("wt-demo", task_id="demo", status="active")
+        self.manager.update_state("wt-demo", task_id="demo", status="complete")
+
+        loaded = self.manager.get_state("wt-demo")
+        self.assertEqual(loaded.status, "complete")
+
 
 if __name__ == "__main__":  # pragma: no cover
     unittest.main()

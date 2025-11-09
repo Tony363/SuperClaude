@@ -58,3 +58,20 @@ def test_security_stage_degraded_without_coderabbit(tmp_path, monkeypatch):
     assert security_result.degraded is True
     assert security_result.metadata["coderabbit_status"] == "missing"
     assert security_result.evidence_path and security_result.evidence_path.exists()
+
+
+def test_pipeline_marks_test_stage_failed(tmp_path, monkeypatch):
+    monkeypatch.setenv("SUPERCLAUDE_METRICS_DIR", str(tmp_path / "metrics"))
+    pipeline = ValidationPipeline()
+    context = {
+        "syntax_report": {"errors": []},
+        "coderabbit_review": _make_review("info"),
+        "security_scan": {"issues": []},
+        "test_results": {"failed": 2},
+    }
+
+    results = pipeline.run(context)
+    tests_result = next(r for r in results if r.name == "tests")
+    assert tests_result.status == "failed"
+    assert tests_result.fatal is True
+    assert tests_result.evidence_path and tests_result.evidence_path.exists()

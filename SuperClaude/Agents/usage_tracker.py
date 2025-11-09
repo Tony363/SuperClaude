@@ -202,7 +202,7 @@ def write_markdown_report(
     _render_section("Observed (Loaded Only)", buckets["observed"])
     _render_section("Planned (Discovered, Unused)", buckets["planned"])
 
-    output = output_path or (_metrics_dir() / "agent_usage_report.md")
+    output = output_path or (get_metrics_dir() / "agent_usage_report.md")
     output.write_text("\n".join(lines).strip() + "\n", encoding="utf-8")
     return output
 

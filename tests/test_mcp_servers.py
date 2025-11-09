@@ -12,6 +12,7 @@ from SuperClaude.Commands.executor import CommandContext, CommandExecutor
 from SuperClaude.Commands.parser import CommandParser, ParsedCommand
 from SuperClaude.Commands.registry import CommandMetadata, CommandRegistry
 from SuperClaude.MCP import MCP_SERVERS, get_mcp_integration
+import SuperClaude.MCP as mcp_module
 from SuperClaude.MCP.rube_integration import RubeIntegration
 
 
@@ -127,11 +128,48 @@ async def test_rube_dry_run_without_network(monkeypatch):
 async def test_rube_live_requires_api_key(monkeypatch):
     """Live mode should fail fast if API key is missing."""
     monkeypatch.setenv("SC_NETWORK_MODE", "online")
-    monkeypatch.delenv("SC_RUBE_MODE", raising=False)
+    monkeypatch.setenv("SC_RUBE_MODE", "live")
     monkeypatch.delenv("SC_RUBE_API_KEY", raising=False)
 
+    monkeypatch.setattr(RubeIntegration, "_should_dry_run", lambda self: False)
     integration = RubeIntegration()
     integration.initialize()
 
     with pytest.raises(RuntimeError):
         await integration.initialize_session()
+
+
+@pytest.mark.asyncio
+async def test_activate_mcp_records_warning_on_failure(monkeypatch, caplog):
+    monkeypatch.setenv("SC_NETWORK_MODE", "online")
+
+    registry = CommandRegistry()
+    parser = CommandParser(registry=registry)
+    executor = CommandExecutor(registry, parser)
+
+    metadata = CommandMetadata(
+        name="test",
+        description="",
+        category="test",
+        complexity="standard",
+        mcp_servers=["browser"],
+    )
+    context = CommandContext(
+        command=ParsedCommand(name="test", raw_string="/sc:test"),
+        metadata=metadata,
+    )
+
+    caplog.set_level(logging.WARNING, logger="SuperClaude.Commands.executor")
+
+    def _failing_get(name, config=None):
+        raise RuntimeError("boom")
+
+    monkeypatch.setattr(mcp_module, "get_mcp_integration", _failing_get)
+    from SuperClaude.Commands import executor as executor_module
+    monkeypatch.setattr(executor_module, "get_mcp_integration", _failing_get)
+    monkeypatch.setattr(executor_module.os.path, "exists", lambda path: False)
+
+    await executor._activate_mcp_servers(context)
+
+    assert "browser" not in executor.active_mcp_servers
+    assert any("Skipping MCP server 'browser'" in record.message for record in caplog.records)

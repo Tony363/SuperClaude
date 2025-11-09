@@ -161,6 +161,13 @@ class TestModelRouter:
         decision = router.route(task_type='deep_thinking')
         assert decision.primary_model != 'gpt-5'
 
+    def test_route_honors_excluded_models(self):
+        router = ModelRouter()
+
+        decision = router.route(excluded_models=['gpt-5', 'claude-opus-4.1'])
+
+        assert decision.primary_model not in {'gpt-5', 'claude-opus-4.1'}
+
 
 class TestModelManager:
     """Test model configuration management."""
@@ -402,6 +409,7 @@ class TestModelRouterFacade:
 
         assert result['consensus_reached'] is False
         assert 'No consensus executors registered' in result['error']
+
 
     def test_facade_invokes_openai_provider_with_api_key(self, monkeypatch):
         monkeypatch.setenv("OPENAI_API_KEY", "test-key")

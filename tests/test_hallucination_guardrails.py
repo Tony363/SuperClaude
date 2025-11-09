@@ -99,4 +99,24 @@ def test_record_requires_evidence_event_records_payload(tmp_path):
 
     metric_names = [metric.name for metrics in monitor.metrics.values() for metric in metrics]
     assert any(name.endswith('missing_evidence') for name in metric_names)
-    assert any(event.get('event_type') == 'hallucination.guardrail' for event in sink.events)
+    assert any(event.get('type') == 'hallucination.guardrail' for event in sink.events)
+
+
+def test_requires_evidence_metrics_skipped_when_not_required(tmp_path):
+    executor, sink = build_executor(tmp_path)
+    monitor = executor.monitor
+
+    executor._record_requires_evidence_metrics(
+        'implement',
+        False,
+        'plan-only',
+        False,
+        None,
+        [],
+        {'consensus_reached': True},
+        {'consensus_vote_type': 'majority', 'consensus_quorum_size': 2},
+    )
+
+    metric_names = [metric.name for metrics in monitor.metrics.values() for metric in metrics]
+    assert not any(name.endswith('missing_evidence') for name in metric_names)
+    assert not sink.events
