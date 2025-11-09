@@ -241,9 +241,10 @@ def run_agent(selector: 'AgentSelector', loader: 'AgentLoader',
               args: argparse.Namespace) -> int:
     """Execute an agent with a task"""
     # Build context
+    files_arg = getattr(args, 'files', None) or []
     context = {
         'task': args.task,
-        'files': args.files if hasattr(args, 'files') else []
+        'files': files_arg,
     }
 
     # Select agent

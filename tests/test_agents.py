@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import asyncio
 from pathlib import Path
+from typing import Dict
 
 import pytest
 
@@ -38,11 +40,59 @@ def test_agent_selector_suggests_specialist(agent_registry: AgentRegistry) -> No
     selector = AgentSelector(agent_registry)
 
     context = {"task": "Refactor this python module for maintainability"}
-    scores = selector.select_agent(context, limit=5)
+    scores = selector.select_agent(context)
 
     assert scores
     top_agents = {name for name, _ in scores[:3]}
     assert {"refactoring-expert", "python-expert", "general-purpose"}.intersection(top_agents)
+
+
+class _DummyRegistry:
+    """Lightweight registry test double for selector edge cases."""
+
+    def __init__(self, agents: Dict[str, Dict[str, object]]):
+        self._agents = agents
+
+    def discover_agents(self) -> None:  # pragma: no cover - invoked implicitly
+        return None
+
+    def get_all_agents(self) -> list[str]:
+        return list(self._agents.keys())
+
+    def list_agents(self) -> list[str]:
+        return self.get_all_agents()
+
+    def get_agent_config(self, name: str):
+        return self._agents.get(name)
+
+
+def test_agent_selector_falls_back_to_default_when_all_scores_low():
+    registry = _DummyRegistry(
+        {
+            "general-purpose": {"name": "general-purpose", "triggers": [], "category": "core"},
+            "ml-specialist": {"name": "ml-specialist", "triggers": ["ml"], "category": "ml"},
+        }
+    )
+
+    selector = AgentSelector(registry)
+    scores = selector.select_agent("totally unrelated domain with no triggers")
+
+    assert scores[0][0] == "general-purpose"
+    assert scores[0][1] == pytest.approx(0.5)
+
+
+def test_agent_selector_respects_default_exclusion_when_no_candidates():
+    registry = _DummyRegistry(
+        {
+            "general-purpose": {"name": "general-purpose", "triggers": [], "category": "core"},
+            "security": {"name": "security", "triggers": ["xss"], "category": "security"},
+        }
+    )
+
+    selector = AgentSelector(registry)
+    scores = selector.select_agent("documentation task", exclude_agents=["general-purpose"])
+
+    assert scores == []
 
 
 @pytest.fixture
@@ -54,9 +104,9 @@ def command_executor(tmp_path: Path) -> CommandExecutor:
     return executor
 
 
-@pytest.mark.asyncio
-async def test_delegate_flag_executes_real_agent(command_executor: CommandExecutor) -> None:
-    result = await command_executor.execute("/sc:implement improve modularity --delegate")
+def test_delegate_flag_executes_real_agent(command_executor: CommandExecutor) -> None:
+    command = "/sc:implement improve modularity --delegate --keywords python,refactor --languages python"
+    result = asyncio.run(command_executor.execute(command))
 
     delegation = result.output.get("delegation") or {}
     assert delegation.get("requested") is True
@@ -66,4 +116,3 @@ async def test_delegate_flag_executes_real_agent(command_executor: CommandExecut
     loader = ExtendedAgentLoader()
     agent = loader.load_agent(delegation["selected_agent"])
     assert agent is not None
-

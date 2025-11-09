@@ -7,11 +7,13 @@ that the fast-codex path works against a real backend.
 
 from __future__ import annotations
 
+import json
 import os
 
 import pytest
 
 from SuperClaude.APIClients.codex_client import CodexClient, CodexUnavailable
+from SuperClaude.APIClients import codex_client as codex_module
 
 
 @pytest.mark.integration
@@ -53,3 +55,33 @@ def test_codex_client_live_completion(tmp_path):
     assert first.get("mode") in {"replace", "append"}
     assert isinstance(first.get("content"), str) and first["content"].strip()
 
+
+def _make_client(monkeypatch, response):
+    class StubClient(CodexClient):
+        def __init__(self):
+            self.api_key = "test"
+
+        def complete_structured(self, *_args, **_kwargs):
+            if isinstance(response, Exception):
+                raise response
+            return response
+
+    monkeypatch.setattr(codex_module, "CodexClient", StubClient)
+    return StubClient()
+
+
+def test_codex_client_handles_transport_error(monkeypatch):
+    client = _make_client(monkeypatch, CodexUnavailable("network"))
+
+    with pytest.raises(CodexUnavailable):
+        client.complete_structured("system", "user")
+
+
+def test_codex_client_parses_minimal_payload(monkeypatch):
+    payload = {"summary": "ok", "changes": [{"path": "foo.py", "content": "pass", "mode": "replace"}]}
+    client = _make_client(monkeypatch, payload)
+
+    result = client.complete_structured("system", "user")
+
+    assert result["summary"] == "ok"
+    assert result["changes"][0]["path"] == "foo.py"

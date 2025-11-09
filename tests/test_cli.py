@@ -166,6 +166,37 @@ def test_version_flag():
     assert excinfo.value.code == 0
 
 
+def test_main_invokes_stub_operation(monkeypatch):
+    import SuperClaude.__main__ as cli
+
+    class StubModule:
+        def __init__(self):
+            self.calls = 0
+
+        def register_parser(self, subparsers, global_parser):
+            parser = subparsers.add_parser('install', help='stub install', parents=[global_parser])
+            parser.add_argument('--flag', action='store_true', help='stub flag')
+
+        def run(self, args):
+            self.calls += 1
+            assert args.operation == 'install'
+            assert args.flag is True
+            return 99
+
+    stub_module = StubModule()
+
+    monkeypatch.setattr(cli, 'get_operation_modules', lambda: {'install': 'Install SuperClaude'})
+    monkeypatch.setattr(cli, 'load_operation_module', lambda name: stub_module)
+    monkeypatch.setattr(cli, 'setup_global_environment', lambda args: None)
+    monkeypatch.setattr(cli, 'get_logger', lambda: None)
+    monkeypatch.setattr(sys, 'argv', ['SuperClaude', 'install', '--no-update-check', '--flag'])
+
+    exit_code = cli.main()
+
+    assert exit_code == 99
+    assert stub_module.calls == 1
+
+
 if __name__ == "__main__":
     # Run tests if executed directly
     pytest.main([__file__, "-v"])

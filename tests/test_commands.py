@@ -1,13 +1,14 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import os
-import shutil
 import subprocess
 from pathlib import Path
 
 import pytest
 
+from SuperClaude.APIClients.codex_cli import CodexCLIClient, CodexCLIResult
 from SuperClaude.Commands import CommandRegistry, CommandParser, CommandExecutor
 
 
@@ -31,15 +32,40 @@ def executor(command_workspace):
     return CommandExecutor(registry, parser)
 
 
-@pytest.fixture(scope="module")
-def codex_cli_binary():
-    configured = os.getenv("SUPERCLAUDE_CODEX_CLI", "codex")
-    resolved = shutil.which(configured)
-    if not resolved:
-        pytest.skip(
-            "codex CLI binary not found. Install Codex CLI or export SUPERCLAUDE_CODEX_CLI"
+@pytest.fixture
+def codex_cli_binary(monkeypatch):
+    """Provide a deterministic Codex CLI stub so fast-codex tests stay hermetic."""
+
+    monkeypatch.setenv("SUPERCLAUDE_CODEX_CLI", "codex-stub")
+
+    def _always_available(cls):
+        return True
+
+    monkeypatch.setattr(CodexCLIClient, "is_available", classmethod(_always_available))
+
+    def _fake_run(self, prompt, *, workdir=None, extra_args=None):
+        payload = {
+            "summary": "Stub diff generated during tests",
+            "changes": [
+                {
+                    "path": "README.md",
+                    "content": "Updated by Codex stub",
+                    "mode": "replace",
+                }
+            ],
+            "model": "codex-stub",
+        }
+        return CodexCLIResult(
+            payload=payload,
+            stdout=json.dumps(payload),
+            stderr="",
+            duration_s=0.05,
+            returncode=0,
+            command=["codex-stub", "exec"],
         )
-    return resolved
+
+    monkeypatch.setattr(CodexCLIClient, "run", _fake_run, raising=False)
+    return "codex-stub"
 
 
 def test_implement_fast_codex_requires_evidence(executor, codex_cli_binary):
@@ -118,8 +144,11 @@ def test_fast_codex_requires_cli(monkeypatch, command_workspace):
     registry = CommandRegistry()
     parser = CommandParser()
     exec_instance = CommandExecutor(registry, parser)
-    with pytest.raises(RuntimeError, match="Codex CLI is required"):
-        asyncio.run(exec_instance.execute("/sc:implement demo feature --fast-codex"))
+
+    result = asyncio.run(exec_instance.execute("/sc:implement demo feature --fast-codex"))
+
+    assert result.success is False
+    assert any("Codex CLI is required" in err for err in result.errors)
 
 
 def test_business_panel_produces_artifact(executor):

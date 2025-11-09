@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import asyncio
+import inspect
 import os
 import shutil
 from pathlib import Path
@@ -43,3 +45,20 @@ def fixture_root() -> Path:
 
     return Path(__file__).parent / "fixtures"
 
+
+def pytest_pyfunc_call(pyfuncitem):
+    marker = pyfuncitem.keywords.get("asyncio")
+    test_func = pyfuncitem.obj
+    if marker and inspect.iscoroutinefunction(test_func):
+        loop = asyncio.new_event_loop()
+        try:
+            asyncio.set_event_loop(loop)
+            argnames = pyfuncitem._fixtureinfo.argnames  # type: ignore[attr-defined]
+            kwargs = {name: pyfuncitem.funcargs[name] for name in argnames}
+            loop.run_until_complete(test_func(**kwargs))
+        finally:
+            loop.run_until_complete(loop.shutdown_asyncgens())
+            loop.close()
+            asyncio.set_event_loop(None)
+        return True
+    return None

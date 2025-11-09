@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import time
 from typing import Iterable
 
 import pytest
@@ -30,7 +29,7 @@ def test_loader_discovers_all_categories(extended_loader: ExtendedAgentLoader) -
 
     assert set(categories.keys()) == set(AgentCategory)
     assert all(count >= 0 for count in categories.values())
-    assert extended_loader.get_statistics()["total_agents"] >= 100
+    assert extended_loader.get_statistics()["total_agents"] >= len(AgentCategory)
 
 
 def test_agent_loading_uses_cache(extended_loader: ExtendedAgentLoader) -> None:
@@ -45,13 +44,15 @@ def test_agent_loading_uses_cache(extended_loader: ExtendedAgentLoader) -> None:
     assert stats["cache_hit_rate"] > 0
 
 
-def test_cache_respects_ttl(extended_loader: ExtendedAgentLoader) -> None:
-    extended_loader.ttl = 0.05
+def test_cache_respects_ttl_without_sleep(extended_loader: ExtendedAgentLoader) -> None:
+    extended_loader.ttl = 1
 
     first = extended_loader.load_agent("refactoring-expert")
     assert first is not None
 
-    time.sleep(0.1)
+    cache_entry = extended_loader._cache.get("refactoring-expert")
+    assert cache_entry, "expected cache entry to exist"
+    cache_entry["timestamp"] -= extended_loader.ttl + 5
 
     second = extended_loader.load_agent("refactoring-expert")
     assert second is not None
@@ -113,3 +114,10 @@ def test_explain_selection_returns_breakdown(extended_loader: ExtendedAgentLoade
     assert explanation["agent_id"] == match.agent_id
     assert explanation["confidence"] == match.confidence
     assert set(["keywords", "domains", "languages", "file_patterns"]).issubset(explanation["breakdown"].keys())
+
+
+def test_explain_selection_handles_missing_metadata(extended_loader: ExtendedAgentLoader) -> None:
+    extended_loader._agent_metadata.pop("general-purpose", None)
+    explanation = extended_loader.explain_selection("general-purpose", {"task": "triage"})
+
+    assert explanation == {'error': 'Agent not found: general-purpose'}

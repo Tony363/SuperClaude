@@ -1,0 +1,5 @@
+2025/11/09-02:11:02.089 5 Creating DB /home/tony/Desktop/SuperClaude/.home/.config/chromium/Default/Local Storage/leveldb since it was missing.
+2025/11/09-02:11:02.126 5 Reusing MANIFEST /home/tony/Desktop/SuperClaude/.home/.config/chromium/Default/Local Storage/leveldb/MANIFEST-000001
+2025/11/09-02:11:56.132 7 Level-0 table #5: started
+2025/11/09-02:11:56.140 7 Level-0 table #5: 35408 bytes OK
+2025/11/09-02:11:56.146 7 Delete type=0 #3
