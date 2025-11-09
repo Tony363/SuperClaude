@@ -1,16 +1,13 @@
-"""
-Agent Command Module for SuperClaude CLI
-
-Provides commands to interact with the agent system:
-- List available agents
-- Select and execute agents
-- Show agent capabilities
-"""
+"""Agent command module for the SuperClaude CLI."""
 
 import argparse
 import json
+import logging
+import os
+import shlex
+import traceback
 from pathlib import Path
-from typing import Dict, Any
+from typing import Any, Dict, Iterable
 
 # Try to import from the installed package
 try:
@@ -22,6 +19,13 @@ try:
     AGENT_AVAILABLE = True
 except ImportError:
     AGENT_AVAILABLE = False
+
+try:
+    from SuperClaude.APIClients.codex_cli import CodexCLIUnavailable
+except ImportError:  # pragma: no cover - fallback when package is unavailable
+    class CodexCLIUnavailable(RuntimeError):
+        """Fallback placeholder when Codex client is unavailable."""
+
 
 # Import UI utilities
 try:
@@ -37,6 +41,16 @@ except ImportError:
     def display_warning(msg): print(f"[WARNING] {msg}")
     class Colors:
         CYAN = YELLOW = GREEN = RED = RESET = ""
+
+
+logger = logging.getLogger(__name__)
+
+
+DIAGNOSTIC_PATHS: Iterable[Path] = (
+    Path.home() / ".claude" / "logs",
+    Path.home() / ".cache" / "uv",
+    Path.home() / ".cache" / "uv" / "sdists-v9",
+)
 
 
 def register_parser(subparsers, global_parser):
@@ -271,6 +285,9 @@ def run_agent(selector: 'AgentSelector', loader: 'AgentLoader',
         display_error("Please specify --name or --delegate")
         return 1
 
+    _log_agent_context(agent_name, context)
+    _probe_critical_paths()
+
     # Load and execute agent
     try:
         agent = loader.load_agent(agent_name)
@@ -303,6 +320,95 @@ def run_agent(selector: 'AgentSelector', loader: 'AgentLoader',
 
         return 0 if result['success'] else 1
 
-    except Exception as e:
-        display_error(f"Agent execution failed: {e}")
+    except CodexCLIUnavailable as exc:
+        display_error(f"Agent execution failed: {exc}")
+        _log_codex_cli_failure(exc)
+        logger.debug("Agent execution failed due to Codex CLI error", exc_info=exc)
         return 1
+    except Exception as exc:  # pragma: no cover - defensive logging path
+        display_error(f"Agent execution failed: {exc}")
+        _log_exception_trace()
+        logger.debug("Agent execution failed", exc_info=exc)
+        return 1
+
+
+def _log_agent_context(agent_name: str, context: Dict[str, Any]) -> None:
+    """Emit a concise diagnostics block for the agent invocation."""
+
+    task = str(context.get('task', '')).strip()
+    files = context.get('files') or []
+    display_info(f"Agent diagnostics → name: {agent_name}")
+    if task:
+        clipped = (task[:200] + '…') if len(task) > 200 else task
+        display_info(f"Agent diagnostics → task: {clipped}")
+    display_info(f"Agent diagnostics → files: {len(files)} attached")
+
+
+def _probe_critical_paths() -> None:
+    """Check whether key directories are writable and warn when they are not."""
+
+    for path in DIAGNOSTIC_PATHS:
+        if not path.exists():
+            logger.debug("Diagnostics skipped; path does not exist: %s", path)
+            continue
+        probe_name = path / f".superclaude_probe_{os.getpid()}"
+        try:
+            with open(probe_name, 'w', encoding='utf-8') as handle:
+                handle.write('probe')
+        except Exception as exc:  # noqa: BLE001 - want the exact exception message
+            display_warning(f"Diagnostics: cannot write to {path}: {exc}")
+            logger.debug("Path probe failed for %s", path, exc_info=exc)
+        else:
+            try:
+                probe_name.unlink(missing_ok=True)
+            except OSError:
+                pass
+
+
+def _log_codex_cli_failure(exc: CodexCLIUnavailable) -> None:
+    """Surface structured diagnostics from Codex CLI failures."""
+
+    details = getattr(exc, 'details', None)
+    if not details:
+        return
+
+    display_warning("Codex CLI diagnostics:")
+    command = details.get('command')
+    if command:
+        cmd_fmt = ' '.join(shlex.quote(str(part)) for part in command)
+        print(f"  command : {cmd_fmt}")
+    if details.get('cwd'):
+        print(f"  workdir : {details['cwd']}")
+    if details.get('returncode') is not None:
+        print(f"  exit    : {details['returncode']}")
+
+    stdout = details.get('stdout') or ''
+    stderr = details.get('stderr') or ''
+    if stdout:
+        print("  stdout  :")
+        print(_indent_block(stdout))
+    if stderr and stderr != stdout:
+        print("  stderr  :")
+        print(_indent_block(stderr))
+
+    combined = f"{stdout}\n{stderr}".lower()
+    if "permission denied" in combined:
+        display_warning(
+            "Codex CLI reported permission issues. Ensure ~/.claude and ~/.cache are writable "
+            "or set SUPERCLAUDE_CODEX_CLI_LOG_DIR to an accessible path."
+        )
+
+
+def _log_exception_trace() -> None:
+    """Print a stack trace to help diagnose unexpected failures."""
+
+    trace = traceback.format_exc()
+    if not trace:
+        return
+    display_warning("Stack trace:")
+    print(trace)
+
+
+def _indent_block(text: str, prefix: str = "    ") -> str:
+    lines = text.strip().splitlines() or ['<no output>']
+    return '\n'.join(f"{prefix}{line}" for line in lines)
