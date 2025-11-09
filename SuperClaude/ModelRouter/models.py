@@ -5,12 +5,16 @@ Defines model capabilities, optimal use cases, and configuration management.
 """
 
 import os
-import yaml
 import json
 from typing import Dict, Any, Optional, List
 from pathlib import Path
 from dataclasses import dataclass, field, asdict
 import logging
+
+try:  # Optional dependency for YAML config handling
+    import yaml
+except ModuleNotFoundError:  # pragma: no cover - optional at runtime
+    yaml = None  # type: ignore
 
 logger = logging.getLogger(__name__)
 
@@ -188,6 +192,8 @@ class ModelManager:
 
         with open(path, 'r') as f:
             if path.endswith('.yaml') or path.endswith('.yml'):
+                if yaml is None:
+                    raise RuntimeError("PyYAML is required to load YAML model configs")
                 data = yaml.safe_load(f)
             else:
                 data = json.load(f)
@@ -327,6 +333,8 @@ class ModelManager:
         # Save based on extension
         with open(save_path, 'w') as f:
             if save_path.endswith('.yaml') or save_path.endswith('.yml'):
+                if yaml is None:
+                    raise RuntimeError("PyYAML is required to save YAML model configs")
                 yaml.safe_dump(config_dict, f, default_flow_style=False, indent=2)
             else:
                 json.dump(config_dict, f, indent=2)

@@ -5,7 +5,6 @@ Tracks metrics, performance, and resource usage across all components.
 """
 
 import time
-import psutil
 import logging
 import asyncio
 from typing import Dict, List, Any, Optional, Callable
@@ -15,6 +14,11 @@ from collections import deque, defaultdict
 from enum import Enum
 import json
 from pathlib import Path
+
+try:  # Optional dependency used when available for richer telemetry
+    import psutil  # type: ignore
+except ModuleNotFoundError:  # pragma: no cover - depends on runtime extras
+    psutil = None  # type: ignore
 
 logger = logging.getLogger(__name__)
 
@@ -392,6 +396,23 @@ class PerformanceMonitor:
         Returns:
             Current performance snapshot
         """
+        if psutil is None:
+            logger.debug("psutil not available; returning synthetic snapshot")
+            snapshot = PerformanceSnapshot(
+                timestamp=datetime.now(),
+                cpu_percent=0.0,
+                memory_percent=0.0,
+                memory_mb=0.0,
+                disk_io_read_mb=0.0,
+                disk_io_write_mb=0.0,
+                network_sent_mb=0.0,
+                network_recv_mb=0.0,
+                active_tasks=len(asyncio.all_tasks()),
+                thread_count=0,
+                process_count=0,
+            )
+            return self._finalize_snapshot(snapshot)
+
         process = psutil.Process()
         cpu_percent = process.cpu_percent()
         memory_info = process.memory_info()
@@ -402,7 +423,7 @@ class PerformanceMonitor:
             io_counters = process.io_counters()
             disk_read_mb = io_counters.read_bytes / 1024 / 1024
             disk_write_mb = io_counters.write_bytes / 1024 / 1024
-        except:
+        except Exception:
             disk_read_mb = 0
             disk_write_mb = 0
 
@@ -411,7 +432,7 @@ class PerformanceMonitor:
             net_io = psutil.net_io_counters()
             net_sent_mb = net_io.bytes_sent / 1024 / 1024
             net_recv_mb = net_io.bytes_recv / 1024 / 1024
-        except:
+        except Exception:
             net_sent_mb = 0
             net_recv_mb = 0
 
@@ -426,14 +447,19 @@ class PerformanceMonitor:
             network_recv_mb=net_recv_mb,
             active_tasks=len(asyncio.all_tasks()),
             thread_count=process.num_threads(),
-            process_count=1
+            process_count=1,
         )
 
+        return self._finalize_snapshot(snapshot)
+
+    def _finalize_snapshot(self, snapshot: PerformanceSnapshot) -> PerformanceSnapshot:
+        """Persist and record snapshot metrics."""
+        
         self.snapshots.append(snapshot)
 
         # Record as metrics
-        self.record_metric("system.cpu_percent", cpu_percent, MetricType.GAUGE)
-        self.record_metric("system.memory_percent", memory_percent, MetricType.GAUGE)
+        self.record_metric("system.cpu_percent", snapshot.cpu_percent, MetricType.GAUGE)
+        self.record_metric("system.memory_percent", snapshot.memory_percent, MetricType.GAUGE)
         self.record_metric("system.memory_mb", snapshot.memory_mb, MetricType.GAUGE)
 
         # Persist snapshot (best-effort)

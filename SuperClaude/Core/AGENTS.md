@@ -66,6 +66,20 @@ Every Task output gets a quality score (0-100):
 - **70-89**: Acceptable → Review notes
 - **<70**: Needs improvement → Auto-iterate with specialist suggestion
 
+## CodeRabbit Review Loop
+- **Signal blend**: SuperClaude correctness + completeness + test coverage are blended with CodeRabbit MCP scores (0.35/0.35/0.15/0.15 weights, auto-renormalised when CodeRabbit is missing).
+- **Activation**: Export `CODERABBIT_REPO=org/name` and `CODERABBIT_PR_NUMBER=123` (or populate `context.results['coderabbit_repo|coderabbit_pr']`) to let the executor fetch reviews automatically. Secrets stay in `CODERABBIT_API_KEY` per `Config/coderabbit.yaml`.
+- **Loop order**: Execute command → SuperClaude scoring → CodeRabbit review fetch → telemetry merge → blended score + thresholds → if below **production_ready** reroute fixes to specialists.
+- **Degraded mode**: When CodeRabbit is down or missing config, telemetry records `coderabbit_status=degraded` and weights renormalise so SuperClaude signals still gate the run—no silent approvals.
+
+### Taxonomy → Specialist Mapping
+- **security** (`security`, `vulnerability`, `injection`) → `security-engineer`
+- **performance** (`performance`, `latency`, `throughput`) → `performance-engineer`
+- **style** (`style`, `formatting`, `lint`) → `refactoring-expert`
+- **logic** (`logic`, `bug`, `correctness`) → `root-cause-analyst`
+
+The executor aggregates CodeRabbit findings per taxonomy, builds improvement briefs (title, severity, file/line), and surfaces them in `context.results['coderabbit_briefs']`. Delegation heuristics read these briefs to auto-assign remediation Tasks before the command re-runs.
+
 ## Agent Discovery & Selection
 
 ### New Discovery Flags

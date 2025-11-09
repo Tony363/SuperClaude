@@ -5,11 +5,15 @@ This module parses agent definitions from markdown files, extracting
 metadata, behavioral mindset, focus areas, and boundaries.
 """
 
-import re
-import yaml
-from pathlib import Path
-from typing import Dict, List, Optional, Any
 import logging
+import re
+from pathlib import Path
+from typing import Any, Dict, List, Optional
+
+try:  # Optional dependency used for YAML frontmatter
+    import yaml
+except ModuleNotFoundError:  # pragma: no cover - depends on optional extras
+    yaml = None  # type: ignore
 
 
 class AgentMarkdownParser:
@@ -81,6 +85,10 @@ class AgentMarkdownParser:
         match = re.match(pattern, content, re.DOTALL)
 
         if not match:
+            return {}
+
+        if yaml is None:
+            self.logger.debug("PyYAML not installed; skipping frontmatter parsing")
             return {}
 
         try:

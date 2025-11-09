@@ -14,7 +14,25 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 
-import yaml
+try:  # Optional dependency for YAML configs
+    import yaml
+except ModuleNotFoundError:  # pragma: no cover - optional dependency
+    yaml = None  # type: ignore
+
+try:  # Optional import to avoid circular dependencies during tests
+    from ..MCP.coderabbit import CodeRabbitReview
+except Exception:  # pragma: no cover - the client is optional at runtime
+    CodeRabbitReview = None  # type: ignore
+
+
+CODERABBIT_CONFIG_PATH = Path(__file__).resolve().parents[2] / "Config" / "coderabbit.yaml"
+
+DEFAULT_COMPONENT_WEIGHTS = {
+    "superclaude": 0.35,
+    "coderabbit": 0.35,
+    "completeness": 0.15,
+    "test_coverage": 0.15,
+}
 
 
 class QualityDimension(Enum):
@@ -54,6 +72,7 @@ class QualityAssessment:
     threshold: float
     context: Dict[str, Any]
     improvements_needed: List[str] = field(default_factory=list)
+    band: str = "iterate"
     metadata: Dict[str, Any] = field(default_factory=dict)
 
 
@@ -67,6 +86,22 @@ class IterationResult:
     improvements_applied: List[str]
     time_taken: float
     success: bool
+
+
+@dataclass(frozen=True)
+class QualityThresholds:
+    """Shared thresholds for routing and CI."""
+
+    production_ready: float = 90.0
+    needs_attention: float = 75.0
+    iterate: float = 0.0
+
+    def classify(self, score: float) -> str:
+        if score >= self.production_ready:
+            return "production_ready"
+        if score >= self.needs_attention:
+            return "needs_attention"
+        return "iterate"
 
 
 class QualityScorer:
@@ -119,6 +154,12 @@ class QualityScorer:
         }
 
         self._load_configuration()
+        override_threshold = threshold if threshold != self.DEFAULT_THRESHOLD else None
+        self.coderabbit_config = self._load_coderabbit_config()
+        self.component_weights = self._load_component_weights()
+        self.thresholds = self._load_thresholds(override_threshold)
+        if override_threshold is None:
+            self.threshold = self.thresholds.production_ready
 
         # Iteration history
         self.iteration_history: List[IterationResult] = []
@@ -131,6 +172,10 @@ class QualityScorer:
         """Load quality configuration from YAML if available."""
         if not self.config_path.exists():
             self.logger.debug(f"Quality config not found at {self.config_path}")
+            return
+
+        if yaml is None:
+            self.logger.debug("PyYAML not installed; skipping quality config load")
             return
 
         try:
@@ -163,6 +208,54 @@ class QualityScorer:
                 self.threshold = float(thresholds_cfg["good"])
             except (TypeError, ValueError):
                 self.logger.debug("Invalid 'good' threshold in quality config")
+
+    def _load_coderabbit_config(self) -> Dict[str, Any]:
+        if yaml is None or not CODERABBIT_CONFIG_PATH.exists():
+            return {}
+
+        try:
+            with open(CODERABBIT_CONFIG_PATH, "r", encoding="utf-8") as handle:
+                return yaml.safe_load(handle) or {}
+        except Exception as exc:  # pragma: no cover - best effort logging
+            self.logger.debug("Failed to read CodeRabbit config: %s", exc)
+            return {}
+
+    def _load_component_weights(self) -> Dict[str, float]:
+        weights = DEFAULT_COMPONENT_WEIGHTS.copy()
+        config_weights = (self.coderabbit_config or {}).get("weights", {}) if hasattr(self, "coderabbit_config") else {}
+        for key in list(weights.keys()):
+            value = config_weights.get(key)
+            if isinstance(value, (int, float)):
+                weights[key] = float(value)
+        total = sum(weights.values())
+        if total <= 0:
+            return DEFAULT_COMPONENT_WEIGHTS.copy()
+        return weights
+
+    def _load_thresholds(self, override_threshold: Optional[float]) -> QualityThresholds:
+        cfg = (self.coderabbit_config or {}).get("thresholds", {}) if hasattr(self, "coderabbit_config") else {}
+
+        def _coerce(key: str, default: float) -> float:
+            try:
+                return float(cfg.get(key, default))
+            except (TypeError, ValueError):
+                return default
+
+        thresholds = QualityThresholds(
+            production_ready=_coerce("production_ready", 90.0),
+            needs_attention=_coerce("needs_attention", 75.0),
+            iterate=_coerce("iterate", 0.0),
+        )
+
+        if override_threshold is not None:
+            needs_attention = min(thresholds.needs_attention, float(override_threshold))
+            thresholds = QualityThresholds(
+                production_ready=float(override_threshold),
+                needs_attention=needs_attention,
+                iterate=thresholds.iterate,
+            )
+
+        return thresholds
 
     def evaluate(
         self,
@@ -211,13 +304,23 @@ class QualityScorer:
                 self.logger.error(f"Custom evaluator error: {e}")
 
         # Calculate overall score
-        overall_score = self._calculate_overall_score(metrics)
+        overall_score, score_metadata = self._calculate_overall_score(metrics, context)
 
         # Determine if quality passes threshold
-        passed = overall_score >= self.threshold
+        band = self.thresholds.classify(overall_score)
+        passed = overall_score >= self.thresholds.production_ready
 
         # Identify improvements needed
         improvements = self._identify_improvements(metrics, overall_score)
+
+        metadata = {
+            **score_metadata,
+            "thresholds": {
+                "production_ready": self.thresholds.production_ready,
+                "needs_attention": self.thresholds.needs_attention,
+                "iterate": self.thresholds.iterate,
+            },
+        }
 
         # Create assessment
         assessment = QualityAssessment(
@@ -228,7 +331,9 @@ class QualityScorer:
             passed=passed,
             threshold=self.threshold,
             context=context,
-            improvements_needed=improvements
+            improvements_needed=improvements,
+            band=band,
+            metadata=metadata,
         )
 
         # Store in history
@@ -434,49 +539,26 @@ class QualityScorer:
         Returns:
             Dict with 'overall', 'grade', and 'action'.
         """
-        # Default weights mirroring README table
-        weights = {
-            'correctness': 0.25,
-            'completeness': 0.20,
-            'performance': 0.10,
-            'maintainability': 0.10,
-            'security': 0.10,
-            'scalability': 0.10,
-            'testability': 0.10,
-            'usability': 0.05,
+        component_scores = self._component_inputs_from_dict(scores)
+        overall, _weights = self._combine_component_scores(component_scores)
+        band = self.thresholds.classify(overall)
+
+        grade_map = {
+            'production_ready': 'Excellent',
+            'needs_attention': 'Needs Attention',
+            'iterate': 'Rework',
         }
-
-        # Weighted sum
-        overall = 0.0
-        total_weight = 0.0
-        for dim, w in weights.items():
-            if dim in scores:
-                overall += max(0.0, min(100.0, float(scores[dim]))) * w
-                total_weight += w
-
-        overall = overall / total_weight if total_weight > 0 else 0.0
-
-        # Grade and action
-        if overall >= 90:
-            grade = 'Excellent'
-            action = 'Auto-approve'
-        elif overall >= 70:
-            grade = 'Good'
-            action = 'Review recommended'
-        elif overall >= 50:
-            grade = 'Acceptable'
-            action = 'Improvements needed'
-        elif overall >= 30:
-            grade = 'Poor'
-            action = 'Major revision required'
-        else:
-            grade = 'Failing'
-            action = 'Complete rework needed'
+        action_map = {
+            'production_ready': 'Auto-approve',
+            'needs_attention': 'Address feedback and re-run validation',
+            'iterate': 'Iterate with assigned specialist agent',
+        }
 
         return {
             'overall': round(overall, 2),
-            'grade': grade,
-            'action': action,
+            'grade': grade_map.get(band, 'Unknown'),
+            'action': action_map.get(band, 'Investigate further'),
+            'band': band,
         }
 
     def _evaluate_correctness(self, output: Any, context: Dict[str, Any]) -> QualityMetric:
@@ -817,17 +899,22 @@ class QualityScorer:
             suggestions=suggestions
         )
 
-    def _calculate_overall_score(self, metrics: List[QualityMetric]) -> float:
-        """Calculate weighted overall score."""
-        if not metrics:
-            return 0.0
+    def _calculate_overall_score(
+        self,
+        metrics: List[QualityMetric],
+        context: Optional[Dict[str, Any]] = None,
+    ) -> Tuple[float, Dict[str, Any]]:
+        """Calculate the blended score using CodeRabbit + SuperClaude signals."""
 
-        total_weight = sum(m.weight for m in metrics)
-        if total_weight == 0:
-            return 0.0
-
-        weighted_sum = sum(m.score * m.weight for m in metrics)
-        return weighted_sum / total_weight
+        component_scores, coderabbit_meta = self._derive_component_scores(metrics, context or {})
+        blended_score, normalized_weights = self._combine_component_scores(component_scores)
+        metadata = {
+            "components": component_scores,
+            "weights": normalized_weights,
+            "coderabbit_status": coderabbit_meta.get("status"),
+            "coderabbit_reason": coderabbit_meta.get("reason"),
+        }
+        return blended_score, metadata
 
     def _identify_improvements(
         self,
@@ -854,6 +941,138 @@ class QualityScorer:
             improvements.append("Address critical issues first")
 
         return improvements
+
+    def _derive_component_scores(
+        self,
+        metrics: List[QualityMetric],
+        context: Dict[str, Any],
+    ) -> Tuple[Dict[str, Optional[float]], Dict[str, Any]]:
+        coderabbit_score, coderabbit_meta = self._extract_coderabbit_signal(context)
+        component_scores: Dict[str, Optional[float]] = {
+            "superclaude": self._get_metric_score(metrics, QualityDimension.CORRECTNESS),
+            "coderabbit": coderabbit_score,
+            "completeness": self._get_metric_score(metrics, QualityDimension.COMPLETENESS),
+            "test_coverage": self._derive_test_coverage(metrics, context),
+        }
+        return component_scores, coderabbit_meta
+
+    def _get_metric_score(
+        self,
+        metrics: List[QualityMetric],
+        dimension: QualityDimension,
+    ) -> Optional[float]:
+        for metric in metrics:
+            if metric.dimension == dimension:
+                try:
+                    return float(metric.score)
+                except (TypeError, ValueError):
+                    return None
+        return None
+
+    def _derive_test_coverage(
+        self,
+        metrics: List[QualityMetric],
+        context: Dict[str, Any],
+    ) -> Optional[float]:
+        metric_score = self._get_metric_score(metrics, QualityDimension.TESTABILITY)
+        if metric_score is not None:
+            return metric_score
+
+        test_results = context.get("test_results") if isinstance(context, dict) else None
+        if isinstance(test_results, dict):
+            coverage = test_results.get("coverage")
+            if coverage is None:
+                coverage = test_results.get("pass_rate")
+                if isinstance(coverage, (int, float)) and coverage <= 1:
+                    coverage = coverage * 100
+            elif isinstance(coverage, (int, float)) and coverage <= 1:
+                coverage = coverage * 100
+
+            if coverage is not None:
+                try:
+                    return max(0.0, min(100.0, float(coverage)))
+                except (TypeError, ValueError):
+                    return None
+
+        return None
+
+    def _extract_coderabbit_signal(self, context: Dict[str, Any]) -> Tuple[Optional[float], Dict[str, Any]]:
+        info = {"status": "missing", "reason": None}
+        candidate = context.get("coderabbit_review") or context.get("coderabbit")
+
+        if CodeRabbitReview is not None and isinstance(candidate, CodeRabbitReview):  # type: ignore[arg-type]
+            info["status"] = "degraded" if getattr(candidate, "degraded", False) else "available"
+            info["reason"] = getattr(candidate, "degraded_reason", None)
+            try:
+                return float(candidate.score), info
+            except (TypeError, ValueError):
+                return None, info
+
+        if isinstance(candidate, dict):
+            score = candidate.get("score")
+            if score is None and "coderabbit_score" in candidate:
+                score = candidate.get("coderabbit_score")
+            info["status"] = candidate.get("status", "available")
+            info["reason"] = candidate.get("degraded_reason")
+            return self._coerce_score_value(score), info
+
+        score_value = context.get("coderabbit_score")
+        coerced = self._coerce_score_value(score_value)
+        if coerced is not None:
+            info["status"] = "manual"
+            return coerced, info
+
+        if context.get("coderabbit_status"):
+            info["status"] = context.get("coderabbit_status")
+            info["reason"] = context.get("coderabbit_reason")
+
+        return None, info
+
+    def _combine_component_scores(
+        self,
+        component_scores: Dict[str, Optional[float]],
+    ) -> Tuple[float, Dict[str, float]]:
+        available = {key: val for key, val in component_scores.items() if val is not None}
+        if not available:
+            return 0.0, {}
+
+        weight_total = sum(self.component_weights.get(key, 0.0) for key in available)
+        if weight_total <= 0:
+            normalized = {key: 1.0 / len(available) for key in available}
+        else:
+            normalized = {
+                key: self.component_weights.get(key, 0.0) / weight_total
+                for key in available
+            }
+
+        blended = 0.0
+        for key, score in available.items():
+            blended += score * normalized.get(key, 0.0)
+
+        return blended, normalized
+
+    def _component_inputs_from_dict(self, values: Dict[str, Any]) -> Dict[str, Optional[float]]:
+        values = values or {}
+        return {
+            "superclaude": self._coerce_score_value(values.get("superclaude") or values.get("correctness")),
+            "coderabbit": self._coerce_score_value(values.get("coderabbit")),
+            "completeness": self._coerce_score_value(values.get("completeness")),
+            "test_coverage": self._coerce_score_value(
+                values.get("test_coverage")
+                or values.get("tests")
+                or values.get("coverage")
+                or values.get("testability")
+            ),
+        }
+
+    def _coerce_score_value(self, value: Any) -> Optional[float]:
+        if value is None:
+            return None
+        try:
+            numeric = float(value)
+        except (TypeError, ValueError):
+            return None
+        return max(0.0, min(100.0, numeric))
 
     def _check_requirement_met(self, output: Any, requirement: str) -> bool:
         """Check if a requirement is met in output."""

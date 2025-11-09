@@ -10,10 +10,14 @@ from typing import Dict, Optional, Any, List, Tuple, Set
 from collections import OrderedDict
 from pathlib import Path
 import logging
-import yaml
 import json
 from dataclasses import dataclass, field
 from enum import Enum
+
+try:  # Optional dependency for YAML registry parsing
+    import yaml
+except ModuleNotFoundError:  # pragma: no cover - depends on optional extras
+    yaml = None  # type: ignore
 
 from .base import BaseAgent
 from .registry import AgentRegistry
@@ -134,6 +138,10 @@ class ExtendedAgentLoader:
 
         if not self.registry_path.exists():
             self.logger.warning(f"Registry file not found: {self.registry_path}")
+            return
+
+        if yaml is None:
+            self.logger.debug("PyYAML not available; skipping metadata index load")
             return
 
         try:

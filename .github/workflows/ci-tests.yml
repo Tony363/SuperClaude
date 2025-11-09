@@ -42,6 +42,17 @@ jobs:
             tests/test_commands.py \
             tests/test_version.py
 
+      - name: CodeRabbit quality gate
+        if: ${{ github.event_name == 'pull_request' && secrets.CODERABBIT_API_KEY != '' }}
+        env:
+          CODERABBIT_API_KEY: ${{ secrets.CODERABBIT_API_KEY }}
+          CODERABBIT_REPO: ${{ github.repository }}
+          CODERABBIT_PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          python -m SuperClaude.Quality.coderabbit_gate \
+            --threshold production_ready \
+            --allow-degraded
+
       - name: Run benchmark smoke harness
         env:
           PYENV_DISABLE_REHASH: "1"

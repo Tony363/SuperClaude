@@ -6,13 +6,17 @@ Integrates with MCP servers and agent system for comprehensive functionality.
 """
 
 import os
-import yaml
 import re
 from pathlib import Path
 from typing import Dict, List, Any, Optional, Tuple
 from dataclasses import dataclass, field
 from functools import lru_cache
 import logging
+
+try:  # Optional dependency
+    import yaml
+except ModuleNotFoundError:  # pragma: no cover - optional install
+    yaml = None  # type: ignore
 
 logger = logging.getLogger(__name__)
 
@@ -64,6 +68,10 @@ class CommandRegistry:
         """Auto-discover and register all command files."""
         logger.info(f"Discovering commands in {self.commands_dir}")
 
+        if yaml is None:
+            logger.warning("PyYAML missing; skipping command discovery")
+            return
+
         for file_path in self.commands_dir.glob("*.md"):
             if file_path.name.startswith("_"):
                 continue  # Skip private files
@@ -86,6 +94,10 @@ class CommandRegistry:
         Returns:
             CommandMetadata or None if loading fails
         """
+        if yaml is None:
+            logger.warning(f"Cannot parse {file_path} because PyYAML is not installed")
+            return None
+
         try:
             with open(file_path, 'r', encoding='utf-8') as f:
                 content = f.read()

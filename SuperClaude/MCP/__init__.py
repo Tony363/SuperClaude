@@ -13,6 +13,16 @@ from .browser_integration import (
     CLIBrowserTransport,
     ScreenshotResult,
 )
+from .coderabbit import (
+    AuthError as CodeRabbitAuthError,
+    CodeRabbitClient,
+    CodeRabbitError,
+    CodeRabbitIssue,
+    CodeRabbitReview,
+    NetworkError as CodeRabbitNetworkError,
+    RateLimitError as CodeRabbitRateLimitError,
+    scrub_secrets as coderabbit_scrub_secrets,
+)
 
 __version__ = "6.0.0-alpha"
 
@@ -24,6 +34,14 @@ __all__ = [
     "BrowserSnapshot",
     "ScreenshotResult",
     "CLIBrowserTransport",
+    "CodeRabbitClient",
+    "CodeRabbitReview",
+    "CodeRabbitIssue",
+    "CodeRabbitError",
+    "CodeRabbitNetworkError",
+    "CodeRabbitAuthError",
+    "CodeRabbitRateLimitError",
+    "coderabbit_scrub_secrets",
     "get_mcp_integration",
     "integration_import_errors",
 ]

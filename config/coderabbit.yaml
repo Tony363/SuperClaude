@@ -1,0 +1,60 @@
+# Default configuration for the CodeRabbit integration.
+# These values are applied unless overridden by environment specific settings.
+
+enabled: true
+endpoint: https://api.coderabbit.ai/v1/reviews
+api_key_env: CODERABBIT_API_KEY
+requires_network: true
+timeout_seconds: 30
+cache_ttl_seconds: 3600
+cache_filename: coderabbit_cache.json
+telemetry:
+  filename: coderabbit_telemetry.jsonl
+  redact_keys:
+    - api_key
+    - authorization
+    - token
+    - secret
+    - password
+retry_policy:
+  max_attempts: 3
+  backoff_seconds: 1.0
+  max_backoff_seconds: 8.0
+  jitter_seconds: 0.3
+weights:
+  superclaude: 0.35
+  coderabbit: 0.35
+  completeness: 0.15
+  test_coverage: 0.15
+thresholds:
+  production_ready: 90
+  needs_attention: 75
+  iterate: 0
+issue_taxonomy:
+  security:
+    tags:
+      - security
+      - vulnerability
+      - injection
+    agent: security-engineer
+  performance:
+    tags:
+      - performance
+      - latency
+      - throughput
+    agent: performance-engineer
+  style:
+    tags:
+      - style
+      - formatting
+      - lint
+    agent: refactoring-expert
+  logic:
+    tags:
+      - logic
+      - correctness
+      - bug
+    agent: root-cause-analyst
+ci:
+  allow_degraded: true
+  default_threshold: production_ready

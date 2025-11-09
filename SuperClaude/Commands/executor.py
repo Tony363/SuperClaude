@@ -22,7 +22,10 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Set, Tuple
 
-import yaml
+try:  # Optional dependency used for config parsing
+    import yaml
+except ModuleNotFoundError:  # pragma: no cover - optional extras
+    yaml = None  # type: ignore
 
 from .artifact_manager import CommandArtifactManager
 from .parser import CommandParser, ParsedCommand
@@ -33,6 +36,7 @@ from ..Agents.registry import AgentRegistry
 from ..Agents import usage_tracker as agent_usage_tracker
 from ..APIClients.codex_cli import CodexCLIClient, CodexCLIUnavailable
 from ..MCP import get_mcp_integration
+from ..MCP.coderabbit import CodeRabbitClient, CodeRabbitError, CodeRabbitReview
 from ..ModelRouter.facade import ModelRouterFacade
 from ..ModelRouter.consensus import VoteType
 from ..Modes.behavioral_manager import BehavioralMode, BehavioralModeManager
@@ -148,6 +152,7 @@ BUSINESS_PANEL_FOCUS_MAP = {
 }
 
 DEFAULT_BUSINESS_PANEL_EXPERTS = ['porter', 'drucker', 'godin']
+CODERABBIT_CONFIG_PATH = Path(__file__).resolve().parents[1] / "Config" / "coderabbit.yaml"
 
 
 @dataclass
@@ -235,6 +240,9 @@ class CommandExecutor:
         self.consensus_facade = ModelRouterFacade()
         self.consensus_policies = self._load_consensus_policies()
         self.quality_scorer = QualityScorer()
+        self.coderabbit_config = self._load_coderabbit_config()
+        self.coderabbit_taxonomy = self._load_coderabbit_taxonomy()
+        self.coderabbit_client = self._init_coderabbit_client()
         self.retriever = RepoRetriever(base_path)
         self.delegate_category_map = {
             'delegate_core': AgentCategory.CORE_DEVELOPMENT,
@@ -715,8 +723,11 @@ class CommandExecutor:
             base_dir = os.path.dirname(os.path.dirname(__file__))
             cfg_path = os.path.join(base_dir, 'Config', 'mcp.yaml')
             if os.path.exists(cfg_path):
-                with open(cfg_path, 'r', encoding='utf-8') as f:
-                    mcp_config = yaml.safe_load(f) or {}
+                if yaml is None:
+                    logger.warning("PyYAML missing; skipping MCP config load")
+                else:
+                    with open(cfg_path, 'r', encoding='utf-8') as f:
+                        mcp_config = yaml.safe_load(f) or {}
         except Exception as e:
             logger.warning(f"Failed to load MCP config: {e}")
 
@@ -3271,6 +3282,9 @@ class CommandExecutor:
                 except Exception as exc:
                     issues.append(f"{rel_path}: json validation failed — {exc}")
             elif path.suffix in {'.yaml', '.yml'}:
+                if yaml is None:
+                    issues.append(f"{rel_path}: skipped YAML validation (PyYAML not installed)")
+                    continue
                 try:
                     yaml.safe_load(path.read_text(encoding='utf-8'))
                 except yaml.YAMLError as exc:
@@ -3412,13 +3426,16 @@ class CommandExecutor:
         max_iterations = context.loop_iterations or self.quality_scorer.MAX_ITERATIONS
         min_improvement = context.loop_min_improvement
 
+        evaluation_context = dict(context.results)
+        self._attach_coderabbit_review(context, evaluation_context)
+
         def _remediation_improver(current_output: Any, loop_context: Dict[str, Any]) -> Any:
             return self._quality_loop_improver(context, current_output, loop_context)
 
         try:
             improved_output, final_assessment, iteration_history = self.quality_scorer.agentic_loop(
                 output,
-                dict(context.results),
+                evaluation_context,
                 improver_func=_remediation_improver,
                 max_iterations=max_iterations,
                 min_improvement=min_improvement
@@ -3447,6 +3464,8 @@ class CommandExecutor:
             'Quality loop executed with remediation pipeline.'
         )
 
+        self._route_coderabbit_feedback(context, final_assessment)
+
         return {
             'output': improved_output,
             'assessment': final_assessment
@@ -3466,12 +3485,15 @@ class CommandExecutor:
         evaluation_context['changed_files'] = [
             self._relative_to_repo_path(path) for path in changed_paths
         ]
+        self._attach_coderabbit_review(context, evaluation_context)
 
         try:
             assessment = precomputed or self.quality_scorer.evaluate(
                 output,
                 evaluation_context
             )
+            if assessment:
+                self._route_coderabbit_feedback(context, assessment)
             if assessment and not assessment.passed:
                 if precomputed:
                     return assessment
@@ -3500,6 +3522,7 @@ class CommandExecutor:
                         serialized.append(data)
                     context.results['quality_iteration_history'] = serialized
 
+                self._route_coderabbit_feedback(context, loop_assessment)
                 return loop_assessment
 
             return assessment
@@ -3599,6 +3622,7 @@ class CommandExecutor:
                     MetricType.COUNTER,
                     fast_tags
                 )
+
             else:
                 blocked = fast_codex_state.get('blocked') or []
                 blocked_tags = dict(fast_tags)
@@ -5200,7 +5224,9 @@ class CommandExecutor:
         """Load consensus policies from configuration."""
         base_dir = Path(__file__).resolve().parent.parent
         cfg_path = base_dir / "Config" / "consensus_policies.yaml"
-        if not cfg_path.exists():
+        if yaml is None or not cfg_path.exists():
+            if yaml is None:
+                logger.warning("PyYAML missing; using default consensus policies")
             return {'defaults': {'vote_type': VoteType.MAJORITY, 'quorum_size': 2}, 'commands': {}}
 
         try:
@@ -5355,6 +5381,169 @@ class CommandExecutor:
                 final_results.append(result)
 
         return final_results
+
+    def _load_coderabbit_config(self) -> Dict[str, Any]:
+        if yaml is None or not CODERABBIT_CONFIG_PATH.exists():
+            return {}
+        try:
+            with open(CODERABBIT_CONFIG_PATH, 'r', encoding='utf-8') as handle:
+                return yaml.safe_load(handle) or {}
+        except Exception as exc:
+            logger.debug("Failed to load CodeRabbit config: %s", exc)
+            return {}
+
+    def _load_coderabbit_taxonomy(self) -> Dict[str, Dict[str, Any]]:
+        defaults = {
+            'security': {'tags': ['security', 'vulnerability', 'injection'], 'agent': 'security-engineer'},
+            'performance': {'tags': ['performance', 'latency', 'throughput'], 'agent': 'performance-engineer'},
+            'style': {'tags': ['style', 'formatting', 'lint'], 'agent': 'refactoring-expert'},
+            'logic': {'tags': ['logic', 'bug', 'correctness'], 'agent': 'root-cause-analyst'},
+        }
+        taxonomy_cfg = self.coderabbit_config.get('issue_taxonomy', {}) if hasattr(self, 'coderabbit_config') else {}
+        for name, data in taxonomy_cfg.items():
+            tags = [str(tag).lower() for tag in data.get('tags', [])]
+            agent = data.get('agent') or defaults.get(name, {}).get('agent')
+            defaults[name] = {
+                'tags': tags or defaults.get(name, {}).get('tags', []),
+                'agent': agent,
+            }
+        return defaults
+
+    def _init_coderabbit_client(self) -> Optional[CodeRabbitClient]:
+        enabled = bool(self.coderabbit_config.get('enabled', True)) if hasattr(self, 'coderabbit_config') else False
+        if not enabled:
+            return None
+        try:
+            return CodeRabbitClient(config=self.coderabbit_config)
+        except Exception as exc:
+            logger.debug("CodeRabbit client unavailable: %s", exc)
+            return None
+
+    def _resolve_coderabbit_target(
+        self,
+        context: CommandContext,
+        evaluation_context: Dict[str, Any],
+    ) -> Optional[Tuple[str, int]]:
+        repo = (
+            evaluation_context.get('coderabbit_repo')
+            or context.results.get('coderabbit_repo')
+            or os.getenv('CODERABBIT_REPO')
+        )
+        pr_value = (
+            evaluation_context.get('coderabbit_pr')
+            or evaluation_context.get('pull_request_number')
+            or context.results.get('coderabbit_pr')
+            or context.results.get('pull_request_number')
+            or os.getenv('CODERABBIT_PR_NUMBER')
+        )
+
+        if not repo or not pr_value:
+            return None
+
+        try:
+            pr_number = int(str(pr_value).strip())
+        except (TypeError, ValueError):
+            return None
+
+        repo_slug = str(repo).strip()
+        if not repo_slug:
+            return None
+
+        return repo_slug, pr_number
+
+    def _attach_coderabbit_review(
+        self,
+        context: CommandContext,
+        evaluation_context: Dict[str, Any],
+        *,
+        force_refresh: bool = False,
+    ) -> Optional[CodeRabbitReview]:
+        if not self.coderabbit_client:
+            return None
+
+        target = self._resolve_coderabbit_target(context, evaluation_context)
+        if not target:
+            evaluation_context.setdefault('coderabbit_status', 'missing')
+            return None
+
+        repo, pr_number = target
+        diff_blob = evaluation_context.get('diff') or context.results.get('diff_summary')
+
+        try:
+            review = self.coderabbit_client.review_pull_request(
+                repo=repo,
+                pr_number=pr_number,
+                diff=diff_blob,
+                metadata={'command': context.command.name, 'executor': 'quality_gate'},
+                force_refresh=force_refresh,
+            )
+        except CodeRabbitError as exc:
+            logger.debug("CodeRabbit review failed: %s", exc)
+            evaluation_context['coderabbit_status'] = 'error'
+            evaluation_context['coderabbit_error'] = str(exc)
+            context.results['coderabbit_status'] = 'error'
+            context.results['coderabbit_error'] = str(exc)
+            return None
+
+        evaluation_context['coderabbit_review'] = review
+        evaluation_context['coderabbit_score'] = review.score
+        evaluation_context['coderabbit_status'] = 'degraded' if review.degraded else 'available'
+        if review.degraded_reason:
+            evaluation_context['coderabbit_reason'] = review.degraded_reason
+
+        context.results['coderabbit_review_data'] = review.to_dict()
+        context.results['coderabbit_status'] = evaluation_context['coderabbit_status']
+        if review.degraded_reason:
+            context.results['coderabbit_reason'] = review.degraded_reason
+
+        return review
+
+    def _route_coderabbit_feedback(self, context: CommandContext, assessment: Optional[QualityAssessment]) -> None:
+        if not assessment or assessment.band == 'production_ready':
+            return
+        review_payload = context.results.get('coderabbit_review_data')
+        if not review_payload:
+            return
+
+        briefs: Dict[str, List[Dict[str, Any]]] = {}
+        for issue in review_payload.get('issues', []):
+            if not isinstance(issue, dict):
+                continue
+            bucket = self._map_issue_to_taxonomy(issue)
+            briefs.setdefault(bucket, []).append({
+                'title': issue.get('title'),
+                'severity': issue.get('severity'),
+                'file': issue.get('file_path'),
+                'line': issue.get('line'),
+                'summary': issue.get('body'),
+            })
+
+        if not briefs:
+            return
+
+        routed = []
+        for bucket, bucket_issues in briefs.items():
+            taxonomy = self.coderabbit_taxonomy.get(bucket, {})
+            routed.append({
+                'taxonomy': bucket,
+                'agent': taxonomy.get('agent'),
+                'issues': bucket_issues,
+            })
+
+        context.results['coderabbit_briefs'] = routed
+
+    def _map_issue_to_taxonomy(self, issue: Dict[str, Any]) -> str:
+        tags = [
+            str(issue.get('tag') or '').lower(),
+            str(issue.get('severity') or '').lower(),
+        ]
+        for tag in tags:
+            if not tag:
+                continue
+            for name, data in self.coderabbit_taxonomy.items():
+                if tag in data.get('tags', []):
+                    return name
+        return 'logic'
 
 
 class _PythonSemanticAnalyzer(ast.NodeVisitor):
