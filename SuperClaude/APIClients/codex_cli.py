@@ -23,6 +23,10 @@ from typing import Any, Dict, Iterable, List, Optional
 class CodexCLIUnavailable(RuntimeError):
     """Raised when the Codex CLI cannot be invoked successfully."""
 
+    def __init__(self, message: str, *, details: Optional[Dict[str, Any]] = None) -> None:
+        super().__init__(message)
+        self.details: Dict[str, Any] = details or {}
+
 
 @dataclass
 class CodexCLIConfig:
@@ -78,7 +82,11 @@ class CodexCLIClient:
         if shutil.which(binary) is None:
             raise CodexCLIUnavailable(
                 f"Codex CLI binary '{binary}' is not available on PATH. "
-                "Install the Codex CLI or set SUPERCLAUDE_CODEX_CLI."
+                "Install the Codex CLI or set SUPERCLAUDE_CODEX_CLI.",
+                details={
+                    "binary": binary,
+                    "path": shutil.which(binary) or "not found",
+                }
             )
 
         args: List[str] = [binary, "exec", prompt]
@@ -101,10 +109,23 @@ class CodexCLIClient:
                 check=False,
             )
         except FileNotFoundError as exc:
-            raise CodexCLIUnavailable(f"Codex CLI binary '{binary}' could not be executed: {exc}") from exc
+            raise CodexCLIUnavailable(
+                f"Codex CLI binary '{binary}' could not be executed: {exc}",
+                details={
+                    "binary": binary,
+                    "command": args,
+                    "cwd": cwd,
+                }
+            ) from exc
         except subprocess.TimeoutExpired as exc:
             raise CodexCLIUnavailable(
-                f"Codex CLI timed out after {self.config.timeout_seconds:.0f}s"
+                f"Codex CLI timed out after {self.config.timeout_seconds:.0f}s",
+                details={
+                    "binary": binary,
+                    "command": args,
+                    "cwd": cwd,
+                    "timeout_seconds": self.config.timeout_seconds,
+                }
             ) from exc
 
         duration = time.perf_counter() - start
@@ -112,7 +133,15 @@ class CodexCLIClient:
         if completed.returncode != 0:
             stderr = (completed.stderr or "unknown error").strip()
             raise CodexCLIUnavailable(
-                f"Codex CLI exited with status {completed.returncode}: {stderr}"
+                f"Codex CLI exited with status {completed.returncode}: {stderr}",
+                details={
+                    "binary": binary,
+                    "command": args,
+                    "cwd": cwd,
+                    "returncode": completed.returncode,
+                    "stdout": self._truncate_log(completed.stdout),
+                    "stderr": self._truncate_log(completed.stderr),
+                }
             )
 
         stdout = completed.stdout.strip()
@@ -135,25 +164,103 @@ class CodexCLIClient:
     # ------------------------------------------------------------------
     @staticmethod
     def _extract_json(stdout: str) -> Dict[str, Any]:
-        """Parse the first valid JSON object found in ``stdout``."""
+        """Parse Codex CLI JSONL output and return the change payload."""
 
-        # Try whole output first.
+        # Some Codex builds still emit a single JSON blob – keep the fast path.
         try:
-            return json.loads(stdout)
+            payload = json.loads(stdout)
         except json.JSONDecodeError:
-            pass
+            payload = None
+        if isinstance(payload, dict):
+            parsed = CodexCLIClient._parse_payload_from_record(payload)
+            if parsed:
+                return parsed
 
-        # Fall back to scanning lines from the end.
-        for line in reversed(stdout.splitlines()):
+        parsed_lines = []
+        for line in stdout.splitlines():
             candidate = line.strip()
             if not candidate:
                 continue
-            if candidate.startswith("`") and candidate.endswith("`"):
-                candidate = candidate.strip("`")
-            try:
-                return json.loads(candidate)
-            except json.JSONDecodeError:
+            record = CodexCLIClient._safe_json_loads(candidate)
+            if record is None:
                 continue
+            parsed_lines.append(record)
+            payload = CodexCLIClient._parse_payload_from_record(record)
+            if payload:
+                return payload
 
-        raise CodexCLIUnavailable("Codex CLI output did not contain valid JSON")
+        # Re-check parsed entries in reverse to catch nested payloads surfaced late.
+        for record in reversed(parsed_lines):
+            payload = CodexCLIClient._parse_payload_from_record(record)
+            if payload:
+                return payload
 
+        raise CodexCLIUnavailable(
+            "Codex CLI output did not contain valid JSON",
+            details={"stdout": CodexCLIClient._truncate_log(stdout)}
+        )
+
+    @staticmethod
+    def _parse_payload_from_record(record: Any) -> Optional[Dict[str, Any]]:
+        """Return the Codex diff payload from a decoded JSON object, if present."""
+
+        if not isinstance(record, dict):
+            return None
+
+        if "summary" in record and "changes" in record:
+            return record
+
+        text_candidates = []
+        for key in ("text", "message", "content"):
+            value = record.get(key)
+            if isinstance(value, str):
+                text_candidates.append(value)
+
+        for text in text_candidates:
+            nested = CodexCLIClient._safe_json_loads(text)
+            if isinstance(nested, dict):
+                payload = CodexCLIClient._parse_payload_from_record(nested)
+                if payload:
+                    return payload
+
+        for key in ("item", "payload", "data"):
+            nested = record.get(key)
+            if isinstance(nested, dict):
+                payload = CodexCLIClient._parse_payload_from_record(nested)
+                if payload:
+                    return payload
+
+        return None
+
+    @staticmethod
+    def _safe_json_loads(blob: str) -> Optional[Any]:
+        """Best-effort JSON parsing that tolerates code fences and whitespace."""
+
+        snippet = blob.strip()
+        if not snippet:
+            return None
+        if snippet.startswith("`") and snippet.endswith("`"):
+            snippet = snippet.strip("`").strip()
+        if snippet.startswith("```"):
+            snippet = snippet.lstrip("`").strip()
+        if "\n" in snippet:
+            first_line, rest = snippet.split("\n", 1)
+            if first_line.strip().lower() in {"json", "jsonc"}:
+                snippet = rest.strip()
+            else:
+                snippet = f"{first_line}\n{rest}".strip()
+        try:
+            return json.loads(snippet)
+        except json.JSONDecodeError:
+            return None
+
+    @staticmethod
+    def _truncate_log(payload: Optional[str], limit: int = 2000) -> str:
+        """Return the tail of a log string to avoid flooding diagnostics."""
+
+        if not payload:
+            return ""
+        text = payload.strip()
+        if len(text) <= limit:
+            return text
+        return text[-limit:]
