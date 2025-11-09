@@ -114,7 +114,8 @@ SuperClaude/Implementation/
 *.bak
 
 # Project specific
-Tests/
+# Legacy capitalized Tests folder was deprecated; keep actual test suites tracked.
+# (Removing prior ignore entry prevents accidental exclusion of tests/ quality gates.)
 ClaudeDocs/
 temp/
 tmp/

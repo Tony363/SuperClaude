@@ -1,0 +1,41 @@
+{
+  "gpt-5": {
+    "response": {
+      "decision": "approve",
+      "notes": "Primary reviewer satisfied."
+    },
+    "confidence": 0.88,
+    "reasoning": "Comprehensive testing evidence and quality loop passed.",
+    "tokens_used": 180,
+    "metadata": {
+      "fixture": "approve",
+      "provider": "openai"
+    }
+  },
+  "claude-opus-4.1": {
+    "response": {
+      "decision": "approve",
+      "notes": "Risk profile acceptable."
+    },
+    "confidence": 0.82,
+    "reasoning": "Security and maintainability concerns resolved.",
+    "tokens_used": 160,
+    "metadata": {
+      "fixture": "approve",
+      "provider": "anthropic"
+    }
+  },
+  "gpt-4.1": {
+    "response": {
+      "decision": "approve",
+      "notes": "Fallback review matches."
+    },
+    "confidence": 0.76,
+    "reasoning": "No outstanding issues detected.",
+    "tokens_used": 140,
+    "metadata": {
+      "fixture": "approve",
+      "provider": "openai"
+    }
+  }
+}

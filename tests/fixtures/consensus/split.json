@@ -1,0 +1,41 @@
+{
+  "gpt-5": {
+    "response": {
+      "decision": "approve",
+      "notes": "Meets success criteria."
+    },
+    "confidence": 0.74,
+    "reasoning": "Feature passes regression tests.",
+    "tokens_used": 150,
+    "metadata": {
+      "fixture": "split",
+      "provider": "openai"
+    }
+  },
+  "claude-opus-4.1": {
+    "response": {
+      "decision": "revise",
+      "notes": "Observability gap discovered."
+    },
+    "confidence": 0.71,
+    "reasoning": "Lack of monitoring in rollout plan.",
+    "tokens_used": 155,
+    "metadata": {
+      "fixture": "split",
+      "provider": "anthropic"
+    }
+  },
+  "gpt-4.1": {
+    "response": {
+      "decision": "revise",
+      "notes": "Tests insufficient."
+    },
+    "confidence": 0.69,
+    "reasoning": "Negative scenario missing coverage.",
+    "tokens_used": 148,
+    "metadata": {
+      "fixture": "split",
+      "provider": "openai"
+    }
+  }
+}
