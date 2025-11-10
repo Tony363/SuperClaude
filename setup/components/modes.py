@@ -21,6 +21,7 @@ class ModesComponent(Component):
     
     def __init__(self, install_dir: Optional[Path] = None):
         """Initialize modes component"""
+        self._selected_profile = "minimal"
         super().__init__(install_dir, Path(""))
     
     def get_metadata(self) -> Dict[str, str]:
@@ -57,6 +58,7 @@ class ModesComponent(Component):
             )
 
         self.component_files = selected_files
+        self._selected_profile = profile
 
         # Validate installation
         success, errors = self.validate_prerequisites()
@@ -100,11 +102,20 @@ class ModesComponent(Component):
                     "modes": {
                         "version": __version__,
                         "installed": True,
-                        "files_count": len(self.component_files)
+                        "files_count": len(self.component_files),
+                        "files": list(self.component_files),
+                        "memory_profile": getattr(self, "_selected_profile", "minimal"),
                     }
                 }
             }
             self.settings_manager.update_metadata(metadata_mods)
+            self.settings_manager.add_component_registration("modes", {
+                "version": __version__,
+                "category": "modes",
+                "files_count": len(self.component_files),
+                "files": list(self.component_files),
+                "memory_profile": getattr(self, "_selected_profile", "minimal"),
+            })
             self.logger.info("Updated metadata with modes component registration")
             
             # Update CLAUDE.md with mode imports
@@ -120,6 +131,34 @@ class ModesComponent(Component):
         except Exception as e:
             self.logger.error(f"Failed to update metadata: {e}")
             return False
+
+    def validate_installation(self) -> Tuple[bool, List[str]]:
+        """Validate modes component installation."""
+        errors: List[str] = []
+        files_to_check = self._get_installed_file_manifest() or self.component_files
+
+        for filename in files_to_check:
+            target = self.install_component_subdir / filename
+            if not target.exists():
+                errors.append(f"Missing mode file: {target}")
+            elif not target.is_file():
+                errors.append(f"Mode file is not a regular file: {target}")
+
+        if not self.settings_manager.is_component_installed("modes"):
+            errors.append("Modes component not registered in metadata")
+
+        return len(errors) == 0, errors
+
+    def _get_installed_file_manifest(self) -> Optional[List[str]]:
+        try:
+            components = self.settings_manager.get_installed_components()
+            info = components.get("modes") or {}
+            files = info.get("files")
+            if isinstance(files, list) and files:
+                return files
+        except Exception as exc:
+            self.logger.debug(f"Could not read installed modes file manifest: {exc}")
+        return None
     
     def uninstall(self) -> bool:
         """Uninstall modes component"""

@@ -31,6 +31,7 @@ class CoreComponent(Component):
     
     def __init__(self, install_dir: Optional[Path] = None):
         """Initialize core component"""
+        self._selected_profile = "minimal"
         super().__init__(install_dir)
     
     def get_metadata(self) -> Dict[str, str]:
@@ -85,6 +86,7 @@ class CoreComponent(Component):
             )
 
         self.component_files = selected_files
+        self._selected_profile = profile
 
         return super()._install(config)
 
@@ -115,7 +117,9 @@ class CoreComponent(Component):
             self.settings_manager.add_component_registration("core", {
                 "version": __version__,
                 "category": "core",
-                "files_count": len(self.component_files)
+                "files_count": len(self.component_files),
+                "files": list(self.component_files),
+                "memory_profile": getattr(self, "_selected_profile", "minimal"),
             })
 
             self.logger.info("Updated metadata with core component registration")
@@ -247,9 +251,11 @@ class CoreComponent(Component):
     def validate_installation(self) -> Tuple[bool, List[str]]:
         """Validate core component installation"""
         errors = []
-        
+
+        files_to_check = self._get_installed_file_manifest() or self.component_files
+
         # Check if all framework files exist
-        for filename in self.component_files:
+        for filename in files_to_check:
             file_path = self.install_dir / filename
             if not file_path.exists():
                 errors.append(f"Missing framework file: {filename}")
@@ -278,8 +284,19 @@ class CoreComponent(Component):
                         errors.append(f"Missing framework.{key} in metadata")
         except Exception as e:
             errors.append(f"Could not validate metadata: {e}")
-        
+
         return len(errors) == 0, errors
+
+    def _get_installed_file_manifest(self) -> Optional[List[str]]:
+        try:
+            components = self.settings_manager.get_installed_components()
+            info = components.get("core") or {}
+            files = info.get("files")
+            if isinstance(files, list) and files:
+                return files
+        except Exception as exc:
+            self.logger.debug(f"Could not read installed file manifest: {exc}")
+        return None
     
     def _get_source_dir(self):
         """Get source directory for framework files"""
