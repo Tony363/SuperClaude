@@ -61,3 +61,47 @@ pytest -m "not slow" tests/test_model_router.py
 
 Document tricky edge cases in `Docs/Reference/common-issues.md` when you find
 them so the next contributor has a shorter debug cycle.
+
+## 7. Modern Command Test Suite
+
+The `/sc:` command tests now run as *integration* scenarios that execute the real
+`CommandExecutor`, guardrails, and telemetry stack inside disposable workspaces.
+
+### Running the Suite
+
+```bash
+PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 pytest tests/test_commands.py
+```
+
+The fixtures pin the executor to offline mode and capture metrics inside a
+temporary `.superclaude_metrics/` directory. To exercise live Codex/OpenAI
+integrations, export the relevant keys before invoking pytest:
+
+```bash
+export OPENAI_API_KEY=...
+export CODEX_API_KEY=...
+```
+
+### Key Fixtures
+
+| Fixture | Purpose |
+| --- | --- |
+| `command_workspace` | Creates a disposable git workspace, sets offline/metrics env vars, and ensures artefacts land under the temp directory. |
+| `executor` | Instantiates `CommandExecutor` against that workspace so each test hits the real command pipeline. |
+
+### Behaviour Coverage
+
+| Behaviour | Test | Assertion |
+| --- | --- | --- |
+| Fast Codex guardrails fail fast without diffs | `test_implement_fast_codex_requires_evidence` | Command fails, consensus metadata present, “no concrete change plan” surfaced. |
+| Safe-apply flag no longer writes stub placeholders | `test_implement_safe_apply_fails_without_plan` | Command fails early and no `.superclaude_metrics/safe_apply/` directory is created. |
+| `--safe` blocks fast-codex activation | `test_fast_codex_respects_safe_flag` | `fast_codex.active` becomes false and `blocked` lists `safety-requested`. |
+| Business panel still emits artefacts when personas fail | `test_business_panel_produces_artifact` | Artefact recorded despite loader warning. |
+| Workflow command consumes a PRD and emits steps | `test_workflow_command_generates_steps` | Returns `status == workflow_generated` with stored artefacts. |
+| Git helper summarises repo state | `test_git_status_summarizes_repository` | Summary reflects branch plus staged/unstaged counts from real git metadata. |
+| `/sc:test` translates CLI flags without nesting pytest | `test_test_command_reports_parameters` | Output surfaces `--type`/`--coverage` inputs while skipping nested runs. |
+
+Each integration test leaves concrete evidence under the temporary metrics
+directory (command artefacts, metrics JSONL, etc.). Inspecting those artefacts is
+the fastest way to understand failures because they reflect the actual executor
+output.
