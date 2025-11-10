@@ -201,20 +201,20 @@ heuristics to real provider clients.
 
 ```mermaid
 flowchart TD
-    A[/Parse /sc:* command + flags/] --> B{--loop enabled?}
-    B -- No --> Z[Skip agentic loop]
-    B -- Yes --> C[QualityScorer.evaluate(output)]
+    A[/Parse /sc:* command + flags/] --> B{Loop flag enabled?}
+    B -->|No| Z[Skip agentic loop]
+    B -->|Yes| C[QualityScorer evaluates output]
     C --> D{Score ≥ threshold?}
-    D -- Yes --> L[Persist assessment & finish]
-    D -- No --> E[Derive improvements + remediation hints]
+    D -->|Yes| L[Persist assessment & finish]
+    D -->|No| E[Derive improvements + remediation hints]
     E --> F[Run remediation agents + apply change plan]
-    F --> G[Execute targeted tests / evidence capture]
-    G --> H{Iterations remaining & Δscore ≥ min?}
-    H -- Yes --> C
-    H -- No --> I[Snapshot diffs & iteration history]
+    F --> G[Execute targeted tests / capture evidence]
+    G --> H{Iterations left and Δscore ≥ minimum?}
+    H -->|Yes| C
+    H -->|No| I[Snapshot diffs & iteration history]
     I --> J[Queue diffs for zen-review]
-    J --> K[ZenIntegration.review_code (GPT-5/heuristic)]
-    K --> L[Attach assessment + zen findings to command result]
+    J --> K[ZenIntegration.review_code (GPT-5 or deterministic)]
+    K --> L[Attach assessment + zen findings to result]
 ```
 
 ### Monitoring & Telemetry
