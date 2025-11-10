@@ -303,6 +303,17 @@ behave. Key groups:
 - 116 extended Markdown playbooks grouped into ten categories (counts above).
 - `SuperClaude/Agents/business-panel-experts.md` defines personas used by `/sc:business-panel`.
 
+```mermaid
+flowchart LR
+    A[Command metadata / flags] --> B{Need extended personas?}
+    B -->|No| C[Load core Python agents via AgentLoader]
+    B -->|Yes| D[ExtendedAgentLoader consults agent_registry.yaml]
+    D --> E[Select Markdown persona by category/match score]
+    E --> F[Generate Python proxy class + cache instance]
+    F --> G[_run_agent_pipeline executes persona]
+    G --> H[Telemetry + usage recorded in .superclaude_metrics]
+```
+
 ## Setup
 
 ### Prerequisites
