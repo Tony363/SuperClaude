@@ -205,7 +205,7 @@ flowchart TD
     A[/Parse /sc:* command + flags/] --> B{Loop flag enabled?}
     B -->|No| Z[Skip agentic loop]
     B -->|Yes| C[Enable Zen evaluator when online]
-    C --> D[QualityScorer (GPT primary if available)]
+    C --> D[QualityScorer GPT-primary when available]
     D --> E{Score ≥ threshold?}
     E -->|Yes| L[Persist assessment & finish]
     E -->|No| F[Derive improvements + remediation hints]
