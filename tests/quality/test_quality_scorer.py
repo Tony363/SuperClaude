@@ -59,3 +59,23 @@ def test_threshold_classification():
     assert thresholds.classify(thresholds.production_ready + 1) == "production_ready"
     assert thresholds.classify(thresholds.needs_attention + 0.1) == "needs_attention"
     assert thresholds.classify(thresholds.iterate - 1) == "iterate"
+
+
+def test_primary_evaluator_short_circuits_default_metrics():
+    scorer = QualityScorer()
+
+    def _primary(_, __, iteration):
+        assert iteration == 0
+        metric = QualityMetric(QualityDimension.ZEN_REVIEW, 97, 1.0, "zen review")
+        return {
+            "metrics": [metric],
+            "improvements": ["tighten tests"],
+            "metadata": {"zen": True},
+        }
+
+    scorer.set_primary_evaluator(_primary)
+    assessment = scorer.evaluate({}, {}, iteration=0)
+    assert assessment.metrics[0].dimension == QualityDimension.ZEN_REVIEW
+    assert assessment.improvements_needed == ["tighten tests"]
+    assert assessment.metadata.get("zen") is True
+    scorer.clear_primary_evaluator()

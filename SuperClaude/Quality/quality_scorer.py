@@ -159,6 +159,7 @@ class QualityScorer:
 
         # Custom evaluators
         self.custom_evaluators: List[Callable] = []
+        self.primary_evaluator: Optional[Callable[[Any, Dict[str, Any], int], Optional[Dict[str, Any]]]] = None
 
     def _load_configuration(self) -> None:
         """Load quality configuration from YAML if available."""
@@ -267,21 +268,37 @@ class QualityScorer:
         Returns:
             Quality assessment
         """
-        # Select dimensions to evaluate
-        if dimensions is None:
-            dimensions = list(self.default_weights.keys())
+        metrics: List[QualityMetric] = []
+        improvements_override: Optional[List[str]] = None
+        metadata_overrides: Dict[str, Any] = {}
 
-        # Use custom weights or defaults
-        eval_weights = weights or self.default_weights
+        primary_payload: Optional[Dict[str, Any]] = None
+        if self.primary_evaluator:
+            try:
+                primary_payload = self.primary_evaluator(output, context, iteration)
+            except Exception as exc:
+                self.logger.error(f"Primary evaluator error: {exc}")
+                primary_payload = None
 
-        # Evaluate each dimension
-        metrics = []
-        for dimension in dimensions:
-            if dimension in self.evaluators:
-                evaluator = self.evaluators[dimension]
-                metric = evaluator(output, context)
-                metric.weight = eval_weights.get(dimension, 0.1)
-                metrics.append(metric)
+        if primary_payload and primary_payload.get('metrics'):
+            metrics.extend(primary_payload.get('metrics', []))
+            improvements_override = primary_payload.get('improvements')
+            metadata_overrides = primary_payload.get('metadata') or {}
+        else:
+            # Select dimensions to evaluate
+            if dimensions is None:
+                dimensions = list(self.default_weights.keys())
+
+            # Use custom weights or defaults
+            eval_weights = weights or self.default_weights
+
+            # Evaluate each dimension
+            for dimension in dimensions:
+                if dimension in self.evaluators:
+                    evaluator = self.evaluators[dimension]
+                    metric = evaluator(output, context)
+                    metric.weight = eval_weights.get(dimension, 0.1)
+                    metrics.append(metric)
 
         # Apply custom evaluators
         for custom_evaluator in self.custom_evaluators:
@@ -300,7 +317,10 @@ class QualityScorer:
         passed = overall_score >= self.thresholds.production_ready
 
         # Identify improvements needed
-        improvements = self._identify_improvements(metrics, overall_score)
+        if improvements_override is not None:
+            improvements = improvements_override
+        else:
+            improvements = self._identify_improvements(metrics, overall_score)
 
         metadata = {
             **score_metadata,
@@ -310,6 +330,8 @@ class QualityScorer:
                 "iterate": self.thresholds.iterate,
             },
         }
+        if metadata_overrides:
+            metadata.update(metadata_overrides)
 
         # Create assessment
         assessment = QualityAssessment(
@@ -459,6 +481,14 @@ class QualityScorer:
             evaluator: Function that returns QualityMetric
         """
         self.custom_evaluators.append(evaluator)
+
+    def set_primary_evaluator(self, evaluator: Callable[[Any, Dict[str, Any], int], Optional[Dict[str, Any]]]) -> None:
+        """Set a callable that supplies the primary metrics for evaluation."""
+        self.primary_evaluator = evaluator
+
+    def clear_primary_evaluator(self) -> None:
+        """Remove the active primary evaluator (if any)."""
+        self.primary_evaluator = None
 
     def get_improvement_suggestions(
         self,

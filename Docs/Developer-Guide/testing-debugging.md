@@ -105,3 +105,8 @@ Each integration test leaves concrete evidence under the temporary metrics
 directory (command artefacts, metrics JSONL, etc.). Inspecting those artefacts is
 the fastest way to understand failures because they reflect the actual executor
 output.
+
+- When API keys are available, `--zen-review` (GPT-5) now becomes the primary
+  `QualityScorer` evaluator during `--loop`. Tests that stub zen responses should
+  assert on `QualityDimension.ZEN_REVIEW` metrics or the GPT-provided
+  `improvements` list as part of their expectations.

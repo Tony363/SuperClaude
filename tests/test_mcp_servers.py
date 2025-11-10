@@ -241,7 +241,7 @@ async def test_run_zen_reviews_attaches_results(monkeypatch):
     assert output.get("zen_reviews") == context.results.get("zen_reviews")
 
 
-def test_zen_quality_evaluator_generates_metric(tmp_path, monkeypatch):
+def test_zen_primary_evaluator_overrides_metrics(tmp_path, monkeypatch):
     registry = CommandRegistry()
     parser = CommandParser(registry=registry)
     executor = CommandExecutor(registry, parser)
@@ -263,27 +263,31 @@ def test_zen_quality_evaluator_generates_metric(tmp_path, monkeypatch):
     )
     context.zen_review_enabled = True
 
-    executor.active_mcp_servers["zen"] = {"instance": object()}
+    class _FakeZen:
+        async def review_code(self, diff, *, files, model, metadata):
+            assert "sample.txt" in diff
+            return {
+                "overall_score": 92,
+                "summary": "Looks solid",
+                "dimensions": {
+                    "correctness": {"score": 94, "issues": ["Nit"], "suggestions": ["Add test"]},
+                    "testability": {"score": 88, "issues": [], "suggestions": []},
+                },
+                "improvements": ["Add regression tests"],
+            }
+
+    executor.active_mcp_servers["zen"] = {"instance": _FakeZen()}
 
     monkeypatch.setattr(executor, "_collect_full_repo_diff", lambda: "diff --git a/sample.txt b/sample.txt")
-    monkeypatch.setattr(
-        executor,
-        "_invoke_zen_review_sync",
-        lambda *_, **__: {
-            "score": 88,
-            "summary": "Looks solid",
-            "issues": [{"title": "Minor nit", "details": "Consider renaming"}],
-            "recommendations": ["Add more tests"],
-        },
-    )
+    monkeypatch.setattr(executor, "_list_changed_files", lambda: ["sample.txt"])
 
-    evaluator = executor._register_zen_quality_evaluator(context)
-    assert evaluator is not None
+    cleanup = executor._enable_primary_zen_quality(context)
+    assert cleanup is not None
 
-    metric = evaluator({}, {})
-    assert metric.dimension == QualityDimension.ZEN_REVIEW
-    assert metric.score == 88
-    assert "Looks solid" in metric.details
+    assessment = executor.quality_scorer.evaluate({}, {}, iteration=0)
+    dimensions = {metric.dimension for metric in assessment.metrics}
+    assert QualityDimension.CORRECTNESS in dimensions
+    assert assessment.improvements_needed == ["Add regression tests"]
 
-    executor._remove_custom_evaluator(evaluator)
-    assert evaluator not in executor.quality_scorer.custom_evaluators
+    cleanup()
+    assert executor.quality_scorer.primary_evaluator is None

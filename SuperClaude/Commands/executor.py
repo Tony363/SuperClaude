@@ -2574,22 +2574,23 @@ class CommandExecutor:
         )
         return result.get('exit_code') == 0
 
-    def _register_zen_quality_evaluator(self, context: CommandContext):
-        """Attach a GPT-backed evaluator to the quality scorer when zen-review is enabled."""
+    def _enable_primary_zen_quality(self, context: CommandContext) -> Optional[Callable[[], None]]:
+        """Promote GPT-backed evaluation to the primary quality scorer path."""
         zen_instance = self._get_active_mcp_instance('zen')
         if not zen_instance:
             return None
 
-        def _zen_metric(_: Any, eval_context: Dict[str, Any]) -> Optional[QualityMetric]:
+        def _primary_evaluator(_: Any, eval_context: Dict[str, Any], iteration: int) -> Optional[Dict[str, Any]]:
             diff_blob = self._collect_full_repo_diff()
             if not diff_blob.strip():
                 return None
 
-            files = eval_context.get('changed_files') or []
+            files = eval_context.get('changed_files') or self._list_changed_files()
             metadata = {
-                'reason': 'quality-loop-evaluator',
+                'reason': 'quality-loop-primary',
                 'loop_requested': context.results.get('loop_requested', False),
-                'iteration': eval_context.get('iteration', 0),
+                'iteration': iteration,
+                'think_level': context.think_level,
             }
 
             try:
@@ -2604,41 +2605,95 @@ class CommandExecutor:
                 context.results.setdefault('zen_review_errors', []).append(str(exc))
                 return None
 
-            score = float(review_payload.get('score', 0.0))
-            summary = review_payload.get('summary') or 'Zen review summary unavailable.'
-            issues = []
-            for issue in review_payload.get('issues') or []:
-                title = issue.get('title') or issue.get('details') or 'Issue'
-                details = issue.get('details') or issue.get('recommendation') or ''
-                issues.append(f"{title}: {details}".strip())
-            suggestions = review_payload.get('recommendations') or []
+            metrics = self._convert_zen_payload_to_metrics(review_payload)
+            if not metrics:
+                return None
 
-            weight = eval_context.get('zen_review_weight')
-            if weight is None:
-                weight = self.quality_scorer.default_weights.get(QualityDimension.ZEN_REVIEW, 0.1)
+            improvements = review_payload.get('improvements') or review_payload.get('recommendations') or []
+            meta = {'zen_review': review_payload}
+            return {
+                'metrics': metrics,
+                'improvements': improvements,
+                'metadata': meta,
+            }
 
-            return QualityMetric(
-                dimension=QualityDimension.ZEN_REVIEW,
-                score=max(0.0, min(100.0, score)),
-                weight=float(weight),
-                details=summary,
-                issues=issues[:6],
-                suggestions=suggestions[:6]
-            )
+        self.quality_scorer.set_primary_evaluator(_primary_evaluator)
 
-        self.quality_scorer.add_custom_evaluator(_zen_metric)
-        return _zen_metric
+        def _cleanup():
+            if self.quality_scorer.primary_evaluator is _primary_evaluator:
+                self.quality_scorer.clear_primary_evaluator()
 
-    def _remove_custom_evaluator(self, evaluator: Callable) -> None:
-        try:
-            self.quality_scorer.custom_evaluators.remove(evaluator)
-        except ValueError:
-            pass
+        return _cleanup
 
     def _collect_full_repo_diff(self) -> str:
         repo_root = Path(self.repo_root or Path.cwd())
         result = self._run_command(['git', 'diff', '--no-color'], cwd=repo_root)
         return (result.get('stdout') or '').strip()
+
+    def _list_changed_files(self) -> List[str]:
+        repo_root = Path(self.repo_root or Path.cwd())
+        result = self._run_command(['git', 'status', '--short'], cwd=repo_root)
+        files: List[str] = []
+        stdout = result.get('stdout') or ''
+        for line in stdout.splitlines():
+            line = line.strip()
+            if not line:
+                continue
+            parts = line.split(maxsplit=1)
+            if len(parts) == 2:
+                files.append(parts[1].strip())
+        return files
+
+    def _convert_zen_payload_to_metrics(self, payload: Dict[str, Any]) -> List[QualityMetric]:
+        metrics: List[QualityMetric] = []
+        dimensions = payload.get('dimensions') or {}
+        summary = payload.get('summary') or 'Zen review summary unavailable.'
+        overall_score = float(payload.get('score', 0.0))
+
+        if isinstance(dimensions, dict) and dimensions:
+            for name, data in dimensions.items():
+                try:
+                    dimension = QualityDimension(name)
+                except ValueError:
+                    continue
+                if not isinstance(data, dict):
+                    continue
+                score = float(data.get('score', overall_score))
+                issues = data.get('issues') or payload.get('issues') or []
+                suggestions = data.get('suggestions') or payload.get('recommendations') or []
+                weight = self.quality_scorer.default_weights.get(dimension, 0.1)
+                metrics.append(
+                    QualityMetric(
+                        dimension=dimension,
+                        score=max(0.0, min(100.0, score)),
+                        weight=weight,
+                        details=summary,
+                        issues=issues[:6] if isinstance(issues, list) else [],
+                        suggestions=suggestions[:6] if isinstance(suggestions, list) else [],
+                    )
+                )
+
+        if not metrics:
+            issues = []
+            for issue in payload.get('issues') or []:
+                if isinstance(issue, dict):
+                    issues.append(issue.get('title') or issue.get('details') or '')
+                else:
+                    issues.append(str(issue))
+            suggestions = payload.get('recommendations') or []
+            weight = self.quality_scorer.default_weights.get(QualityDimension.ZEN_REVIEW, 0.1)
+            metrics.append(
+                QualityMetric(
+                    dimension=QualityDimension.ZEN_REVIEW,
+                    score=max(0.0, min(100.0, overall_score)),
+                    weight=weight,
+                    details=summary,
+                    issues=[text for text in issues if text][:6],
+                    suggestions=suggestions[:6] if isinstance(suggestions, list) else [],
+                )
+            )
+
+        return metrics
 
     def _invoke_zen_review_sync(
         self,
@@ -3658,9 +3713,9 @@ class CommandExecutor:
         def _remediation_improver(current_output: Any, loop_context: Dict[str, Any]) -> Any:
             return self._quality_loop_improver(context, current_output, loop_context)
 
-        zen_evaluator = None
+        zen_cleanup = None
         if context.zen_review_enabled:
-            zen_evaluator = self._register_zen_quality_evaluator(context)
+            zen_cleanup = self._enable_primary_zen_quality(context)
 
         try:
             improved_output, final_assessment, iteration_history = self.quality_scorer.agentic_loop(
@@ -3675,8 +3730,8 @@ class CommandExecutor:
             context.results['loop_error'] = str(exc)
             return None
         finally:
-            if zen_evaluator:
-                self._remove_custom_evaluator(zen_evaluator)
+            if zen_cleanup:
+                zen_cleanup()
 
         context.results['loop_iterations_executed'] = len(iteration_history)
         context.results['loop_assessment'] = self._serialize_assessment(final_assessment)

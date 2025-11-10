@@ -20,7 +20,7 @@
   structured telemetry so plan-only regressions become visible in CI dashboards. Safe-apply snapshots let
   `/sc:implement --safe-apply` stash synthesized stubs under `.superclaude_metrics/safe_apply/` while
   auto-triggered quality loops chase real diffs.
-- CodeRabbit/GitHub MCP hooks are fully retired; blended scoring now uses `quality.yaml` component weights (60/25/15 by default) and native guardrails only. `--loop` requests automatically layer in `--zen-review` so GPT-5 (or deterministic offline facsimiles) critiques each iteration via the local Zen MCP.
+- CodeRabbit/GitHub MCP hooks are fully retired. When GPT-5 access exists, `--loop` promotes `--zen-review` to the **primary** `QualityScorer` evaluator (`QualityDimension.ZEN_REVIEW`), so the blended 60/25/15 scoring is driven by Zen’s structured output; offline runs fall back to the native heuristics.
 - `/sc:implement --fast-codex` activates a lean Codex implementer persona for low-risk edits while
   telemetry and guardrails record the `fast-codex` execution mode and enforce fallbacks for consensus or
   security-sensitive runs.
@@ -204,8 +204,8 @@ heuristics to real provider clients.
 flowchart TD
     A[/Parse /sc:* command + flags/] --> B{Loop flag enabled?}
     B -->|No| Z[Skip agentic loop]
-    B -->|Yes| C[Register optional zen evaluator]
-    C --> D[QualityScorer evaluates output]
+    B -->|Yes| C[Enable Zen primary evaluator (if available)]
+    C --> D[QualityScorer (GPT primary when available)]
     D --> E{Score ≥ threshold?}
     E -->|Yes| L[Persist assessment & finish]
     E -->|No| F[Derive improvements + remediation hints]

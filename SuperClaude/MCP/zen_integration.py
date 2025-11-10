@@ -217,10 +217,15 @@ class ZenIntegration:
         file_text = ", ".join(files) if files else "(files inferred from diff)"
         severity_text = severity_filter or "critical"
         schema = (
-            '{"score": number 0-100, "summary": string, '
-            '"critical_issues": integer, "warnings": integer, '
-            '"issues": [{"severity": "critical|warning|nit", "title": string, '
-            '"details": string, "files": [string], "recommendation": string}], '
+            '{"overall_score": number 0-100, "summary": string, '
+            '"critical_issues": integer, "dimensions": {'
+            '"correctness": {"score": number, "issues": [string], "suggestions": [string]}, '
+            '"completeness": {"score": number, "issues": [string], "suggestions": [string]}, '
+            '"maintainability": {"score": number}, "security": {"score": number}, '
+            '"performance": {"score": number}, "scalability": {"score": number}, '
+            '"testability": {"score": number}, "usability": {"score": number}}, '
+            '"improvements": [string], "issues": [{"severity": "critical|warning|nit", '
+            '"title": string, "details": string, "files": [string], "recommendation": string}], '
             '"recommendations": [string]}'
         )
         return (
@@ -275,13 +280,27 @@ class ZenIntegration:
                 "recommendation": issue.get("recommendation") or issue.get("fix") or ""
             })
 
+        normalized_dimensions: Dict[str, Dict[str, Any]] = {}
+        raw_dimensions = data.get("dimensions") or {}
+        if isinstance(raw_dimensions, dict):
+            for key, payload in raw_dimensions.items():
+                if not isinstance(payload, dict):
+                    continue
+                normalized_dimensions[key] = {
+                    "score": float(payload.get("score", 0.0)),
+                    "issues": payload.get("issues") or [],
+                    "suggestions": payload.get("suggestions") or [],
+                }
+
         return {
-            "score": float(data.get("score", 0.0)),
+            "score": float(data.get("overall_score", data.get("score", 0.0))),
             "summary": str(data.get("summary", "")),
             "critical_issues": int(data.get("critical_issues", 0)),
             "warnings": int(data.get("warnings", 0)),
             "issues": normalized_issues,
             "recommendations": data.get("recommendations") or [],
+            "dimensions": normalized_dimensions,
+            "improvements": data.get("improvements") or [],
         }
 
     @staticmethod
