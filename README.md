@@ -204,18 +204,19 @@ heuristics to real provider clients.
 flowchart TD
     A[/Parse /sc:* command + flags/] --> B{Loop flag enabled?}
     B -->|No| Z[Skip agentic loop]
-    B -->|Yes| C[QualityScorer evaluates output]
-    C --> D{Score ≥ threshold?}
-    D -->|Yes| L[Persist assessment & finish]
-    D -->|No| E[Derive improvements + remediation hints]
-    E --> F[Run remediation agents + apply change plan]
-    F --> G[Execute targeted tests / capture evidence]
-    G --> H{Iterations left and Δscore ≥ minimum?}
-    H -->|Yes| C
-    H -->|No| I[Snapshot diffs & iteration history]
-    I --> J[Queue diffs for zen-review]
-    J --> K[Zen review via ModelRouter]
-    K --> L[Attach assessment + zen findings to result]
+    B -->|Yes| C[Register optional zen evaluator]
+    C --> D[QualityScorer evaluates output]
+    D --> E{Score ≥ threshold?}
+    E -->|Yes| L[Persist assessment & finish]
+    E -->|No| F[Derive improvements + remediation hints]
+    F --> G[Run remediation agents + apply change plan]
+    G --> H[Execute targeted tests / capture evidence]
+    H --> I{Iterations left and Δscore ≥ minimum?}
+    I -->|Yes| D
+    I -->|No| J[Snapshot diffs & iteration history]
+    J --> K[Queue diffs for zen-review]
+    K --> L[Zen review via ModelRouter]
+    L --> M[Attach assessment + zen findings to result]
 ```
 
 ### Monitoring & Telemetry
