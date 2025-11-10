@@ -17,6 +17,7 @@ import subprocess
 import py_compile
 import shutil
 import textwrap
+import threading
 from dataclasses import dataclass, field, asdict
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -39,7 +40,7 @@ from ..MCP import get_mcp_integration
 from ..ModelRouter.facade import ModelRouterFacade
 from ..ModelRouter.consensus import VoteType
 from ..Modes.behavioral_manager import BehavioralMode, BehavioralModeManager
-from ..Quality.quality_scorer import QualityScorer, QualityAssessment
+from ..Quality.quality_scorer import QualityScorer, QualityAssessment, QualityDimension, QualityMetric
 from ..Core.worktree_manager import WorktreeManager
 from ..Monitoring.performance_monitor import get_monitor, MetricType
 from ..Monitoring.paths import get_metrics_dir
@@ -2573,6 +2574,114 @@ class CommandExecutor:
         )
         return result.get('exit_code') == 0
 
+    def _register_zen_quality_evaluator(self, context: CommandContext):
+        """Attach a GPT-backed evaluator to the quality scorer when zen-review is enabled."""
+        zen_instance = self._get_active_mcp_instance('zen')
+        if not zen_instance:
+            return None
+
+        def _zen_metric(_: Any, eval_context: Dict[str, Any]) -> Optional[QualityMetric]:
+            diff_blob = self._collect_full_repo_diff()
+            if not diff_blob.strip():
+                return None
+
+            files = eval_context.get('changed_files') or []
+            metadata = {
+                'reason': 'quality-loop-evaluator',
+                'loop_requested': context.results.get('loop_requested', False),
+                'iteration': eval_context.get('iteration', 0),
+            }
+
+            try:
+                review_payload = self._invoke_zen_review_sync(
+                    zen_instance,
+                    diff_blob,
+                    files=files,
+                    metadata=metadata,
+                    model=context.zen_review_model or 'gpt-5'
+                )
+            except Exception as exc:
+                context.results.setdefault('zen_review_errors', []).append(str(exc))
+                return None
+
+            score = float(review_payload.get('score', 0.0))
+            summary = review_payload.get('summary') or 'Zen review summary unavailable.'
+            issues = []
+            for issue in review_payload.get('issues') or []:
+                title = issue.get('title') or issue.get('details') or 'Issue'
+                details = issue.get('details') or issue.get('recommendation') or ''
+                issues.append(f"{title}: {details}".strip())
+            suggestions = review_payload.get('recommendations') or []
+
+            weight = eval_context.get('zen_review_weight')
+            if weight is None:
+                weight = self.quality_scorer.default_weights.get(QualityDimension.ZEN_REVIEW, 0.1)
+
+            return QualityMetric(
+                dimension=QualityDimension.ZEN_REVIEW,
+                score=max(0.0, min(100.0, score)),
+                weight=float(weight),
+                details=summary,
+                issues=issues[:6],
+                suggestions=suggestions[:6]
+            )
+
+        self.quality_scorer.add_custom_evaluator(_zen_metric)
+        return _zen_metric
+
+    def _remove_custom_evaluator(self, evaluator: Callable) -> None:
+        try:
+            self.quality_scorer.custom_evaluators.remove(evaluator)
+        except ValueError:
+            pass
+
+    def _collect_full_repo_diff(self) -> str:
+        repo_root = Path(self.repo_root or Path.cwd())
+        result = self._run_command(['git', 'diff', '--no-color'], cwd=repo_root)
+        return (result.get('stdout') or '').strip()
+
+    def _invoke_zen_review_sync(
+        self,
+        zen_instance: Any,
+        diff_blob: str,
+        *,
+        files: Sequence[str],
+        metadata: Dict[str, Any],
+        model: str
+    ) -> Dict[str, Any]:
+        async def _call_review():
+            return await zen_instance.review_code(
+                diff_blob,
+                files=list(files),
+                metadata=metadata,
+                model=model
+            )
+
+        return self._run_async_function(_call_review)
+
+    def _run_async_function(self, async_callable: Callable[[], Any]) -> Any:
+        """Execute an async callable from synchronous code using a dedicated event loop."""
+        result: Dict[str, Any] = {}
+        error: Dict[str, Exception] = {}
+
+        def _runner():
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            try:
+                result['value'] = loop.run_until_complete(async_callable())
+            except Exception as exc:
+                error['exc'] = exc
+            finally:
+                loop.close()
+
+        thread = threading.Thread(target=_runner, daemon=True)
+        thread.start()
+        thread.join()
+
+        if error:
+            raise error['exc']
+        return result.get('value', {})
+
     def _prepare_remediation_agents(self, context: CommandContext, agents: Iterable[str]) -> None:
         """Ensure remediation-focused agents are available for the quality loop."""
         loader = self.agent_loader or AgentLoader()
@@ -3549,6 +3658,10 @@ class CommandExecutor:
         def _remediation_improver(current_output: Any, loop_context: Dict[str, Any]) -> Any:
             return self._quality_loop_improver(context, current_output, loop_context)
 
+        zen_evaluator = None
+        if context.zen_review_enabled:
+            zen_evaluator = self._register_zen_quality_evaluator(context)
+
         try:
             improved_output, final_assessment, iteration_history = self.quality_scorer.agentic_loop(
                 output,
@@ -3561,6 +3674,9 @@ class CommandExecutor:
             logger.warning(f"Agentic loop execution failed: {exc}")
             context.results['loop_error'] = str(exc)
             return None
+        finally:
+            if zen_evaluator:
+                self._remove_custom_evaluator(zen_evaluator)
 
         context.results['loop_iterations_executed'] = len(iteration_history)
         context.results['loop_assessment'] = self._serialize_assessment(final_assessment)

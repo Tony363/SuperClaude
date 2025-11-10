@@ -3,6 +3,7 @@ Smoke tests and behaviour checks for MCP integrations.
 """
 
 import logging
+import subprocess
 from pathlib import Path
 from typing import Any, Dict
 
@@ -18,6 +19,7 @@ from SuperClaude.Commands.registry import CommandMetadata, CommandRegistry
 from SuperClaude.MCP import MCP_SERVERS, get_mcp_integration
 import SuperClaude.MCP as mcp_module
 from SuperClaude.MCP.rube_integration import RubeIntegration
+from SuperClaude.Quality.quality_scorer import QualityDimension
 
 
 def _project_root() -> Path:
@@ -237,3 +239,51 @@ async def test_run_zen_reviews_attaches_results(monkeypatch):
 
     assert context.results.get("zen_reviews")
     assert output.get("zen_reviews") == context.results.get("zen_reviews")
+
+
+def test_zen_quality_evaluator_generates_metric(tmp_path, monkeypatch):
+    registry = CommandRegistry()
+    parser = CommandParser(registry=registry)
+    executor = CommandExecutor(registry, parser)
+    executor.repo_root = tmp_path
+
+    (tmp_path / ".git").mkdir()
+    subprocess.run(["git", "init"], cwd=tmp_path, check=True, stdout=subprocess.PIPE)
+    subprocess.run(["git", "config", "user.name", "Test"], cwd=tmp_path, check=True, stdout=subprocess.PIPE)
+    subprocess.run(["git", "config", "user.email", "test@example.com"], cwd=tmp_path, check=True, stdout=subprocess.PIPE)
+    tracked = tmp_path / "sample.txt"
+    tracked.write_text("initial", encoding="utf-8")
+    subprocess.run(["git", "add", "sample.txt"], cwd=tmp_path, check=True, stdout=subprocess.PIPE)
+    subprocess.run(["git", "commit", "-m", "init"], cwd=tmp_path, check=True, stdout=subprocess.PIPE)
+    tracked.write_text("changed", encoding="utf-8")
+
+    context = CommandContext(
+        command=ParsedCommand(name="implement", raw_string="/sc:implement --loop", flags={"loop": True}),
+        metadata=CommandMetadata(name="implement", description="", category="dev", complexity="standard"),
+    )
+    context.zen_review_enabled = True
+
+    executor.active_mcp_servers["zen"] = {"instance": object()}
+
+    monkeypatch.setattr(executor, "_collect_full_repo_diff", lambda: "diff --git a/sample.txt b/sample.txt")
+    monkeypatch.setattr(
+        executor,
+        "_invoke_zen_review_sync",
+        lambda *_, **__: {
+            "score": 88,
+            "summary": "Looks solid",
+            "issues": [{"title": "Minor nit", "details": "Consider renaming"}],
+            "recommendations": ["Add more tests"],
+        },
+    )
+
+    evaluator = executor._register_zen_quality_evaluator(context)
+    assert evaluator is not None
+
+    metric = evaluator({}, {})
+    assert metric.dimension == QualityDimension.ZEN_REVIEW
+    assert metric.score == 88
+    assert "Looks solid" in metric.details
+
+    executor._remove_custom_evaluator(evaluator)
+    assert evaluator not in executor.quality_scorer.custom_evaluators

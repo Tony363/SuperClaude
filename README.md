@@ -196,8 +196,9 @@ heuristics to real provider clients.
 - The executor now captures those diffs and automatically toggles `--zen-review`, sending the final
   iteration payloads through `ZenIntegration.review_code`. When API keys exist, GPT-5 (via the
   ModelRouter facade) produces structured findings; otherwise deterministic offline heuristics keep
-  the run reproducible. The review summary, issues, and agreement score are attached to the command
-  result under `zen_reviews`.
+  the run reproducible. The GPT score now feeds a pluggable evaluator (`QualityDimension.ZEN_REVIEW`)
+  inside `QualityScorer`, so the loop’s pass/fail decision incorporates the external audit whenever
+  keys are available. The full narrative still lands under `zen_reviews` for operator inspection.
 
 ```mermaid
 flowchart TD
