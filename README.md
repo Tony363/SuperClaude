@@ -213,7 +213,7 @@ flowchart TD
     H -->|Yes| C
     H -->|No| I[Snapshot diffs & iteration history]
     I --> J[Queue diffs for zen-review]
-    J --> K[Zen review (ModelRouter facade)]
+    J --> K[Zen review via ModelRouter]
     K --> L[Attach assessment + zen findings to result]
 ```
 
