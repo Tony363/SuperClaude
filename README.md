@@ -213,7 +213,7 @@ flowchart TD
     H -->|Yes| C
     H -->|No| I[Snapshot diffs & iteration history]
     I --> J[Queue diffs for zen-review]
-    J --> K[ZenIntegration.review_code (GPT-5 or deterministic)]
+    J --> K[Zen review (ModelRouter facade)]
     K --> L[Attach assessment + zen findings to result]
 ```
 
