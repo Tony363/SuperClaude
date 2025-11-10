@@ -20,6 +20,7 @@
   structured telemetry so plan-only regressions become visible in CI dashboards. Safe-apply snapshots let
   `/sc:implement --safe-apply` stash synthesized stubs under `.superclaude_metrics/safe_apply/` while
   auto-triggered quality loops chase real diffs.
+- CodeRabbit/GitHub MCP hooks are fully retired; blended scoring now uses `quality.yaml` component weights (60/25/15 by default) and native guardrails only. `--loop` requests automatically layer in `--zen-review` so GPT-5 (or deterministic offline facsimiles) critiques each iteration via the local Zen MCP.
 - `/sc:implement --fast-codex` activates a lean Codex implementer persona for low-risk edits while
   telemetry and guardrails record the `fast-codex` execution mode and enforce fallbacks for consensus or
   security-sensitive runs.
@@ -185,6 +186,37 @@ heuristics to real provider clients.
 - Semantic validation hooks (`_python_semantic_issues`) run automatically during guardrail checks
   and are exposed via `scripts/semantic_validate.py` for manual linting or CI usage.
 
+#### Agentic Loop (`--loop` + `--zen-review`)
+- Passing `--loop` (or requesting auto-loop remediation) activates `QualityScorer.agentic_loop`,
+  which evaluates the current output, derives improvement goals, and iteratively invokes the
+  remediation agents (`quality-engineer`, `refactoring-expert`, `general-purpose`).
+- Each iteration applies change plans through the worktree manager, re-runs the requested tests,
+  and records diff snapshots/metadata inside `context.results` so downstream evidence and telemetry
+  stay aligned.
+- The executor now captures those diffs and automatically toggles `--zen-review`, sending the final
+  iteration payloads through `ZenIntegration.review_code`. When API keys exist, GPT-5 (via the
+  ModelRouter facade) produces structured findings; otherwise deterministic offline heuristics keep
+  the run reproducible. The review summary, issues, and agreement score are attached to the command
+  result under `zen_reviews`.
+
+```mermaid
+flowchart TD
+    A[/Parse /sc:* command + flags/] --> B{--loop enabled?}
+    B -- No --> Z[Skip agentic loop]
+    B -- Yes --> C[QualityScorer.evaluate(output)]
+    C --> D{Score ≥ threshold?}
+    D -- Yes --> L[Persist assessment & finish]
+    D -- No --> E[Derive improvements + remediation hints]
+    E --> F[Run remediation agents + apply change plan]
+    F --> G[Execute targeted tests / evidence capture]
+    G --> H{Iterations remaining & Δscore ≥ min?}
+    H -- Yes --> C
+    H -- No --> I[Snapshot diffs & iteration history]
+    I --> J[Queue diffs for zen-review]
+    J --> K[ZenIntegration.review_code (GPT-5/heuristic)]
+    K --> L[Attach assessment + zen findings to command result]
+```
+
 ### Monitoring & Telemetry
 - `SuperClaude/Monitoring/performance_monitor.py` records timers, counters, and resource usage.
 - Default sinks write to `.superclaude_metrics/metrics.db` (SQLite) and
@@ -199,18 +231,17 @@ heuristics to real provider clients.
 
 | Integration | Path | Status |
 |-------------|------|--------|
-| Zen | `SuperClaude/MCP/zen_integration.py` | Offline consensus helper piping `/sc:*` commands through deterministic votes |
+| Zen | `SuperClaude/MCP/zen_integration.py` | Local consensus + `review_code` bridge that supervises `--zen`, `--consensus`, and `--zen-review` flows |
 | Rube | `SuperClaude/MCP/rube_integration.py` | Automation hub for external SaaS workflows (dry-run safe when no API key) |
 | Browser | `SuperClaude/MCP/MCP_Browser.md` | Installer auto-runs `claude mcp add -s user -- browser npx @browsermcp/mcp@latest` |
 
-Zen is intentionally a **local stub** — it never calls the public zen-mcp-server, does not require
-API keys, and only returns synthetic vote data so the framework stays deterministic. The triggers
-configured in `SuperClaude/Config/mcp.yaml` (`--zen`, `--consensus`, `--thinkdeep`, `--zen-review`)
-are the same ones referenced by the command playbooks (for example
-`SuperClaude/Commands/implement.md`). When those flags or commands fire, the executor asks
-`ModelRouterFacade` to run consensus, which delegates to the stub and attaches the vote summary to
-the command result. Live Zen features such as continuation IDs, CLI bridges, or vision tooling are
-deliberately out of scope for this offline build.
+Zen still defaults to a **local, offline-safe facade**—no public zen-mcp-server calls are required.
+When API keys for OpenAI/Anthropic/etc. are present, `ModelRouterFacade` drives those live models;
+otherwise deterministic heuristics respond so consensus remains reproducible. The triggers defined in
+`SuperClaude/Config/mcp.yaml` (`--zen`, `--consensus`, `--thinkdeep`, `--zen-review`) match the
+Markdown playbooks. Every `--loop` request now implicitly toggles `--zen-review`, which captures the
+loop diff payloads and asks the Zen integration’s new `review_code` helper (GPT-5 by default) to grade
+changes before the executor finalizes results.
 
 All other legacy MCP adapters (Serena, MorphLLM, Context7, Sequential Thinking, Playwright, Fetch,
 Filesystem, etc.) have been retired and no longer ship with the framework. Deepwiki has been

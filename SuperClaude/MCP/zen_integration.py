@@ -1,11 +1,13 @@
 """
 Zen MCP Integration
 
-Lightweight local implementation that provides a consensus-style facade
-compatible with SuperClaude's command executor. This avoids any network
-use and interoperates with the framework's concepts.
+Local implementation that fronts the ModelRouter consensus engine. This
+module now also provides a lightweight `--zen-review` facade used by the
+executor's agentic loop.
 """
 
+import json
+import re
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
@@ -126,6 +128,47 @@ class ZenIntegration:
             created_at=datetime.now().isoformat(),
         )
 
+    async def review_code(
+        self,
+        diff: str,
+        *,
+        files: Optional[List[str]] = None,
+        model: str = "gpt-5",
+        severity_filter: Optional[str] = None,
+        metadata: Optional[Dict[str, Any]] = None,
+        max_issues: int = 10,
+    ) -> Dict[str, Any]:
+        """Run a GPT-5 code review over a diff block via Zen consensus."""
+        if not diff or not diff.strip():
+            raise ValueError("diff payload required for zen-review")
+
+        prompt = self._build_review_prompt(diff, files or [], severity_filter, max_issues)
+        models = [ModelConfig(name=model, weight=1.0)]
+        review_context = {
+            "mode": "zen-review",
+            "files": files or [],
+            "metadata": metadata or {},
+            "severity_filter": severity_filter,
+        }
+
+        consensus = await self.consensus(
+            prompt,
+            models=models,
+            vote=ConsensusType.majority,
+            thinking=ThinkingMode.high,
+            context=review_context,
+        )
+
+        parsed = self._parse_review_response(consensus.final_decision)
+        parsed.setdefault("model", model)
+        parsed.setdefault("created_at", datetime.now().isoformat())
+        parsed.setdefault("raw", consensus.final_decision)
+        parsed.setdefault("agreement_score", consensus.agreement_score)
+        parsed.setdefault("consensus", consensus.consensus_reached)
+        parsed.setdefault("tokens_used", consensus.total_tokens)
+        parsed.setdefault("files", files or [])
+        return parsed
+
     # ------------------------------------------------------------------
     # Helpers
     # ------------------------------------------------------------------
@@ -163,3 +206,85 @@ class ZenIntegration:
         if vote != ConsensusType.quorum or not models:
             return 2
         return max(1, (len(models) // 2) + 1)
+
+    @staticmethod
+    def _build_review_prompt(
+        diff: str,
+        files: List[str],
+        severity_filter: Optional[str],
+        max_issues: int,
+    ) -> str:
+        file_text = ", ".join(files) if files else "(files inferred from diff)"
+        severity_text = severity_filter or "critical"
+        schema = (
+            '{"score": number 0-100, "summary": string, '
+            '"critical_issues": integer, "warnings": integer, '
+            '"issues": [{"severity": "critical|warning|nit", "title": string, '
+            '"details": string, "files": [string], "recommendation": string}], '
+            '"recommendations": [string]}'
+        )
+        return (
+            "You are GPT-5 performing a production code review for Claude Code's agentic loop. "
+            "Evaluate the diff below for logical, security, and quality issues. "
+            "Report ONLY JSON matching this schema: " + schema + ". "
+            "Highlight up to " + str(max_issues) + " issues prioritising severity >= " + severity_text + ".\n"
+            f"Files: {file_text}\n"
+            "Diff to review:\n" + diff.strip()
+        )
+
+    def _parse_review_response(self, payload: Any) -> Dict[str, Any]:
+        if isinstance(payload, dict):
+            return self._normalize_review_payload(payload)
+        if isinstance(payload, str):
+            json_blob = self._extract_json_blob(payload)
+            if json_blob:
+                try:
+                    data = json.loads(json_blob)
+                    return self._normalize_review_payload(data)
+                except json.JSONDecodeError:
+                    pass
+            return {
+                "score": 0.0,
+                "summary": payload.strip(),
+                "critical_issues": 0,
+                "warnings": 0,
+                "issues": [],
+                "recommendations": []
+            }
+        return {
+            "score": 0.0,
+            "summary": "zen-review returned no structured payload",
+            "critical_issues": 0,
+            "warnings": 0,
+            "issues": [],
+            "recommendations": []
+        }
+
+    @staticmethod
+    def _normalize_review_payload(data: Dict[str, Any]) -> Dict[str, Any]:
+        issues = data.get("issues") or []
+        normalized_issues: List[Dict[str, Any]] = []
+        for issue in issues:
+            if not isinstance(issue, dict):
+                continue
+            normalized_issues.append({
+                "severity": str(issue.get("severity", "warning")),
+                "title": issue.get("title") or issue.get("summary") or "Unnamed",
+                "details": issue.get("details") or issue.get("description") or "",
+                "files": issue.get("files") or [],
+                "recommendation": issue.get("recommendation") or issue.get("fix") or ""
+            })
+
+        return {
+            "score": float(data.get("score", 0.0)),
+            "summary": str(data.get("summary", "")),
+            "critical_issues": int(data.get("critical_issues", 0)),
+            "warnings": int(data.get("warnings", 0)),
+            "issues": normalized_issues,
+            "recommendations": data.get("recommendations") or [],
+        }
+
+    @staticmethod
+    def _extract_json_blob(text: str) -> Optional[str]:
+        match = re.search(r"\{.*\}", text, re.DOTALL)
+        return match.group(0) if match else None

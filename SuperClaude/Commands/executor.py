@@ -180,6 +180,8 @@ class CommandContext:
     fast_codex_requested: bool = False
     fast_codex_active: bool = False
     fast_codex_blocked: List[str] = field(default_factory=list)
+    zen_review_enabled: bool = False
+    zen_review_model: str = "gpt-5"
 
 
 @dataclass
@@ -293,6 +295,7 @@ class CommandExecutor:
                     output=None,
                     errors=[f"Command '{parsed.name}' not found"]
                 )
+            metadata = copy.deepcopy(metadata)
 
             mode_state = self._prepare_mode(parsed)
 
@@ -344,6 +347,7 @@ class CommandExecutor:
                 if loop_result:
                     output = loop_result['output']
                     loop_assessment = loop_result['assessment']
+                await self._run_zen_reviews(context, output)
 
             consensus_required = metadata.requires_evidence or context.consensus_forced
             consensus_result = await self._ensure_consensus(
@@ -628,6 +632,7 @@ class CommandExecutor:
                             loop_state['assessment'] = context.results.get('loop_assessment')
                         if loop_assessment and not quality_assessment:
                             quality_assessment = loop_assessment
+                        await self._run_zen_reviews(context, output)
 
             context.errors = self._deduplicate(context.errors)
 
@@ -2448,6 +2453,7 @@ class CommandExecutor:
                 entry = f"loop iteration {iteration_index + 1}: apply {path}"
                 if entry not in applied_list:
                     applied_list.append(entry)
+            self._record_loop_review_target(context, applied_files, iteration_index)
 
         tests = self._run_requested_tests(context.command)
         tests_summary = self._summarize_test_results(tests)
@@ -2501,6 +2507,71 @@ class CommandExecutor:
             }
             improved_output.setdefault('quality_loop', []).append(loop_payload)
         return improved_output
+
+    def _record_loop_review_target(
+        self,
+        context: CommandContext,
+        applied_files: List[str],
+        iteration_index: int
+    ) -> None:
+        """Capture diffs for later Zen reviews when loop iterations make changes."""
+        if not context.zen_review_enabled or not applied_files:
+            return
+
+        diff_blob = self._collect_file_diffs(applied_files)
+        if not diff_blob:
+            return
+
+        targets = context.results.setdefault('zen_review_targets', [])
+        targets.append({
+            'iteration': iteration_index + 1,
+            'files': sorted(set(applied_files)),
+            'diff': diff_blob,
+            'captured_at': datetime.now().isoformat()
+        })
+
+    def _collect_file_diffs(self, applied_files: Sequence[str]) -> str:
+        """Generate unified diffs for the provided repository-relative paths."""
+        repo_root = Path(self.repo_root or Path.cwd())
+        seen: Set[str] = set()
+        diff_chunks: List[str] = []
+
+        for rel_path in applied_files:
+            if not rel_path:
+                continue
+            normalized = str(rel_path).strip()
+            if not normalized or normalized in seen:
+                continue
+            seen.add(normalized)
+
+            file_path = (repo_root / normalized).resolve()
+            try:
+                file_path.relative_to(repo_root)
+            except ValueError:
+                continue
+            if not file_path.exists():
+                continue
+
+            if self._is_tracked_file(normalized):
+                command = ['git', 'diff', '--no-color', '--unified=3', '--', normalized]
+            else:
+                command = ['git', 'diff', '--no-color', '--unified=3', '--no-index', '/dev/null', str(file_path)]
+
+            result = self._run_command(command, cwd=repo_root)
+            diff_text = (result.get('stdout') or '').strip()
+            if diff_text:
+                diff_chunks.append(f"### {normalized}\n{diff_text}")
+
+        return "\n\n".join(diff_chunks)
+
+    def _is_tracked_file(self, rel_path: str) -> bool:
+        """Return True if the given path is tracked by git."""
+        repo_root = Path(self.repo_root or Path.cwd())
+        result = self._run_command(
+            ['git', 'ls-files', '--error-unmatch', rel_path],
+            cwd=repo_root
+        )
+        return result.get('exit_code') == 0
 
     def _prepare_remediation_agents(self, context: CommandContext, agents: Iterable[str]) -> None:
         """Ensure remediation-focused agents are available for the quality loop."""
@@ -3515,6 +3586,94 @@ class CommandExecutor:
             'assessment': final_assessment
         }
 
+    async def _run_zen_reviews(self, context: CommandContext, output: Any) -> None:
+        """Execute deferred Zen MCP reviews for loop iterations."""
+        if not context.zen_review_enabled:
+            return
+
+        targets = context.results.pop('zen_review_targets', []) or []
+        if not targets:
+            return
+
+        zen_instance = self._get_active_mcp_instance('zen')
+        if not zen_instance:
+            context.results.setdefault('warnings', []).append(
+                'Zen MCP unavailable; loop review skipped.'
+            )
+            return
+
+        review_method = getattr(zen_instance, 'review_code', None)
+        if not callable(review_method):
+            context.results.setdefault('warnings', []).append(
+                'Zen MCP missing review_code capability; skipping zen-review.'
+            )
+            return
+
+        reviews: List[Dict[str, Any]] = []
+        for target in targets:
+            diff_blob = target.get('diff')
+            if not diff_blob:
+                continue
+            try:
+                review_payload = await self._execute_zen_review(
+                    review_method,
+                    context,
+                    diff_blob,
+                    files=target.get('files') or [],
+                    iteration=target.get('iteration')
+                )
+            except Exception as exc:
+                logger.warning(f"Zen review failed: {exc}")
+                context.results.setdefault('zen_review_errors', []).append(str(exc))
+                continue
+
+            reviews.append({
+                'iteration': target.get('iteration'),
+                'files': target.get('files') or [],
+                'result': review_payload
+            })
+
+        if reviews:
+            context.results.setdefault('zen_reviews', []).extend(reviews)
+            if isinstance(output, dict):
+                output['zen_reviews'] = context.results['zen_reviews']
+
+    async def _execute_zen_review(
+        self,
+        review_method: Callable[..., Any],
+        context: CommandContext,
+        diff_blob: str,
+        *,
+        files: List[str],
+        iteration: Optional[int]
+    ) -> Dict[str, Any]:
+        """Invoke the zen review coroutine and normalize its response."""
+        metadata = {
+            'command': context.command.raw_string,
+            'iteration': iteration,
+            'loop_requested': context.results.get('loop_requested', False)
+        }
+
+        result = await review_method(
+            diff_blob,
+            files=files,
+            model=context.zen_review_model or 'gpt-5',
+            metadata=metadata,
+        )
+
+        if isinstance(result, dict):
+            return result
+        return {
+            'summary': str(result),
+            'model': context.zen_review_model or 'gpt-5'
+        }
+
+    def _get_active_mcp_instance(self, name: str) -> Optional[Any]:
+        entry = self.active_mcp_servers.get(name)
+        if not entry:
+            return None
+        return entry.get('instance')
+
     def _evaluate_quality_gate(
         self,
         context: CommandContext,
@@ -4444,6 +4603,18 @@ class CommandExecutor:
             if loop_info['min_improvement'] is not None:
                 context.results['loop_min_improvement_requested'] = loop_info['min_improvement']
 
+        zen_review = self._resolve_zen_review_request(parsed, loop_info['enabled'])
+        context.zen_review_enabled = zen_review['enabled']
+        context.zen_review_model = zen_review['model']
+        context.results['zen_review_enabled'] = context.zen_review_enabled
+        if zen_review['model']:
+            context.results['zen_review_model'] = zen_review['model']
+        if context.zen_review_enabled:
+            servers = list(context.metadata.mcp_servers or [])
+            if 'zen' not in servers:
+                servers.append('zen')
+            context.metadata.mcp_servers = servers
+
         context.consensus_forced = self._flag_present(parsed, 'consensus')
         context.results['consensus_forced'] = context.consensus_forced
 
@@ -4504,6 +4675,26 @@ class CommandExecutor:
             'enabled': enabled,
             'iterations': iterations,
             'min_improvement': min_improvement
+        }
+
+    def _resolve_zen_review_request(self, parsed: ParsedCommand, loop_requested: bool) -> Dict[str, Any]:
+        """Resolve whether zen-review should run and which model to use."""
+        enabled = loop_requested or self._flag_present(parsed, 'zen-review')
+        model = None
+
+        model_keys = ['zen-model', 'zen_model', 'zen-review-model', 'zen_model_name']
+        for key in model_keys:
+            if key in parsed.parameters:
+                model = str(parsed.parameters[key]).strip() or None
+                enabled = True
+                break
+
+        if not model:
+            model = 'gpt-5'
+
+        return {
+            'enabled': enabled,
+            'model': model
         }
 
     def _apply_auto_delegation(self, context: CommandContext) -> None:

@@ -4,9 +4,13 @@ Smoke tests and behaviour checks for MCP integrations.
 
 import logging
 from pathlib import Path
+from typing import Any, Dict
 
 import pytest
-import yaml
+try:
+    import yaml
+except ModuleNotFoundError:  # pragma: no cover - optional dev dependency
+    yaml = None  # type: ignore
 
 from SuperClaude.Commands.executor import CommandContext, CommandExecutor
 from SuperClaude.Commands.parser import CommandParser, ParsedCommand
@@ -22,6 +26,8 @@ def _project_root() -> Path:
 
 def test_all_mcp_servers_can_be_instantiated():
     """Ensure every server listed in the public configuration activates."""
+    if yaml is None:
+        pytest.skip("PyYAML not installed")
     config_path = _project_root() / "SuperClaude" / "Config" / "mcp.yaml"
     config_data = yaml.safe_load(config_path.read_text(encoding="utf-8")) or {}
     servers = config_data.get("servers", {})
@@ -110,6 +116,29 @@ async def test_executor_activates_rube_when_enabled(monkeypatch):
     assert "rube" in context.mcp_servers
 
 
+def test_loop_flag_enables_zen_review(monkeypatch):
+    """Explicit --loop requests should automatically enable zen-review."""
+    registry = CommandRegistry()
+    parser = CommandParser(registry=registry)
+    executor = CommandExecutor(registry, parser)
+
+    metadata = CommandMetadata(
+        name="implement",
+        description="",
+        category="dev",
+        complexity="standard",
+        mcp_servers=[],
+    )
+    parsed = ParsedCommand(name="implement", raw_string="/sc:implement --loop", flags={"loop": True})
+    context = CommandContext(command=parsed, metadata=metadata)
+
+    executor._apply_execution_flags(context)
+
+    assert context.zen_review_enabled is True
+    assert "zen" in context.metadata.mcp_servers
+    assert context.results.get("zen_review_enabled") is True
+
+
 @pytest.mark.asyncio
 async def test_rube_dry_run_without_network(monkeypatch):
     """Rube integration falls back to dry-run when network is unavailable."""
@@ -173,3 +202,38 @@ async def test_activate_mcp_records_warning_on_failure(monkeypatch, caplog):
 
     assert "browser" not in executor.active_mcp_servers
     assert any("Skipping MCP server 'browser'" in record.message for record in caplog.records)
+
+
+@pytest.mark.asyncio
+async def test_run_zen_reviews_attaches_results(monkeypatch):
+    """Deferred zen-review targets should populate executor results."""
+    registry = CommandRegistry()
+    parser = CommandParser(registry=registry)
+    executor = CommandExecutor(registry, parser)
+
+    metadata = CommandMetadata(
+        name="implement",
+        description="",
+        category="dev",
+        complexity="standard",
+        mcp_servers=["zen"],
+    )
+    parsed = ParsedCommand(name="implement", raw_string="/sc:implement --loop", flags={"loop": True})
+    context = CommandContext(command=parsed, metadata=metadata)
+    context.zen_review_enabled = True
+    context.results["zen_review_targets"] = [
+        {"iteration": 1, "files": ["foo.py"], "diff": "diff data"}
+    ]
+
+    class _FakeZen:
+        async def review_code(self, diff, *, files, model, metadata):
+            assert diff == "diff data"
+            return {"score": 95, "summary": "looks good", "issues": []}
+
+    executor.active_mcp_servers["zen"] = {"instance": _FakeZen()}
+
+    output: Dict[str, Any] = {}
+    await executor._run_zen_reviews(context, output)
+
+    assert context.results.get("zen_reviews")
+    assert output.get("zen_reviews") == context.results.get("zen_reviews")
