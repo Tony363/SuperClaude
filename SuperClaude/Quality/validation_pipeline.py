@@ -1,4 +1,4 @@
-"""Validation pipeline that blends CodeRabbit insights with local checks."""
+"""Validation pipeline that enforces layered local quality checks."""
 
 from __future__ import annotations
 
@@ -7,11 +7,6 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
-
-try:  # Optional dependency, avoid hard import cycles in tests
-    from ..MCP.coderabbit import CodeRabbitReview
-except Exception:  # pragma: no cover - optional runtime import
-    CodeRabbitReview = None  # type: ignore
 
 from ..Monitoring.paths import get_metrics_dir
 
@@ -140,72 +135,67 @@ class ValidationPipeline:
 
     def _run_security_stage(self, context: Dict[str, Any]) -> ValidationStageResult:
         findings: List[str] = []
-        degraded = False
         fatal = False
 
-        review = context.get("coderabbit_review") or context.get("coderabbit")
-        review_status = "missing"
-        issues = self._extract_coderabbit_issues(review)
-        if issues:
-            review_status = "available"
-            for issue in issues:
-                severity = (issue.get("severity") or "").lower()
-                summary = issue.get("title") or issue.get("body") or "security issue"
-                findings.append(f"CodeRabbit: {summary} ({severity or 'info'})")
-                if severity in {"critical", "high"}:
-                    fatal = True
-        else:
-            degraded = True
+        scan_issues = self._normalize_security_issues(context.get("security_scan"), source="scan")
+        manual_issues = self._normalize_security_issues(context.get("security_findings"), source="manual")
+        all_issues = scan_issues + manual_issues
 
-        local_scan = context.get("security_scan") or {}
-        for item in local_scan.get("issues", []):
-            summary = item.get("message") or item.get("id") or "security finding"
-            severity = (item.get("severity") or "").lower()
-            findings.append(f"Local: {summary} ({severity or 'info'})")
+        if not all_issues:
+            return ValidationStageResult(
+                name="security",
+                status="degraded",
+                findings=["No security scan data supplied"],
+                degraded=True,
+                metadata={"scanner": "missing"},
+            )
+
+        for issue in all_issues:
+            severity = (issue.get("severity") or "").lower()
+            summary = issue.get("summary") or issue.get("message") or "security finding"
+            source = issue.get("source") or "scan"
+            findings.append(f"{source}: {summary} ({severity or 'info'})")
             if severity in {"critical", "high"}:
                 fatal = True
 
-        status = "passed"
-        if fatal:
-            status = "failed"
-        elif findings:
-            status = "needs_attention"
+        status = "failed" if fatal else "needs_attention"
 
         return ValidationStageResult(
             name="security",
             status=status,
             findings=findings,
             fatal=fatal,
-            degraded=degraded,
-            metadata={"coderabbit_status": review_status},
+            degraded=False,
+            metadata={
+                "scanner": "local",
+                "issue_count": len(all_issues),
+            },
         )
 
     # ------------------------------------------------------------------
     # Helpers
     # ------------------------------------------------------------------
-    def _extract_coderabbit_issues(self, review: Any) -> List[Dict[str, Any]]:
-        if review is None:
+    def _normalize_security_issues(self, payload: Any, *, source: str) -> List[Dict[str, Any]]:
+        if not payload:
             return []
 
-        if CodeRabbitReview is not None and isinstance(review, CodeRabbitReview):  # type: ignore[arg-type]
-            return [
-                {
-                    "title": getattr(issue, "title", None),
-                    "severity": getattr(issue, "severity", None),
-                    "tag": getattr(issue, "tag", None),
-                }
-                for issue in getattr(review, "issues", [])
-            ]
+        if isinstance(payload, list):
+            raw = payload
+        elif isinstance(payload, dict):
+            raw = payload.get("issues") or payload.get("findings") or []
+        else:
+            return []
 
-        if isinstance(review, dict):
-            raw_issues = review.get("issues") or review.get("comments") or []
-            cleaned: List[Dict[str, Any]] = []
-            for issue in raw_issues:
-                if isinstance(issue, dict):
-                    cleaned.append(issue)
-            return cleaned
-
-        return []
+        normalized: List[Dict[str, Any]] = []
+        for item in raw:
+            if not isinstance(item, dict):
+                continue
+            normalized.append({
+                "severity": item.get("severity"),
+                "summary": item.get("title") or item.get("message") or item.get("id"),
+                "source": item.get("source") or source,
+            })
+        return normalized
 
     def _write_evidence(self, result: ValidationStageResult) -> None:
         payload = {

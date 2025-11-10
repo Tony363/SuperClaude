@@ -2,11 +2,8 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
-
 import pytest
 
-from SuperClaude.MCP.coderabbit import CodeRabbitIssue, CodeRabbitReview
 from SuperClaude.Quality.quality_scorer import (
     QualityDimension,
     QualityMetric,
@@ -14,62 +11,43 @@ from SuperClaude.Quality.quality_scorer import (
 )
 
 
-def _sample_metrics() -> list:
-    return [
+def _sample_metrics(include_tests: bool = True) -> list:
+    metrics = [
         QualityMetric(QualityDimension.CORRECTNESS, 80, 0.25, "correctness"),
         QualityMetric(QualityDimension.COMPLETENESS, 70, 0.20, "completeness"),
-        QualityMetric(QualityDimension.TESTABILITY, 60, 0.10, "tests"),
     ]
+    if include_tests:
+        metrics.append(QualityMetric(QualityDimension.TESTABILITY, 60, 0.10, "tests"))
+    return metrics
 
 
-def _review(score: float = 88.0, degraded: bool = False) -> CodeRabbitReview:
-    return CodeRabbitReview(
-        repo="org/repo",
-        pr_number=1,
-        score=score,
-        status="ok",
-        summary="",
-        issues=[
-            CodeRabbitIssue(title="security", body="xss", severity="high")
-        ],
-        raw={"score": score},
-        received_at=datetime.now(timezone.utc),
-        degraded=degraded,
-        degraded_reason="cache" if degraded else None,
-    )
-
-
-def test_weighted_formula_with_coderabbit():
-    scorer = QualityScorer()
-    metrics = _sample_metrics()
-    review = _review()
-
-    score, meta = scorer._calculate_overall_score(metrics, {"coderabbit_review": review})
-    expected = (80 * 0.35) + (88 * 0.35) + (70 * 0.15) + (60 * 0.15)
-    assert pytest.approx(score, rel=1e-6) == expected
-    assert meta["coderabbit_status"] == "available"
-    assert pytest.approx(meta["weights"]["coderabbit"], rel=1e-6) == 0.35
-
-
-def test_renormalizes_weights_when_coderabbit_missing():
+def test_weighted_formula_without_external_signal():
     scorer = QualityScorer()
     metrics = _sample_metrics()
 
     score, meta = scorer._calculate_overall_score(metrics, {})
-    total_weight = 0.35 + 0.15 + 0.15
-    expected = (80 * 0.35 + 70 * 0.15 + 60 * 0.15) / total_weight
+    expected = (80 * 0.6) + (70 * 0.25) + (60 * 0.15)
     assert pytest.approx(score, rel=1e-6) == expected
-    assert meta["coderabbit_status"] == "missing"
-    assert "coderabbit" not in meta["weights"]
+    assert set(meta["weights"].keys()) == {"superclaude", "completeness", "test_coverage"}
+
+
+def test_renormalizes_weights_when_component_missing():
+    scorer = QualityScorer()
+    metrics = _sample_metrics(include_tests=False)
+
+    score, meta = scorer._calculate_overall_score(metrics, {})
+    total_weight = 0.6 + 0.25
+    expected = (80 * 0.6 + 70 * 0.25) / total_weight
+    assert pytest.approx(score, rel=1e-6) == expected
+    assert "test_coverage" not in meta["weights"]
 
 
 def test_calculate_score_exposes_band():
     scorer = QualityScorer()
     score = scorer.calculate_score({
-        "correctness": 92,
-        "completeness": 88,
-        "coderabbit": 91,
-        "test_coverage": 95,
+        "correctness": 95,
+        "completeness": 93,
+        "test_coverage": 97,
     })
     assert score["band"] == "production_ready"
     assert score["grade"] == "Excellent"
