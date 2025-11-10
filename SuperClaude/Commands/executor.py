@@ -920,17 +920,43 @@ class CommandExecutor:
             codex_output = codex_agent_output.get('codex_suggestions')
             if codex_output:
                 context.results['codex_suggestions'] = codex_output
+                change_count = len(codex_output.get('changes') or [])
+                self._record_fast_codex_event(
+                    context,
+                    'codex-suggestions',
+                    f"Codex proposed {change_count} change{'s' if change_count != 1 else ''}.",
+                    {
+                        'summary': codex_output.get('summary'),
+                        'change_count': change_count,
+                    },
+                )
+            elif context.fast_codex_active or context.fast_codex_requested:
+                self._record_fast_codex_event(
+                    context,
+                    'codex-suggestions',
+                    'Codex did not produce actionable changes.',
+                )
             cli_meta = codex_agent_output.get('codex_cli')
             if cli_meta:
-                fast_state = context.results.get('fast_codex') or {}
+                fast_state = context.results.setdefault('fast_codex', {})
                 fast_state.setdefault('requested', context.fast_codex_requested)
                 fast_state.setdefault('active', context.fast_codex_active)
-                fast_state['cli'] = {
+                fast_state.setdefault('personas', list(context.active_personas))
+                cli_snapshot = {
                     'duration_s': cli_meta.get('duration_s'),
                     'returncode': cli_meta.get('returncode'),
+                    'stdout_preview': self._truncate_fast_codex_stream(cli_meta.get('stdout')),
+                    'stderr_preview': self._truncate_fast_codex_stream(cli_meta.get('stderr')),
                 }
+                fast_state['cli'] = cli_snapshot
                 context.results['fast_codex'] = fast_state
                 context.results['fast_codex_cli'] = True
+                self._record_fast_codex_event(
+                    context,
+                    'cli-finished',
+                    'Codex CLI completed.',
+                    cli_snapshot,
+                )
                 if self.monitor:
                     try:
                         self.monitor.record_event(
@@ -991,6 +1017,13 @@ class CommandExecutor:
 
         change_plan = self._derive_change_plan(context, agent_result)
         context.results['change_plan'] = change_plan
+        if context.fast_codex_requested:
+            self._record_fast_codex_event(
+                context,
+                'change-plan',
+                f"Derived change plan with {len(change_plan)} step{'s' if len(change_plan) != 1 else ''}.",
+                {'steps': len(change_plan)},
+            )
 
         if not change_plan:
             error = "Implementation aborted: no concrete change plan was generated."
@@ -999,6 +1032,12 @@ class CommandExecutor:
             if error not in warnings_list:
                 warnings_list.append(error)
             context.results['status'] = 'failed'
+            if context.fast_codex_requested:
+                self._record_fast_codex_event(
+                    context,
+                    'change-plan-missing',
+                    'Fast-codex run produced no change plan; aborting.',
+                )
 
             output = {
                 'status': 'failed',
@@ -1017,6 +1056,8 @@ class CommandExecutor:
                 'errors': [error],
             }
             output['fast_codex'] = context.results.get('fast_codex')
+            if context.results.get('fast_codex_log'):
+                output['fast_codex_log'] = context.results['fast_codex_log']
             return output
 
         change_result = self._apply_change_plan(context, change_plan)
@@ -1024,6 +1065,15 @@ class CommandExecutor:
         applied_files = change_result.get('applied') or []
         if applied_files:
             applied_files = list(dict.fromkeys(applied_files))
+        if context.fast_codex_requested:
+            detail = {
+                'applied_files': applied_files[:5],
+                'applied_count': len(applied_files),
+            }
+            message = f"Applied {len(applied_files)} file{'s' if len(applied_files) != 1 else ''} to worktree."
+            if not applied_files:
+                message = 'Codex change plan produced no applied files.'
+            self._record_fast_codex_event(context, 'worktree-apply', message, detail)
 
         if change_warnings:
             warnings_list = context.results.setdefault('worktree_warnings', [])
@@ -1060,6 +1110,8 @@ class CommandExecutor:
             'worktree_session': change_result.get('session'),
         }
         output['fast_codex'] = context.results.get('fast_codex')
+        if context.results.get('fast_codex_log'):
+            output['fast_codex_log'] = context.results['fast_codex_log']
 
         base_path = change_result.get('base_path')
         if base_path:
@@ -4589,6 +4641,16 @@ class CommandExecutor:
         context.fast_codex_active = False
         context.fast_codex_blocked = []
 
+        fast_state = context.results.setdefault(
+            'fast_codex',
+            {
+                'requested': False,
+                'active': False,
+                'personas': list(context.active_personas),
+            }
+        )
+        fast_state['personas'] = list(context.active_personas)
+
         supported = any(
             isinstance(flag, dict) and (flag.get('name') or '').replace('_', '-').lower() == 'fast-codex'
             for flag in (metadata.flags or [])
@@ -4599,11 +4661,11 @@ class CommandExecutor:
         context.fast_codex_requested = requested
 
         if not requested:
-            context.results['fast_codex'] = {
+            fast_state.update({
                 'requested': False,
                 'active': False,
-                'personas': context.active_personas
-            }
+            })
+            fast_state.pop('blocked', None)
             return
 
         block_reasons: List[str] = []
@@ -4614,16 +4676,36 @@ class CommandExecutor:
 
         if block_reasons:
             context.fast_codex_blocked = block_reasons
-            context.results['fast_codex'] = {
+            fast_state.update({
                 'requested': True,
                 'active': False,
-                'personas': context.active_personas,
-                'blocked': block_reasons
-            }
+                'blocked': block_reasons,
+            })
+            self._record_fast_codex_event(
+                context,
+                'blocked',
+                'Fast-codex disabled by guardrails.',
+                {'reasons': block_reasons},
+            )
             context.results['execution_mode'] = 'standard'
             return
 
+        fast_state['requested'] = True
+        self._record_fast_codex_event(
+            context,
+            'flag-detected',
+            '--fast-codex detected; preparing Codex implementer.',
+            {'personas': context.active_personas},
+        )
+
         if not CodexCLIClient.is_available():
+            binary = CodexCLIClient.resolve_binary()
+            self._record_fast_codex_event(
+                context,
+                'cli-missing',
+                f"Codex CLI '{binary}' is not available on PATH.",
+                {'binary': binary},
+            )
             raise CodexCLIUnavailable(
                 "Codex CLI is required for --fast-codex. Install the 'codex' CLI or "
                 "set SUPERCLAUDE_CODEX_CLI to its path."
@@ -4632,11 +4714,58 @@ class CommandExecutor:
         context.fast_codex_active = True
         context.active_personas = ['codex-implementer']
         context.results['execution_mode'] = 'fast-codex'
-        context.results['fast_codex'] = {
+        fast_state.update({
             'requested': True,
             'active': True,
-            'personas': context.active_personas
+            'personas': list(context.active_personas),
+        })
+        fast_state.pop('blocked', None)
+        self._record_fast_codex_event(
+            context,
+            'activated',
+            'Codex implementer engaged for this run.',
+            {'personas': context.active_personas},
+        )
+
+    def _record_fast_codex_event(
+        self,
+        context: CommandContext,
+        phase: str,
+        message: str,
+        details: Optional[Dict[str, Any]] = None,
+    ) -> None:
+        """Append a structured fast-codex event for TUI/telemetry surfaces."""
+
+        if not (context.fast_codex_requested or phase == 'cli-missing'):
+            return
+
+        entry = {
+            'timestamp': datetime.now().isoformat(),
+            'phase': phase,
+            'message': message,
         }
+        if details:
+            entry['details'] = details
+
+        log = context.results.setdefault('fast_codex_log', [])
+        log.append(entry)
+
+        fast_state = context.results.get('fast_codex')
+        if isinstance(fast_state, dict):
+            fast_state['events'] = log
+
+    @staticmethod
+    def _truncate_fast_codex_stream(payload: Optional[str], limit: int = 600) -> str:
+        """Return a concise preview of Codex CLI stdout/stderr for display."""
+
+        if not payload:
+            return ''
+        snippet = str(payload).strip()
+        if len(snippet) <= limit:
+            return snippet
+        head = snippet[: limit // 2].rstrip()
+        tail = snippet[-limit // 2:].lstrip()
+        return f"{head} … {tail}"
 
     def _build_delegation_context(self, context: CommandContext) -> Dict[str, Any]:
         """Construct context payload for delegate selection."""
