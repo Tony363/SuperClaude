@@ -1,0 +1,14 @@
+# Core runtime dependencies for SuperClaude.
+pyyaml>=6.0
+aiofiles>=23.0
+python-dotenv>=1.0
+rich>=13.0
+click>=8.1
+watchdog>=3.0
+gitpython>=3.1
+jinja2>=3.1
+jsonschema>=4.0
+requests>=2.31
+aiohttp>=3.8
+numpy>=1.24
+pandas>=2.0
