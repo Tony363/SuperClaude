@@ -3,7 +3,7 @@ name: test
 description: "Execute tests with coverage analysis and automated quality reporting"
 category: utility
 complexity: enhanced
-mcp-servers: [browser]
+mcp-servers: [rube]
 personas: [qa-specialist]
 requires_evidence: true
 ---
@@ -36,7 +36,7 @@ Key behaviors:
 - Support continuous watch mode for development
 
 ## Testing Stack Guidance
-- **Browser Automation**: Invoke Browser MCP via `/sc:test --browser --url <https://...>` for visual/accessibility runs; complement with Playwright/Cypress for large suites
+- **Web Intelligence**: Invoke LinkUp via `/sc:test --linkup --query "<search terms>"` for web insights and citation gathering; complement with Playwright/Cypress for large suites
 - **QA Specialist Persona**: Activated for test analysis and quality assessment
 - **Enhanced Capabilities**: Cross-browser testing guidance, visual validation strategies, performance checks
 
@@ -67,11 +67,11 @@ Key behaviors:
 # Unit tests for specific directory with detailed coverage metrics
 ```
 
-### Browser Testing
+### LinkUp Web Search
 ```
-/sc:test --type e2e
-# Provides instructions for configuring external browser automation workflows
-# Cross-browser compatibility recommendations and validation checklist
+/sc:test --linkup --query "pytest asyncio best practices"
+# Executes LinkUp searches through Rube MCP to collect current guidance
+# Returns sourced answers and citations for follow-up testing steps
 ```
 
 ### Development Watch Mode

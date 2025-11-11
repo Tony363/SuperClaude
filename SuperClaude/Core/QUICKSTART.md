@@ -60,7 +60,7 @@
 ### MCP Servers (use with --mcp)
 - **Consensus & Analysis**: zen
 - **Automation (opt-in)**: rube
-- **Local Browser Automation**: browser
+- **LinkUp Web Search**: linkup
 - **Persistence**: UnifiedStore (built-in, no --mcp flag)
 
 ## Power Combos

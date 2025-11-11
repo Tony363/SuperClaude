@@ -40,22 +40,16 @@ class MCPComponent(Component):
                 "args_env": "ZEN_MCP_ARGS",
                 "fallback_command": "/home/tony/Desktop/zen-mcp-server/.zen_venv/bin/python",
                 "fallback_args": ["/home/tony/Desktop/zen-mcp-server/server.py"]
-            },
-            "browser": {
-                "name": "browser",
-                "description": "Chromium automation via Browser MCP",
-                "documentation_only": False,
-                "npm_package": "@browsermcp/mcp@latest"
             }
         }
-        self.selection_servers = ["zen", "rube", "browser"]
+        self.selection_servers = ["zen", "rube"]
     
     def get_metadata(self) -> Dict[str, str]:
         """Get component metadata"""
         return {
             "name": "mcp",
             "version": __version__,
-            "description": "MCP server integration (Zen, Rube, Browser)",
+            "description": "MCP server integration (Zen, Rube)",
             "category": "integration"
         }
     

@@ -214,7 +214,7 @@ Task type → Best tool:
 ├─ Code search → Grep > bash grep
 ├─ Automation → Rube MCP > manual scripts
 ├─ Documentation → Repository knowledge base > web search
-└─ Browser testing → external Playwright/Cypress pipeline > unit tests
+└─ Web research → LinkUp search via Rube > repository docs
 ```
 
 ## Agentic Loop Implementation

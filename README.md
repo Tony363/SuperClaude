@@ -13,7 +13,7 @@
 ## Status Snapshot
 - Offline orchestration stack with reproducible artifacts, tests, and telemetry.
 - 22 `/sc:` command playbooks routed through an async executor with agent delegation.
-- CLI installer (under `setup/`) manages context files, MCP registrations (Zen/Rube/Browser), and upgrades.
+- CLI installer (under `setup/`) manages context files, MCP registrations (Zen/Rube/LinkUp), and upgrades.
 - Consensus guardrails now load per-command quorum policies from `SuperClaude/Config/consensus_policies.yaml`
   and record deterministic multi-model votes even in offline mode.
 - Requires-evidence guardrails integrate semantic Python validation, retrieval-grounded agent context, and
@@ -88,9 +88,9 @@
   follow-up until more upgrades land.
 - Roadmap features (live deployments, performance tuning, remote MCP servers) are not tied
   into the executor yet.
-- Browser MCP integration is opt-in; enable it in `SuperClaude/Config/mcp.yaml` or pass
-  `--browser` when invoking `/sc:test` to run lightweight visual/accessibility checks. The
-  local Claude CLI must have the Browser MCP server registered (`claude mcp add …`).
+- LinkUp web intelligence is opt-in; enable it in `SuperClaude/Config/mcp.yaml` or pass
+  `--linkup` (or the legacy `--browser`) when invoking `/sc:test` to run sourced web searches.
+  The flow reuses the existing Rube MCP session—no separate Browser MCP installation required.
 - Test suite targets unit and smoke scenarios; no end-to-end coverage for Claude Code IDE
   integrations is included.
 
@@ -235,7 +235,7 @@ flowchart TD
 |-------------|------|--------|
 | Zen | `SuperClaude/MCP/zen_integration.py` | Local consensus + `review_code` bridge that supervises `--zen`, `--consensus`, and `--zen-review` flows |
 | Rube | `SuperClaude/MCP/rube_integration.py` | Automation hub for external SaaS workflows (dry-run safe when no API key) |
-| Browser | `SuperClaude/MCP/MCP_Browser.md` | Installer auto-runs `claude mcp add -s user -- browser npx @browsermcp/mcp@latest` |
+| LinkUp | `SuperClaude/MCP/MCP_LinkUp.md` | Rube-powered web intelligence (no extra MCP install required) |
 
 Zen still defaults to a **local, offline-safe facade**—no public zen-mcp-server calls are required.
 When API keys for OpenAI/Anthropic/etc. are present, `ModelRouterFacade` drives those live models;
@@ -249,8 +249,7 @@ All other legacy MCP adapters (Serena, MorphLLM, Context7, Sequential Thinking, 
 Filesystem, etc.) have been retired and no longer ship with the framework. Deepwiki has been
 replaced by an internal knowledge base sourced from repository documentation. **Rube** now ships
 enabled by default and automatically falls back to dry-run mode whenever outbound traffic is
-disallowed. The installer now registers Browser (`claude mcp add -s user -- browser npx
-@browsermcp/mcp@latest`), Rube (`claude mcp add -s user --transport http rube https://rube.app/mcp`),
+disallowed. The installer registers Rube (`claude mcp add -s user --transport http rube https://rube.app/mcp`)
 and Zen MCP (local checkout). Provide overrides only if you want to
 customise the defaults:
 
@@ -265,9 +264,9 @@ If the overrides are omitted, the fallback paths above are used for Zen, and the
 notes when the Rube API key is absent. Dry-run mode works without credentials, so you can finish the
 install entirely offline.
 
-The Browser integration calls `claude mcp call browser …` under the hood. Ensure the Claude CLI is
-on your `PATH` and that the Browser server is registered before running `/sc:test --browser` or the
-browser-focused pytest suite.
+LinkUp piggybacks on the Rube integration—no separate CLI registration step is required. Ensure the
+Claude CLI is available so `setup/components/mcp.py` can register Zen/Rube defaults, and supply a
+Rube API key when you want live LinkUp searches.
 
 #### Using Rube MCP
 
@@ -362,8 +361,8 @@ PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 pytest -m "not slow" tests/
 PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 pytest tests/test_commands.py -k implement
 PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 pytest tests/test_model_router.py
 
-# Browser MCP tests require pytest-asyncio
-PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 pytest -p pytest_asyncio tests/test_browser_mcp.py
+# LinkUp integration tests require pytest-asyncio
+PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 pytest -p pytest_asyncio tests/test_linkup.py
 ```
 
 Install `pytest-asyncio` inside the virtualenv if it is not already available:
@@ -395,7 +394,7 @@ SuperClaude_Framework/
 │   ├── ModelRouter/           # Router, consensus, provider facades
 │   ├── Quality/quality_scorer.py
 │   ├── Monitoring/            # Metrics sinks
-│   └── MCP/                   # MCP adapters (Zen, Rube, Browser)
+│   └── MCP/                   # MCP adapters (Zen, Rube, LinkUp helper)
 ├── setup/                     # CLI installer framework
 ├── tests/                     # Pytest suite (unit + smoke)
 └── Docs/                      # User, API, and developer guides

@@ -73,7 +73,7 @@
 ## Build, Test, and Development Commands
 - Bootstrap with `python -m venv .venv && source .venv/bin/activate && pip install -e .[dev]`;
   run `SuperClaude --help` to confirm the CLI wiring.
-- Core validation: `PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 pytest -m "not slow" tests/`; browser MCP
+- Core validation: `PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 pytest -m "not slow" tests/`; LinkUp flows add `-p pytest_asyncio`
   flows add `-p pytest_asyncio`. Smoke benchmarks run via
   `python benchmarks/run_benchmarks.py --suite smoke`.
 - Release prep relies on `python -m build` (wheel/sdist), `scripts/build_and_upload.py` for

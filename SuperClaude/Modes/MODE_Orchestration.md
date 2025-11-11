@@ -33,7 +33,8 @@
 | Symbol operations | UnifiedStore | Manual search |
 | Pattern edits | MultiEdit | Individual edits |
 | Documentation | Repository docs | Web search |
-| Browser testing | External Playwright/Cypress | Unit tests |
+| Web research | LinkUp | Repository docs |
+| UI testing | External Playwright/Cypress | Unit tests |
 | Multi-file edits | MultiEdit | Serial Edits |
 
 ## Resource Management

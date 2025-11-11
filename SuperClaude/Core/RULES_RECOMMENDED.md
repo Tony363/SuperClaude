@@ -30,7 +30,7 @@ For critical and important rules, see RULES_CRITICAL.md.
   - MultiEdit for bulk edits
   - Zen for consensus and risk validation
   - Rube for cross-system automation
-  - Browser MCP for quick local browser workflows; scale out with Playwright/Cypress when needed
+  - LinkUp via Rube for up-to-date research; validate critical findings manually or through trusted SMEs when needed
 - **Batch Operations**: Use MultiEdit over multiple Edits, batch Read calls, group operations
 - **Powerful Search**: Use Grep tool over bash grep, Glob over find, specialized search tools
 - **Efficiency First**: Choose speed and power over familiarity - use the fastest method available
@@ -134,7 +134,7 @@ For critical and important rules, see RULES_CRITICAL.md.
 Task Type → Recommended Tool:
 ├─ Automation → Rube MCP
 ├─ Consensus Checks → Zen MCP
-├─ Browser Testing → Browser MCP for targeted flows; Playwright/Cypress for large suites
+├─ Web Research → LinkUp for sourced intelligence; Repository docs for static references
 ├─ Symbol Operations → UnifiedStore
 ├─ Documentation → Repository templates & standards
 └─ Pattern Search → Grep (not bash grep)

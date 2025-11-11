@@ -69,15 +69,15 @@ Specialized tools for enhanced capabilities.
   - Use for: Design reviews, risk assessments, cross-model agreement
 - **Rube**: External automation and system orchestration  
   - Use for: Ticketing, notifications, CI/CD hooks
-- **Browser**: Local browser automation via Browser MCP  
-  - Use for: Visual checks, accessibility spot-tests, and evidence capture triggered by `/sc:test --browser`
+- **LinkUp**: Web intelligence via Rube MCP  
+  - Use for: Sourced research, competitive analysis, and up-to-date guidance triggered by `/sc:test --linkup`
 
 ### UI & Documentation  
 - **Repository Docs**: Technical documentation and code examples  
   - Use for: React/Vue/Angular components, accessible UI, design systems
 - **Knowledge Base**: Framework patterns curated within the project  
   - Use for: Library docs, API references, best practices
-- **Browser Automation**: External Playwright/Cypress pipelines (manual)  
+- **External Browser Automation**: Playwright/Cypress pipelines (manual)  
   - Use for: Visual testing, user flows, accessibility validation
 
 ### Persistence
@@ -103,11 +103,11 @@ Quality dimensions: Correctness (40%), Completeness (30%), Code Quality (20%), P
 | Debug error | Task(root-cause-analyst) | Sequential |
 | Refactor code | Task(refactoring-expert) | MultiEdit |
 | Automate external workflows | Rube | Manual scripts |
-| Get docs | Repository Docs | WebSearch |
+| Get docs | Repository Docs | LinkUp |
 | Rename symbol | UnifiedStore | Manual search |
 | Bulk edits | MultiEdit | Sequential edits |
 | Complex analysis | Sequential | Native reasoning |
-| Browser test | External Playwright/Cypress | Unit tests |
+| Web research | LinkUp | Repository Docs |
 
 ## Decision Flow
 ```
@@ -117,6 +117,6 @@ Need automation? → Rube
 Need consensus? → Zen
 Bulk edits? → MultiEdit
 Complex reasoning? → Sequential
-Browser testing? → External Playwright/Cypress pipeline
+Need web research? → LinkUp search via Rube
 Quality < 70? → Auto-iterate with feedback
 ```

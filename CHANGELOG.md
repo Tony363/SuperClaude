@@ -10,11 +10,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - UnifiedStore SQLite-backed persistence with migration helper from legacy Serena data.
 - Regression coverage for UnifiedStore state management (`tests/test_worktree_state.py`).
+- Runtime dependency manifest at `requirements.txt` to simplify bootstrap flows outside the
+  optional extras install path.
+- Extended-agent loader diagram in `README.md` to illustrate when Markdown personas are
+  synthesized and cached.
+- Manifest-driven installation tests (`tests/setup/test_install_manifests.py`) to guard the
+  setup CLI against regressions when file lists change.
 
 ### Changed
 - Removed Context7, Magic, MorphLLM, Playwright, Serena, and Deepwiki MCP integrations; streamlined registry to Sequential and Zen.
 - Updated commands, modes, docs, and agents to reference UnifiedStore and remaining MCP servers.
 - Simplified installer components and MCP documentation to match current server lineup.
+- Core and Modes installer components now persist the selected profile, expanded file manifests,
+  and memory profiles to `.superclaude-metadata.json`, enabling accurate validation on upgrade.
+- Modes component registration mirrors the core component metadata structure and reuses stored
+  manifests when checking installs.
+- Minor README cleanups and refreshed diagrams to match the current agent orchestration flow.
 
 ### Fixed
 - Replaced Playwright automation stubs in examples with guidance for external pipelines to avoid broken imports.

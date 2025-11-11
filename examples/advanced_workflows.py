@@ -151,7 +151,8 @@ async def workflow_debugging_complex_issue():
 
     # Step 4: Validate fix
     print("\nStep 4: Validation")
-    print("  Trigger external Playwright/Cypress pipeline for browser regression checks")
+    print("  Run LinkUp web search for recent regression advisories")
+    print("  Trigger external Playwright/Cypress pipeline for UI regression checks")
     print("  Aggregate results into UnifiedStore for cross-session tracking")
 
 async def workflow_large_codebase_refactoring():
@@ -275,7 +276,7 @@ async def workflow_production_deployment():
         # Deployment logic here
 
         # Run E2E tests via external automation
-        print(f"  Initiating external browser test suite for {stage}")
+        print(f"  Initiating external UI regression suite for {stage}")
         print("  ✅ Automation pipeline reported success")
 
 async def main():

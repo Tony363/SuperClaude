@@ -5,8 +5,8 @@
 - [x] Fast Codex Commands: stub the Codex CLI to assert successful plan execution paths, retries, and telemetry emission without requiring the real binary.
 - [x] CLI Dispatch: add unit tests that invoke `main()` with patched operation modules to validate argument translation and dispatch without spawning subprocesses.
 - [x] Codex Live: introduce mocked transports to exercise error handling, malformed payloads, and CodexUnavailable fallbacks when API keys are absent.
-- [x] Browser MCP: add async tests for failure scenarios (navigation before init, screenshot errors, cleanup failures) and ensure coroutines use `pytest.mark.asyncio`.
-- [x] MCP Integrations: parametrize server activation failures, telemetry emissions, and concurrency between Browser and Rube activation paths.
+- [x] LinkUp Web Search: add async tests for payload formation, failure surfaces, and dry-run behaviour; ensure coroutines use `pytest.mark.asyncio`.
+- [x] MCP Integrations: parametrize server activation failures, telemetry emissions, and concurrency between LinkUp and Rube activation paths.
 - [x] Model Router & Consensus: cover degraded states, unavailable-model exhaustion, invalid force/exclude inputs, and ensure async helpers rely on pytest's event loop fixtures.
 - [x] Guardrails & Retrieval: add tests for toggling `requires_evidence`, repeated metric writes, and RepoRetriever failures to prove resilience across iterations.
 - [x] Quality Pipeline: craft fixtures with multi-issue reviews, lint/test failures, and custom thresholds to validate evidence paths and degraded states.

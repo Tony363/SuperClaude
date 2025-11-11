@@ -31,7 +31,7 @@ The following components load automatically when their triggers are detected:
 - **Loads**: Relevant MODE_*.md files
 
 ### MCP Servers
-- **Trigger**: MCP usage like Zen consensus, Rube automation, Browser workflows
+- **Trigger**: MCP usage like Zen consensus, Rube automation, LinkUp web searches
 - **Loads**: Relevant MCP_*.md documentation
 
 ## 💡 Quick Commands

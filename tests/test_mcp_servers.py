@@ -183,7 +183,7 @@ async def test_activate_mcp_records_warning_on_failure(monkeypatch, caplog):
         description="",
         category="test",
         complexity="standard",
-        mcp_servers=["browser"],
+        mcp_servers=["rube"],
     )
     context = CommandContext(
         command=ParsedCommand(name="test", raw_string="/sc:test"),
@@ -202,8 +202,8 @@ async def test_activate_mcp_records_warning_on_failure(monkeypatch, caplog):
 
     await executor._activate_mcp_servers(context)
 
-    assert "browser" not in executor.active_mcp_servers
-    assert any("Skipping MCP server 'browser'" in record.message for record in caplog.records)
+    assert "rube" not in executor.active_mcp_servers
+    assert any("Skipping MCP server 'rube'" in record.message for record in caplog.records)
 
 
 @pytest.mark.asyncio

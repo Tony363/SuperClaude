@@ -23,9 +23,9 @@ class MCPDocsComponent(Component):
         self.server_docs_map = {
             "zen": "MCP_Zen.md",
             "rube": "MCP_Rube.md",
-            "browser": "MCP_Browser.md"
+            "linkup": "MCP_LinkUp.md",
         }
-        self.default_doc_servers = ["zen", "rube", "browser"]
+        self.default_doc_servers = ["zen", "rube", "linkup"]
         
         super().__init__(install_dir, Path(""))
     
@@ -106,7 +106,10 @@ class MCPDocsComponent(Component):
                 f"No MCP servers selected - defaulting to documentation bundle: {', '.join(fallback)}"
             )
             selected_servers = fallback
-        
+
+        if "rube" in selected_servers and "linkup" not in selected_servers:
+            selected_servers = list(selected_servers) + ["linkup"]
+
         self.set_selected_servers(selected_servers)
         if not self.selected_servers:
             self.logger.info("No MCP documentation targets resolved - skipping installation")

@@ -13,8 +13,7 @@ have been removed.
 - Server-specific environment variables:
   - `SC_ZEN_OFFLINE=1` to force Zen into offline mode (requires manual executor
     registration).
-  - `SC_RUBE_API_KEY` for Rube automation calls.
-  - `SC_BROWSER_MODE=on` to collect snapshots from the Browser MCP.
+  - `SC_RUBE_API_KEY` for Rube automation calls and LinkUp web searches.
 
 ## 2. Zen Integration (Consensus)
 
@@ -39,12 +38,14 @@ have been removed.
 - Errors bubble up with actionable messages (e.g., missing token, HTTP failure)
   so automation scripts can abort cleanly.
 
-## 4. Browser Integration
+## 4. LinkUp Web Intelligence (via Rube)
 
-- Provide `SC_BROWSER_MODE=on` (or pass `--browser` to relevant commands) to
-  collect console logs and snapshots.
-- When network policies disallow browser access the integration reports a
-  skipped snapshot rather than returning placeholder data.
+- Pass `--linkup` (or the legacy `--browser`) to commands such as `/sc:test` to
+  perform LinkUp searches through the active Rube session.
+- Configure defaults under `servers.rube.linkup` in `mcp.yaml` to adjust depth,
+  output type, concurrency, and throttle behaviour.
+- When `SC_RUBE_MODE=dry-run` is set the integration echoes payloads instead of
+  contacting LinkUp, allowing offline validation.
 
 ## 5. Troubleshooting
 
@@ -52,5 +53,5 @@ have been removed.
 - Use `python -m SuperClaude.MCP --list` to confirm available integrations, or
   `python -m SuperClaude.MCP --describe rube --json` for structured metadata.
 - Run `python benchmarks/run_benchmarks.py --suite integration` after changing
-  MCP settings; the suite exercises Rube and Browser paths alongside the main
+  MCP settings; the suite exercises Rube and LinkUp paths alongside the main
   workflow tests.

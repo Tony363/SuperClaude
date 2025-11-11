@@ -5,24 +5,14 @@ from __future__ import annotations
 from typing import Any, Dict, Mapping, Type
 
 from .rube_integration import RubeIntegration
-from .browser_integration import (
-    BrowserIntegration,
-    BrowserConfig,
-    BrowserMode,
-    BrowserSnapshot,
-    CLIBrowserTransport,
-    ScreenshotResult,
-)
+from .linkup import LinkUpClient, LinkUpError, LinkUpQuery
 __version__ = "6.0.0-alpha"
 
 __all__ = [
     "RubeIntegration",
-    "BrowserIntegration",
-    "BrowserConfig",
-    "BrowserMode",
-    "BrowserSnapshot",
-    "ScreenshotResult",
-    "CLIBrowserTransport",
+    "LinkUpClient",
+    "LinkUpError",
+    "LinkUpQuery",
     "get_mcp_integration",
     "integration_import_errors",
 ]
@@ -53,7 +43,6 @@ else:
 
 MCP_SERVERS: Dict[str, Type[Any]] = {
     "rube": RubeIntegration,
-    "browser": BrowserIntegration,
 }
 
 if "zen" not in _IMPORT_ERRORS:

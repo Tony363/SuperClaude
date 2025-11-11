@@ -36,7 +36,7 @@ from ..Agents.extended_loader import ExtendedAgentLoader, AgentCategory, MatchSc
 from ..Agents.registry import AgentRegistry
 from ..Agents import usage_tracker as agent_usage_tracker
 from ..APIClients.codex_cli import CodexCLIClient, CodexCLIUnavailable
-from ..MCP import get_mcp_integration
+from ..MCP import get_mcp_integration, LinkUpClient, LinkUpError, LinkUpQuery
 from ..ModelRouter.facade import ModelRouterFacade
 from ..ModelRouter.consensus import VoteType
 from ..Modes.behavioral_manager import BehavioralMode, BehavioralModeManager
@@ -1139,8 +1139,10 @@ class CommandExecutor:
         """Execute test command."""
         coverage = context.command.parameters.get('coverage', True)
         test_type = str(context.command.parameters.get('type', 'all') or 'all').lower()
-        browser_requested = (
-            context.command.flags.get('browser')
+        linkup_requested = (
+            context.command.flags.get('linkup')
+            or self._is_truthy(context.command.parameters.get('linkup'))
+            or context.command.flags.get('browser')
             or self._is_truthy(context.command.parameters.get('browser'))
         )
 
@@ -1151,102 +1153,146 @@ class CommandExecutor:
             'mode': context.behavior_mode,
         }
 
-        if browser_requested:
-            browser_result = await self._execute_browser_tests(context, scenario_hint=test_type)
-            output['browser'] = browser_result
-            status = browser_result.get('status')
-            if status == 'browser_failed':
+        if linkup_requested:
+            linkup_result = await self._execute_linkup_queries(context, scenario_hint=test_type)
+            output['linkup'] = linkup_result
+            status = linkup_result.get('status')
+            if status == 'linkup_failed':
                 output['status'] = 'tests_failed'
             else:
-                output['status'] = 'tests_with_browser'
+                output['status'] = 'tests_with_linkup'
 
         return output
 
-    async def _execute_browser_tests(self, context: CommandContext, scenario_hint: str) -> Dict[str, Any]:
-        entry = self.active_mcp_servers.get('browser')
+    async def _execute_linkup_queries(self, context: CommandContext, scenario_hint: str) -> Dict[str, Any]:
+        entry = self.active_mcp_servers.get('rube')
         if not entry:
-            message = "Browser MCP server is not active; enable it in configuration."
+            message = "LinkUp search requires the Rube MCP server to be active."
             context.errors.append(message)
             return {
-                'status': 'browser_failed',
+                'status': 'linkup_failed',
                 'error': message,
             }
 
-        browser = entry.get('instance')
-        if browser is None:
-            message = "Browser MCP instance missing from activation registry."
+        rube = entry.get('instance')
+        if rube is None:
+            message = "Rube MCP instance missing from activation registry."
             context.errors.append(message)
             return {
-                'status': 'browser_failed',
+                'status': 'linkup_failed',
                 'error': message,
             }
 
-        url = context.command.parameters.get('url')
-        if not url:
-            for argument in context.command.arguments:
-                if argument.startswith('http://') or argument.startswith('https://'):
-                    url = argument
-                    break
+        linkup_cfg = {}
+        entry_cfg = entry.get('config') or {}
+        if isinstance(entry_cfg, dict):
+            linkup_cfg = entry_cfg.get('linkup', {}) or {}
 
-        if not url:
-            message = "Browser tests require a target URL (use --url)."
+        queries = self._extract_linkup_queries(context)
+        if not queries:
+            message = (
+                "LinkUp web search requires at least one query. "
+                "Provide --linkup-query/--query or positional input."
+            )
             context.errors.append(message)
             return {
-                'status': 'browser_failed',
+                'status': 'linkup_failed',
                 'error': message,
             }
 
-        scenario = scenario_hint.lower()
-        if scenario not in {'visual', 'accessibility', 'e2e', 'all', 'ui'}:
-            scenario = 'visual'
+        client = LinkUpClient(rube, config=linkup_cfg)
+        linkup_queries: List[LinkUpQuery] = [LinkUpQuery(query=q) for q in queries]
 
-        steps: List[Dict[str, Any]] = []
         try:
-            await browser.initialize()
-
-            navigate_result = await browser.navigate(url)
-            steps.append({'action': 'navigate', 'result': navigate_result})
-
-            capture_visual = scenario in {'visual', 'e2e', 'all', 'ui'}
-            capture_accessibility = scenario in {'accessibility', 'e2e', 'all'}
-
-            if capture_visual:
-                screenshot = await browser.screenshot(full_page=True)
-                steps.append({'action': 'screenshot', 'result': asdict(screenshot)})
-
-            if capture_accessibility:
-                snapshot = await browser.snapshot()
-                steps.append({'action': 'snapshot', 'result': asdict(snapshot)})
-                logs = await browser.get_console_logs()
-                steps.append({'action': 'console_logs', 'result': logs})
-
-            exec_ops = context.results.setdefault('executed_operations', [])
-            for step in steps:
-                label = f"browser:{step['action']}"
-                if label not in exec_ops:
-                    exec_ops.append(label)
-
-            context.results.setdefault('browser_steps', []).extend(steps)
-
-            return {
-                'status': 'browser_completed',
-                'scenario': scenario,
-                'url': url,
-                'steps': steps,
-            }
-        except Exception as exc:  # pragma: no cover - depends on runtime CLI availability
-            message = f"Browser MCP execution failed: {exc}"
+            responses = await client.batch_search(linkup_queries)
+        except LinkUpError as exc:
+            message = f"LinkUp search failed: {exc}"
             logger.warning(message)
             context.errors.append(message)
             return {
-                'status': 'browser_failed',
+                'status': 'linkup_failed',
                 'error': message,
             }
-        finally:
-            try:
-                await browser.cleanup()
-            except Exception as cleanup_exc:  # pragma: no cover - best effort cleanup
-                logger.debug("Browser MCP cleanup encountered an error: %s", cleanup_exc)
+
+        aggregated: List[Dict[str, Any]] = []
+        failures: List[Dict[str, Any]] = []
+
+        for idx, result in enumerate(responses):
+            query_text = queries[idx]
+            if isinstance(result, dict) and result.get('status') == 'failed':
+                error_message = str(result.get('error', 'LinkUp request failed'))
+                failure_entry = {'query': query_text, 'error': error_message}
+                failures.append(failure_entry)
+                aggregated.append({
+                    'query': query_text,
+                    'status': 'failed',
+                    'error': error_message,
+                })
+                context.errors.append(f"LinkUp query failed: {error_message}")
+                continue
+
+            aggregated.append({
+                'query': query_text,
+                'status': 'completed',
+                'response': result,
+            })
+
+        successes = sum(1 for item in aggregated if item.get('status') == 'completed')
+        status = 'linkup_completed'
+        if successes == 0:
+            status = 'linkup_failed'
+        elif failures:
+            status = 'linkup_partial'
+
+        exec_ops = context.results.setdefault('executed_operations', [])
+        label = 'linkup:search'
+        if label not in exec_ops:
+            exec_ops.append(label)
+
+        context.results.setdefault('linkup_queries', []).extend(aggregated)
+        if failures:
+            context.results.setdefault('linkup_failures', []).extend(failures)
+
+        return {
+            'status': status,
+            'scenario': scenario_hint.lower(),
+            'queries': aggregated,
+            'failures': failures,
+        }
+
+    def _extract_linkup_queries(self, context: CommandContext) -> List[str]:
+        candidates: List[str] = []
+        params = context.command.parameters or {}
+
+        def _append(value: Any) -> None:
+            if value is None:
+                return
+            if isinstance(value, (list, tuple, set)):
+                for item in value:
+                    _append(item)
+                return
+            text = str(value).strip()
+            if text:
+                candidates.append(text)
+
+        for key in ('linkup_query', 'linkup_queries', 'query', 'queries'):
+            _append(params.get(key))
+
+        # Backward compatibility: treat --url as a query string.
+        _append(params.get('url'))
+
+        for argument in context.command.arguments:
+            if isinstance(argument, str) and argument.startswith(('http://', 'https://')):
+                candidates.append(argument.strip())
+
+        seen: Set[str] = set()
+        ordered: List[str] = []
+        for item in candidates:
+            if item not in seen:
+                seen.add(item)
+                ordered.append(item)
+
+        return ordered
 
     async def _execute_build(self, context: CommandContext) -> Dict[str, Any]:
         """Execute build command."""
@@ -2090,7 +2136,7 @@ class CommandExecutor:
             return 'tsx'
         if has_any('typescript', 'ts', 'lambda', 'api') or framework_hint in {'express', 'node'}:
             return 'ts'
-        if has_any('javascript', 'browser'):
+        if has_any('javascript', 'linkup'):
             return 'js'
         if has_any('vue') or framework_hint == 'vue':
             return 'vue'
