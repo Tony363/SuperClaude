@@ -23,10 +23,29 @@ class AnthropicConfig:
     api_key: str
     endpoint: str = "https://api.anthropic.com/v1"
     api_version: str = "2023-06-01"
+    beta_headers: List[str] = field(
+        default_factory=lambda: [
+            h.strip() for h in os.getenv(
+                "ANTHROPIC_BETA",
+                "thinking-2025-10-15"
+            ).split(",") if h.strip()
+        ]
+    )
     timeout: int = 120
     max_retries: int = 3
     rate_limit_rpm: int = 100
     rate_limit_tpm: int = 400000
+    # Thinking/Chain-of-thought support
+    enable_thinking: bool = field(
+        default_factory=lambda: str(os.getenv("ANTHROPIC_ENABLE_THINKING", "true")).lower()
+        in {"1", "true", "yes", "on"}
+    )
+    thinking_budget_tokens: int = field(
+        default_factory=lambda: int(os.getenv("ANTHROPIC_THINKING_BUDGET", "8000"))
+    )
+    thinking_type: str = field(
+        default_factory=lambda: os.getenv("ANTHROPIC_THINKING_TYPE", "enabled")
+    )
 
 
 @dataclass
@@ -43,6 +62,7 @@ class ClaudeRequest:
     system: Optional[str] = None
     stop_sequences: Optional[List[str]] = None
     metadata: Dict[str, Any] = field(default_factory=dict)
+    thinking: Optional[Dict[str, Any]] = None
 
 
 @dataclass
@@ -143,6 +163,8 @@ class AnthropicClient:
             "anthropic-version": self.config.api_version,
             "content-type": "application/json",
         }
+        if self.config.beta_headers:
+            headers["anthropic-beta"] = ",".join(self.config.beta_headers)
 
         try:
             status, data, response_headers = await post_json(
@@ -414,6 +436,17 @@ Provide:
 
         if request.stop_sequences:
             payload["stop_sequences"] = request.stop_sequences
+
+        # Enable Anthropic extended thinking by default to satisfy strategies like clear_thinking_20251015.
+        thinking_cfg = request.thinking
+        if thinking_cfg is None and self.config.enable_thinking:
+            thinking_cfg = {
+                "type": self.config.thinking_type,
+                "budget_tokens": self.config.thinking_budget_tokens,
+            }
+
+        if thinking_cfg:
+            payload["thinking"] = thinking_cfg
 
         return payload
 
