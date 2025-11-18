@@ -4,16 +4,42 @@ Anthropic API Client for Claude Opus 4.1 model.
 Provides unified interface for Anthropic's Claude models with streaming support.
 """
 
+import json
 import logging
 import os
 from dataclasses import dataclass, field, replace
 from datetime import datetime, timedelta
+from pathlib import Path
 from typing import Any, AsyncIterator, Dict, List, Optional
 
 from .http_utils import HTTPClientError, post_json
 from ..Monitoring.performance_monitor import get_monitor
 
 logger = logging.getLogger(__name__)
+
+
+def _default_enable_thinking() -> bool:
+    """Resolve whether thinking should be enabled.
+
+    Preference order:
+    1) User-level ~/.claude/settings.json -> `alwaysThinkingEnabled`
+    2) Environment variable ANTHROPIC_ENABLE_THINKING
+    3) Default True
+    """
+
+    settings_path = Path.home() / ".claude" / "settings.json"
+    try:
+        if settings_path.exists():
+            data = json.loads(settings_path.read_text())
+            if "alwaysThinkingEnabled" in data:
+                return bool(data.get("alwaysThinkingEnabled"))
+    except Exception:
+        # Fall back silently if the settings file is unreadable
+        pass
+
+    return str(os.getenv("ANTHROPIC_ENABLE_THINKING", "true")).lower() in {
+        "1", "true", "yes", "on"
+    }
 
 
 @dataclass
@@ -36,10 +62,7 @@ class AnthropicConfig:
     rate_limit_rpm: int = 100
     rate_limit_tpm: int = 400000
     # Thinking/Chain-of-thought support
-    enable_thinking: bool = field(
-        default_factory=lambda: str(os.getenv("ANTHROPIC_ENABLE_THINKING", "true")).lower()
-        in {"1", "true", "yes", "on"}
-    )
+    enable_thinking: bool = field(default_factory=_default_enable_thinking)
     thinking_budget_tokens: int = field(
         default_factory=lambda: int(os.getenv("ANTHROPIC_THINKING_BUDGET", "8000"))
     )
