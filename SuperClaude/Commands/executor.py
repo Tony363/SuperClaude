@@ -215,13 +215,14 @@ class CommandExecutor:
     - Error handling and recovery
     """
 
-    def __init__(self, registry: CommandRegistry, parser: CommandParser):
+    def __init__(self, registry: CommandRegistry, parser: CommandParser, repo_root: Optional[Path] = None):
         """
         Initialize command executor.
 
         Args:
             registry: CommandRegistry instance
             parser: CommandParser instance
+            repo_root: Optional root of the target repository; defaults to detected git root
         """
         self.registry = registry
         self.parser = parser
@@ -232,7 +233,11 @@ class CommandExecutor:
             'post_execute': [],
             'on_error': []
         }
-        self.repo_root = self._detect_repo_root()
+        self.repo_root = self._normalize_repo_root(repo_root)
+        if self.repo_root:
+            # Export for downstream helpers (metrics, monitoring, etc.) without clobbering user choice
+            os.environ.setdefault("SUPERCLAUDE_REPO_ROOT", str(self.repo_root))
+            os.environ.setdefault("SUPERCLAUDE_METRICS_DIR", str(self.repo_root / ".superclaude_metrics"))
         base_path = self.repo_root or Path.cwd()
         self.agent_loader: AgentLoader = AgentLoader()
         self.extended_agent_loader: ExtendedAgentLoader = ExtendedAgentLoader()
@@ -3178,6 +3183,20 @@ class CommandExecutor:
 
         recommendations.append("Capture debate outcomes and assign owners for the top three decision points.")
         return recommendations
+
+    def _normalize_repo_root(self, repo_root: Optional[Path]) -> Optional[Path]:
+        """Normalize desired repo root, falling back to detected git root."""
+        env_root = os.environ.get("SUPERCLAUDE_REPO_ROOT")
+        if repo_root is None and env_root:
+            repo_root = Path(env_root).expanduser()
+
+        if repo_root is not None:
+            try:
+                return Path(repo_root).resolve()
+            except Exception:
+                return Path(repo_root)
+
+        return self._detect_repo_root()
 
     def _detect_repo_root(self) -> Optional[Path]:
         """Locate the git repository root, if available."""

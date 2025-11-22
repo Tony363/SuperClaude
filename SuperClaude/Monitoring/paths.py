@@ -9,6 +9,13 @@ from pathlib import Path
 def _detect_repo_root() -> Path:
     """Locate the repository root (best-effort)."""
 
+    env_root = os.environ.get("SUPERCLAUDE_REPO_ROOT")
+    if env_root:
+        try:
+            return Path(env_root).expanduser().resolve()
+        except Exception:
+            return Path(env_root)
+
     try:
         current = Path.cwd().resolve()
     except Exception:

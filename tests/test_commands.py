@@ -68,6 +68,23 @@ def codex_cli_binary(monkeypatch):
     return "codex-stub"
 
 
+def test_executor_accepts_explicit_repo_root(tmp_path, monkeypatch):
+    target_repo = tmp_path / "target"
+    target_repo.mkdir()
+
+    # Ensure no prior env overrides interfere
+    monkeypatch.delenv("SUPERCLAUDE_REPO_ROOT", raising=False)
+    monkeypatch.delenv("SUPERCLAUDE_METRICS_DIR", raising=False)
+
+    registry = CommandRegistry()
+    parser = CommandParser()
+    executor = CommandExecutor(registry, parser, repo_root=target_repo)
+
+    assert executor.repo_root == target_repo.resolve()
+    assert os.environ.get("SUPERCLAUDE_REPO_ROOT") == str(target_repo.resolve())
+    assert os.environ.get("SUPERCLAUDE_METRICS_DIR") == str(target_repo / ".superclaude_metrics")
+
+
 def test_implement_fast_codex_requires_evidence(executor, codex_cli_binary):
     result = asyncio.run(executor.execute("/sc:implement search google for pictures of dogs --fast-codex"))
 

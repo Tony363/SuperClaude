@@ -162,6 +162,9 @@ class ModelManager:
 
     def _load_standard_configs(self) -> None:
         """Load configurations from standard locations."""
+        env_root = os.environ.get('SUPERCLAUDE_REPO_ROOT')
+        env_root_path = Path(env_root).expanduser() if env_root else None
+
         config_locations = [
             Path.home() / '.claude' / 'models.yaml',
             Path.home() / '.claude' / 'models.json',
@@ -169,6 +172,10 @@ class ModelManager:
             Path.cwd() / 'models.json',
             Path('/etc/superclaud') / 'models.yaml'
         ]
+
+        if env_root_path:
+            config_locations.insert(0, env_root_path / 'models.yaml')
+            config_locations.insert(1, env_root_path / 'models.json')
 
         for location in config_locations:
             if location.exists():
