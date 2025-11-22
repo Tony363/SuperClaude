@@ -10,7 +10,7 @@ import os
 from dataclasses import dataclass, field, replace
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any, AsyncIterator, Dict, List, Optional
+from typing import Any, AsyncIterator, Dict, List, Mapping, Optional
 
 from .http_utils import HTTPClientError, post_json
 from ..Monitoring.performance_monitor import get_monitor
@@ -53,7 +53,7 @@ class AnthropicConfig:
         default_factory=lambda: [
             h.strip() for h in os.getenv(
                 "ANTHROPIC_BETA",
-                "thinking-2025-10-15"
+                "clear_thinking_20251015"
             ).split(",") if h.strip()
         ]
     )
@@ -197,8 +197,21 @@ class AnthropicClient:
                 timeout=self.config.timeout,
             )
         except HTTPClientError as exc:
-            logger.error("Anthropic API error: %s", exc)
-            raise
+            if self._should_retry_with_thinking(exc, payload):
+                logger.warning(
+                    "Anthropic API indicated thinking is required; retrying with default configuration."
+                )
+                request.thinking = self._default_thinking_payload()
+                payload = self._build_payload(request)
+                status, data, response_headers = await post_json(
+                    f"{self.config.endpoint}/messages",
+                    payload,
+                    headers=headers,
+                    timeout=self.config.timeout,
+                )
+            else:
+                logger.error("Anthropic API error: %s", exc)
+                raise
 
         content_blocks = data.get("content") or []
         text_parts: List[str] = []
@@ -440,6 +453,38 @@ Provide:
             "suggestions": suggestions,
         }
 
+    def _default_thinking_payload(self) -> Dict[str, Any]:
+        """Create the default thinking configuration."""
+
+        return {
+            "type": self.config.thinking_type or "enabled",
+            "budget_tokens": self.config.thinking_budget_tokens,
+        }
+
+    def _error_requires_thinking(self, error: HTTPClientError) -> bool:
+        """Check whether an Anthropic error demands thinking to be enabled."""
+
+        fragments: List[str] = []
+        if error.payload:
+            detail = error.payload.get("error")
+            if isinstance(detail, Mapping):
+                fragments.append(str(detail.get("message", "")))
+                fragments.append(str(detail.get("detail", "")))
+            elif detail:
+                fragments.append(str(detail))
+        if error.message:
+            fragments.append(error.message)
+
+        normalized = " ".join(part for part in fragments if part).lower().replace("`", "")
+        return "requires thinking" in normalized or "thinking to be enabled" in normalized
+
+    def _should_retry_with_thinking(self, error: HTTPClientError, payload: Dict[str, Any]) -> bool:
+        """Determine if we should retry a request after enabling thinking."""
+
+        if payload.get("thinking"):
+            return False
+        return self._error_requires_thinking(error)
+
     def _build_payload(self, request: ClaudeRequest) -> Dict[str, Any]:
         """Build API request payload."""
         payload = {
@@ -462,11 +507,8 @@ Provide:
 
         # Enable Anthropic extended thinking by default to satisfy strategies like clear_thinking_20251015.
         thinking_cfg = request.thinking
-        if thinking_cfg is None and self.config.enable_thinking:
-            thinking_cfg = {
-                "type": self.config.thinking_type,
-                "budget_tokens": self.config.thinking_budget_tokens,
-            }
+        if (thinking_cfg is None or thinking_cfg == {}) and self.config.enable_thinking:
+            thinking_cfg = self._default_thinking_payload()
 
         if thinking_cfg:
             payload["thinking"] = thinking_cfg
