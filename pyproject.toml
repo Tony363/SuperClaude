@@ -136,3 +136,54 @@ exclude_lines = [
     "if __name__ == .__main__.:"
 ]
 show_missing = true
+
+# Ruff - Fast Python linter (replaces Flake8, isort)
+[tool.ruff]
+target-version = "py38"
+line-length = 88
+exclude = [
+    ".eggs",
+    ".git",
+    ".mypy_cache",
+    ".ruff_cache",
+    ".tox",
+    ".venv",
+    "build",
+    "dist",
+    "__pycache__",
+]
+
+[tool.ruff.lint]
+select = [
+    "E",      # pycodestyle errors
+    "F",      # Pyflakes
+    "W",      # pycodestyle warnings
+    "I",      # isort
+    "UP",     # pyupgrade
+    "B",      # flake8-bugbear
+    "C4",     # flake8-comprehensions
+    "SIM",    # flake8-simplify
+    "S",      # flake8-bandit (security)
+    "RUF",    # Ruff-specific rules
+]
+ignore = [
+    "E501",   # Line too long (handled by formatter)
+    "S101",   # Use of assert (OK in tests)
+    "S603",   # subprocess without shell=True (intentional)
+    "S607",   # Starting process with partial path (intentional)
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S101", "S105", "S106"]  # Allow asserts and hardcoded passwords in tests
+"setup/*" = ["S603", "S607"]          # Allow subprocess in setup scripts
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+
+# Bandit security scanner configuration
+[tool.bandit]
+exclude_dirs = ["tests", "benchmarks", ".venv"]
+skips = ["B101"]  # Skip assert warnings
