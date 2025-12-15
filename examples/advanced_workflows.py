@@ -18,7 +18,6 @@ from SuperClaude.Agents.loader import AgentLoader
 from SuperClaude.Core.worktree_manager import WorktreeManager
 from SuperClaude.MCP import ZenIntegration
 from SuperClaude.ModelRouter.router import ModelRouter
-from SuperClaude.Monitoring.performance_monitor import PerformanceMonitor
 from SuperClaude.Quality.quality_scorer import QualityScorer
 
 
@@ -265,7 +264,7 @@ async def workflow_production_deployment():
 
     # Step 3: Performance validation
     print("\nStep 3: Performance Validation")
-    monitor = PerformanceMonitor()
+    monitor = None  # Monitoring removed
     monitor.start_collection()
 
     # Simulate load test

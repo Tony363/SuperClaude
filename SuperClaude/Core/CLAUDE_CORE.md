@@ -6,8 +6,7 @@ Extended functionality is available on-demand through CLAUDE_EXTENDED.md.
 ## 🚀 Essential Components (Always Loaded)
 
 ### Quick Navigation & Help
-@QUICKSTART.md     # Getting started guide (5.8KB)
-@CHEATSHEET.md     # Quick reference lookup (6.6KB)
+@QUICKSTART.md     # Getting started guide (6KB)
 
 ### Core Framework
 @FLAGS.md          # All behavioral flags (4.8KB)
@@ -24,7 +23,7 @@ The following components load automatically when their triggers are detected:
 
 ### Complex Workflows
 - **Trigger**: Multi-step operations, `--task-manage`
-- **Loads**: @WORKFLOWS.md (8KB)
+- **Loads**: MODE_Task_Management.md
 
 ### Behavioral Modes
 - **Trigger**: Mode flags like `--brainstorm`, `--introspect`

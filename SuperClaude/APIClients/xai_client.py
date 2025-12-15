@@ -11,7 +11,6 @@ from dataclasses import dataclass, field, replace
 from datetime import datetime, timedelta
 from typing import Any, AsyncIterator, Dict, List, Optional, Tuple
 
-from ..Monitoring.performance_monitor import get_monitor
 from .http_utils import HTTPClientError, post_json
 
 logger = logging.getLogger(__name__)
@@ -113,7 +112,7 @@ class XAIClient:
         self.rate_limiter = RateLimiter(config.rate_limit_rpm, config.rate_limit_tpm)
         self.token_counter = TokenCounter()
         self.provider = "xai"
-        self.monitor = get_monitor()
+        self.monitor = None  # Monitoring removed
 
     async def complete(self, request: GrokRequest) -> GrokResponse:
         """
