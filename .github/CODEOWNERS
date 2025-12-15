@@ -1,0 +1,20 @@
+# SuperClaude Code Owners
+# These owners will be automatically requested for review on PRs
+# that modify files matching the patterns below.
+
+# Global owners - review all changes
+* @Tony363
+
+# Core framework requires owner review
+/SuperClaude/ @Tony363
+
+# CI/CD changes require owner review
+/.github/ @Tony363
+
+# Configuration changes require owner review
+/pyproject.toml @Tony363
+/setup.py @Tony363
+/package.json @Tony363
+
+# Security-sensitive files
+/.pre-commit-config.yaml @Tony363
