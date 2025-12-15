@@ -16,6 +16,7 @@ import py_compile
 import re
 import shutil
 import subprocess
+import tempfile
 import textwrap
 import threading
 from dataclasses import asdict, dataclass, field
@@ -4127,7 +4128,7 @@ class CommandExecutor:
     def _write_safe_apply_snapshot(
         self, context: CommandContext, stubs: Sequence[Dict[str, Any]]
     ) -> Optional[Dict[str, Any]]:
-        import tempfile; metrics_dir = Path(tempfile.gettempdir()) / "superclaude_metrics"
+        metrics_dir = Path(tempfile.gettempdir()) / "superclaude_metrics"
         base_dir = metrics_dir / "safe_apply" / context.session_id
         base_dir.mkdir(parents=True, exist_ok=True)
         timestamp = datetime.utcnow().strftime("%Y%m%d%H%M%S")
