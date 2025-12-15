@@ -210,7 +210,6 @@ async def example_performance_monitoring():
     """Example: Performance monitoring"""
     print("\n=== Performance Monitoring Example ===")
 
-
     monitor = None  # Monitoring removed
 
     # Start monitoring

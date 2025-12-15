@@ -3899,10 +3899,14 @@ class CommandExecutor:
         }
 
         base = "commands.requires_evidence"
-        self.monitor and self.monitor.record_metric(f"{base}.invocations", 1, MetricType.COUNTER, tags)
+        self.monitor and self.monitor.record_metric(
+            f"{base}.invocations", 1, MetricType.COUNTER, tags
+        )
 
         if derived_status == "plan-only":
-            self.monitor and self.monitor.record_metric(f"{base}.plan_only", 1, MetricType.COUNTER, tags)
+            self.monitor and self.monitor.record_metric(
+                f"{base}.plan_only", 1, MetricType.COUNTER, tags
+            )
             self.monitor and self.monitor.record_metric(
                 f"{base}.missing_evidence", 1, MetricType.COUNTER, tags
             )
@@ -3940,7 +3944,9 @@ class CommandExecutor:
             metric_name = (
                 f"{base}.quality_pass" if assessment_passed else f"{base}.quality_fail"
             )
-            self.monitor and self.monitor.record_metric(metric_name, 1, MetricType.COUNTER, score_tags)
+            self.monitor and self.monitor.record_metric(
+                metric_name, 1, MetricType.COUNTER, score_tags
+            )
 
         fast_codex_state = {}
         raw_fast_codex = snapshot.get("fast_codex")
@@ -4018,7 +4024,9 @@ class CommandExecutor:
             "fast_codex_cli": snapshot.get("fast_codex_cli"),
         }
         try:
-            self.monitor and self.monitor.record_event("hallucination.guardrail", event_payload)
+            self.monitor and self.monitor.record_event(
+                "hallucination.guardrail", event_payload
+            )
         except Exception:
             logger.debug("Failed to record hallucination event payload", exc_info=True)
         else:
@@ -4041,7 +4049,9 @@ class CommandExecutor:
                 )
 
         outcome_metric = f"{base}.success" if success else f"{base}.failure"
-        self.monitor and self.monitor.record_metric(outcome_metric, 1, MetricType.COUNTER, tags)
+        self.monitor and self.monitor.record_metric(
+            outcome_metric, 1, MetricType.COUNTER, tags
+        )
 
     def _attach_plan_only_guidance(
         self, context: CommandContext, output: Optional[Dict[str, Any]]
@@ -4309,7 +4319,9 @@ class CommandExecutor:
                     f"{base}.invocations", 1, MetricType.COUNTER, tags
                 )
                 metric = f"{base}.dry_run" if status == "dry-run" else f"{base}.success"
-                self.monitor and self.monitor.record_metric(metric, 1, MetricType.COUNTER, tags)
+                self.monitor and self.monitor.record_metric(
+                    metric, 1, MetricType.COUNTER, tags
+                )
 
             return [f"rube:{tool}:{status}"]
         except Exception as exc:  # pragma: no cover - network behaviour
