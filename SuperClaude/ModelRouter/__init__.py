@@ -5,24 +5,24 @@ Provides intelligent model selection, routing, and consensus building
 for GPT-5, Gemini, Claude, Grok, and other models.
 """
 
-from .router import ModelRouter, RoutingDecision, ModelCapabilities, ModelProvider
-from .models import ModelManager, ModelConfig
-from .consensus import ConsensusBuilder, ConsensusResult, ModelVote, VoteType, Stance
+from .consensus import ConsensusBuilder, ConsensusResult, ModelVote, Stance, VoteType
 from .facade import ModelRouterFacade
+from .models import ModelConfig, ModelManager
+from .router import ModelCapabilities, ModelProvider, ModelRouter, RoutingDecision
 
 __all__ = [
-    'ModelRouter',
-    'RoutingDecision',
-    'ModelCapabilities',
-    'ModelProvider',
-    'ModelManager',
-    'ModelConfig',
-    'ConsensusBuilder',
-    'ConsensusResult',
-    'ModelVote',
-    'VoteType',
-    'Stance',
-    'ModelRouterFacade'
+    "ConsensusBuilder",
+    "ConsensusResult",
+    "ModelCapabilities",
+    "ModelConfig",
+    "ModelManager",
+    "ModelProvider",
+    "ModelRouter",
+    "ModelRouterFacade",
+    "ModelVote",
+    "RoutingDecision",
+    "Stance",
+    "VoteType",
 ]
 
-__version__ = '1.0.0'
+__version__ = "1.0.0"

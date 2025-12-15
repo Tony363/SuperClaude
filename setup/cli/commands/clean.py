@@ -9,15 +9,19 @@ Useful for recovering from failed installations or corrupted state.
 import argparse
 import json
 import shutil
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
 
-from setup.utils.ui import (
-    display_header, display_info, display_success, display_error,
-    display_warning, confirm, Colors
-)
-from setup.utils.logger import get_logger
 from setup.services.settings import SettingsService
+from setup.utils.logger import get_logger
+from setup.utils.ui import (
+    confirm,
+    display_error,
+    display_header,
+    display_info,
+    display_success,
+    display_warning,
+)
 
 
 class CleanCommand:
@@ -39,9 +43,9 @@ class CleanCommand:
     def clean_metadata(self) -> bool:
         """Clean corrupted metadata files."""
         metadata_files = [
-            self.install_dir / '.superclaude-metadata.json',
-            self.install_dir / 'settings.json',
-            self.install_dir / '.component-registry.json'
+            self.install_dir / ".superclaude-metadata.json",
+            self.install_dir / "settings.json",
+            self.install_dir / ".component-registry.json",
         ]
 
         success = True
@@ -51,18 +55,20 @@ class CleanCommand:
 
             try:
                 # Try to parse the file to check if it's corrupted
-                if file_path.suffix == '.json':
-                    with open(file_path, 'r') as f:
+                if file_path.suffix == ".json":
+                    with open(file_path) as f:
                         json.load(f)
 
                     # File is valid, check if we should still clean it
                     if not self.args.force:
-                        display_info(f"  {file_path.name} is valid, skipping (use --force to clean anyway)")
+                        display_info(
+                            f"  {file_path.name} is valid, skipping (use --force to clean anyway)"
+                        )
                         continue
 
                 # Backup before removing
                 if not self.dry_run:
-                    backup_path = file_path.with_suffix(f'{file_path.suffix}.backup')
+                    backup_path = file_path.with_suffix(f"{file_path.suffix}.backup")
                     shutil.copy2(file_path, backup_path)
                     file_path.unlink()
                     self.cleaned_items.append(f"Metadata: {file_path.name}")
@@ -73,15 +79,17 @@ class CleanCommand:
             except json.JSONDecodeError:
                 # File is corrupted, definitely clean it
                 if not self.dry_run:
-                    backup_path = file_path.with_suffix(f'{file_path.suffix}.corrupted')
+                    backup_path = file_path.with_suffix(f"{file_path.suffix}.corrupted")
                     shutil.move(str(file_path), str(backup_path))
                     self.cleaned_items.append(f"Corrupted: {file_path.name}")
-                    display_warning(f"  Cleaned corrupted: {file_path.name} (moved to .corrupted)")
+                    display_warning(
+                        f"  Cleaned corrupted: {file_path.name} (moved to .corrupted)"
+                    )
                 else:
                     display_info(f"  [DRY RUN] Would clean corrupted: {file_path.name}")
 
             except Exception as e:
-                self.failed_items.append(f"{file_path.name}: {str(e)}")
+                self.failed_items.append(f"{file_path.name}: {e!s}")
                 display_error(f"  Failed to clean {file_path.name}: {e}")
                 success = False
 
@@ -90,11 +98,11 @@ class CleanCommand:
     def clean_cache(self) -> bool:
         """Clean cache directories and temporary files."""
         cache_dirs = [
-            self.install_dir / 'cache',
-            self.install_dir / '.cache',
-            self.install_dir / 'tmp',
-            self.install_dir / '.tmp',
-            Path.home() / '.cache' / 'superclaude'
+            self.install_dir / "cache",
+            self.install_dir / ".cache",
+            self.install_dir / "tmp",
+            self.install_dir / ".tmp",
+            Path.home() / ".cache" / "superclaude",
         ]
 
         success = True
@@ -103,18 +111,26 @@ class CleanCommand:
                 continue
 
             try:
-                size = sum(f.stat().st_size for f in cache_dir.rglob('*') if f.is_file())
+                size = sum(
+                    f.stat().st_size for f in cache_dir.rglob("*") if f.is_file()
+                )
                 size_mb = size / (1024 * 1024)
 
                 if not self.dry_run:
                     shutil.rmtree(cache_dir)
-                    self.cleaned_items.append(f"Cache: {cache_dir.name} ({size_mb:.1f} MB)")
-                    display_success(f"  Cleaned cache: {cache_dir.name} ({size_mb:.1f} MB freed)")
+                    self.cleaned_items.append(
+                        f"Cache: {cache_dir.name} ({size_mb:.1f} MB)"
+                    )
+                    display_success(
+                        f"  Cleaned cache: {cache_dir.name} ({size_mb:.1f} MB freed)"
+                    )
                 else:
-                    display_info(f"  [DRY RUN] Would clean cache: {cache_dir.name} ({size_mb:.1f} MB)")
+                    display_info(
+                        f"  [DRY RUN] Would clean cache: {cache_dir.name} ({size_mb:.1f} MB)"
+                    )
 
             except Exception as e:
-                self.failed_items.append(f"{cache_dir.name}: {str(e)}")
+                self.failed_items.append(f"{cache_dir.name}: {e!s}")
                 display_error(f"  Failed to clean {cache_dir.name}: {e}")
                 success = False
 
@@ -122,12 +138,12 @@ class CleanCommand:
 
     def clean_logs(self) -> bool:
         """Clean log files (optionally keep recent logs)."""
-        log_dir = self.install_dir / 'logs'
+        log_dir = self.install_dir / "logs"
         if not log_dir.exists():
             return True
 
         try:
-            log_files = list(log_dir.glob('*.log*'))
+            log_files = list(log_dir.glob("*.log*"))
 
             if self.args.keep_recent:
                 # Keep logs from last 7 days
@@ -144,23 +160,29 @@ class CleanCommand:
                 if not self.dry_run:
                     for log_file in old_logs:
                         log_file.unlink()
-                    self.cleaned_items.append(f"Logs: {len(old_logs)} files ({size_mb:.1f} MB)")
-                    display_success(f"  Cleaned {len(old_logs)} log files ({size_mb:.1f} MB freed)")
+                    self.cleaned_items.append(
+                        f"Logs: {len(old_logs)} files ({size_mb:.1f} MB)"
+                    )
+                    display_success(
+                        f"  Cleaned {len(old_logs)} log files ({size_mb:.1f} MB freed)"
+                    )
                 else:
-                    display_info(f"  [DRY RUN] Would clean {len(old_logs)} log files ({size_mb:.1f} MB)")
+                    display_info(
+                        f"  [DRY RUN] Would clean {len(old_logs)} log files ({size_mb:.1f} MB)"
+                    )
             else:
                 display_info("  No log files to clean")
 
             return True
 
         except Exception as e:
-            self.failed_items.append(f"logs: {str(e)}")
+            self.failed_items.append(f"logs: {e!s}")
             display_error(f"  Failed to clean logs: {e}")
             return False
 
     def clean_worktrees(self) -> bool:
         """Clean git worktrees created during development."""
-        worktrees_dir = Path.cwd() / '.worktrees'
+        worktrees_dir = Path.cwd() / ".worktrees"
         if not worktrees_dir.exists():
             return True
 
@@ -173,30 +195,42 @@ class CleanCommand:
             total_size = 0
             for wt in worktrees:
                 if wt.is_dir():
-                    total_size += sum(f.stat().st_size for f in wt.rglob('*') if f.is_file())
+                    total_size += sum(
+                        f.stat().st_size for f in wt.rglob("*") if f.is_file()
+                    )
 
             size_mb = total_size / (1024 * 1024)
 
             if not self.dry_run:
                 # Clean up git worktrees properly
                 import subprocess
+
                 for wt in worktrees:
                     try:
-                        subprocess.run(['git', 'worktree', 'remove', str(wt), '--force'],
-                                     capture_output=True, check=False)
+                        subprocess.run(
+                            ["git", "worktree", "remove", str(wt), "--force"],
+                            capture_output=True,
+                            check=False,
+                        )
                     except:
                         # Fallback to direct removal if git command fails
                         shutil.rmtree(wt, ignore_errors=True)
 
-                self.cleaned_items.append(f"Worktrees: {len(worktrees)} ({size_mb:.1f} MB)")
-                display_success(f"  Cleaned {len(worktrees)} worktrees ({size_mb:.1f} MB freed)")
+                self.cleaned_items.append(
+                    f"Worktrees: {len(worktrees)} ({size_mb:.1f} MB)"
+                )
+                display_success(
+                    f"  Cleaned {len(worktrees)} worktrees ({size_mb:.1f} MB freed)"
+                )
             else:
-                display_info(f"  [DRY RUN] Would clean {len(worktrees)} worktrees ({size_mb:.1f} MB)")
+                display_info(
+                    f"  [DRY RUN] Would clean {len(worktrees)} worktrees ({size_mb:.1f} MB)"
+                )
 
             return True
 
         except Exception as e:
-            self.failed_items.append(f"worktrees: {str(e)}")
+            self.failed_items.append(f"worktrees: {e!s}")
             display_error(f"  Failed to clean worktrees: {e}")
             return False
 
@@ -206,8 +240,8 @@ class CleanCommand:
 
         critical_paths = [
             self.install_dir,
-            self.install_dir / 'commands',
-            self.install_dir / 'agents'
+            self.install_dir / "commands",
+            self.install_dir / "agents",
         ]
 
         valid = True
@@ -215,7 +249,9 @@ class CleanCommand:
             if path.exists():
                 display_success(f"  ✓ {path.name} exists")
             else:
-                display_warning(f"  ⚠ {path.name} missing (will be created on next install)")
+                display_warning(
+                    f"  ⚠ {path.name} missing (will be created on next install)"
+                )
                 valid = False
 
         return valid
@@ -225,9 +261,16 @@ class CleanCommand:
         display_header("SuperClaude Clean", "Cleanup and Recovery Tool")
 
         # Determine what to clean
-        clean_all = self.args.all or (not any([
-            self.args.metadata, self.args.cache, self.args.logs, self.args.worktrees
-        ]))
+        clean_all = self.args.all or (
+            not any(
+                [
+                    self.args.metadata,
+                    self.args.cache,
+                    self.args.logs,
+                    self.args.worktrees,
+                ]
+            )
+        )
 
         operations = []
         if clean_all or self.args.metadata:
@@ -292,8 +335,8 @@ class CleanCommand:
 def register_parser(subparsers, global_parser):
     """Register the clean command parser."""
     parser = subparsers.add_parser(
-        'clean',
-        help='Clean corrupted metadata, cache, and temporary files',
+        "clean",
+        help="Clean corrupted metadata, cache, and temporary files",
         parents=[global_parser],
         formatter_class=argparse.RawDescriptionHelpFormatter,
         description="""
@@ -308,28 +351,37 @@ Examples:
   SuperClaude clean --cache --logs     # Clean cache and logs
   SuperClaude clean --dry-run          # Preview what would be cleaned
   SuperClaude clean --force            # Clean even valid metadata files
-        """
+        """,
     )
 
     # What to clean
-    clean_group = parser.add_argument_group('cleanup targets')
-    clean_group.add_argument('--all', action='store_true',
-                           help='Clean everything (default if no targets specified)')
-    clean_group.add_argument('--metadata', action='store_true',
-                           help='Clean metadata and settings files')
-    clean_group.add_argument('--cache', action='store_true',
-                           help='Clean cache directories')
-    clean_group.add_argument('--logs', action='store_true',
-                           help='Clean log files')
-    clean_group.add_argument('--worktrees', action='store_true',
-                           help='Clean git worktrees')
+    clean_group = parser.add_argument_group("cleanup targets")
+    clean_group.add_argument(
+        "--all",
+        action="store_true",
+        help="Clean everything (default if no targets specified)",
+    )
+    clean_group.add_argument(
+        "--metadata", action="store_true", help="Clean metadata and settings files"
+    )
+    clean_group.add_argument(
+        "--cache", action="store_true", help="Clean cache directories"
+    )
+    clean_group.add_argument("--logs", action="store_true", help="Clean log files")
+    clean_group.add_argument(
+        "--worktrees", action="store_true", help="Clean git worktrees"
+    )
 
     # Options
-    options_group = parser.add_argument_group('options')
-    options_group.add_argument('--keep-recent', action='store_true',
-                             help='Keep logs from last 7 days')
-    options_group.add_argument('--validate', action='store_true',
-                             help='Validate installation state after cleaning')
+    options_group = parser.add_argument_group("options")
+    options_group.add_argument(
+        "--keep-recent", action="store_true", help="Keep logs from last 7 days"
+    )
+    options_group.add_argument(
+        "--validate",
+        action="store_true",
+        help="Validate installation state after cleaning",
+    )
 
     return parser
 

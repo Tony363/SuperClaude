@@ -4,19 +4,17 @@ SuperClaude Framework - Git Worktree Manager
 Manages parallel development with git worktrees for feature isolation
 """
 
-import os
 import json
-import subprocess
-import shutil
-import sys
-import time
+import logging
+import os
 import re
 import shlex
+import subprocess
+import sys
+import time
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Tuple
-from datetime import datetime, timedelta
-import hashlib
-import logging
 
 from SuperClaude.Quality.quality_scorer import QualityScorer
 
@@ -57,20 +55,16 @@ class WorktreeManager:
         """Load worktree state from JSON file."""
         if self.state_file.exists():
             try:
-                with open(self.state_file, 'r') as f:
+                with open(self.state_file) as f:
                     return json.load(f)
             except Exception as e:
                 logger.warning(f"Failed to load state: {e}")
 
-        return {
-            "worktrees": {},
-            "merge_history": [],
-            "cleanup_age_days": 7
-        }
+        return {"worktrees": {}, "merge_history": [], "cleanup_age_days": 7}
 
     def _save_state(self):
         """Save worktree state to JSON file."""
-        with open(self.state_file, 'w') as f:
+        with open(self.state_file, "w") as f:
             json.dump(self.state, f, indent=2, default=str)
 
     def _run_git(self, *args, cwd: Optional[Path] = None) -> Tuple[int, str, str]:
@@ -85,11 +79,7 @@ class WorktreeManager:
 
         try:
             result = subprocess.run(
-                cmd,
-                cwd=cwd,
-                capture_output=True,
-                text=True,
-                timeout=30
+                cmd, cwd=cwd, capture_output=True, text=True, timeout=30
             )
             return result.returncode, result.stdout.strip(), result.stderr.strip()
         except subprocess.TimeoutExpired:
@@ -102,7 +92,7 @@ class WorktreeManager:
         changes: Sequence[Dict[str, Any]],
         *,
         worktree_id: Optional[str] = None,
-        mode: str = "replace"
+        mode: str = "replace",
     ) -> Dict[str, Any]:
         """Apply proposed changes to the repository or a specific worktree.
 
@@ -119,7 +109,11 @@ class WorktreeManager:
         """
 
         if not changes:
-            return {"applied": [], "warnings": ["No changes provided"], "base_path": str(self.repo_path)}
+            return {
+                "applied": [],
+                "warnings": ["No changes provided"],
+                "base_path": str(self.repo_path),
+            }
 
         base_path = self.repo_path
         session_id = "repository"
@@ -130,7 +124,7 @@ class WorktreeManager:
                 return {
                     "applied": [],
                     "warnings": [f"Worktree {worktree_id} not found"],
-                    "base_path": str(self.repo_path)
+                    "base_path": str(self.repo_path),
                 }
             base_path = Path(worktree_info.get("path", self.repo_path))
             session_id = worktree_id
@@ -183,7 +177,7 @@ class WorktreeManager:
             "applied": applied,
             "warnings": warnings,
             "base_path": str(base_path),
-            "session": session_id
+            "session": session_id,
         }
 
     async def create_worktree(self, task_id: str, branch: str) -> Dict:
@@ -198,8 +192,9 @@ class WorktreeManager:
             Dict with worktree information
         """
         # Check if we've reached max worktrees
-        active_worktrees = [w for w in self.state["worktrees"].values()
-                           if w["status"] == "active"]
+        active_worktrees = [
+            w for w in self.state["worktrees"].values() if w["status"] == "active"
+        ]
         if len(active_worktrees) >= self.max_worktrees:
             raise ValueError(f"Maximum worktrees ({self.max_worktrees}) reached")
 
@@ -227,8 +222,8 @@ class WorktreeManager:
             "validation": {
                 "tests_passed": False,
                 "quality_score": 0,
-                "ready_to_merge": False
-            }
+                "ready_to_merge": False,
+            },
         }
 
         self.state["worktrees"][worktree_name] = worktree_info
@@ -263,7 +258,7 @@ class WorktreeManager:
                     "id": wt_name,
                     "path": wt_path,
                     "status": "untracked",
-                    "created": datetime.now().isoformat()
+                    "created": datetime.now().isoformat(),
                 }
 
         # Mark missing worktrees as removed
@@ -274,13 +269,14 @@ class WorktreeManager:
         self._save_state()
 
         # Return active worktrees
-        return [wt for wt in self.state["worktrees"].values()
-                if wt["status"] == "active"]
+        return [
+            wt for wt in self.state["worktrees"].values() if wt["status"] == "active"
+        ]
 
     def _parse_worktree_list(self, output: str) -> List[str]:
         """Parse git worktree list output."""
         worktrees = []
-        for line in output.split('\n'):
+        for line in output.split("\n"):
             if line.startswith("worktree "):
                 worktrees.append(line.split(" ", 1)[1])
         return worktrees
@@ -288,16 +284,22 @@ class WorktreeManager:
     def _run_tests(self, worktree_path: Path) -> Dict[str, Any]:
         """Run the project's test suite inside the worktree."""
         command_str = os.environ.get("SUPERCLAUDE_WORKTREE_TEST_CMD")
-        command = shlex.split(command_str) if command_str else [
-            sys.executable, "-m", "pytest", "--maxfail=1", "-q"
-        ]
+        command = (
+            shlex.split(command_str)
+            if command_str
+            else [sys.executable, "-m", "pytest", "--maxfail=1", "-q"]
+        )
         env = os.environ.copy()
         env.setdefault("PYENV_DISABLE_REHASH", "1")
 
         def _to_text(value: Optional[bytes]) -> str:
             if value is None:
                 return ""
-            return value.decode("utf-8", errors="ignore") if isinstance(value, bytes) else value
+            return (
+                value.decode("utf-8", errors="ignore")
+                if isinstance(value, bytes)
+                else value
+            )
 
         start_time = time.time()
         try:
@@ -307,7 +309,7 @@ class WorktreeManager:
                 capture_output=True,
                 text=True,
                 timeout=600,
-                env=env
+                env=env,
             )
             stdout = result.stdout or ""
             stderr = result.stderr or ""
@@ -335,14 +337,16 @@ class WorktreeManager:
             stderr = _to_text(exc.stderr)
             duration = time.time() - start_time
             summary = self._parse_test_summary(f"{stdout}\n{stderr}")
-            summary.update({
-                "passed": False,
-                "return_code": 124,
-                "stdout": stdout,
-                "stderr": stderr or "Test command timed out",
-                "duration": duration,
-                "command": " ".join(command),
-            })
+            summary.update(
+                {
+                    "passed": False,
+                    "return_code": 124,
+                    "stdout": stdout,
+                    "stderr": stderr or "Test command timed out",
+                    "duration": duration,
+                    "command": " ".join(command),
+                }
+            )
             summary.setdefault("errors", []).append("Test command timed out")
             if summary.get("pass_rate") is None:
                 summary["pass_rate"] = 0.0
@@ -361,15 +365,17 @@ class WorktreeManager:
         if not passed and not errors and stderr.strip():
             errors.append(stderr.strip().splitlines()[-1])
 
-        summary.update({
-            "passed": passed,
-            "return_code": result.returncode,
-            "stdout": stdout,
-            "stderr": stderr,
-            "duration": duration,
-            "command": " ".join(command),
-            "errors": errors,
-        })
+        summary.update(
+            {
+                "passed": passed,
+                "return_code": result.returncode,
+                "stdout": stdout,
+                "stderr": stderr,
+                "duration": duration,
+                "command": " ".join(command),
+                "errors": errors,
+            }
+        )
 
         return summary
 
@@ -399,31 +405,37 @@ class WorktreeManager:
         if collected_match:
             summary["tests_collected"] = int(collected_match.group(1))
 
-        for count, label in re.findall(r"(\d+)\s+(passed|failed|errors?|skipped|xfailed|xpassed)", output):
+        for count, label in re.findall(
+            r"(\d+)\s+(passed|failed|errors?|skipped|xfailed|xpassed)", output
+        ):
             value = int(count)
-            normalized = label.rstrip('s')
+            normalized = label.rstrip("s")
             if normalized == "passed":
                 summary["tests_passed"] += value
             elif normalized == "failed":
                 summary["tests_failed"] += value
             elif normalized == "error":
                 summary["tests_errored"] += value
-            elif normalized == "skipped":
-                summary["tests_skipped"] += value
-            elif normalized == "xfailed":
+            elif normalized == "skipped" or normalized == "xfailed":
                 summary["tests_skipped"] += value
             elif normalized == "xpassed":
                 summary["tests_passed"] += value
 
-        executed = summary["tests_passed"] + summary["tests_failed"] + summary["tests_errored"]
+        executed = (
+            summary["tests_passed"] + summary["tests_failed"] + summary["tests_errored"]
+        )
         if summary["tests_collected"] is None and executed:
             summary["tests_collected"] = executed + summary["tests_skipped"]
         if executed:
             summary["pass_rate"] = summary["tests_passed"] / executed
 
-        coverage_match = re.search(r"coverage[:\s]+(\d+(?:\.\d+)?)%", output, re.IGNORECASE)
+        coverage_match = re.search(
+            r"coverage[:\s]+(\d+(?:\.\d+)?)%", output, re.IGNORECASE
+        )
         if not coverage_match:
-            coverage_match = re.search(r"TOTAL\s+\d+\s+\d+\s+\d+\s+\d+\s+(\d+(?:\.\d+)?)%", output)
+            coverage_match = re.search(
+                r"TOTAL\s+\d+\s+\d+\s+\d+\s+\d+\s+(\d+(?:\.\d+)?)%", output
+            )
         if coverage_match:
             try:
                 summary["coverage"] = float(coverage_match.group(1)) / 100.0
@@ -436,7 +448,7 @@ class WorktreeManager:
         self,
         test_results: Dict[str, Any],
         validation: Dict[str, Any],
-        worktree_path: Path
+        worktree_path: Path,
     ) -> Dict[str, Any]:
         """Build context dictionary for quality scoring."""
         pass_rate = test_results.get("pass_rate")
@@ -490,7 +502,7 @@ class WorktreeManager:
             "quality_score": 0,
             "has_conflicts": False,
             "ready_to_merge": False,
-            "issues": []
+            "issues": [],
         }
 
         # Check for uncommitted changes
@@ -500,8 +512,7 @@ class WorktreeManager:
 
         # Check for merge conflicts with integration branch
         rc, stdout, stderr = self._run_git(
-            "merge-tree", "integration", worktree_info["branch"],
-            cwd=worktree_path
+            "merge-tree", "integration", worktree_info["branch"], cwd=worktree_path
         )
         if rc != 0 or "conflict" in stdout.lower():
             validation["has_conflicts"] = True
@@ -518,7 +529,9 @@ class WorktreeManager:
                 validation["issues"].extend(test_results["errors"])
 
         # Calculate quality score using quality scorer
-        quality_context = self._build_quality_context(test_results, validation, worktree_path)
+        quality_context = self._build_quality_context(
+            test_results, validation, worktree_path
+        )
         output_summary = {
             "success": validation["tests_passed"] and not validation["has_conflicts"],
             "errors": test_results.get("errors", []),
@@ -531,7 +544,7 @@ class WorktreeManager:
             metric.dimension.value: {
                 "score": round(metric.score, 2),
                 "issues": metric.issues,
-                "suggestions": metric.suggestions
+                "suggestions": metric.suggestions,
             }
             for metric in assessment.metrics
         }
@@ -544,10 +557,10 @@ class WorktreeManager:
 
         # Determine if ready to merge
         validation["ready_to_merge"] = (
-            validation["tests_passed"] and
-            validation["quality_score"] >= validation.get("quality_threshold", 70) and
-            not validation["has_conflicts"] and
-            len(validation["issues"]) == 0
+            validation["tests_passed"]
+            and validation["quality_score"] >= validation.get("quality_threshold", 70)
+            and not validation["has_conflicts"]
+            and len(validation["issues"]) == 0
         )
 
         # Update state
@@ -558,10 +571,12 @@ class WorktreeManager:
             "id": worktree_id,
             "status": "validated",
             "ready": validation["ready_to_merge"],
-            "validation": validation
+            "validation": validation,
         }
 
-    async def progressive_merge(self, worktree_id: str, target_branch: str = "integration") -> Dict:
+    async def progressive_merge(
+        self, worktree_id: str, target_branch: str = "integration"
+    ) -> Dict:
         """
         Progressively merge worktree to target branch.
 
@@ -583,7 +598,7 @@ class WorktreeManager:
             return {
                 "success": False,
                 "error": "Worktree not ready for merge",
-                "validation": validation
+                "validation": validation,
             }
 
         # Perform the merge
@@ -592,11 +607,19 @@ class WorktreeManager:
         # Switch to target branch
         rc, stdout, stderr = self._run_git("checkout", target_branch)
         if rc != 0:
-            return {"success": False, "error": f"Failed to checkout {target_branch}: {stderr}"}
+            return {
+                "success": False,
+                "error": f"Failed to checkout {target_branch}: {stderr}",
+            }
 
         # Merge the worktree branch
-        rc, stdout, stderr = self._run_git("merge", "--no-ff", source_branch,
-                                          "-m", f"Merge {source_branch} to {target_branch}")
+        rc, stdout, stderr = self._run_git(
+            "merge",
+            "--no-ff",
+            source_branch,
+            "-m",
+            f"Merge {source_branch} to {target_branch}",
+        )
 
         if rc != 0:
             # Rollback
@@ -609,7 +632,7 @@ class WorktreeManager:
             "source_branch": source_branch,
             "target_branch": target_branch,
             "timestamp": datetime.now().isoformat(),
-            "validation_score": worktree_info["validation"]["quality_score"]
+            "validation_score": worktree_info["validation"]["quality_score"],
         }
 
         self.state["merge_history"].append(merge_record)
@@ -625,7 +648,7 @@ class WorktreeManager:
             "success": True,
             "source": source_branch,
             "target": target_branch,
-            "worktree_id": worktree_id
+            "worktree_id": worktree_id,
         }
 
     async def cleanup_old_worktrees(self, age_days: Optional[int] = None):
@@ -644,13 +667,19 @@ class WorktreeManager:
             # Check if worktree is old enough and merged/abandoned
             created_date = datetime.fromisoformat(wt_info["created"])
 
-            if created_date < cutoff_date and wt_info["status"] in ["merged", "abandoned", "removed"]:
+            if created_date < cutoff_date and wt_info["status"] in [
+                "merged",
+                "abandoned",
+                "removed",
+            ]:
                 # Remove the worktree
                 worktree_path = Path(wt_info["path"])
 
                 if worktree_path.exists():
                     # Remove from git
-                    rc, stdout, stderr = self._run_git("worktree", "remove", str(worktree_path))
+                    rc, stdout, stderr = self._run_git(
+                        "worktree", "remove", str(worktree_path)
+                    )
 
                     if rc == 0:
                         cleaned.append(wt_id)
@@ -661,10 +690,7 @@ class WorktreeManager:
 
         self._save_state()
 
-        return {
-            "cleaned": cleaned,
-            "count": len(cleaned)
-        }
+        return {"cleaned": cleaned, "count": len(cleaned)}
 
     async def get_worktree_status(self, worktree_id: str) -> Dict:
         """
@@ -683,7 +709,9 @@ class WorktreeManager:
         worktree_path = Path(worktree_info["path"])
 
         # Get current branch
-        rc, stdout, stderr = self._run_git("branch", "--show-current", cwd=worktree_path)
+        rc, stdout, stderr = self._run_git(
+            "branch", "--show-current", cwd=worktree_path
+        )
         current_branch = stdout if rc == 0 else "unknown"
 
         # Get commit info
@@ -691,7 +719,9 @@ class WorktreeManager:
         last_commit = stdout if rc == 0 else "No commits"
 
         # Get diff stats
-        rc, stdout, stderr = self._run_git("diff", "--stat", "integration", cwd=worktree_path)
+        rc, stdout, stderr = self._run_git(
+            "diff", "--stat", "integration", cwd=worktree_path
+        )
         diff_stats = stdout if rc == 0 else "No diff available"
 
         return {
@@ -703,5 +733,5 @@ class WorktreeManager:
             "created": worktree_info["created"],
             "last_commit": last_commit,
             "diff_stats": diff_stats,
-            "validation": worktree_info.get("validation", {})
+            "validation": worktree_info.get("validation", {}),
         }

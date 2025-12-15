@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import asyncio
 from pathlib import Path
-from typing import Dict
 
 import pytest
 
@@ -44,13 +43,15 @@ def test_agent_selector_suggests_specialist(agent_registry: AgentRegistry) -> No
 
     assert scores
     top_agents = {name for name, _ in scores[:3]}
-    assert {"refactoring-expert", "python-expert", "general-purpose"}.intersection(top_agents)
+    assert {"refactoring-expert", "python-expert", "general-purpose"}.intersection(
+        top_agents
+    )
 
 
 class _DummyRegistry:
     """Lightweight registry test double for selector edge cases."""
 
-    def __init__(self, agents: Dict[str, Dict[str, object]]):
+    def __init__(self, agents: dict[str, dict[str, object]]):
         self._agents = agents
 
     def discover_agents(self) -> None:  # pragma: no cover - invoked implicitly
@@ -69,8 +70,16 @@ class _DummyRegistry:
 def test_agent_selector_falls_back_to_default_when_all_scores_low():
     registry = _DummyRegistry(
         {
-            "general-purpose": {"name": "general-purpose", "triggers": [], "category": "core"},
-            "ml-specialist": {"name": "ml-specialist", "triggers": ["ml"], "category": "ml"},
+            "general-purpose": {
+                "name": "general-purpose",
+                "triggers": [],
+                "category": "core",
+            },
+            "ml-specialist": {
+                "name": "ml-specialist",
+                "triggers": ["ml"],
+                "category": "ml",
+            },
         }
     )
 
@@ -84,13 +93,23 @@ def test_agent_selector_falls_back_to_default_when_all_scores_low():
 def test_agent_selector_respects_default_exclusion_when_no_candidates():
     registry = _DummyRegistry(
         {
-            "general-purpose": {"name": "general-purpose", "triggers": [], "category": "core"},
-            "security": {"name": "security", "triggers": ["xss"], "category": "security"},
+            "general-purpose": {
+                "name": "general-purpose",
+                "triggers": [],
+                "category": "core",
+            },
+            "security": {
+                "name": "security",
+                "triggers": ["xss"],
+                "category": "security",
+            },
         }
     )
 
     selector = AgentSelector(registry)
-    scores = selector.select_agent("documentation task", exclude_agents=["general-purpose"])
+    scores = selector.select_agent(
+        "documentation task", exclude_agents=["general-purpose"]
+    )
 
     assert scores == []
 

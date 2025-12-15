@@ -6,17 +6,17 @@ from exploratory brainstorming to ultra-efficient token compression.
 """
 
 from .behavioral_manager import (
-    BehavioralModeManager,
     BehavioralMode,
+    BehavioralModeManager,
     ModeConfiguration,
-    ModeTransition
+    ModeTransition,
 )
 
 __all__ = [
-    'BehavioralModeManager',
-    'BehavioralMode',
-    'ModeConfiguration',
-    'ModeTransition'
+    "BehavioralMode",
+    "BehavioralModeManager",
+    "ModeConfiguration",
+    "ModeTransition",
 ]
 
-__version__ = '1.0.0'
+__version__ = "1.0.0"

@@ -6,13 +6,12 @@ It automatically discovers agents from markdown files and maintains a catalog
 of available agents with their capabilities.
 """
 
-import os
-import logging
-from pathlib import Path
-from typing import Dict, List, Optional, Type, Any
 import importlib.util
 import json
+import logging
 import sys
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Type
 
 from .base import BaseAgent
 from .parser import AgentMarkdownParser
@@ -78,7 +77,9 @@ class AgentRegistry:
         if extended_dir.exists():
             for subdir in extended_dir.iterdir():
                 if subdir.is_dir():
-                    extended_count += self._discover_markdown_agents(subdir, is_core=False)
+                    extended_count += self._discover_markdown_agents(
+                        subdir, is_core=False
+                    )
 
         self._discovered = True
         total = core_count + extended_count
@@ -107,10 +108,10 @@ class AgentRegistry:
                 # Parse the markdown file
                 config = self.parser.parse(md_file)
 
-                if config and 'name' in config:
+                if config and "name" in config:
                     # Add metadata
-                    config['is_core'] = is_core
-                    config['source_file'] = md_file
+                    config["is_core"] = is_core
+                    config["source_file"] = md_file
 
                     # Register the agent
                     self._register_agent(config)
@@ -128,12 +129,14 @@ class AgentRegistry:
         Args:
             config: Agent configuration dictionary
         """
-        name = config['name']
-        category = config.get('category', 'general')
+        name = config["name"]
+        category = config.get("category", "general")
 
         # Store configuration
-        if 'capability_tier' not in config:
-            config['capability_tier'] = 'strategist' if config.get('is_core') else 'heuristic-wrapper'
+        if "capability_tier" not in config:
+            config["capability_tier"] = (
+                "strategist" if config.get("is_core") else "heuristic-wrapper"
+            )
 
         self._agents[name] = config
 
@@ -164,24 +167,24 @@ class AgentRegistry:
 
         # Map of agent names to module names
         core_agent_modules = {
-            'general-purpose': 'general_purpose',
-            'root-cause-analyst': 'root_cause',
-            'refactoring-expert': 'refactoring',
-            'technical-writer': 'technical_writer',
-            'performance-engineer': 'performance',
+            "general-purpose": "general_purpose",
+            "root-cause-analyst": "root_cause",
+            "refactoring-expert": "refactoring",
+            "technical-writer": "technical_writer",
+            "performance-engineer": "performance",
             # Additional core agents
-            'backend-architect': 'backend_architect',
-            'frontend-architect': 'frontend_architect',
-            'system-architect': 'system_architect',
-            'python-expert': 'python_expert',
-            'security-engineer': 'security',
-            'devops-architect': 'devops_architect',
-            'quality-engineer': 'quality',
-            'requirements-analyst': 'requirements_analyst',
-            'socratic-mentor': 'socratic_mentor',
-            'learning-guide': 'learning_guide',
-            'fullstack-developer': 'fullstack_developer',
-            'codex-implementer': 'codex_implementer',
+            "backend-architect": "backend_architect",
+            "frontend-architect": "frontend_architect",
+            "system-architect": "system_architect",
+            "python-expert": "python_expert",
+            "security-engineer": "security",
+            "devops-architect": "devops_architect",
+            "quality-engineer": "quality",
+            "requirements-analyst": "requirements_analyst",
+            "socratic-mentor": "socratic_mentor",
+            "learning-guide": "learning_guide",
+            "fullstack-developer": "fullstack_developer",
+            "codex-implementer": "codex_implementer",
         }
 
         loaded = 0
@@ -192,8 +195,7 @@ class AgentRegistry:
                 try:
                     # Load the module
                     spec = importlib.util.spec_from_file_location(
-                        f"SuperClaude.Agents.core.{module_name}",
-                        module_path
+                        f"SuperClaude.Agents.core.{module_name}", module_path
                     )
                     if spec and spec.loader:
                         module = importlib.util.module_from_spec(spec)
@@ -212,7 +214,9 @@ class AgentRegistry:
                     self.logger.error(f"Failed to load {agent_name}: {e}")
 
         self._core_agents_loaded = loaded > 0
-        self.logger.info(f"Loaded {loaded}/{len(core_agent_modules)} core agent classes")
+        self.logger.info(
+            f"Loaded {loaded}/{len(core_agent_modules)} core agent classes"
+        )
 
         return self._core_agents_loaded
 
@@ -226,8 +230,8 @@ class AgentRegistry:
         Returns:
             Class name (e.g., 'RootCauseAnalyst')
         """
-        parts = agent_name.split('-')
-        return ''.join(word.capitalize() for word in parts)
+        parts = agent_name.split("-")
+        return "".join(word.capitalize() for word in parts)
 
     def get_agent(self, name: str) -> Optional[BaseAgent]:
         """
@@ -255,6 +259,7 @@ class AgentRegistry:
 
         # Fallback to generic agent with markdown config
         from .generic import GenericMarkdownAgent
+
         return GenericMarkdownAgent(config)
 
     def _ensure_agent_class(self, name: str, config: Dict[str, Any]) -> None:
@@ -272,51 +277,49 @@ class AgentRegistry:
         default_extension = self._guess_default_extension(config)
 
         attributes = {
-            '__doc__': config.get('description', ''),
-            '__module__': __name__,
-            'default_extension': default_extension,
+            "__doc__": config.get("description", ""),
+            "__module__": __name__,
+            "default_extension": default_extension,
         }
 
-        agent_class = type(
-            class_name,
-            (HeuristicMarkdownAgent,),
-            attributes
-        )
+        agent_class = type(class_name, (HeuristicMarkdownAgent,), attributes)
         self._agent_classes[name] = agent_class
-        if config.get('capability_tier') == 'heuristic-wrapper' and getattr(agent_class, 'STRATEGIST_TIER', False):
-            config['capability_tier'] = 'strategist'
+        if config.get("capability_tier") == "heuristic-wrapper" and getattr(
+            agent_class, "STRATEGIST_TIER", False
+        ):
+            config["capability_tier"] = "strategist"
 
     @staticmethod
     def _guess_default_extension(config: Dict[str, Any]) -> str:
         """Heuristic mapping from agent metadata to a default stub extension."""
         candidates = []
-        tools = [tool.lower() for tool in config.get('tools', [])]
-        description = (config.get('description') or '').lower()
+        tools = [tool.lower() for tool in config.get("tools", [])]
+        description = (config.get("description") or "").lower()
 
         candidates.extend(tools)
         candidates.append(description)
 
-        blob = ' '.join(candidates)
+        blob = " ".join(candidates)
 
-        if 'python' in blob or 'django' in blob or 'fastapi' in blob:
-            return 'py'
-        if 'typescript' in blob or 'front' in blob or 'react' in blob:
-            return 'tsx'
-        if 'javascript' in blob or 'node' in blob or 'express' in blob:
-            return 'ts'
-        if 'go' in blob or 'golang' in blob:
-            return 'go'
-        if 'rust' in blob:
-            return 'rs'
-        if 'java' in blob or 'spring' in blob:
-            return 'java'
-        if 'c#' in blob or 'dotnet' in blob or 'csharp' in blob:
-            return 'cs'
-        if 'terraform' in blob or 'kubernetes' in blob:
-            return 'tf'
-        if 'documentation' in blob or 'readme' in blob:
-            return 'md'
-        return 'py'
+        if "python" in blob or "django" in blob or "fastapi" in blob:
+            return "py"
+        if "typescript" in blob or "front" in blob or "react" in blob:
+            return "tsx"
+        if "javascript" in blob or "node" in blob or "express" in blob:
+            return "ts"
+        if "go" in blob or "golang" in blob:
+            return "go"
+        if "rust" in blob:
+            return "rs"
+        if "java" in blob or "spring" in blob:
+            return "java"
+        if "c#" in blob or "dotnet" in blob or "csharp" in blob:
+            return "cs"
+        if "terraform" in blob or "kubernetes" in blob:
+            return "tf"
+        if "documentation" in blob or "readme" in blob:
+            return "md"
+        return "py"
 
     def get_all_agents(self) -> List[str]:
         """
@@ -395,8 +398,8 @@ class AgentRegistry:
         """
         config = self.get_agent_config(name)
         if not config:
-            return 'unknown'
-        return str(config.get('capability_tier', 'unknown'))
+            return "unknown"
+        return str(config.get("capability_tier", "unknown"))
 
     def search_agents(self, query: str) -> List[str]:
         """
@@ -421,12 +424,12 @@ class AgentRegistry:
                 continue
 
             # Search in description
-            if query_lower in config.get('description', '').lower():
+            if query_lower in config.get("description", "").lower():
                 matches.append(name)
                 continue
 
             # Search in triggers
-            for trigger in config.get('triggers', []):
+            for trigger in config.get("triggers", []):
                 if query_lower in trigger.lower():
                     matches.append(name)
                     break
@@ -443,18 +446,20 @@ class AgentRegistry:
         if not self._discovered:
             self.discover_agents()
 
-        core_agents = [n for n, c in self._agents.items() if c.get('is_core', False)]
-        extended_agents = [n for n, c in self._agents.items() if not c.get('is_core', False)]
+        core_agents = [n for n, c in self._agents.items() if c.get("is_core", False)]
+        extended_agents = [
+            n for n, c in self._agents.items() if not c.get("is_core", False)
+        ]
 
         return {
-            'total_agents': len(self._agents),
-            'core_agents': len(core_agents),
-            'extended_agents': len(extended_agents),
-            'categories': len(self._categories),
-            'loaded_classes': len(self._agent_classes),
-            'category_distribution': {
+            "total_agents": len(self._agents),
+            "core_agents": len(core_agents),
+            "extended_agents": len(extended_agents),
+            "categories": len(self._categories),
+            "loaded_classes": len(self._agent_classes),
+            "category_distribution": {
                 cat: len(agents) for cat, agents in self._categories.items()
-            }
+            },
         }
 
     def export_catalog(self, output_path: Optional[Path] = None) -> Path:
@@ -474,20 +479,20 @@ class AgentRegistry:
             output_path = Path("agent_catalog.json")
 
         catalog = {
-            'agents': {
+            "agents": {
                 name: {
-                    'description': config.get('description', ''),
-                    'category': config.get('category', 'general'),
-                    'tools': config.get('tools', []),
-                    'triggers': config.get('triggers', []),
-                    'is_core': config.get('is_core', False)
+                    "description": config.get("description", ""),
+                    "category": config.get("category", "general"),
+                    "tools": config.get("tools", []),
+                    "triggers": config.get("triggers", []),
+                    "is_core": config.get("is_core", False),
                 }
                 for name, config in self._agents.items()
             },
-            'statistics': self.get_statistics()
+            "statistics": self.get_statistics(),
         }
 
-        with open(output_path, 'w') as f:
+        with open(output_path, "w") as f:
             json.dump(catalog, f, indent=2)
 
         self.logger.info(f"Exported agent catalog to {output_path}")

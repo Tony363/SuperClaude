@@ -4,12 +4,12 @@ Model configurations and specifications for SuperClaude Framework.
 Defines model capabilities, optimal use cases, and configuration management.
 """
 
-import os
 import json
-from typing import Dict, Any, Optional, List
-from pathlib import Path
-from dataclasses import dataclass, field, asdict
 import logging
+import os
+from dataclasses import asdict, dataclass, field
+from pathlib import Path
+from typing import Any, Dict, List, Optional
 
 try:  # Optional dependency for YAML config handling
     import yaml
@@ -22,6 +22,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class ModelConfig:
     """Configuration for a specific model."""
+
     name: str
     provider: str
     api_key_env: str
@@ -50,94 +51,94 @@ class ModelManager:
     """
 
     DEFAULT_CONFIGS = {
-        'gpt-5': ModelConfig(
-            name='gpt-5',
-            provider='openai',
-            api_key_env='OPENAI_API_KEY',
-            endpoint='https://api.openai.com/v1',
-            version='gpt-5',
+        "gpt-5": ModelConfig(
+            name="gpt-5",
+            provider="openai",
+            api_key_env="OPENAI_API_KEY",
+            endpoint="https://api.openai.com/v1",
+            version="gpt-5",
             temperature_default=0.7,
             max_tokens_default=50000,
             rate_limit_rpm=50,
-            rate_limit_tpm=2000000
+            rate_limit_tpm=2000000,
         ),
-        'gpt-4.1': ModelConfig(
-            name='gpt-4.1',
-            provider='openai',
-            api_key_env='OPENAI_API_KEY',
-            endpoint='https://api.openai.com/v1',
-            version='gpt-4.1',
+        "gpt-4.1": ModelConfig(
+            name="gpt-4.1",
+            provider="openai",
+            api_key_env="OPENAI_API_KEY",
+            endpoint="https://api.openai.com/v1",
+            version="gpt-4.1",
             temperature_default=0.7,
             max_tokens_default=50000,
             rate_limit_rpm=100,
-            rate_limit_tpm=1000000
+            rate_limit_tpm=1000000,
         ),
-        'gpt-4o': ModelConfig(
-            name='gpt-4o',
-            provider='openai',
-            api_key_env='OPENAI_API_KEY',
-            endpoint='https://api.openai.com/v1',
-            version='gpt-4o',
+        "gpt-4o": ModelConfig(
+            name="gpt-4o",
+            provider="openai",
+            api_key_env="OPENAI_API_KEY",
+            endpoint="https://api.openai.com/v1",
+            version="gpt-4o",
             temperature_default=0.7,
             max_tokens_default=4096,
             rate_limit_rpm=500,
-            rate_limit_tpm=1000000
+            rate_limit_tpm=1000000,
         ),
-        'gpt-4o-mini': ModelConfig(
-            name='gpt-4o-mini',
-            provider='openai',
-            api_key_env='OPENAI_API_KEY',
-            endpoint='https://api.openai.com/v1',
-            version='gpt-4o-mini',
+        "gpt-4o-mini": ModelConfig(
+            name="gpt-4o-mini",
+            provider="openai",
+            api_key_env="OPENAI_API_KEY",
+            endpoint="https://api.openai.com/v1",
+            version="gpt-4o-mini",
             temperature_default=0.7,
             max_tokens_default=4096,
             rate_limit_rpm=500,
-            rate_limit_tpm=500000
+            rate_limit_tpm=500000,
         ),
-        'claude-opus-4.1': ModelConfig(
-            name='claude-opus-4.1',
-            provider='anthropic',
-            api_key_env='ANTHROPIC_API_KEY',
-            endpoint='https://api.anthropic.com/v1',
-            version='claude-opus-4-1-20250805',
+        "claude-opus-4.1": ModelConfig(
+            name="claude-opus-4.1",
+            provider="anthropic",
+            api_key_env="ANTHROPIC_API_KEY",
+            endpoint="https://api.anthropic.com/v1",
+            version="claude-opus-4-1-20250805",
             temperature_default=0.7,
             max_tokens_default=4096,
             rate_limit_rpm=100,
-            rate_limit_tpm=400000
+            rate_limit_tpm=400000,
         ),
-        'gemini-2.5-pro': ModelConfig(
-            name='gemini-2.5-pro',
-            provider='google',
-            api_key_env='GOOGLE_API_KEY',
-            endpoint='https://generativelanguage.googleapis.com/v1beta',
-            version='gemini-2.5-pro',
+        "gemini-2.5-pro": ModelConfig(
+            name="gemini-2.5-pro",
+            provider="google",
+            api_key_env="GOOGLE_API_KEY",
+            endpoint="https://generativelanguage.googleapis.com/v1beta",
+            version="gemini-2.5-pro",
             temperature_default=0.7,
             max_tokens_default=8192,
             rate_limit_rpm=60,
-            rate_limit_tpm=2000000
+            rate_limit_tpm=2000000,
         ),
-        'grok-4': ModelConfig(
-            name='grok-4',
-            provider='xai',
-            api_key_env='XAI_API_KEY',
-            endpoint='https://api.x.ai/v1',
-            version='grok-4',
+        "grok-4": ModelConfig(
+            name="grok-4",
+            provider="xai",
+            api_key_env="XAI_API_KEY",
+            endpoint="https://api.x.ai/v1",
+            version="grok-4",
             temperature_default=0.7,
             max_tokens_default=8192,
             rate_limit_rpm=100,
-            rate_limit_tpm=500000
+            rate_limit_tpm=500000,
         ),
-        'grok-code-fast-1': ModelConfig(
-            name='grok-code-fast-1',
-            provider='xai',
-            api_key_env='XAI_API_KEY',
-            endpoint='https://api.x.ai/v1',
-            version='grok-code-fast-1',
+        "grok-code-fast-1": ModelConfig(
+            name="grok-code-fast-1",
+            provider="xai",
+            api_key_env="XAI_API_KEY",
+            endpoint="https://api.x.ai/v1",
+            version="grok-code-fast-1",
             temperature_default=0.5,
             max_tokens_default=4096,
             rate_limit_rpm=200,
-            rate_limit_tpm=500000
-        )
+            rate_limit_tpm=500000,
+        ),
     }
 
     def __init__(self, config_path: Optional[str] = None):
@@ -162,20 +163,20 @@ class ModelManager:
 
     def _load_standard_configs(self) -> None:
         """Load configurations from standard locations."""
-        env_root = os.environ.get('SUPERCLAUDE_REPO_ROOT')
+        env_root = os.environ.get("SUPERCLAUDE_REPO_ROOT")
         env_root_path = Path(env_root).expanduser() if env_root else None
 
         config_locations = [
-            Path.home() / '.claude' / 'models.yaml',
-            Path.home() / '.claude' / 'models.json',
-            Path.cwd() / 'models.yaml',
-            Path.cwd() / 'models.json',
-            Path('/etc/superclaud') / 'models.yaml'
+            Path.home() / ".claude" / "models.yaml",
+            Path.home() / ".claude" / "models.json",
+            Path.cwd() / "models.yaml",
+            Path.cwd() / "models.json",
+            Path("/etc/superclaud") / "models.yaml",
         ]
 
         if env_root_path:
-            config_locations.insert(0, env_root_path / 'models.yaml')
-            config_locations.insert(1, env_root_path / 'models.json')
+            config_locations.insert(0, env_root_path / "models.yaml")
+            config_locations.insert(1, env_root_path / "models.json")
 
         for location in config_locations:
             if location.exists():
@@ -197,8 +198,8 @@ class ModelManager:
         if not path_obj.exists():
             raise FileNotFoundError(f"Config file not found: {path}")
 
-        with open(path, 'r') as f:
-            if path.endswith('.yaml') or path.endswith('.yml'):
+        with open(path) as f:
+            if path.endswith(".yaml") or path.endswith(".yml"):
                 if yaml is None:
                     raise RuntimeError("PyYAML is required to load YAML model configs")
                 data = yaml.safe_load(f)
@@ -206,33 +207,35 @@ class ModelManager:
                 data = json.load(f)
 
         # Parse configurations
-        if 'models' in data:
-            for model_name, model_data in data['models'].items():
+        if "models" in data:
+            for model_name, model_data in data["models"].items():
                 config = ModelConfig(
                     name=model_name,
-                    provider=model_data.get('provider', 'unknown'),
-                    api_key_env=model_data.get('api_key_env', f'{model_name.upper()}_API_KEY'),
-                    endpoint=model_data.get('endpoint'),
-                    version=model_data.get('version'),
-                    temperature_default=model_data.get('temperature_default', 0.7),
-                    max_tokens_default=model_data.get('max_tokens_default', 4096),
-                    rate_limit_rpm=model_data.get('rate_limit_rpm', 60),
-                    rate_limit_tpm=model_data.get('rate_limit_tpm', 1000000),
-                    supports_streaming=model_data.get('supports_streaming', True),
-                    supports_functions=model_data.get('supports_functions', True),
-                    timeout_seconds=model_data.get('timeout_seconds', 300),
-                    retry_attempts=model_data.get('retry_attempts', 3),
-                    extra_params=model_data.get('extra_params', {})
+                    provider=model_data.get("provider", "unknown"),
+                    api_key_env=model_data.get(
+                        "api_key_env", f"{model_name.upper()}_API_KEY"
+                    ),
+                    endpoint=model_data.get("endpoint"),
+                    version=model_data.get("version"),
+                    temperature_default=model_data.get("temperature_default", 0.7),
+                    max_tokens_default=model_data.get("max_tokens_default", 4096),
+                    rate_limit_rpm=model_data.get("rate_limit_rpm", 60),
+                    rate_limit_tpm=model_data.get("rate_limit_tpm", 1000000),
+                    supports_streaming=model_data.get("supports_streaming", True),
+                    supports_functions=model_data.get("supports_functions", True),
+                    timeout_seconds=model_data.get("timeout_seconds", 300),
+                    retry_attempts=model_data.get("retry_attempts", 3),
+                    extra_params=model_data.get("extra_params", {}),
                 )
                 self.configs[model_name] = config
 
         # Load environment overrides
-        if 'environment' in data:
-            self._apply_environment_overrides(data['environment'])
+        if "environment" in data:
+            self._apply_environment_overrides(data["environment"])
 
     def _apply_environment_overrides(self, env_config: Dict[str, Any]) -> None:
         """Apply environment-based configuration overrides."""
-        current_env = os.getenv('SUPERCLAUD_ENV', 'development')
+        current_env = os.getenv("SUPERCLAUD_ENV", "development")
 
         if current_env in env_config:
             overrides = env_config[current_env]
@@ -327,19 +330,19 @@ class ModelManager:
         """
         save_path = path or self.config_path
         if not save_path:
-            save_path = str(Path.home() / '.claude' / 'models.yaml')
+            save_path = str(Path.home() / ".claude" / "models.yaml")
 
         # Convert configs to dictionary
-        config_dict = {'models': {}}
+        config_dict = {"models": {}}
         for model_name, config in self.configs.items():
-            config_dict['models'][model_name] = asdict(config)
+            config_dict["models"][model_name] = asdict(config)
 
         # Ensure directory exists
         Path(save_path).parent.mkdir(parents=True, exist_ok=True)
 
         # Save based on extension
-        with open(save_path, 'w') as f:
-            if save_path.endswith('.yaml') or save_path.endswith('.yml'):
+        with open(save_path, "w") as f:
+            if save_path.endswith(".yaml") or save_path.endswith(".yml"):
                 if yaml is None:
                     raise RuntimeError("PyYAML is required to save YAML model configs")
                 yaml.safe_dump(config_dict, f, default_flow_style=False, indent=2)
@@ -392,29 +395,29 @@ class ModelManager:
             Dictionary with all model configurations
         """
         manifest = {
-            'version': '1.0.0',
-            'total_models': len(self.configs),
-            'providers': {},
-            'models': {}
+            "version": "1.0.0",
+            "total_models": len(self.configs),
+            "providers": {},
+            "models": {},
         }
 
         # Group by provider
         for model_name, config in self.configs.items():
             provider = config.provider
-            if provider not in manifest['providers']:
-                manifest['providers'][provider] = []
-            manifest['providers'][provider].append(model_name)
+            if provider not in manifest["providers"]:
+                manifest["providers"][provider] = []
+            manifest["providers"][provider].append(model_name)
 
             # Add model details
-            manifest['models'][model_name] = {
-                'provider': config.provider,
-                'has_api_key': self.has_api_key(model_name),
-                'endpoint': config.endpoint,
-                'max_tokens': config.max_tokens_default,
-                'rate_limits': {
-                    'rpm': config.rate_limit_rpm,
-                    'tpm': config.rate_limit_tpm
-                }
+            manifest["models"][model_name] = {
+                "provider": config.provider,
+                "has_api_key": self.has_api_key(model_name),
+                "endpoint": config.endpoint,
+                "max_tokens": config.max_tokens_default,
+                "rate_limits": {
+                    "rpm": config.rate_limit_rpm,
+                    "tpm": config.rate_limit_tpm,
+                },
             }
 
         return manifest

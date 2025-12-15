@@ -6,34 +6,30 @@ import asyncio
 import copy
 import hashlib
 import json
-import pytest
-from pathlib import Path
 import sys
-from datetime import datetime, timedelta
-from types import SimpleNamespace
+from datetime import timedelta
+from pathlib import Path
 from typing import Any, Dict
+
+import pytest
 
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 # Note: APIClients imports removed - module was deleted in cleanup
-from SuperClaude.ModelRouter import (
-    ModelRouter,
-    RoutingDecision,
-    ModelManager,
-    ConsensusBuilder,
-    VoteType,
-    Stance,
-    ModelRouterFacade
-)
 from SuperClaude.Commands import (
+    CommandContext,
     CommandExecutor,
     CommandParser,
     CommandRegistry,
-    CommandContext,
-    CommandMetadata
 )
-from SuperClaude.Quality.quality_scorer import QualityScorer
+from SuperClaude.ModelRouter import (
+    ConsensusBuilder,
+    ModelManager,
+    ModelRouter,
+    ModelRouterFacade,
+    VoteType,
+)
 
 
 def run(coro):
@@ -67,7 +63,9 @@ def _build_fixture_executor(payload: Dict[str, Any]):
     return executor
 
 
-def _deterministic_executor(decision: Any, confidence: float = 0.8, provider: str = "test"):
+def _deterministic_executor(
+    decision: Any, confidence: float = 0.8, provider: str = "test"
+):
     async def executor(prompt: str) -> Dict[str, Any]:
         tokens = len(prompt.split()) or 1
         metadata = {
@@ -95,8 +93,8 @@ class TestModelRouter:
         router = ModelRouter()
 
         # Route standard task
-        decision = router.route(task_type='standard')
-        assert decision.primary_model in ['gpt-4o', 'claude-opus-4.1', 'gpt-5']
+        decision = router.route(task_type="standard")
+        assert decision.primary_model in ["gpt-4o", "claude-opus-4.1", "gpt-5"]
         assert len(decision.fallback_chain) > 0
         assert decision.confidence > 0
 
@@ -105,8 +103,8 @@ class TestModelRouter:
         router = ModelRouter()
 
         # Route deep thinking task
-        decision = router.route(task_type='deep_thinking', think_level=3)
-        assert decision.primary_model in ['gpt-5', 'claude-opus-4.1']
+        decision = router.route(task_type="deep_thinking", think_level=3)
+        assert decision.primary_model in ["gpt-5", "claude-opus-4.1"]
         assert decision.token_budget >= 50000
 
     def test_long_context_routing(self):
@@ -115,24 +113,24 @@ class TestModelRouter:
 
         # Route with large context
         decision = router.route(context_size=500000)
-        assert decision.primary_model in ['gemini-2.5-pro', 'gpt-4.1', 'gpt-5']
-        assert 'Long context' in decision.reason
+        assert decision.primary_model in ["gemini-2.5-pro", "gpt-4.1", "gpt-5"]
+        assert "Long context" in decision.reason
 
     def test_force_model(self):
         """Test forcing specific model."""
         router = ModelRouter()
 
         # Force specific model
-        decision = router.route(force_model='gpt-5')
-        assert decision.primary_model == 'gpt-5'
-        assert 'Forced' in decision.reason
+        decision = router.route(force_model="gpt-5")
+        assert decision.primary_model == "gpt-5"
+        assert "Forced" in decision.reason
 
     def test_exclude_models(self):
         """Test excluding models from selection."""
         router = ModelRouter()
 
         # Exclude models
-        excluded = ['gpt-5', 'gemini-2.5-pro']
+        excluded = ["gpt-5", "gemini-2.5-pro"]
         decision = router.route(excluded_models=excluded)
         assert decision.primary_model not in excluded
         assert all(m not in excluded for m in decision.fallback_chain)
@@ -151,21 +149,21 @@ class TestModelRouter:
         router = ModelRouter()
 
         # Mark model unavailable
-        router.mark_unavailable('gpt-5', duration=timedelta(seconds=10))
+        router.mark_unavailable("gpt-5", duration=timedelta(seconds=10))
 
         # Check availability
-        assert not router._is_available('gpt-5')
+        assert not router._is_available("gpt-5")
 
         # Route should avoid unavailable model
-        decision = router.route(task_type='deep_thinking')
-        assert decision.primary_model != 'gpt-5'
+        decision = router.route(task_type="deep_thinking")
+        assert decision.primary_model != "gpt-5"
 
     def test_route_honors_excluded_models(self):
         router = ModelRouter()
 
-        decision = router.route(excluded_models=['gpt-5', 'claude-opus-4.1'])
+        decision = router.route(excluded_models=["gpt-5", "claude-opus-4.1"])
 
-        assert decision.primary_model not in {'gpt-5', 'claude-opus-4.1'}
+        assert decision.primary_model not in {"gpt-5", "claude-opus-4.1"}
 
 
 class TestModelManager:
@@ -176,17 +174,17 @@ class TestModelManager:
         manager = ModelManager()
 
         # Check default models exist
-        assert manager.get_config('gpt-5') is not None
-        assert manager.get_config('claude-opus-4.1') is not None
-        assert manager.get_config('gemini-2.5-pro') is not None
+        assert manager.get_config("gpt-5") is not None
+        assert manager.get_config("claude-opus-4.1") is not None
+        assert manager.get_config("gemini-2.5-pro") is not None
 
     def test_update_config(self):
         """Test updating model configuration."""
         manager = ModelManager()
 
         # Update configuration
-        manager.update_config('gpt-5', temperature_default=0.5)
-        config = manager.get_config('gpt-5')
+        manager.update_config("gpt-5", temperature_default=0.5)
+        config = manager.get_config("gpt-5")
         assert config.temperature_default == 0.5
 
     def test_get_provider_models(self):
@@ -194,9 +192,9 @@ class TestModelManager:
         manager = ModelManager()
 
         # Get OpenAI models
-        openai_models = manager.get_provider_models('openai')
-        assert 'gpt-5' in openai_models
-        assert 'gpt-4o' in openai_models
+        openai_models = manager.get_provider_models("openai")
+        assert "gpt-5" in openai_models
+        assert "gpt-4o" in openai_models
 
     def test_validate_configs(self):
         """Test configuration validation."""
@@ -215,43 +213,57 @@ class TestConsensusBuilder:
         """Test majority voting consensus."""
         builder = ConsensusBuilder()
 
-        builder.register_executor('gpt-5', _deterministic_executor('Yes', confidence=0.82, provider='openai'))
-        builder.register_executor('claude-opus-4.1', _deterministic_executor('Yes', confidence=0.78, provider='anthropic'))
-        builder.register_executor('gpt-4.1', _deterministic_executor('Yes', confidence=0.75, provider='openai'))
+        builder.register_executor(
+            "gpt-5", _deterministic_executor("Yes", confidence=0.82, provider="openai")
+        )
+        builder.register_executor(
+            "claude-opus-4.1",
+            _deterministic_executor("Yes", confidence=0.78, provider="anthropic"),
+        )
+        builder.register_executor(
+            "gpt-4.1",
+            _deterministic_executor("Yes", confidence=0.75, provider="openai"),
+        )
 
         # Build consensus
         result = run(
             builder.build_consensus(
                 prompt="Should we implement this feature?",
-                models=['gpt-5', 'claude-opus-4.1', 'gpt-4.1'],
+                models=["gpt-5", "claude-opus-4.1", "gpt-4.1"],
                 vote_type=VoteType.MAJORITY,
             )
         )
 
         assert result.consensus_reached == True
-        assert result.final_decision == 'Yes'
+        assert result.final_decision == "Yes"
         assert len(result.votes) == 3
 
     def test_quorum_vote(self):
         """Test quorum voting consensus."""
         builder = ConsensusBuilder()
 
-        builder.register_executor('model1', _deterministic_executor('A', confidence=0.9, provider='test'))
-        builder.register_executor('model2', _deterministic_executor('A', confidence=0.8, provider='test'))
-        builder.register_executor('model3', _deterministic_executor('B', confidence=0.7, provider='test'))
+        builder.register_executor(
+            "model1", _deterministic_executor("A", confidence=0.9, provider="test")
+        )
+        builder.register_executor(
+            "model2", _deterministic_executor("A", confidence=0.8, provider="test")
+        )
+        builder.register_executor(
+            "model3", _deterministic_executor("B", confidence=0.7, provider="test")
+        )
 
         # Build consensus with quorum of 2
         result = run(
             builder.build_consensus(
                 prompt="Choose option",
-                models=['model1', 'model2', 'model3'],
+                models=["model1", "model2", "model3"],
                 vote_type=VoteType.QUORUM,
                 quorum_size=2,
             )
         )
 
         assert result.consensus_reached == True
-        assert result.final_decision == 'A'
+        assert result.final_decision == "A"
 
     def test_debate_consensus(self):
         """Test debate-style consensus."""
@@ -259,29 +271,31 @@ class TestConsensusBuilder:
 
         async def debate_executor(prompt: str) -> Dict[str, Any]:
             if "FOR" in prompt.upper():
-                decision = {'decision': 'approve', 'stance': 'FOR'}
+                decision = {"decision": "approve", "stance": "FOR"}
             elif "AGAINST" in prompt.upper():
-                decision = {'decision': 'revise', 'stance': 'AGAINST'}
+                decision = {"decision": "revise", "stance": "AGAINST"}
             else:
-                decision = {'decision': 'neutral', 'stance': 'NEUTRAL'}
+                decision = {"decision": "neutral", "stance": "NEUTRAL"}
             tokens = len(prompt.split()) or 1
             return {
-                'response': decision,
-                'confidence': 0.75,
-                'reasoning': f"Debate response for stance {decision['stance']}",
-                'tokens_used': tokens,
-                'metadata': {'prompt_hash': hashlib.sha1(prompt.encode('utf-8')).hexdigest()},
+                "response": decision,
+                "confidence": 0.75,
+                "reasoning": f"Debate response for stance {decision['stance']}",
+                "tokens_used": tokens,
+                "metadata": {
+                    "prompt_hash": hashlib.sha1(prompt.encode("utf-8")).hexdigest()
+                },
             }
 
-        builder.register_executor('gpt-5', debate_executor)
-        builder.register_executor('claude-opus-4.1', debate_executor)
-        builder.register_executor('gpt-4.1', debate_executor)
+        builder.register_executor("gpt-5", debate_executor)
+        builder.register_executor("claude-opus-4.1", debate_executor)
+        builder.register_executor("gpt-4.1", debate_executor)
 
         # Run debate
         result = run(
             builder.debate_consensus(
                 topic="Should we use microservices architecture?",
-                models=['gpt-5', 'claude-opus-4.1', 'gpt-4.1'],
+                models=["gpt-5", "claude-opus-4.1", "gpt-4.1"],
                 rounds=1,
             )
         )
@@ -302,32 +316,42 @@ class TestModelRouterFacade:
         result = run(facade.run_consensus("Implementation completed successfully."))
 
         assert isinstance(result, dict)
-        assert 'consensus_reached' in result
-        assert 'votes' in result
-        assert isinstance(result['votes'], list)
-        assert result['consensus_reached'] is True
+        assert "consensus_reached" in result
+        assert "votes" in result
+        assert isinstance(result["votes"], list)
+        assert result["consensus_reached"] is True
 
     def test_facade_supports_custom_models(self):
         facade = ModelRouterFacade(offline=True)
 
         async def approve(prompt: str):
-            return {'response': 'approve', 'confidence': 0.8, 'reasoning': 'positive', 'tokens_used': 50}
+            return {
+                "response": "approve",
+                "confidence": 0.8,
+                "reasoning": "positive",
+                "tokens_used": 50,
+            }
 
         async def reject(prompt: str):
-            return {'response': 'reject', 'confidence': 0.8, 'reasoning': 'negative', 'tokens_used': 50}
+            return {
+                "response": "reject",
+                "confidence": 0.8,
+                "reasoning": "negative",
+                "tokens_used": 50,
+            }
 
-        facade.consensus.register_executor('model-approve', approve)
-        facade.consensus.register_executor('model-reject', reject)
+        facade.consensus.register_executor("model-approve", approve)
+        facade.consensus.register_executor("model-reject", reject)
 
         result = run(
             facade.run_consensus(
                 "Build failed with critical error.",
-                models=['model-approve', 'model-reject']
+                models=["model-approve", "model-reject"],
             )
         )
 
-        assert result['consensus_reached'] is False
-        assert result['final_decision'] is None
+        assert result["consensus_reached"] is False
+        assert result["final_decision"] is None
 
     def test_facade_respects_think_level(self):
         facade = ModelRouterFacade(offline=True)
@@ -335,25 +359,21 @@ class TestModelRouterFacade:
         _register_uniform_stub_executors(facade)
 
         deep_result = run(
-            facade.run_consensus(
-                "Design a complex distributed system",
-                think_level=3
-            )
+            facade.run_consensus("Design a complex distributed system", think_level=3)
         )
-        quick_result = run(
-            facade.run_consensus(
-                "Quick lint fix",
-                think_level=1
-            )
-        )
+        quick_result = run(facade.run_consensus("Quick lint fix", think_level=1))
 
-        assert deep_result['think_level'] == 3
-        assert quick_result['think_level'] == 1
-        assert deep_result['routing_decision']['primary_model'] in {
-            'gpt-5', 'claude-opus-4.1', 'gemini-2.5-pro'
+        assert deep_result["think_level"] == 3
+        assert quick_result["think_level"] == 1
+        assert deep_result["routing_decision"]["primary_model"] in {
+            "gpt-5",
+            "claude-opus-4.1",
+            "gemini-2.5-pro",
         }
-        assert quick_result['routing_decision']['primary_model'] in {
-            'gpt-4o', 'gpt-4o-mini', 'grok-code-fast-1'
+        assert quick_result["routing_decision"]["primary_model"] in {
+            "gpt-4o",
+            "gpt-4o-mini",
+            "grok-code-fast-1",
         }
 
     def test_facade_consensus_with_recorded_fixture(self, consensus_fixtures):
@@ -363,19 +383,21 @@ class TestModelRouterFacade:
         approve_fixture = consensus_fixtures["approve"]
 
         for model_name, payload in approve_fixture.items():
-            facade.consensus.register_executor(model_name, _build_fixture_executor(payload))
+            facade.consensus.register_executor(
+                model_name, _build_fixture_executor(payload)
+            )
 
         result = run(
             facade.run_consensus(
                 "All acceptance criteria satisfied; proceed?",
-                models=list(approve_fixture.keys())
+                models=list(approve_fixture.keys()),
             )
         )
 
-        assert result['consensus_reached'] is True
-        assert result['final_decision']['decision'] == 'approve'
-        assert result['offline'] is True
-        assert len(result['votes']) == len(approve_fixture)
+        assert result["consensus_reached"] is True
+        assert result["final_decision"]["decision"] == "approve"
+        assert result["offline"] is True
+        assert len(result["votes"]) == len(approve_fixture)
 
     def test_facade_records_disagreements_from_fixture(self, consensus_fixtures):
         facade = ModelRouterFacade(offline=True)
@@ -384,31 +406,35 @@ class TestModelRouterFacade:
         split_fixture = consensus_fixtures["split"]
 
         for model_name, payload in split_fixture.items():
-            facade.consensus.register_executor(model_name, _build_fixture_executor(payload))
+            facade.consensus.register_executor(
+                model_name, _build_fixture_executor(payload)
+            )
 
         result = run(
             facade.run_consensus(
-                "Risky deployment detected; proceed?",
-                models=list(split_fixture.keys())
+                "Risky deployment detected; proceed?", models=list(split_fixture.keys())
             )
         )
 
-        assert len(result['disagreements']) >= 1
-        responses = {vote['response']['decision'] for vote in result['votes'] if isinstance(vote['response'], dict)}
-        assert responses == {'approve', 'revise'}
+        assert len(result["disagreements"]) >= 1
+        responses = {
+            vote["response"]["decision"]
+            for vote in result["votes"]
+            if isinstance(vote["response"], dict)
+        }
+        assert responses == {"approve", "revise"}
 
     def test_facade_reports_missing_executors(self):
         facade = ModelRouterFacade(offline=True)
         result = run(
             facade.run_consensus(
                 "Should fail when no executors are available?",
-                models=['gpt-4o'],
+                models=["gpt-4o"],
             )
         )
 
-        assert result['consensus_reached'] is False
-        assert 'No consensus executors registered' in result['error']
-
+        assert result["consensus_reached"] is False
+        assert "No consensus executors registered" in result["error"]
 
     # Note: test_facade_invokes_openai_provider_with_api_key removed - APIClients module was deleted in cleanup
 
@@ -423,46 +449,41 @@ def test_executor_think_flag_routes_models(monkeypatch):
     original_route = ModelRouter.route
 
     def tracking_route(self, *args, **kwargs):
-        recorded['think_level'] = kwargs.get('think_level')
+        recorded["think_level"] = kwargs.get("think_level")
         return original_route(self, *args, **kwargs)
 
-    parsed = parser.parse('/sc:implement --think 3')
-    metadata = registry.get_command('implement')
+    parsed = parser.parse("/sc:implement --think 3")
+    metadata = registry.get_command("implement")
     assert metadata is not None
     context = CommandContext(
-        command=parsed,
-        metadata=metadata,
-        session_id='test-session'
+        command=parsed, metadata=metadata, session_id="test-session"
     )
-    context.results['mode'] = {}
-    context.results['behavior_mode'] = context.behavior_mode
-    context.results['flags'] = sorted(parsed.flags.keys())
-    context.results.setdefault('executed_operations', [])
-    context.results.setdefault('applied_changes', [])
-    context.results.setdefault('artifacts', [])
+    context.results["mode"] = {}
+    context.results["behavior_mode"] = context.behavior_mode
+    context.results["flags"] = sorted(parsed.flags.keys())
+    context.results.setdefault("executed_operations", [])
+    context.results.setdefault("applied_changes", [])
+    context.results.setdefault("artifacts", [])
 
     executor._apply_execution_flags(context)
 
     async def stub_consensus(prompt, **kwargs):
-        recorded['consensus_think'] = kwargs.get('think_level')
+        recorded["consensus_think"] = kwargs.get("think_level")
         decision = executor.consensus_facade.router.route(
-            task_type=kwargs.get('task_type', 'consensus'),
-            think_level=recorded['consensus_think']
+            task_type=kwargs.get("task_type", "consensus"),
+            think_level=recorded["consensus_think"],
         )
         return {
-            'consensus_reached': True,
-            'final_decision': {'decision': 'approve'},
-            'votes': [],
-            'think_level': recorded['consensus_think'],
-            'routing_decision': executor.consensus_facade._serialize_routing(decision)
+            "consensus_reached": True,
+            "final_decision": {"decision": "approve"},
+            "votes": [],
+            "think_level": recorded["consensus_think"],
+            "routing_decision": executor.consensus_facade._serialize_routing(decision),
         }
 
     monkeypatch.setattr(ModelRouter, "route", tracking_route)
     monkeypatch.setattr(
-        executor.consensus_facade,
-        "run_consensus",
-        stub_consensus,
-        raising=False
+        executor.consensus_facade, "run_consensus", stub_consensus, raising=False
     )
 
     result = run(
@@ -470,18 +491,22 @@ def test_executor_think_flag_routes_models(monkeypatch):
             context,
             output={},
             enforce=context.consensus_forced,
-            think_level=context.think_level
+            think_level=context.think_level,
         )
     )
 
-    assert context.results.get('think_level') == 3
-    assert recorded.get('think_level') == 3
-    assert recorded.get('consensus_think') == 3
+    assert context.results.get("think_level") == 3
+    assert recorded.get("think_level") == 3
+    assert recorded.get("consensus_think") == 3
     assert context.think_level == 3
-    assert result['think_level'] == 3
+    assert result["think_level"] == 3
     assert context.consensus_summary is not None
-    assert context.consensus_summary.get('think_level') == 3
-def _register_uniform_stub_executors(facade: ModelRouterFacade, decision: str = 'approve') -> None:
+    assert context.consensus_summary.get("think_level") == 3
+
+
+def _register_uniform_stub_executors(
+    facade: ModelRouterFacade, decision: str = "approve"
+) -> None:
     """Register simple deterministic executors for every known model."""
 
     for model_name in facade.router.MODEL_CAPABILITIES.keys():
@@ -490,19 +515,19 @@ def _register_uniform_stub_executors(facade: ModelRouterFacade, decision: str = 
             tokens = len(prompt.split()) or 1
             reasoning = f"{model} voting {decision} for prompt ({tokens} tokens)"
             return {
-                'response': {
-                    'decision': decision,
-                    'confidence': 0.8,
-                    'reasoning': reasoning,
+                "response": {
+                    "decision": decision,
+                    "confidence": 0.8,
+                    "reasoning": reasoning,
                 },
-                'confidence': 0.8,
-                'reasoning': reasoning,
-                'tokens_used': max(32, tokens * 4),
-                'metadata': {
-                    'model': model,
-                    'source': 'uniform_stub',
-                    'prompt_hash': hashlib.sha1(prompt.encode('utf-8')).hexdigest(),
-                }
+                "confidence": 0.8,
+                "reasoning": reasoning,
+                "tokens_used": max(32, tokens * 4),
+                "metadata": {
+                    "model": model,
+                    "source": "uniform_stub",
+                    "prompt_hash": hashlib.sha1(prompt.encode("utf-8")).hexdigest(),
+                },
             }
 
         facade.consensus.register_executor(model_name, executor)

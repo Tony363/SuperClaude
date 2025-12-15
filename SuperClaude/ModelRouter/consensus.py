@@ -5,19 +5,20 @@ Implements consensus mechanisms for critical decisions using multiple models.
 """
 
 import asyncio
-import logging
-from typing import Dict, List, Any, Optional, Tuple, Callable
-from dataclasses import dataclass, field
-from enum import Enum
-from datetime import datetime
-import json
 import hashlib
+import json
+import logging
+from dataclasses import dataclass, field
+from datetime import datetime
+from enum import Enum
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 
 
 class VoteType(Enum):
     """Types of voting mechanisms."""
+
     MAJORITY = "majority"  # Simple majority
     UNANIMOUS = "unanimous"  # All must agree
     QUORUM = "quorum"  # Minimum number must agree
@@ -26,6 +27,7 @@ class VoteType(Enum):
 
 class Stance(Enum):
     """Model stance for debate-style consensus."""
+
     FOR = "for"
     AGAINST = "against"
     NEUTRAL = "neutral"
@@ -34,6 +36,7 @@ class Stance(Enum):
 @dataclass
 class ModelVote:
     """Individual model's vote/response."""
+
     model_name: str
     response: Any
     confidence: float  # 0.0-1.0
@@ -47,6 +50,7 @@ class ModelVote:
 @dataclass
 class ConsensusResult:
     """Result of consensus building."""
+
     consensus_reached: bool
     final_decision: Any
     votes: List[ModelVote]
@@ -79,7 +83,9 @@ class ConsensusBuilder:
         """
         self.router = router
         self.execution_cache: Dict[str, ConsensusResult] = {}
-        self.model_executors: Dict[str, Callable] = {}  # Model name to executor function
+        self.model_executors: Dict[
+            str, Callable
+        ] = {}  # Model name to executor function
 
     def register_executor(self, model_name: str, executor: Callable) -> None:
         """
@@ -91,13 +97,15 @@ class ConsensusBuilder:
         """
         self.model_executors[model_name] = executor
 
-    async def build_consensus(self,
-                              prompt: str,
-                              models: Optional[List[str]] = None,
-                              vote_type: VoteType = VoteType.MAJORITY,
-                              quorum_size: int = 2,
-                              stances: Optional[Dict[str, Stance]] = None,
-                              context: Optional[Dict[str, Any]] = None) -> ConsensusResult:
+    async def build_consensus(
+        self,
+        prompt: str,
+        models: Optional[List[str]] = None,
+        vote_type: VoteType = VoteType.MAJORITY,
+        quorum_size: int = 2,
+        stances: Optional[Dict[str, Stance]] = None,
+        context: Optional[Dict[str, Any]] = None,
+    ) -> ConsensusResult:
         """
         Build consensus across multiple models.
 
@@ -119,7 +127,7 @@ class ConsensusBuilder:
             if self.router:
                 models = self.router.get_ensemble(size=3)
             else:
-                models = ['gpt-5', 'claude-opus-4.1', 'gpt-4.1']
+                models = ["gpt-5", "claude-opus-4.1", "gpt-4.1"]
 
         # Check cache
         cache_key = self._generate_cache_key(prompt, models, vote_type)
@@ -134,7 +142,9 @@ class ConsensusBuilder:
         votes = await self._execute_models_parallel(model_prompts)
 
         # Analyze votes based on vote type
-        consensus_reached, final_decision = self._analyze_votes(votes, vote_type, quorum_size)
+        consensus_reached, final_decision = self._analyze_votes(
+            votes, vote_type, quorum_size
+        )
 
         # Identify disagreements
         disagreements = self._identify_disagreements(votes)
@@ -159,7 +169,7 @@ class ConsensusBuilder:
             disagreements=disagreements,
             synthesis=synthesis,
             total_tokens=total_tokens,
-            total_time=total_time
+            total_time=total_time,
         )
 
         # Cache result
@@ -170,19 +180,21 @@ class ConsensusBuilder:
     def _normalize_vote_response(self, response: Any) -> str:
         """Normalize vote response for aggregation."""
         if isinstance(response, dict):
-            if 'decision' in response:
-                return str(response['decision'])
+            if "decision" in response:
+                return str(response["decision"])
             try:
                 return json.dumps(response, sort_keys=True)
             except TypeError:
                 return str(response)
         return str(response)
 
-    def _prepare_prompts(self,
-                         base_prompt: str,
-                         models: List[str],
-                         stances: Optional[Dict[str, Stance]],
-                         context: Optional[Dict[str, Any]]) -> Dict[str, str]:
+    def _prepare_prompts(
+        self,
+        base_prompt: str,
+        models: List[str],
+        stances: Optional[Dict[str, Stance]],
+        context: Optional[Dict[str, Any]],
+    ) -> Dict[str, str]:
         """
         Prepare model-specific prompts with stances.
 
@@ -204,14 +216,19 @@ class ConsensusBuilder:
             if stances and model in stances:
                 stance = stances[model]
                 if stance == Stance.FOR:
-                    prompt_parts.append("You are arguing FOR this proposal. "
-                                        "Provide strong supporting arguments.")
+                    prompt_parts.append(
+                        "You are arguing FOR this proposal. "
+                        "Provide strong supporting arguments."
+                    )
                 elif stance == Stance.AGAINST:
-                    prompt_parts.append("You are arguing AGAINST this proposal. "
-                                        "Provide strong opposing arguments.")
+                    prompt_parts.append(
+                        "You are arguing AGAINST this proposal. "
+                        "Provide strong opposing arguments."
+                    )
                 else:
-                    prompt_parts.append("You are taking a NEUTRAL stance. "
-                                        "Provide balanced analysis.")
+                    prompt_parts.append(
+                        "You are taking a NEUTRAL stance. Provide balanced analysis."
+                    )
 
             # Add context if provided
             if context:
@@ -221,18 +238,21 @@ class ConsensusBuilder:
             prompt_parts.append(base_prompt)
 
             # Add structured response request
-            prompt_parts.append("\n\nProvide your response with:\n"
-                                "1. Your decision/answer\n"
-                                "2. Key reasoning points\n"
-                                "3. Confidence level (0-100%)\n"
-                                "4. Any caveats or concerns")
+            prompt_parts.append(
+                "\n\nProvide your response with:\n"
+                "1. Your decision/answer\n"
+                "2. Key reasoning points\n"
+                "3. Confidence level (0-100%)\n"
+                "4. Any caveats or concerns"
+            )
 
             prompts[model] = "\n\n".join(prompt_parts)
 
         return prompts
 
-    async def _execute_models_parallel(self,
-                                        model_prompts: Dict[str, str]) -> List[ModelVote]:
+    async def _execute_models_parallel(
+        self, model_prompts: Dict[str, str]
+    ) -> List[ModelVote]:
         """
         Execute multiple models in parallel.
 
@@ -259,9 +279,9 @@ class ConsensusBuilder:
                     model_name=model_name,
                     response=None,
                     confidence=0.0,
-                    reasoning=f"Execution failed: {str(results[i])}",
+                    reasoning=f"Execution failed: {results[i]!s}",
                     tokens_used=0,
-                    execution_time=0.0
+                    execution_time=0.0,
                 )
             else:
                 vote = results[i]
@@ -291,12 +311,12 @@ class ConsensusBuilder:
                 # Parse result (assumes executor returns dict with expected fields)
                 return ModelVote(
                     model_name=model_name,
-                    response=result.get('response'),
-                    confidence=result.get('confidence', 0.8),
-                    reasoning=result.get('reasoning', ''),
-                    tokens_used=result.get('tokens_used', 0),
+                    response=result.get("response"),
+                    confidence=result.get("confidence", 0.8),
+                    reasoning=result.get("reasoning", ""),
+                    tokens_used=result.get("tokens_used", 0),
                     execution_time=(datetime.now() - start_time).total_seconds(),
-                    metadata=result.get('metadata', {})
+                    metadata=result.get("metadata", {}),
                 )
             except Exception as e:
                 logger.error(f"Executor failed for {model_name}: {e}")
@@ -305,10 +325,9 @@ class ConsensusBuilder:
         # No executor configured – surface an explicit failure so gather() records it.
         raise RuntimeError(f"No consensus executor registered for model '{model_name}'")
 
-    def _analyze_votes(self,
-                       votes: List[ModelVote],
-                       vote_type: VoteType,
-                       quorum_size: int) -> Tuple[bool, Any]:
+    def _analyze_votes(
+        self, votes: List[ModelVote], vote_type: VoteType, quorum_size: int
+    ) -> Tuple[bool, Any]:
         """
         Analyze votes to determine consensus.
 
@@ -371,7 +390,9 @@ class ConsensusBuilder:
             for vote in valid_votes:
                 response_str = str(vote.response)
                 weight = vote.confidence
-                weighted_responses[response_str] = weighted_responses.get(response_str, 0) + weight
+                weighted_responses[response_str] = (
+                    weighted_responses.get(response_str, 0) + weight
+                )
                 total_weight += weight
                 if response_str not in response_map:
                     response_map[response_str] = vote.response
@@ -416,10 +437,11 @@ class ConsensusBuilder:
         if len(response_groups) > 1:
             for response_str, group_votes in response_groups.items():
                 disagreement = {
-                    'response': response_str,
-                    'models': [v.model_name for v in group_votes],
-                    'average_confidence': sum(v.confidence for v in group_votes) / len(group_votes),
-                    'reasoning': [v.reasoning for v in group_votes]
+                    "response": response_str,
+                    "models": [v.model_name for v in group_votes],
+                    "average_confidence": sum(v.confidence for v in group_votes)
+                    / len(group_votes),
+                    "reasoning": [v.reasoning for v in group_votes],
                 }
                 disagreements.append(disagreement)
 
@@ -451,10 +473,9 @@ class ConsensusBuilder:
 
         return weighted_agreement
 
-    def _synthesize_results(self,
-                            votes: List[ModelVote],
-                            consensus_reached: bool,
-                            final_decision: Any) -> str:
+    def _synthesize_results(
+        self, votes: List[ModelVote], consensus_reached: bool, final_decision: Any
+    ) -> str:
         """
         Synthesize results into summary.
 
@@ -471,7 +492,7 @@ class ConsensusBuilder:
         if consensus_reached:
             synthesis_parts.append(f"✅ Consensus reached: {final_decision}")
         else:
-            synthesis_parts.append(f"⚠️ No consensus reached")
+            synthesis_parts.append("⚠️ No consensus reached")
             if final_decision:
                 synthesis_parts.append(f"Closest agreement: {final_decision}")
 
@@ -480,34 +501,36 @@ class ConsensusBuilder:
         for vote in votes:
             if vote.response is not None:
                 confidence_pct = int(vote.confidence * 100)
-                synthesis_parts.append(f"- {vote.model_name} ({confidence_pct}%): {vote.response}")
+                synthesis_parts.append(
+                    f"- {vote.model_name} ({confidence_pct}%): {vote.response}"
+                )
 
         # Add key reasoning points
         if any(v.reasoning for v in votes):
             synthesis_parts.append("\nKey reasoning:")
             for vote in votes:
                 if vote.reasoning:
-                    synthesis_parts.append(f"- {vote.model_name}: {vote.reasoning[:200]}")
+                    synthesis_parts.append(
+                        f"- {vote.model_name}: {vote.reasoning[:200]}"
+                    )
 
         return "\n".join(synthesis_parts)
 
-    def _generate_cache_key(self,
-                            prompt: str,
-                            models: List[str],
-                            vote_type: VoteType) -> str:
+    def _generate_cache_key(
+        self, prompt: str, models: List[str], vote_type: VoteType
+    ) -> str:
         """Generate cache key for consensus result."""
         key_parts = [
             prompt[:100],  # First 100 chars of prompt
             ",".join(sorted(models)),
-            vote_type.value
+            vote_type.value,
         ]
         key_str = "|".join(key_parts)
         return hashlib.md5(key_str.encode()).hexdigest()
 
-    async def debate_consensus(self,
-                               topic: str,
-                               models: Optional[List[str]] = None,
-                               rounds: int = 2) -> ConsensusResult:
+    async def debate_consensus(
+        self, topic: str, models: Optional[List[str]] = None, rounds: int = 2
+    ) -> ConsensusResult:
         """
         Run debate-style consensus with multiple rounds.
 
@@ -520,7 +543,7 @@ class ConsensusBuilder:
             ConsensusResult after debate
         """
         if not models:
-            models = ['gpt-5', 'claude-opus-4.1', 'gpt-4.1'] if self.router else []
+            models = ["gpt-5", "claude-opus-4.1", "gpt-4.1"] if self.router else []
 
         # Assign stances
         stances = {}
@@ -537,21 +560,23 @@ class ConsensusBuilder:
             prompt=f"Debate topic: {topic}",
             models=models,
             vote_type=VoteType.WEIGHTED,
-            stances=stances
+            stances=stances,
         )
 
         # Run additional rounds if no consensus
         current_round = 1
         while current_round < rounds and not result.consensus_reached:
             # Prepare follow-up prompt with previous results
-            follow_up = f"Previous round results:\n{result.synthesis}\n\n" \
-                        f"Round {current_round + 1}: Respond to other perspectives"
+            follow_up = (
+                f"Previous round results:\n{result.synthesis}\n\n"
+                f"Round {current_round + 1}: Respond to other perspectives"
+            )
 
             result = await self.build_consensus(
                 prompt=follow_up,
                 models=models,
                 vote_type=VoteType.WEIGHTED,
-                stances=stances
+                stances=stances,
             )
             current_round += 1
 

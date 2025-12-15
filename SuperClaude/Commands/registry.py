@@ -5,13 +5,13 @@ Provides automatic discovery, registration, and execution of /sc: commands.
 Integrates with MCP servers and agent system for comprehensive functionality.
 """
 
+import logging
 import os
 import re
-from pathlib import Path
-from typing import Dict, List, Any, Optional, Tuple
 from dataclasses import dataclass, field
 from functools import lru_cache
-import logging
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple
 
 try:  # Optional dependency
     import yaml
@@ -24,6 +24,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class CommandMetadata:
     """Metadata for a registered command."""
+
     name: str
     description: str
     category: str
@@ -58,9 +59,9 @@ class CommandRegistry:
         Args:
             commands_dir: Path to commands directory (defaults to Commands/)
         """
-        self.commands_dir = Path(commands_dir or os.path.join(
-            os.path.dirname(__file__), '.'
-        ))
+        self.commands_dir = Path(
+            commands_dir or os.path.join(os.path.dirname(__file__), ".")
+        )
         self.commands: Dict[str, CommandMetadata] = {}
         self.categories: Dict[str, List[str]] = {}
         self.aliases: Dict[str, str] = {}  # Maps alias -> canonical command name
@@ -101,39 +102,39 @@ class CommandRegistry:
             return None
 
         try:
-            with open(file_path, 'r', encoding='utf-8') as f:
+            with open(file_path, encoding="utf-8") as f:
                 content = f.read()
 
             # Extract YAML frontmatter
-            frontmatter_match = re.match(r'^---\n(.*?)\n---\n', content, re.DOTALL)
+            frontmatter_match = re.match(r"^---\n(.*?)\n---\n", content, re.DOTALL)
             if not frontmatter_match:
                 logger.warning(f"No frontmatter found in {file_path}")
                 return None
 
             frontmatter = yaml.safe_load(frontmatter_match.group(1))
 
-            if frontmatter.get('archived'):
+            if frontmatter.get("archived"):
                 logger.info(f"Skipping archived command: {file_path.name}")
                 return None
 
             # Extract command content
-            command_content = content[frontmatter_match.end():]
+            command_content = content[frontmatter_match.end() :]
 
             # Create command metadata
             command = CommandMetadata(
-                name=frontmatter.get('name', file_path.stem),
-                description=frontmatter.get('description', ''),
-                category=frontmatter.get('category', 'general'),
-                complexity=frontmatter.get('complexity', 'standard'),
-                mcp_servers=frontmatter.get('mcp-servers', []),
-                personas=frontmatter.get('personas', []),
+                name=frontmatter.get("name", file_path.stem),
+                description=frontmatter.get("description", ""),
+                category=frontmatter.get("category", "general"),
+                complexity=frontmatter.get("complexity", "standard"),
+                mcp_servers=frontmatter.get("mcp-servers", []),
+                personas=frontmatter.get("personas", []),
                 triggers=self._extract_triggers(command_content),
-                flags=frontmatter.get('flags', []) or [],
+                flags=frontmatter.get("flags", []) or [],
                 parameters=self._extract_parameters(command_content),
                 file_path=str(file_path),
                 content=command_content,
-                requires_evidence=bool(frontmatter.get('requires_evidence', False)),
-                aliases=frontmatter.get('aliases', []) or []
+                requires_evidence=bool(frontmatter.get("requires_evidence", False)),
+                aliases=frontmatter.get("aliases", []) or [],
             )
 
             return command
@@ -156,21 +157,25 @@ class CommandRegistry:
 
         # Look for trigger patterns in content
         trigger_section = re.search(
-            r'## (?:Triggers?|Context Trigger Pattern)\n(.*?)\n##',
+            r"## (?:Triggers?|Context Trigger Pattern)\n(.*?)\n##",
             content,
-            re.DOTALL | re.IGNORECASE
+            re.DOTALL | re.IGNORECASE,
         )
 
         if trigger_section:
             # Extract patterns from code blocks
-            code_blocks = re.findall(r'```\n(.*?)\n```', trigger_section.group(1), re.DOTALL)
+            code_blocks = re.findall(
+                r"```\n(.*?)\n```", trigger_section.group(1), re.DOTALL
+            )
             for block in code_blocks:
                 # Extract /sc: patterns
-                patterns = re.findall(r'/sc:\w+(?:\s+\[.*?\])*', block)
+                patterns = re.findall(r"/sc:\w+(?:\s+\[.*?\])*", block)
                 triggers.extend(patterns)
 
             # Also extract bullet points
-            bullets = re.findall(r'^[-*]\s+(.+)$', trigger_section.group(1), re.MULTILINE)
+            bullets = re.findall(
+                r"^[-*]\s+(.+)$", trigger_section.group(1), re.MULTILINE
+            )
             triggers.extend(bullets)
 
         return triggers
@@ -188,18 +193,18 @@ class CommandRegistry:
         parameters = {}
 
         # Look for parameter patterns like [--flag] or [parameter]
-        param_pattern = r'\[--?(\w+)(?:\s+(\w+(?:\|\w+)*))?(?:\]|\s+([^\]]+)\])'
+        param_pattern = r"\[--?(\w+)(?:\s+(\w+(?:\|\w+)*))?(?:\]|\s+([^\]]+)\])"
         matches = re.findall(param_pattern, content)
 
         for match in matches:
             param_name = match[0]
-            param_type = match[1] if match[1] else 'flag'
-            param_desc = match[2] if match[2] else ''
+            param_type = match[1] if match[1] else "flag"
+            param_desc = match[2] if match[2] else ""
 
             parameters[param_name] = {
-                'type': param_type,
-                'description': param_desc,
-                'required': False  # Brackets indicate optional
+                "type": param_type,
+                "description": param_desc,
+                "required": False,  # Brackets indicate optional
             }
 
         return parameters
@@ -234,7 +239,7 @@ class CommandRegistry:
             CommandMetadata or None if not found
         """
         # Strip /sc: prefix if present
-        name = name.replace('/sc:', '').strip()
+        name = name.replace("/sc:", "").strip()
 
         # Check direct command lookup first
         if name in self.commands:
@@ -342,7 +347,7 @@ class CommandRegistry:
             Tuple of (is_valid, error_message)
         """
         # Extract command name
-        match = re.match(r'/sc:(\w+)', command_str)
+        match = re.match(r"/sc:(\w+)", command_str)
         if not match:
             return False, "Invalid command format. Use /sc:command_name"
 
@@ -354,7 +359,10 @@ class CommandRegistry:
             suggestions = self.find_command(command_name)
             if suggestions:
                 similar = ", ".join([name for name, _ in suggestions[:3]])
-                return False, f"Unknown command '{command_name}'. Did you mean: {similar}?"
+                return (
+                    False,
+                    f"Unknown command '{command_name}'. Did you mean: {similar}?",
+                )
             return False, f"Unknown command '{command_name}'"
 
         return True, ""
@@ -375,7 +383,7 @@ class CommandRegistry:
 
         help_text = [
             f"# /sc:{command.name}",
-            f"",
+            "",
             f"**Description**: {command.description}",
             f"**Category**: {command.category}",
             f"**Complexity**: {command.complexity}",
@@ -391,7 +399,9 @@ class CommandRegistry:
             help_text.append("")
             help_text.append("## Parameters")
             for param_name, param_info in command.parameters.items():
-                help_text.append(f"- `--{param_name}`: {param_info.get('description', '')}")
+                help_text.append(
+                    f"- `--{param_name}`: {param_info.get('description', '')}"
+                )
 
         return "\n".join(help_text)
 
@@ -403,22 +413,22 @@ class CommandRegistry:
             Dictionary containing all command metadata
         """
         manifest = {
-            'version': '6.0.0',
-            'total_commands': len(self.commands),
-            'categories': {},
-            'commands': {}
+            "version": "6.0.0",
+            "total_commands": len(self.commands),
+            "categories": {},
+            "commands": {},
         }
 
         for category, command_names in self.categories.items():
-            manifest['categories'][category] = len(command_names)
+            manifest["categories"][category] = len(command_names)
 
         for name, command in self.commands.items():
-            manifest['commands'][name] = {
-                'description': command.description,
-                'category': command.category,
-                'complexity': command.complexity,
-                'mcp_servers': command.mcp_servers,
-                'personas': command.personas
+            manifest["commands"][name] = {
+                "description": command.description,
+                "category": command.category,
+                "complexity": command.complexity,
+                "mcp_servers": command.mcp_servers,
+                "personas": command.personas,
             }
 
         return manifest

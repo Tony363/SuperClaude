@@ -6,7 +6,7 @@ from __future__ import annotations
 import argparse
 import math
 from pathlib import Path
-from typing import Iterable, Tuple
+from typing import Iterable
 
 
 def estimate_tokens(text: str) -> int:
@@ -16,7 +16,7 @@ def estimate_tokens(text: str) -> int:
     return max(1, math.ceil(len(text) / 4))
 
 
-def iter_memory_files(root: Path) -> Iterable[Tuple[Path, int]]:
+def iter_memory_files(root: Path) -> Iterable[tuple[Path, int]]:
     """Yield Markdown files and their estimated token counts."""
     for path in sorted(root.rglob("*.md")):
         try:

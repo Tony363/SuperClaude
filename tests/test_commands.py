@@ -1,14 +1,13 @@
 from __future__ import annotations
 
 import asyncio
-import json
 import os
 import subprocess
 from pathlib import Path
 
 import pytest
 
-from SuperClaude.Commands import CommandRegistry, CommandParser, CommandExecutor
+from SuperClaude.Commands import CommandExecutor, CommandParser, CommandRegistry
 
 
 @pytest.fixture
@@ -48,7 +47,9 @@ def test_executor_accepts_explicit_repo_root(tmp_path, monkeypatch):
 
     assert executor.repo_root == target_repo.resolve()
     assert os.environ.get("SUPERCLAUDE_REPO_ROOT") == str(target_repo.resolve())
-    assert os.environ.get("SUPERCLAUDE_METRICS_DIR") == str(target_repo / ".superclaude_metrics")
+    assert os.environ.get("SUPERCLAUDE_METRICS_DIR") == str(
+        target_repo / ".superclaude_metrics"
+    )
 
 
 # Note: fast-codex tests removed - APIClients/codex_cli module was deleted in cleanup
@@ -60,6 +61,7 @@ def test_executor_accepts_explicit_repo_root(tmp_path, monkeypatch):
 # - test_fast_codex_requires_cli
 
 
+@pytest.mark.integration
 def test_business_panel_produces_artifact(executor):
     result = asyncio.run(executor.execute("/sc:business-panel go-to-market expansion"))
 
@@ -71,6 +73,7 @@ def test_business_panel_produces_artifact(executor):
         assert Path(artifact).exists()
 
 
+@pytest.mark.integration
 def test_workflow_command_generates_steps(executor, command_workspace):
     prd_path = command_workspace / "workflow-spec.md"
     prd_path.write_text(
@@ -91,8 +94,11 @@ def test_workflow_command_generates_steps(executor, command_workspace):
         assert Path(artifact).exists()
 
 
+@pytest.mark.integration
 def test_git_status_summarizes_repository(executor, command_workspace):
-    subprocess.run(["git", "init"], cwd=command_workspace, check=True, stdout=subprocess.PIPE)
+    subprocess.run(
+        ["git", "init"], cwd=command_workspace, check=True, stdout=subprocess.PIPE
+    )
     subprocess.run(
         ["git", "config", "user.name", "Test Runner"],
         cwd=command_workspace,
@@ -107,7 +113,12 @@ def test_git_status_summarizes_repository(executor, command_workspace):
     )
     tracked = command_workspace / "tracked.txt"
     tracked.write_text("initial\n", encoding="utf-8")
-    subprocess.run(["git", "add", "tracked.txt"], cwd=command_workspace, check=True, stdout=subprocess.PIPE)
+    subprocess.run(
+        ["git", "add", "tracked.txt"],
+        cwd=command_workspace,
+        check=True,
+        stdout=subprocess.PIPE,
+    )
     subprocess.run(
         ["git", "commit", "-m", "initial"],
         cwd=command_workspace,

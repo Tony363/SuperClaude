@@ -4,15 +4,15 @@ Individual command implementations for the CLI interface
 """
 
 from ..base import OperationBase
+from .backup import BackupOperation
 from .install import InstallOperation
 from .uninstall import UninstallOperation
 from .update import UpdateOperation
-from .backup import BackupOperation
 
 __all__ = [
-    'OperationBase',
-    'InstallOperation',
-    'UninstallOperation', 
-    'UpdateOperation',
-    'BackupOperation'
+    "BackupOperation",
+    "InstallOperation",
+    "OperationBase",
+    "UninstallOperation",
+    "UpdateOperation",
 ]

@@ -9,7 +9,9 @@ from pathlib import Path
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Check hallucination guardrail metrics.")
+    parser = argparse.ArgumentParser(
+        description="Check hallucination guardrail metrics."
+    )
     parser.add_argument(
         "--threshold",
         type=float,

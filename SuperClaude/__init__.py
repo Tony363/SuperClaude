@@ -22,7 +22,9 @@ try:
         raise FileNotFoundError
 except Exception:
     try:
-        from importlib.metadata import version as _ver, PackageNotFoundError
+        from importlib.metadata import PackageNotFoundError
+        from importlib.metadata import version as _ver
+
         try:
             __version__ = _ver("SuperClaude")
         except PackageNotFoundError:

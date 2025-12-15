@@ -7,12 +7,11 @@ automatic iteration until quality thresholds are met.
 
 import logging
 import re
-import json
-from pathlib import Path
-from typing import Dict, Any, List, Optional, Tuple, Callable, Sequence
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
+from pathlib import Path
+from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
 
 try:  # Optional dependency for YAML configs
     import yaml
@@ -109,7 +108,9 @@ class QualityScorer:
     MAX_ITERATIONS = 5  # Maximum improvement iterations
     MIN_IMPROVEMENT = 5.0  # Minimum score improvement to continue
 
-    def __init__(self, threshold: float = DEFAULT_THRESHOLD, config_path: Optional[str] = None):
+    def __init__(
+        self, threshold: float = DEFAULT_THRESHOLD, config_path: Optional[str] = None
+    ):
         """
         Initialize the quality scorer.
 
@@ -118,7 +119,11 @@ class QualityScorer:
         """
         self.logger = logging.getLogger(__name__)
         self.threshold = threshold
-        self.config_path = Path(config_path) if config_path else Path(__file__).resolve().parent.parent / "Config" / "quality.yaml"
+        self.config_path = (
+            Path(config_path)
+            if config_path
+            else Path(__file__).resolve().parent.parent / "Config" / "quality.yaml"
+        )
         self.config_data: Dict[str, Any] = {}
 
         # Quality evaluators by dimension
@@ -130,7 +135,7 @@ class QualityScorer:
             QualityDimension.PERFORMANCE: self._evaluate_performance,
             QualityDimension.SCALABILITY: self._evaluate_scalability,
             QualityDimension.TESTABILITY: self._evaluate_testability,
-            QualityDimension.USABILITY: self._evaluate_usability
+            QualityDimension.USABILITY: self._evaluate_usability,
         }
 
         # Default weights for dimensions
@@ -159,7 +164,9 @@ class QualityScorer:
 
         # Custom evaluators
         self.custom_evaluators: List[Callable] = []
-        self.primary_evaluator: Optional[Callable[[Any, Dict[str, Any], int], Optional[Dict[str, Any]]]] = None
+        self.primary_evaluator: Optional[
+            Callable[[Any, Dict[str, Any], int], Optional[Dict[str, Any]]]
+        ] = None
 
     def _load_configuration(self) -> None:
         """Load quality configuration from YAML if available."""
@@ -172,10 +179,12 @@ class QualityScorer:
             return
 
         try:
-            with open(self.config_path, "r", encoding="utf-8") as handle:
+            with open(self.config_path, encoding="utf-8") as handle:
                 data = yaml.safe_load(handle) or {}
         except Exception as exc:
-            self.logger.warning(f"Failed to read quality config {self.config_path}: {exc}")
+            self.logger.warning(
+                f"Failed to read quality config {self.config_path}: {exc}"
+            )
             return
 
         self.config_data = data
@@ -186,7 +195,9 @@ class QualityScorer:
             try:
                 dimension = QualityDimension(dim_name)
             except ValueError:
-                self.logger.debug(f"Ignoring unknown quality dimension '{dim_name}' from config")
+                self.logger.debug(
+                    f"Ignoring unknown quality dimension '{dim_name}' from config"
+                )
                 continue
 
             weight = dim_config.get("weight")
@@ -218,9 +229,13 @@ class QualityScorer:
             return DEFAULT_COMPONENT_WEIGHTS.copy()
         return weights
 
-    def _load_thresholds(self, override_threshold: Optional[float]) -> QualityThresholds:
+    def _load_thresholds(
+        self, override_threshold: Optional[float]
+    ) -> QualityThresholds:
         scoring_cfg = self.config_data.get("scoring", {}) if self.config_data else {}
-        thresholds_cfg = scoring_cfg.get("thresholds", {}) if isinstance(scoring_cfg, dict) else {}
+        thresholds_cfg = (
+            scoring_cfg.get("thresholds", {}) if isinstance(scoring_cfg, dict) else {}
+        )
 
         def _coerce(keys: Sequence[str], default: float) -> float:
             for key in keys:
@@ -232,7 +247,9 @@ class QualityScorer:
             return default
 
         thresholds = QualityThresholds(
-            production_ready=_coerce(["production_ready", "excellent", "production"], 90.0),
+            production_ready=_coerce(
+                ["production_ready", "excellent", "production"], 90.0
+            ),
             needs_attention=_coerce(["needs_attention", "good"], 75.0),
             iterate=_coerce(["iterate", "failing"], 0.0),
         )
@@ -253,7 +270,7 @@ class QualityScorer:
         context: Dict[str, Any],
         dimensions: Optional[List[QualityDimension]] = None,
         weights: Optional[Dict[QualityDimension, float]] = None,
-        iteration: int = 0
+        iteration: int = 0,
     ) -> QualityAssessment:
         """
         Evaluate output quality.
@@ -280,10 +297,10 @@ class QualityScorer:
                 self.logger.error(f"Primary evaluator error: {exc}")
                 primary_payload = None
 
-        if primary_payload and primary_payload.get('metrics'):
-            metrics.extend(primary_payload.get('metrics', []))
-            improvements_override = primary_payload.get('improvements')
-            metadata_overrides = primary_payload.get('metadata') or {}
+        if primary_payload and primary_payload.get("metrics"):
+            metrics.extend(primary_payload.get("metrics", []))
+            improvements_override = primary_payload.get("improvements")
+            metadata_overrides = primary_payload.get("metadata") or {}
         else:
             # Select dimensions to evaluate
             if dimensions is None:
@@ -358,7 +375,7 @@ class QualityScorer:
         context: Dict[str, Any],
         improver_func: Callable,
         max_iterations: Optional[int] = None,
-        min_improvement: Optional[float] = None
+        min_improvement: Optional[float] = None,
     ) -> Tuple[Any, QualityAssessment, List[IterationResult]]:
         """
         Run agentic loop to iteratively improve output quality.
@@ -384,24 +401,22 @@ class QualityScorer:
             start_time = datetime.now()
 
             # Evaluate current quality
-            assessment = self.evaluate(
-                current_output,
-                context,
-                iteration=iteration
-            )
+            assessment = self.evaluate(current_output, context, iteration=iteration)
 
             current_score = assessment.overall_score
 
             # Check if quality threshold is met
             if assessment.passed:
-                self.logger.info(f"Quality threshold met at iteration {iteration}: {current_score:.1f}")
+                self.logger.info(
+                    f"Quality threshold met at iteration {iteration}: {current_score:.1f}"
+                )
                 result = IterationResult(
                     iteration=iteration,
                     input_quality=previous_score,
                     output_quality=current_score,
                     improvements_applied=[],
                     time_taken=(datetime.now() - start_time).total_seconds(),
-                    success=True
+                    success=True,
                 )
                 iteration_results.append(result)
                 break
@@ -419,7 +434,7 @@ class QualityScorer:
                         output_quality=current_score,
                         improvements_applied=[],
                         time_taken=(datetime.now() - start_time).total_seconds(),
-                        success=False
+                        success=False,
                     )
                     iteration_results.append(result)
                     break
@@ -427,17 +442,14 @@ class QualityScorer:
             # Apply improvements
             improvements_context = {
                 **context,
-                'quality_assessment': assessment,
-                'improvements_needed': assessment.improvements_needed,
-                'current_score': current_score,
-                'target_score': self.threshold
+                "quality_assessment": assessment,
+                "improvements_needed": assessment.improvements_needed,
+                "current_score": current_score,
+                "target_score": self.threshold,
             }
 
             try:
-                improved_output = improver_func(
-                    current_output,
-                    improvements_context
-                )
+                improved_output = improver_func(current_output, improvements_context)
 
                 result = IterationResult(
                     iteration=iteration,
@@ -445,7 +457,7 @@ class QualityScorer:
                     output_quality=0.0,  # Will be updated in next iteration
                     improvements_applied=assessment.improvements_needed[:5],  # Top 5
                     time_taken=(datetime.now() - start_time).total_seconds(),
-                    success=False
+                    success=False,
                 )
                 iteration_results.append(result)
 
@@ -458,9 +470,7 @@ class QualityScorer:
 
         # Final evaluation
         final_assessment = self.evaluate(
-            current_output,
-            context,
-            iteration=len(iteration_results)
+            current_output, context, iteration=len(iteration_results)
         )
 
         # Update last iteration result
@@ -482,7 +492,9 @@ class QualityScorer:
         """
         self.custom_evaluators.append(evaluator)
 
-    def set_primary_evaluator(self, evaluator: Callable[[Any, Dict[str, Any], int], Optional[Dict[str, Any]]]) -> None:
+    def set_primary_evaluator(
+        self, evaluator: Callable[[Any, Dict[str, Any], int], Optional[Dict[str, Any]]]
+    ) -> None:
         """Set a callable that supplies the primary metrics for evaluation."""
         self.primary_evaluator = evaluator
 
@@ -491,8 +503,7 @@ class QualityScorer:
         self.primary_evaluator = None
 
     def get_improvement_suggestions(
-        self,
-        assessment: QualityAssessment
+        self, assessment: QualityAssessment
     ) -> List[Dict[str, Any]]:
         """
         Get detailed improvement suggestions.
@@ -509,16 +520,18 @@ class QualityScorer:
         for metric in assessment.metrics:
             if metric.score < 70:  # Focus on low-scoring dimensions
                 for suggestion in metric.suggestions:
-                    suggestions.append({
-                        'dimension': metric.dimension.value,
-                        'current_score': metric.score,
-                        'suggestion': suggestion,
-                        'priority': 'high' if metric.score < 50 else 'medium',
-                        'impact': metric.weight * (100 - metric.score)
-                    })
+                    suggestions.append(
+                        {
+                            "dimension": metric.dimension.value,
+                            "current_score": metric.score,
+                            "suggestion": suggestion,
+                            "priority": "high" if metric.score < 50 else "medium",
+                            "impact": metric.weight * (100 - metric.score),
+                        }
+                    )
 
         # Sort by impact
-        suggestions.sort(key=lambda x: x['impact'], reverse=True)
+        suggestions.sort(key=lambda x: x["impact"], reverse=True)
 
         return suggestions
 
@@ -536,16 +549,18 @@ class QualityScorer:
         passed = [a for a in self.assessment_history if a.passed]
 
         return {
-            'total_assessments': len(self.assessment_history),
-            'average_score': sum(scores) / len(scores),
-            'min_score': min(scores),
-            'max_score': max(scores),
-            'pass_rate': len(passed) / len(self.assessment_history),
-            'total_iterations': sum(r.iteration for r in self.iteration_history),
-            'average_iterations': (
-                sum(r.iteration for r in self.iteration_history) / len(self.iteration_history)
-                if self.iteration_history else 0
-            )
+            "total_assessments": len(self.assessment_history),
+            "average_score": sum(scores) / len(scores),
+            "min_score": min(scores),
+            "max_score": max(scores),
+            "pass_rate": len(passed) / len(self.assessment_history),
+            "total_iterations": sum(r.iteration for r in self.iteration_history),
+            "average_iterations": (
+                sum(r.iteration for r in self.iteration_history)
+                / len(self.iteration_history)
+                if self.iteration_history
+                else 0
+            ),
         }
 
     # Simple convenience API expected by some tests
@@ -563,24 +578,26 @@ class QualityScorer:
         band = self.thresholds.classify(overall)
 
         grade_map = {
-            'production_ready': 'Excellent',
-            'needs_attention': 'Needs Attention',
-            'iterate': 'Rework',
+            "production_ready": "Excellent",
+            "needs_attention": "Needs Attention",
+            "iterate": "Rework",
         }
         action_map = {
-            'production_ready': 'Auto-approve',
-            'needs_attention': 'Address feedback and re-run validation',
-            'iterate': 'Iterate with assigned specialist agent',
+            "production_ready": "Auto-approve",
+            "needs_attention": "Address feedback and re-run validation",
+            "iterate": "Iterate with assigned specialist agent",
         }
 
         return {
-            'overall': round(overall, 2),
-            'grade': grade_map.get(band, 'Unknown'),
-            'action': action_map.get(band, 'Investigate further'),
-            'band': band,
+            "overall": round(overall, 2),
+            "grade": grade_map.get(band, "Unknown"),
+            "action": action_map.get(band, "Investigate further"),
+            "band": band,
         }
 
-    def _evaluate_correctness(self, output: Any, context: Dict[str, Any]) -> QualityMetric:
+    def _evaluate_correctness(
+        self, output: Any, context: Dict[str, Any]
+    ) -> QualityMetric:
         """Evaluate correctness dimension."""
         score = 70.0  # Base score
         issues = []
@@ -589,27 +606,29 @@ class QualityScorer:
         # Check for errors and declared success
         declared_success = False
         if isinstance(output, dict):
-            if output.get('errors'):
+            if output.get("errors"):
                 score -= 30
                 issues.append("Errors present in output")
                 suggestions.append("Fix errors before proceeding")
 
-            if not output.get('success', True):
+            if not output.get("success", True):
                 score -= 20
                 issues.append("Operation not marked as successful")
             else:
                 declared_success = True
 
         # Check for test results if available
-        if 'test_results' in context:
-            test_pass_rate = context['test_results'].get('pass_rate', 0)
+        if "test_results" in context:
+            test_pass_rate = context["test_results"].get("pass_rate", 0)
             score = test_pass_rate * 100
 
         execution_evidence = self._extract_execution_evidence(output, context)
         if declared_success and not execution_evidence:
             score = min(score, 40.0)
             issues.append("Declared success without execution evidence")
-            suggestions.append("Share applied diffs, commands, or test logs before claiming success")
+            suggestions.append(
+                "Share applied diffs, commands, or test logs before claiming success"
+            )
 
         return QualityMetric(
             dimension=QualityDimension.CORRECTNESS,
@@ -617,18 +636,20 @@ class QualityScorer:
             weight=self.default_weights.get(QualityDimension.CORRECTNESS, 0.25),
             details="Correctness based on errors and test results",
             issues=issues,
-            suggestions=suggestions
+            suggestions=suggestions,
         )
 
-    def _evaluate_completeness(self, output: Any, context: Dict[str, Any]) -> QualityMetric:
+    def _evaluate_completeness(
+        self, output: Any, context: Dict[str, Any]
+    ) -> QualityMetric:
         """Evaluate completeness dimension."""
         score = 80.0  # Base score
         issues = []
         suggestions = []
 
         # Check for required fields
-        if 'requirements' in context:
-            requirements = context['requirements']
+        if "requirements" in context:
+            requirements = context["requirements"]
             if isinstance(requirements, list):
                 met_requirements = 0
                 for req in requirements:
@@ -643,7 +664,7 @@ class QualityScorer:
 
         # Check for TODO comments
         output_str = str(output)
-        if 'TODO' in output_str or 'FIXME' in output_str:
+        if "TODO" in output_str or "FIXME" in output_str:
             score -= 20
             issues.append("Contains TODO/FIXME comments")
             suggestions.append("Complete all TODO items")
@@ -651,18 +672,20 @@ class QualityScorer:
         execution_evidence = self._extract_execution_evidence(output, context)
         planned_only = False
         if isinstance(output, dict):
-            status = output.get('status', '')
-            if status == 'plan-only':
+            status = output.get("status", "")
+            if status == "plan-only":
                 planned_only = True
 
-            planned_actions = output.get('planned_actions') or output.get('plan')
+            planned_actions = output.get("planned_actions") or output.get("plan")
             if planned_actions and not execution_evidence:
                 planned_only = True
 
         if planned_only and not execution_evidence:
             score = min(score, 25.0)
             issues.append("Only a plan was produced; no concrete work verified")
-            suggestions.append("Execute the plan and capture diffs/tests before re-evaluating")
+            suggestions.append(
+                "Execute the plan and capture diffs/tests before re-evaluating"
+            )
 
         return QualityMetric(
             dimension=QualityDimension.COMPLETENESS,
@@ -670,10 +693,12 @@ class QualityScorer:
             weight=self.default_weights.get(QualityDimension.COMPLETENESS, 0.20),
             details="Completeness of implementation",
             issues=issues,
-            suggestions=suggestions
+            suggestions=suggestions,
         )
 
-    def _evaluate_scalability(self, output: Any, context: Dict[str, Any]) -> QualityMetric:
+    def _evaluate_scalability(
+        self, output: Any, context: Dict[str, Any]
+    ) -> QualityMetric:
         """Evaluate scalability dimension."""
         score = 70.0  # Base score
         issues = []
@@ -681,11 +706,13 @@ class QualityScorer:
 
         output_str = str(output)
 
-        scalability_ctx = context.get('scalability', {})
+        scalability_ctx = context.get("scalability", {})
         if scalability_ctx:
-            projected_load = scalability_ctx.get('projected_load')
-            current_capacity = scalability_ctx.get('current_capacity')
-            if isinstance(projected_load, (int, float)) and isinstance(current_capacity, (int, float)):
+            projected_load = scalability_ctx.get("projected_load")
+            current_capacity = scalability_ctx.get("current_capacity")
+            if isinstance(projected_load, (int, float)) and isinstance(
+                current_capacity, (int, float)
+            ):
                 if current_capacity < projected_load:
                     score -= 20
                     issues.append("Projected load exceeds current capacity")
@@ -693,23 +720,31 @@ class QualityScorer:
                 else:
                     score += 5
 
-            bottlenecks = scalability_ctx.get('bottlenecks', [])
+            bottlenecks = scalability_ctx.get("bottlenecks", [])
             if bottlenecks:
                 penalty = min(30, 10 * len(bottlenecks))
                 score -= penalty
                 issues.append("Scalability bottlenecks identified")
-                suggestions.append("Address bottlenecks: " + ', '.join(map(str, bottlenecks)))
+                suggestions.append(
+                    "Address bottlenecks: " + ", ".join(map(str, bottlenecks))
+                )
 
-            strategies = scalability_ctx.get('strategies', [])
+            strategies = scalability_ctx.get("strategies", [])
             if strategies:
                 score += min(10, 3 * len(strategies))
         else:
             # Heuristic detection from output text
-            if "single server" in output_str.lower() or "monolith" in output_str.lower():
+            if (
+                "single server" in output_str.lower()
+                or "monolith" in output_str.lower()
+            ):
                 score -= 10
                 issues.append("Potential single server scaling limitation")
                 suggestions.append("Consider horizontal scaling or modularization")
-            if any(keyword in output_str.lower() for keyword in ("autoscale", "queue", "shard", "partition")):
+            if any(
+                keyword in output_str.lower()
+                for keyword in ("autoscale", "queue", "shard", "partition")
+            ):
                 score += 5
 
         score = max(0, min(100, score))
@@ -720,10 +755,12 @@ class QualityScorer:
             weight=self.default_weights.get(QualityDimension.SCALABILITY, 0.1),
             details="Scalability assessment from architecture and context",
             issues=issues,
-            suggestions=suggestions
+            suggestions=suggestions,
         )
 
-    def _evaluate_testability(self, output: Any, context: Dict[str, Any]) -> QualityMetric:
+    def _evaluate_testability(
+        self, output: Any, context: Dict[str, Any]
+    ) -> QualityMetric:
         """Evaluate testability dimension."""
         score = 65.0  # Base score
         issues = []
@@ -731,18 +768,18 @@ class QualityScorer:
 
         output_str = str(output)
 
-        test_results = context.get('test_results', {})
+        test_results = context.get("test_results", {})
         if test_results:
-            pass_rate = test_results.get('pass_rate')
+            pass_rate = test_results.get("pass_rate")
             if pass_rate is not None:
                 score = max(score, pass_rate * 100)
-            tests_collected = test_results.get('tests_collected')
+            tests_collected = test_results.get("tests_collected")
             if tests_collected == 0:
                 score -= 25
                 issues.append("No automated tests were discovered")
                 suggestions.append("Add unit and integration tests for critical paths")
 
-            coverage = test_results.get('coverage')
+            coverage = test_results.get("coverage")
             if isinstance(coverage, (int, float)):
                 if coverage < 0.6:
                     score -= 15
@@ -762,10 +799,12 @@ class QualityScorer:
             weight=self.default_weights.get(QualityDimension.TESTABILITY, 0.1),
             details="Testability based on automated test signals",
             issues=issues,
-            suggestions=suggestions
+            suggestions=suggestions,
         )
 
-    def _evaluate_maintainability(self, output: Any, context: Dict[str, Any]) -> QualityMetric:
+    def _evaluate_maintainability(
+        self, output: Any, context: Dict[str, Any]
+    ) -> QualityMetric:
         """Evaluate maintainability dimension."""
         score = 75.0  # Base score
         issues = []
@@ -774,9 +813,9 @@ class QualityScorer:
         output_str = str(output)
 
         # Check complexity
-        if isinstance(output, dict) and 'code' in output:
-            code = output['code']
-            lines = code.split('\n')
+        if isinstance(output, dict) and "code" in output:
+            code = output["code"]
+            lines = code.split("\n")
 
             # Check function length
             if any(len(func) > 50 for func in self._extract_functions(code)):
@@ -802,7 +841,7 @@ class QualityScorer:
             weight=self.default_weights.get(QualityDimension.MAINTAINABILITY, 0.10),
             details="Code maintainability",
             issues=issues,
-            suggestions=suggestions
+            suggestions=suggestions,
         )
 
     def _evaluate_security(self, output: Any, context: Dict[str, Any]) -> QualityMetric:
@@ -815,11 +854,11 @@ class QualityScorer:
 
         # Check for common security issues
         security_patterns = [
-            (r'eval\(', 'Use of eval() is dangerous', 20),
-            (r'exec\(', 'Use of exec() is dangerous', 20),
-            (r'pickle\.loads', 'Unsafe deserialization', 15),
-            (r'os\.system', 'Direct system calls', 15),
-            (r'password\s*=\s*["\']', 'Hardcoded password', 25)
+            (r"eval\(", "Use of eval() is dangerous", 20),
+            (r"exec\(", "Use of exec() is dangerous", 20),
+            (r"pickle\.loads", "Unsafe deserialization", 15),
+            (r"os\.system", "Direct system calls", 15),
+            (r'password\s*=\s*["\']', "Hardcoded password", 25),
         ]
 
         for pattern, issue, penalty in security_patterns:
@@ -829,7 +868,7 @@ class QualityScorer:
                 suggestions.append(f"Fix security issue: {issue}")
 
         # Check for input validation
-        if 'user_input' in output_str and 'validate' not in output_str:
+        if "user_input" in output_str and "validate" not in output_str:
             score -= 10
             issues.append("No input validation")
             suggestions.append("Add input validation")
@@ -840,27 +879,29 @@ class QualityScorer:
             weight=self.default_weights.get(QualityDimension.SECURITY, 0.10),
             details="Security assessment",
             issues=issues,
-            suggestions=suggestions
+            suggestions=suggestions,
         )
 
-    def _evaluate_performance(self, output: Any, context: Dict[str, Any]) -> QualityMetric:
+    def _evaluate_performance(
+        self, output: Any, context: Dict[str, Any]
+    ) -> QualityMetric:
         """Evaluate performance dimension."""
         score = 70.0  # Base score
         issues = []
         suggestions = []
 
         # Check performance metrics if available
-        if 'metrics' in context:
-            metrics = context['metrics']
+        if "metrics" in context:
+            metrics = context["metrics"]
 
             # Response time
-            if metrics.get('response_time', 0) > 1000:  # >1s
+            if metrics.get("response_time", 0) > 1000:  # >1s
                 score -= 20
                 issues.append("High response time")
                 suggestions.append("Optimize response time")
 
             # Memory usage
-            if metrics.get('memory_mb', 0) > 500:  # >500MB
+            if metrics.get("memory_mb", 0) > 500:  # >500MB
                 score -= 15
                 issues.append("High memory usage")
                 suggestions.append("Reduce memory footprint")
@@ -871,35 +912,35 @@ class QualityScorer:
             weight=self.default_weights.get(QualityDimension.PERFORMANCE, 0.10),
             details="Performance metrics",
             issues=issues,
-            suggestions=suggestions
+            suggestions=suggestions,
         )
 
     def _evaluate_usability(
-        self,
-        output: Any,
-        context: Dict[str, Any]
+        self, output: Any, context: Dict[str, Any]
     ) -> QualityMetric:
         """Evaluate usability dimension."""
         score = 75.0  # Base score
         issues = []
         suggestions = []
 
-        feedback = context.get('usability_feedback') or context.get('user_feedback')
+        feedback = context.get("usability_feedback") or context.get("user_feedback")
         if isinstance(feedback, dict):
-            score = feedback.get('satisfaction', score)
-            if feedback.get('issues'):
-                issues.extend(feedback['issues'])
-            if feedback.get('suggestions'):
-                suggestions.extend(feedback['suggestions'])
+            score = feedback.get("satisfaction", score)
+            if feedback.get("issues"):
+                issues.extend(feedback["issues"])
+            if feedback.get("suggestions"):
+                suggestions.extend(feedback["suggestions"])
 
         # Accessibility hints
-        if 'accessibility_issues' in context:
-            acc_issues = context['accessibility_issues']
+        if "accessibility_issues" in context:
+            acc_issues = context["accessibility_issues"]
             if isinstance(acc_issues, list) and acc_issues:
                 penalty = min(25, 5 * len(acc_issues))
                 score -= penalty
                 issues.append("Accessibility issues detected")
-                suggestions.append("Resolve accessibility gaps: " + ', '.join(map(str, acc_issues)))
+                suggestions.append(
+                    "Resolve accessibility gaps: " + ", ".join(map(str, acc_issues))
+                )
 
         output_str = str(output).lower()
         if "poor ux" in output_str or "hard to use" in output_str:
@@ -915,7 +956,7 @@ class QualityScorer:
             weight=self.default_weights.get(QualityDimension.USABILITY, 0.05),
             details="Usability and accessibility assessment",
             issues=issues,
-            suggestions=suggestions
+            suggestions=suggestions,
         )
 
     def _calculate_overall_score(
@@ -926,7 +967,9 @@ class QualityScorer:
         """Calculate the blended score using weighted component signals."""
 
         component_scores = self._derive_component_scores(metrics, context or {})
-        blended_score, normalized_weights = self._combine_component_scores(component_scores)
+        blended_score, normalized_weights = self._combine_component_scores(
+            component_scores
+        )
         metadata = {
             "components": component_scores,
             "weights": normalized_weights,
@@ -934,9 +977,7 @@ class QualityScorer:
         return blended_score, metadata
 
     def _identify_improvements(
-        self,
-        metrics: List[QualityMetric],
-        overall_score: float
+        self, metrics: List[QualityMetric], overall_score: float
     ) -> List[str]:
         """Identify key improvements needed."""
         improvements = []
@@ -965,8 +1006,12 @@ class QualityScorer:
         context: Dict[str, Any],
     ) -> Dict[str, Optional[float]]:
         return {
-            "superclaude": self._get_metric_score(metrics, QualityDimension.CORRECTNESS),
-            "completeness": self._get_metric_score(metrics, QualityDimension.COMPLETENESS),
+            "superclaude": self._get_metric_score(
+                metrics, QualityDimension.CORRECTNESS
+            ),
+            "completeness": self._get_metric_score(
+                metrics, QualityDimension.COMPLETENESS
+            ),
             "test_coverage": self._derive_test_coverage(metrics, context),
         }
 
@@ -992,7 +1037,9 @@ class QualityScorer:
         if metric_score is not None:
             return metric_score
 
-        test_results = context.get("test_results") if isinstance(context, dict) else None
+        test_results = (
+            context.get("test_results") if isinstance(context, dict) else None
+        )
         if isinstance(test_results, dict):
             coverage = test_results.get("coverage")
             if coverage is None:
@@ -1014,7 +1061,9 @@ class QualityScorer:
         self,
         component_scores: Dict[str, Optional[float]],
     ) -> Tuple[float, Dict[str, float]]:
-        available = {key: val for key, val in component_scores.items() if val is not None}
+        available = {
+            key: val for key, val in component_scores.items() if val is not None
+        }
         if not available:
             return 0.0, {}
 
@@ -1033,10 +1082,14 @@ class QualityScorer:
 
         return blended, normalized
 
-    def _component_inputs_from_dict(self, values: Dict[str, Any]) -> Dict[str, Optional[float]]:
+    def _component_inputs_from_dict(
+        self, values: Dict[str, Any]
+    ) -> Dict[str, Optional[float]]:
         values = values or {}
         return {
-            "superclaude": self._coerce_score_value(values.get("superclaude") or values.get("correctness")),
+            "superclaude": self._coerce_score_value(
+                values.get("superclaude") or values.get("correctness")
+            ),
             "completeness": self._coerce_score_value(values.get("completeness")),
             "test_coverage": self._coerce_score_value(
                 values.get("test_coverage")
@@ -1065,9 +1118,7 @@ class QualityScorer:
         return all(keyword in output_str for keyword in keywords)
 
     def _extract_execution_evidence(
-        self,
-        output: Any,
-        context: Dict[str, Any]
+        self, output: Any, context: Dict[str, Any]
     ) -> List[str]:
         """
         Collect any evidence that real work was performed.
@@ -1090,7 +1141,12 @@ class QualityScorer:
                         evidence.append(f"{label}{item}")
             elif isinstance(value, dict):
                 for subkey, subvalue in value.items():
-                    evidence.extend(collect(subvalue, f"{label}{subkey}" if not prefix else f"{label}{subkey}"))
+                    evidence.extend(
+                        collect(
+                            subvalue,
+                            f"{label}{subkey}" if not prefix else f"{label}{subkey}",
+                        )
+                    )
             elif isinstance(value, (str, int, float)) and str(value).strip():
                 evidence.append(f"{label}{value}")
 
@@ -1100,31 +1156,26 @@ class QualityScorer:
 
         if isinstance(output, dict):
             for key in (
-                'actions_taken',
-                'executed_operations',
-                'applied_changes',
-                'files_modified',
-                'commands_run',
-                'diff_summary',
-                'evidence'
+                "actions_taken",
+                "executed_operations",
+                "applied_changes",
+                "files_modified",
+                "commands_run",
+                "diff_summary",
+                "evidence",
             ):
                 if key in output:
                     evidence.extend(collect(output[key], key))
 
         # Context provided evidence
-        for key in (
-            'evidence',
-            'execution',
-            'diff_summary',
-            'applied_changes'
-        ):
+        for key in ("evidence", "execution", "diff_summary", "applied_changes"):
             if key in context:
                 evidence.extend(collect(context[key], key))
 
-        test_results = context.get('test_results', {})
+        test_results = context.get("test_results", {})
         if isinstance(test_results, dict):
-            passed = test_results.get('passed')
-            pass_rate = test_results.get('pass_rate')
+            passed = test_results.get("passed")
+            pass_rate = test_results.get("pass_rate")
             if passed:
                 evidence.append("tests: suite passed")
             if isinstance(pass_rate, (int, float)) and pass_rate > 0:
@@ -1143,33 +1194,33 @@ class QualityScorer:
     def _extract_functions(self, code: str) -> List[str]:
         """Extract function bodies from code."""
         functions = []
-        lines = code.split('\n')
+        lines = code.split("\n")
         current_function = []
         in_function = False
 
         for line in lines:
-            if line.strip().startswith('def '):
+            if line.strip().startswith("def "):
                 if current_function:
-                    functions.append('\n'.join(current_function))
+                    functions.append("\n".join(current_function))
                 current_function = [line]
                 in_function = True
             elif in_function:
-                if line and not line[0].isspace() and not line.startswith('#'):
+                if line and not line[0].isspace() and not line.startswith("#"):
                     # End of function
-                    functions.append('\n'.join(current_function))
+                    functions.append("\n".join(current_function))
                     current_function = []
                     in_function = False
                 else:
                     current_function.append(line)
 
         if current_function:
-            functions.append('\n'.join(current_function))
+            functions.append("\n".join(current_function))
 
         return functions
 
     def _has_duplication(self, text: str) -> bool:
         """Check for code duplication (simplified)."""
-        lines = text.split('\n')
+        lines = text.split("\n")
         line_count = {}
 
         for line in lines:

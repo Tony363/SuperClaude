@@ -13,7 +13,7 @@ import json
 import logging
 import os
 import time
-from typing import Any, Awaitable, Callable, Dict, Optional
+from typing import Any, Awaitable, Callable, Dict
 
 logger = logging.getLogger(__name__)
 
@@ -25,6 +25,11 @@ except ImportError:  # pragma: no cover - httpx may not be installed
 
 AsyncSender = Callable[[str, Dict[str, Any]], Awaitable[Dict[str, Any]]]
 
+# LinkUp defaults
+DEFAULT_LINKUP_DEPTH = "deep"
+DEFAULT_LINKUP_OUTPUT_TYPE = "sourcedAnswer"
+DEFAULT_LINKUP_TOOL = "LINKUP_SEARCH"
+
 
 class RubeInvocationError(RuntimeError):
     """Structured error raised when a live Rube MCP invocation fails."""
@@ -33,9 +38,9 @@ class RubeInvocationError(RuntimeError):
         self,
         message: str,
         *,
-        status: Optional[int] = None,
-        code: Optional[str] = None,
-        details: Optional[Dict[str, Any]] = None,
+        status: int | None = None,
+        code: str | None = None,
+        details: dict[str, Any] | None = None,
     ):
         super().__init__(message)
         self.status = status
@@ -60,8 +65,8 @@ class RubeIntegration:
 
     def __init__(
         self,
-        config: Optional[Dict[str, Any]] = None,
-        http_sender: Optional[AsyncSender] = None,
+        config: dict[str, Any] | None = None,
+        http_sender: AsyncSender | None = None,
     ):
         self.config = config or {}
         self.endpoint = self.config.get("endpoint", self.DEFAULT_ENDPOINT)
@@ -74,14 +79,16 @@ class RubeIntegration:
         self._session_ready = False
         self._dry_run = False
         self._http_sender = http_sender
-        self._client: Optional["httpx.AsyncClient"] = None  # type: ignore[name-defined]
-        self.max_retries = max(0, int(self.config.get("max_retries", 2)))
-        self.retry_backoff_seconds = max(0.1, float(self.config.get("retry_backoff_seconds", 0.5)))
-        self.max_retry_delay = max(
-            self.retry_backoff_seconds, float(self.config.get("max_retry_delay", 8.0))
-        )
+        self._client: httpx.AsyncClient | None = None  # type: ignore[name-defined]
         self.telemetry_enabled = bool(self.config.get("telemetry_enabled", True))
         self.telemetry_label = self.config.get("telemetry_label", "rube_mcp")
+        # LinkUp config
+        linkup_cfg = self.config.get("linkup", {})
+        self._linkup_depth = linkup_cfg.get("default_depth", DEFAULT_LINKUP_DEPTH)
+        self._linkup_output_type = linkup_cfg.get(
+            "default_output_type", DEFAULT_LINKUP_OUTPUT_TYPE
+        )
+        self._linkup_max_concurrent = max(1, int(linkup_cfg.get("max_concurrent", 4)))
 
     @property
     def enabled(self) -> bool:
@@ -104,7 +111,12 @@ class RubeIntegration:
 
         self._dry_run = self._should_dry_run()
 
-        if not self._dry_run and self.requires_network and not self._http_sender and httpx is None:
+        if (
+            not self._dry_run
+            and self.requires_network
+            and not self._http_sender
+            and httpx is None
+        ):
             raise RuntimeError(
                 "httpx is required for live Rube MCP requests. "
                 "Install httpx or set SC_RUBE_MODE=dry-run."
@@ -117,7 +129,9 @@ class RubeIntegration:
             )
 
         if not self._dry_run and self._http_sender is None and httpx is not None:
-            headers = {"Authorization": f"Bearer {self.api_key}"} if self.api_key else {}
+            headers = (
+                {"Authorization": f"Bearer {self.api_key}"} if self.api_key else {}
+            )
             self._client = httpx.AsyncClient(  # type: ignore[name-defined]
                 base_url=self.endpoint,
                 timeout=self.timeout_seconds,
@@ -138,7 +152,7 @@ class RubeIntegration:
             await self._client.aclose()
             self._client = None
 
-    async def invoke(self, tool: str, payload: Dict[str, Any]) -> Dict[str, Any]:
+    async def invoke(self, tool: str, payload: dict[str, Any]) -> dict[str, Any]:
         """
         Invoke a tool via Rube MCP.
 
@@ -147,7 +161,9 @@ class RubeIntegration:
             payload: Parameters for the tool.
         """
         if not self._session_ready:
-            raise RuntimeError("Rube MCP session not initialized. Call initialize_session() first.")
+            raise RuntimeError(
+                "Rube MCP session not initialized. Call initialize_session() first."
+            )
 
         request_body = {
             "tool": tool,
@@ -167,7 +183,72 @@ class RubeIntegration:
         sender = self._http_sender or self._send_via_httpx
         return await self._invoke_with_retries(sender, request_body, tool)
 
-    async def _send_via_httpx(self, url: str, body: Dict[str, Any]) -> Dict[str, Any]:
+    # -------------------------------------------------------------------------
+    # LinkUp convenience methods
+    # -------------------------------------------------------------------------
+
+    async def linkup_search(
+        self,
+        query: str,
+        depth: str | None = None,
+        output_type: str | None = None,
+    ) -> dict[str, Any]:
+        """Execute a single LinkUp web search.
+
+        Args:
+            query: The search query string.
+            depth: Search depth ("deep" or "standard"). Defaults to config.
+            output_type: Output format ("sourcedAnswer", "searchResults"). Defaults to config.
+
+        Returns:
+            Dict with search results including citations and sources.
+        """
+        if not query or not query.strip():
+            raise ValueError("LinkUp query cannot be empty")
+
+        payload = {
+            "query": query.strip(),
+            "depth": depth or self._linkup_depth,
+            "output_type": output_type or self._linkup_output_type,
+        }
+        return await self.invoke(DEFAULT_LINKUP_TOOL, payload)
+
+    async def linkup_batch_search(
+        self,
+        queries: list[str],
+        max_concurrent: int | None = None,
+    ) -> list[dict[str, Any]]:
+        """Execute multiple LinkUp searches with concurrency control.
+
+        Args:
+            queries: List of search query strings.
+            max_concurrent: Max parallel requests. Defaults to config (4).
+
+        Returns:
+            List of result dicts, one per query. Failed queries return
+            {"status": "failed", "error": "..."}.
+        """
+        if not queries:
+            return []
+
+        concurrency = max_concurrent or self._linkup_max_concurrent
+        semaphore = asyncio.Semaphore(concurrency)
+
+        async def _run(q: str) -> dict[str, Any]:
+            async with semaphore:
+                try:
+                    return await self.linkup_search(q)
+                except RubeInvocationError as exc:
+                    return {"status": "failed", "error": str(exc), "query": q}
+                except ValueError as exc:
+                    return {"status": "failed", "error": str(exc), "query": q}
+
+        results = await asyncio.gather(
+            *(_run(q) for q in queries), return_exceptions=False
+        )
+        return list(results)
+
+    async def _send_via_httpx(self, url: str, body: dict[str, Any]) -> dict[str, Any]:
         """Send a request using httpx (live mode)."""
         if self._client is None:
             raise RuntimeError("HTTP client not initialized for Rube MCP.")
@@ -198,16 +279,11 @@ class RubeIntegration:
     async def _invoke_with_retries(
         self,
         sender: AsyncSender,
-        request_body: Dict[str, Any],
+        request_body: dict[str, Any],
         tool: str,
-    ) -> Dict[str, Any]:
-        """Invoke the sender with retry/backoff and telemetry."""
-
-        max_attempts = max(1, 1 + self.max_retries)
-        attempt = 0
-
-        while attempt < max_attempts:
-            attempt += 1
+    ) -> dict[str, Any]:
+        """Invoke sender with single retry on transient errors."""
+        for attempt in (1, 2):  # Max 2 attempts (1 retry)
             start = time.perf_counter()
             try:
                 response = await sender(self.endpoint, request_body)
@@ -219,24 +295,14 @@ class RubeIntegration:
             except Exception as exc:
                 duration = time.perf_counter() - start
                 retryable = self._is_retryable(exc)
-                if attempt >= max_attempts or not retryable:
+
+                if attempt == 2 or not retryable:
                     self._record_telemetry(
-                        "failure",
-                        tool,
-                        request_body,
-                        attempt,
-                        duration,
-                        error=exc,
-                        extra={"retryable": retryable},
+                        "failure", tool, request_body, attempt, duration, error=exc
                     )
                     error_details = self._format_error(exc)
                     error_details.update(
-                        {
-                            "tool": tool,
-                            "attempts": attempt,
-                            "endpoint": self.endpoint,
-                            "retryable": retryable,
-                        }
+                        {"tool": tool, "attempts": attempt, "endpoint": self.endpoint}
                     )
                     raise RubeInvocationError(
                         f"Rube MCP request failed after {attempt} attempt(s)",
@@ -245,23 +311,11 @@ class RubeIntegration:
                         details=error_details,
                     ) from exc
 
-                delay = min(
-                    self.max_retry_delay,
-                    self.retry_backoff_seconds * (2 ** (attempt - 1)),
-                )
-                self._record_telemetry(
-                    "retry",
-                    tool,
-                    request_body,
-                    attempt,
-                    duration,
-                    error=exc,
-                    extra={"retry_delay_seconds": round(delay, 4)},
-                )
-                await asyncio.sleep(delay)
+                # Single retry with fixed 1s delay
+                logger.debug("Rube MCP transient error, retrying in 1s: %s", exc)
+                await asyncio.sleep(1.0)
 
-        # Should never reach here due to the loop logic.
-        raise RubeInvocationError("Rube MCP invocation exhausted retries unexpectedly.")
+        raise RubeInvocationError("Unexpected retry exhaustion")
 
     def _is_retryable(self, exc: Exception) -> bool:
         """Determine if an exception is retryable."""
@@ -276,19 +330,25 @@ class RubeIntegration:
             return True
 
         message = str(exc).lower()
-        transient_tokens = ("timeout", "temporarily", "again later", "rate limit", "429")
+        transient_tokens = (
+            "timeout",
+            "temporarily",
+            "again later",
+            "rate limit",
+            "429",
+        )
         return any(token in message for token in transient_tokens)
 
     def _record_telemetry(
         self,
         outcome: str,
         tool: str,
-        request_body: Dict[str, Any],
+        request_body: dict[str, Any],
         attempt: int,
         duration: float,
         *,
-        error: Optional[Exception] = None,
-        extra: Optional[Dict[str, Any]] = None,
+        error: Exception | None = None,
+        extra: dict[str, Any] | None = None,
     ) -> None:
         """Emit structured telemetry for each invocation outcome."""
         if not self.telemetry_enabled:
@@ -323,9 +383,9 @@ class RubeIntegration:
         else:
             logger.error(log_line, log_payload)
 
-    def _summarize_error(self, exc: Exception) -> Dict[str, Any]:
+    def _summarize_error(self, exc: Exception) -> dict[str, Any]:
         """Provide a compact summary of an exception for telemetry."""
-        summary: Dict[str, Any] = {
+        summary: dict[str, Any] = {
             "type": exc.__class__.__name__,
             "message": str(exc),
         }
@@ -334,7 +394,7 @@ class RubeIntegration:
             summary["status"] = getattr(response, "status_code", None)
         return summary
 
-    def _format_error(self, exc: Exception) -> Dict[str, Any]:
+    def _format_error(self, exc: Exception) -> dict[str, Any]:
         """Produce a detailed, structured error payload."""
         details = self._summarize_error(exc)
         response = getattr(exc, "response", None)
@@ -347,9 +407,7 @@ class RubeIntegration:
                 text = response.text
                 details["response_body"] = self._truncate(text)
             headers = {
-                k: v
-                for k, v in response.headers.items()
-                if k.lower().startswith("x-")
+                k: v for k, v in response.headers.items() if k.lower().startswith("x-")
             }
             if headers:
                 details["response_headers"] = headers

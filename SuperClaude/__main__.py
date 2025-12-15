@@ -11,13 +11,13 @@ Usage:
     SuperClaude --help
 """
 
-import sys
 import argparse
-import subprocess
 import difflib
 import importlib
 import os
 import shlex
+import subprocess
+import sys
 import textwrap
 from pathlib import Path
 from typing import Callable, Dict, Optional
@@ -36,16 +36,17 @@ _BOOTSTRAP_SKIP_VALUES = {"1", "true", "yes", "on"}
 
 
 def _import_setup_symbols():
+    from setup import DEFAULT_INSTALL_DIR as setup_default_dir
+    from setup.utils.logger import LogLevel, get_logger, setup_logging
     from setup.utils.ui import (
+        Colors,
+        display_error,
         display_header,
         display_info,
         display_success,
-        display_error,
         display_warning,
-        Colors,
     )
-    from setup.utils.logger import setup_logging, get_logger, LogLevel
-    from setup import DEFAULT_INSTALL_DIR as setup_default_dir
+
     return (
         display_header,
         display_info,
@@ -103,14 +104,16 @@ def _handle_setup_import_failure(error: ImportError, *, retry: bool) -> None:
         except FileNotFoundError as bootstrap_exc:
             attempted = True
             bootstrap_error = f"pip executable not found: {bootstrap_exc}"
-        except Exception as bootstrap_exc:  # noqa: BLE001 - surface failure
+        except Exception as bootstrap_exc:
             attempted = True
             bootstrap_error = str(bootstrap_exc)
         else:
             if result.returncode == 0:
                 importlib.invalidate_caches()
                 return
-            bootstrap_error = f"bootstrap command exited with status {result.returncode}"
+            bootstrap_error = (
+                f"bootstrap command exited with status {result.returncode}"
+            )
 
     error_desc = str(error) or error.__class__.__name__
     cmd_display = f"{sys.executable} -m pip install -e {shlex.quote(str(project_root))}"
@@ -216,30 +219,55 @@ def create_global_parser() -> argparse.ArgumentParser:
     """Create shared parser for global flags used by all commands"""
     global_parser = argparse.ArgumentParser(add_help=False)
 
-    global_parser.add_argument("--verbose", "-v", action="store_true",
-                               help="Enable verbose logging")
-    global_parser.add_argument("--quiet", "-q", action="store_true",
-                               help="Suppress all output except errors")
-    global_parser.add_argument("--install-dir", type=Path, default=DEFAULT_INSTALL_DIR,
-                               help=f"Target installation directory (default: {DEFAULT_INSTALL_DIR})")
-    global_parser.add_argument("--dry-run", action="store_true",
-                               help="Simulate operation without making changes")
-    global_parser.add_argument("--force", action="store_true",
-                               help="Force execution, skipping checks")
-    global_parser.add_argument("--yes", "-y", action="store_true",
-                               help="Automatically answer yes to all prompts")
-    global_parser.add_argument("--no-update-check", action="store_true",
-                               help="Skip checking for updates")
-    global_parser.add_argument("--auto-update", action="store_true",
-                               help="Automatically install updates without prompting")
+    global_parser.add_argument(
+        "--verbose", "-v", action="store_true", help="Enable verbose logging"
+    )
+    global_parser.add_argument(
+        "--quiet", "-q", action="store_true", help="Suppress all output except errors"
+    )
+    global_parser.add_argument(
+        "--install-dir",
+        type=Path,
+        default=DEFAULT_INSTALL_DIR,
+        help=f"Target installation directory (default: {DEFAULT_INSTALL_DIR})",
+    )
+    global_parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Simulate operation without making changes",
+    )
+    global_parser.add_argument(
+        "--force", action="store_true", help="Force execution, skipping checks"
+    )
+    global_parser.add_argument(
+        "--yes",
+        "-y",
+        action="store_true",
+        help="Automatically answer yes to all prompts",
+    )
+    global_parser.add_argument(
+        "--no-update-check", action="store_true", help="Skip checking for updates"
+    )
+    global_parser.add_argument(
+        "--auto-update",
+        action="store_true",
+        help="Automatically install updates without prompting",
+    )
 
     # Agent system flags
-    global_parser.add_argument("--delegate", action="store_true",
-                               help="Automatically delegate to the best agent for the task")
-    global_parser.add_argument("--suggest-agents", action="store_true",
-                               help="Show top 5 recommended agents for the task")
-    global_parser.add_argument("--agent", type=str, metavar="NAME",
-                               help="Specify a particular agent to use")
+    global_parser.add_argument(
+        "--delegate",
+        action="store_true",
+        help="Automatically delegate to the best agent for the task",
+    )
+    global_parser.add_argument(
+        "--suggest-agents",
+        action="store_true",
+        help="Show top 5 recommended agents for the task",
+    )
+    global_parser.add_argument(
+        "--agent", type=str, metavar="NAME", help="Specify a particular agent to use"
+    )
 
     return global_parser
 
@@ -258,16 +286,19 @@ Examples:
   SuperClaude backup --create
         """,
         formatter_class=argparse.RawDescriptionHelpFormatter,
-        parents=[global_parser]
+        parents=[global_parser],
     )
 
     from SuperClaude import __version__
-    parser.add_argument("--version", action="version", version=f"SuperClaude {__version__}")
+
+    parser.add_argument(
+        "--version", action="version", version=f"SuperClaude {__version__}"
+    )
 
     subparsers = parser.add_subparsers(
         dest="operation",
         title="Operations",
-        description="Framework operations to perform"
+        description="Framework operations to perform",
     )
 
     return parser, subparsers, global_parser
@@ -290,7 +321,9 @@ def setup_global_environment(args: argparse.Namespace):
     # Log startup context
     logger = get_logger()
     if logger:
-        logger.debug(f"SuperClaude called with operation: {getattr(args, 'operation', 'None')}")
+        logger.debug(
+            f"SuperClaude called with operation: {getattr(args, 'operation', 'None')}"
+        )
         logger.debug(f"Arguments: {vars(args)}")
 
 
@@ -302,7 +335,7 @@ def get_operation_modules() -> Dict[str, str]:
         "uninstall": "Remove SuperClaude installation",
         "backup": "Backup and restore operations",
         "clean": "Clean corrupted metadata, cache, and temporary files",
-        "agent": "Interact with the agent system"
+        "agent": "Interact with the agent system",
     }
 
 
@@ -322,13 +355,17 @@ def register_operation_parsers(subparsers, global_parser) -> Dict[str, Callable]
     operations = {}
     for name, desc in get_operation_modules().items():
         module = load_operation_module(name)
-        if module and hasattr(module, 'register_parser') and hasattr(module, 'run'):
+        if module and hasattr(module, "register_parser") and hasattr(module, "run"):
             module.register_parser(subparsers, global_parser)
             operations[name] = module.run
         else:
             # If module doesn't exist, register a stub parser and fallback to legacy
-            parser = subparsers.add_parser(name, help=f"{desc} (legacy fallback)", parents=[global_parser])
-            parser.add_argument("--legacy", action="store_true", help="Use legacy script")
+            parser = subparsers.add_parser(
+                name, help=f"{desc} (legacy fallback)", parents=[global_parser]
+            )
+            parser.add_argument(
+                "--legacy", action="store_true", help="Use legacy script"
+            )
             operations[name] = None
     return operations
 
@@ -347,7 +384,7 @@ def handle_legacy_fallback(op: str, args: argparse.Namespace) -> int:
 
     # Convert args into CLI flags
     for k, v in vars(args).items():
-        if k in ['operation', 'install_dir'] or v in [None, False]:
+        if k in ["operation", "install_dir"] or v in [None, False]:
             continue
         flag = f"--{k.replace('_', '-')}"
         if v is True:
@@ -383,20 +420,24 @@ def main() -> int:
                     display_error(f"Unknown operation: '{candidate}'.")
                     return 1
             raise
-        
+
         # Check for updates unless disabled
-        if not args.quiet and not getattr(args, 'no_update_check', False):
+        if not args.quiet and not getattr(args, "no_update_check", False):
             try:
                 from setup.utils.updater import check_for_updates
+
                 # Check for updates in the background
                 from SuperClaude import __version__
+
                 updated = check_for_updates(
                     current_version=__version__,
-                    auto_update=getattr(args, 'auto_update', False)
+                    auto_update=getattr(args, "auto_update", False),
                 )
                 # If updated, suggest restart
                 if updated:
-                    print("\n🔄 SuperClaude was updated. Please restart to use the new version.")
+                    print(
+                        "\n🔄 SuperClaude was updated. Please restart to use the new version."
+                    )
                     return 0
             except ImportError:
                 # Updater module not available, skip silently
@@ -409,7 +450,11 @@ def main() -> int:
         if not args.operation:
             if not args.quiet:
                 from SuperClaude import __version__
-                display_header(f"SuperClaude Framework v{__version__}", "Unified CLI for all operations")
+
+                display_header(
+                    f"SuperClaude Framework v{__version__}",
+                    "Unified CLI for all operations",
+                )
                 print(f"{Colors.CYAN}Available operations:{Colors.RESET}")
                 for op, desc in get_operation_modules().items():
                     print(f"  {op:<12} {desc}")
@@ -435,7 +480,9 @@ def main() -> int:
         else:
             # Fallback to legacy script
             if logger:
-                logger.warning(f"Module for '{args.operation}' missing, using legacy fallback")
+                logger.warning(
+                    f"Module for '{args.operation}' missing, using legacy fallback"
+                )
             return handle_legacy_fallback(args.operation, args)
 
     except KeyboardInterrupt:
@@ -454,4 +501,3 @@ def main() -> int:
 # Entrypoint guard
 if __name__ == "__main__":
     sys.exit(main())
-    

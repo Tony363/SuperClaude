@@ -59,7 +59,9 @@ def test_cache_respects_ttl_without_sleep(extended_loader: ExtendedAgentLoader) 
     assert second is not first
 
 
-def test_agent_selection_prefers_specialists(extended_loader: ExtendedAgentLoader) -> None:
+def test_agent_selection_prefers_specialists(
+    extended_loader: ExtendedAgentLoader,
+) -> None:
     context = {
         "task": "Optimize a python machine learning pipeline",
         "files": ["train.py", "model.py"],
@@ -80,7 +82,9 @@ def test_agent_selection_prefers_specialists(extended_loader: ExtendedAgentLoade
     assert primary.breakdown.get("keywords", 0) > 0
 
 
-def test_preload_top_agents_uses_access_patterns(extended_loader: ExtendedAgentLoader) -> None:
+def test_preload_top_agents_uses_access_patterns(
+    extended_loader: ExtendedAgentLoader,
+) -> None:
     for _ in range(3):
         extended_loader.load_agent("general-purpose")
     for _ in range(2):
@@ -96,10 +100,14 @@ def test_preload_top_agents_uses_access_patterns(extended_loader: ExtendedAgentL
 
     assert loaded_count == 3
     assert stats["cached_agents"] == 3
-    assert {"general-purpose", "technical-writer", "performance-engineer"}.issubset(top_agents)
+    assert {"general-purpose", "technical-writer", "performance-engineer"}.issubset(
+        top_agents
+    )
 
 
-def test_explain_selection_returns_breakdown(extended_loader: ExtendedAgentLoader) -> None:
+def test_explain_selection_returns_breakdown(
+    extended_loader: ExtendedAgentLoader,
+) -> None:
     context = {
         "task": "Design a resilient kubernetes deployment for our api",
         "files": ["infra/k8s/deployment.yaml"],
@@ -113,11 +121,17 @@ def test_explain_selection_returns_breakdown(extended_loader: ExtendedAgentLoade
 
     assert explanation["agent_id"] == match.agent_id
     assert explanation["confidence"] == match.confidence
-    assert set(["keywords", "domains", "languages", "file_patterns"]).issubset(explanation["breakdown"].keys())
+    assert set(["keywords", "domains", "languages", "file_patterns"]).issubset(
+        explanation["breakdown"].keys()
+    )
 
 
-def test_explain_selection_handles_missing_metadata(extended_loader: ExtendedAgentLoader) -> None:
+def test_explain_selection_handles_missing_metadata(
+    extended_loader: ExtendedAgentLoader,
+) -> None:
     extended_loader._agent_metadata.pop("general-purpose", None)
-    explanation = extended_loader.explain_selection("general-purpose", {"task": "triage"})
+    explanation = extended_loader.explain_selection(
+        "general-purpose", {"task": "triage"}
+    )
 
-    assert explanation == {'error': 'Agent not found: general-purpose'}
+    assert explanation == {"error": "Agent not found: general-purpose"}

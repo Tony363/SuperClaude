@@ -11,14 +11,13 @@ from __future__ import annotations
 import json
 import threading
 from pathlib import Path
-from typing import Dict, Optional, Tuple
 
 from ..Monitoring.paths import get_metrics_dir
 
 _LOCK = threading.Lock()
-_CACHE: Dict[str, Dict[str, int]] = {}
+_CACHE: dict[str, dict[str, int]] = {}
 _LOADED = False
-_USAGE_PATH: Optional[Path] = None
+_USAGE_PATH: Path | None = None
 
 
 def _usage_file() -> Path:
@@ -29,14 +28,14 @@ def _usage_file() -> Path:
     return _USAGE_PATH
 
 
-def _load_cache() -> Dict[str, Dict[str, int]]:
+def _load_cache() -> dict[str, dict[str, int]]:
     """Lazy-load usage data from disk into memory."""
     global _LOADED
     if _LOADED:
         return _CACHE
 
     path = _usage_file()
-    data: Dict[str, Dict[str, int]] = {}
+    data: dict[str, dict[str, int]] = {}
     if path.exists():
         try:
             payload = json.loads(path.read_text(encoding="utf-8"))
@@ -76,39 +75,44 @@ def _persist_cache() -> None:
         }
         for agent, stats in _CACHE.items()
     }
-    path.write_text(json.dumps(serializable, indent=2, sort_keys=True), encoding="utf-8")
+    path.write_text(
+        json.dumps(serializable, indent=2, sort_keys=True), encoding="utf-8"
+    )
 
 
-def _bump(agent: str, field: str, source: Optional[str] = None) -> None:
+def _bump(agent: str, field: str, source: str | None = None) -> None:
     """Increment a single usage field."""
     if not agent:
         return
 
     with _LOCK:
         cache = _load_cache()
-        entry = cache.setdefault(agent, {"loaded": 0, "executed": 0, "plan_only": 0, "source": source or "unknown"})
+        entry = cache.setdefault(
+            agent,
+            {"loaded": 0, "executed": 0, "plan_only": 0, "source": source or "unknown"},
+        )
         entry[field] = max(0, int(entry.get(field, 0))) + 1
         if source:
             entry["source"] = source
         _persist_cache()
 
 
-def record_load(agent: str, source: Optional[str] = None) -> None:
+def record_load(agent: str, source: str | None = None) -> None:
     """Record that an agent was loaded."""
     _bump(agent, "loaded", source=source)
 
 
-def record_execution(agent: str, source: Optional[str] = None) -> None:
+def record_execution(agent: str, source: str | None = None) -> None:
     """Record that an agent executed."""
     _bump(agent, "executed", source=source)
 
 
-def record_plan_only(agent: str, source: Optional[str] = None) -> None:
+def record_plan_only(agent: str, source: str | None = None) -> None:
     """Record that an agent returned plan-only guidance."""
     _bump(agent, "plan_only", source=source)
 
 
-def get_usage_snapshot() -> Dict[str, Dict[str, int]]:
+def get_usage_snapshot() -> dict[str, dict[str, int]]:
     """
     Return a shallow copy of the current usage snapshot.
 
@@ -119,7 +123,9 @@ def get_usage_snapshot() -> Dict[str, Dict[str, int]]:
         return {agent: dict(stats) for agent, stats in cache.items()}
 
 
-def classify_agents(agent_names: Dict[str, Dict[str, str]]) -> Dict[str, Dict[str, int]]:
+def classify_agents(
+    agent_names: dict[str, dict[str, str]],
+) -> dict[str, dict[str, int]]:
     """
     Build usage buckets for reporting.
 
@@ -139,11 +145,16 @@ def classify_agents(agent_names: Dict[str, Dict[str, str]]) -> Dict[str, Dict[st
     observed = {
         name: snapshot[name]
         for name in snapshot
-        if snapshot[name].get("executed", 0) == 0 and snapshot[name].get("loaded", 0) > 0
+        if snapshot[name].get("executed", 0) == 0
+        and snapshot[name].get("loaded", 0) > 0
     }
 
     planned = {
-        name: {"loaded": 0, "executed": 0, "source": agent_names.get(name, {}).get("source", "unknown")}
+        name: {
+            "loaded": 0,
+            "executed": 0,
+            "source": agent_names.get(name, {}).get("source", "unknown"),
+        }
         for name in agent_names
         if name not in snapshot
     }
@@ -156,8 +167,8 @@ def classify_agents(agent_names: Dict[str, Dict[str, str]]) -> Dict[str, Dict[st
 
 
 def write_markdown_report(
-    registry_summary: Dict[str, Dict[str, str]],
-    output_path: Optional[Path] = None,
+    registry_summary: dict[str, dict[str, str]],
+    output_path: Path | None = None,
 ) -> Path:
     """
     Write a markdown summary describing agent usage.
@@ -182,7 +193,7 @@ def write_markdown_report(
         "",
     ]
 
-    def _render_section(title: str, data: Dict[str, Dict[str, int]]) -> None:
+    def _render_section(title: str, data: dict[str, dict[str, int]]) -> None:
         lines.append(f"## {title}")
         lines.append("")
         if not data:
@@ -227,11 +238,11 @@ def reset_usage_stats(for_tests: bool = False) -> None:
 
 
 __all__ = [
-    "record_load",
-    "record_execution",
-    "record_plan_only",
-    "get_usage_snapshot",
     "classify_agents",
-    "write_markdown_report",
+    "get_usage_snapshot",
+    "record_execution",
+    "record_load",
+    "record_plan_only",
     "reset_usage_stats",
+    "write_markdown_report",
 ]

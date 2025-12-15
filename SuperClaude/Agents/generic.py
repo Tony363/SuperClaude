@@ -5,12 +5,12 @@ This module provides a generic agent implementation that works with
 any agent defined in markdown without requiring a specific Python class.
 """
 
-from typing import Dict, Any, List, Iterable, Optional
 import json
 import re
+import textwrap
 from datetime import datetime
 from pathlib import Path
-import textwrap
+from typing import Any, Dict, List
 
 from .base import BaseAgent
 
@@ -34,13 +34,13 @@ class GenericMarkdownAgent(BaseAgent):
         super().__init__(config)
 
         # Extract specific configuration
-        self.key_actions = config.get('key_actions', [])
-        self.outputs = config.get('outputs', [])
+        self.key_actions = config.get("key_actions", [])
+        self.outputs = config.get("outputs", [])
 
         # Parse will/will not boundaries
-        boundaries = config.get('boundaries', {})
-        self.will_do = boundaries.get('will', [])
-        self.will_not_do = boundaries.get('will_not', [])
+        boundaries = config.get("boundaries", {})
+        self.will_do = boundaries.get("will", [])
+        self.will_not_do = boundaries.get("will_not", [])
 
     def execute(self, context: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -53,89 +53,80 @@ class GenericMarkdownAgent(BaseAgent):
             Execution results
         """
         result = {
-            'success': False,
-            'output': '',
-            'actions_taken': [],
-            'planned_actions': [],
-            'warnings': [],
-            'errors': [],
-            'status': 'plan-only'
+            "success": False,
+            "output": "",
+            "actions_taken": [],
+            "planned_actions": [],
+            "warnings": [],
+            "errors": [],
+            "status": "plan-only",
         }
 
         try:
             # Initialize if needed
             if not self._initialized:
                 if not self.initialize():
-                    result['errors'].append("Failed to initialize agent")
+                    result["errors"].append("Failed to initialize agent")
                     return result
 
             # Validate context
             if not self.validate(context):
-                result['errors'].append(
-                    f"Agent {self.name} cannot handle this context"
-                )
+                result["errors"].append(f"Agent {self.name} cannot handle this context")
                 return result
 
             # Extract task from context
-            task = context.get('task', '')
-            parameters = context.get('parameters', {})
+            task = context.get("task", "")
+            parameters = context.get("parameters", {})
 
             # Build execution plan based on key actions
             execution_plan = self._build_execution_plan(task, parameters)
-            result['planned_actions'] = execution_plan
+            result["planned_actions"] = execution_plan
 
             executed_operations = self._extract_executed_operations(context)
 
             synthesized_changes = self._synthesise_change_plan(
-                context,
-                task,
-                execution_plan,
-                executed_operations
+                context, task, execution_plan, executed_operations
             )
 
             if synthesized_changes:
-                result['proposed_changes'] = synthesized_changes
-                result['actions_taken'].extend(
+                result["proposed_changes"] = synthesized_changes
+                result["actions_taken"].extend(
                     f"write {change['path']}" for change in synthesized_changes
                 )
                 if executed_operations:
-                    result['actions_taken'].extend(executed_operations)
+                    result["actions_taken"].extend(executed_operations)
 
-                result['output'] = self._generate_output(
-                    task,
-                    execution_plan,
-                    result['actions_taken']
+                result["output"] = self._generate_output(
+                    task, execution_plan, result["actions_taken"]
                 )
-                result['success'] = True
-                result['status'] = 'executed'
+                result["success"] = True
+                result["status"] = "executed"
             elif executed_operations:
-                result['actions_taken'].extend(executed_operations)
-                result['output'] = self._generate_output(
-                    task,
-                    execution_plan,
-                    executed_operations
+                result["actions_taken"].extend(executed_operations)
+                result["output"] = self._generate_output(
+                    task, execution_plan, executed_operations
                 )
-                result['success'] = True
-                result['status'] = 'executed'
+                result["success"] = True
+                result["status"] = "executed"
             else:
                 followup_reason = (
                     f"{self.name} produced plan-only guidance for task '{task}'. "
                     "Escalating for specialist follow-up."
                 )
-                result['warnings'].append(
+                result["warnings"].append(
                     "No concrete file or command changes detected; escalating to follow-up."
                 )
-                result['output'] = self._generate_plan_output(task, execution_plan)
-                result['requires_followup'] = followup_reason
-                result['status'] = 'followup'
-                result['success'] = False
+                result["output"] = self._generate_plan_output(task, execution_plan)
+                result["requires_followup"] = followup_reason
+                result["status"] = "followup"
+                result["success"] = False
 
             # Log execution
             self.log_execution(context, result)
 
         except Exception as e:
             self.logger.error(f"Execution failed for {self.name}: {e}")
-            result['errors'].append(str(e))
+            result["errors"].append(str(e))
 
         return result
 
@@ -149,7 +140,7 @@ class GenericMarkdownAgent(BaseAgent):
         Returns:
             True if agent can handle context
         """
-        task = context.get('task', '')
+        task = context.get("task", "")
 
         if not task:
             return False
@@ -171,9 +162,7 @@ class GenericMarkdownAgent(BaseAgent):
         # Accept if confidence is above calibrated threshold
         return confidence >= 0.5
 
-    def _build_execution_plan(
-        self, task: str, parameters: Dict[str, Any]
-    ) -> List[str]:
+    def _build_execution_plan(self, task: str, parameters: Dict[str, Any]) -> List[str]:
         """
         Build execution plan based on key actions.
 
@@ -199,7 +188,7 @@ class GenericMarkdownAgent(BaseAgent):
             plan = [
                 f"Analyze: {task}",
                 f"Apply {self.category} expertise",
-                f"Execute with {', '.join(self.tools) if self.tools else 'available tools'}"
+                f"Execute with {', '.join(self.tools) if self.tools else 'available tools'}",
             ]
 
         return plan
@@ -216,8 +205,10 @@ class GenericMarkdownAgent(BaseAgent):
             True if action is relevant
         """
         # Extract key verbs from action
-        action_verbs = re.findall(r'\b(analyze|test|validate|document|refactor|debug|implement|review)\b',
-                                 action.lower())
+        action_verbs = re.findall(
+            r"\b(analyze|test|validate|document|refactor|debug|implement|review)\b",
+            action.lower(),
+        )
 
         task_lower = task.lower()
 
@@ -233,9 +224,7 @@ class GenericMarkdownAgent(BaseAgent):
         # Default to including the action for generic execution
         return len(self.key_actions) <= 3  # Include all if few actions
 
-    def _format_action(
-        self, action: str, task: str, parameters: Dict[str, Any]
-    ) -> str:
+    def _format_action(self, action: str, task: str, parameters: Dict[str, Any]) -> str:
         """
         Format action with context.
 
@@ -251,21 +240,18 @@ class GenericMarkdownAgent(BaseAgent):
         formatted = action
 
         # Replace common placeholders
-        formatted = formatted.replace('{task}', task)
-        formatted = formatted.replace('{category}', self.category)
+        formatted = formatted.replace("{task}", task)
+        formatted = formatted.replace("{category}", self.category)
 
         # Add parameters if mentioned
-        if 'parameter' in action.lower() and parameters:
-            param_str = ', '.join(f"{k}={v}" for k, v in parameters.items())
+        if "parameter" in action.lower() and parameters:
+            param_str = ", ".join(f"{k}={v}" for k, v in parameters.items())
             formatted += f" (parameters: {param_str})"
 
         return formatted
 
     def _generate_output(
-        self,
-        task: str,
-        planned_actions: List[str],
-        executed_operations: List[str]
+        self, task: str, planned_actions: List[str], executed_operations: List[str]
     ) -> str:
         """
         Generate output summarizing both the plan and executed work.
@@ -305,7 +291,7 @@ class GenericMarkdownAgent(BaseAgent):
         if self.outputs:
             output_lines.append("## Expected Deliverables")
             for output in self.outputs[:3]:
-                output_type = output.split(':')[0].strip()
+                output_type = output.split(":")[0].strip()
                 output_lines.append(f"- {output_type}")
             output_lines.append("")
 
@@ -313,7 +299,7 @@ class GenericMarkdownAgent(BaseAgent):
             output_lines.append("## Tools Suggested")
             output_lines.append(f"Recommended: {', '.join(self.tools)}")
 
-        return '\n'.join(output_lines)
+        return "\n".join(output_lines)
 
     def _generate_plan_output(self, task: str, planned_actions: List[str]) -> str:
         """
@@ -333,8 +319,10 @@ class GenericMarkdownAgent(BaseAgent):
         output_lines.append(f"**Task**: {task}")
         output_lines.append("")
 
-        output_lines.append("⚠️ No concrete repository changes were executed by this agent. "
-                            "Below is a recommended plan for manual follow-up.")
+        output_lines.append(
+            "⚠️ No concrete repository changes were executed by this agent. "
+            "Below is a recommended plan for manual follow-up."
+        )
         output_lines.append("")
 
         if planned_actions:
@@ -352,7 +340,7 @@ class GenericMarkdownAgent(BaseAgent):
             for output in self.outputs[:3]:
                 output_lines.append(f"- {output.split(':')[0].strip()}")
 
-        return '\n'.join(output_lines)
+        return "\n".join(output_lines)
 
     def _extract_executed_operations(self, context: Dict[str, Any]) -> List[str]:
         """
@@ -366,11 +354,11 @@ class GenericMarkdownAgent(BaseAgent):
         """
         executed: List[str] = []
         candidate_keys = [
-            'executed_operations',
-            'applied_changes',
-            'files_modified',
-            'commands_run',
-            'diff_summary'
+            "executed_operations",
+            "applied_changes",
+            "files_modified",
+            "commands_run",
+            "diff_summary",
         ]
 
         for key in candidate_keys:
@@ -380,7 +368,9 @@ class GenericMarkdownAgent(BaseAgent):
             elif isinstance(value, dict):
                 for subkey, subvalue in value.items():
                     if isinstance(subvalue, list):
-                        executed.extend(f"{subkey}: {item}" for item in subvalue if item)
+                        executed.extend(
+                            f"{subkey}: {item}" for item in subvalue if item
+                        )
                     elif subvalue:
                         executed.append(f"{subkey}: {subvalue}")
             elif isinstance(value, str) and value.strip():
@@ -401,7 +391,7 @@ class GenericMarkdownAgent(BaseAgent):
         """
         # Simple keyword matching for now
         # Could be enhanced with more sophisticated matching
-        keywords = re.findall(r'\b\w+\b', boundary)
+        keywords = re.findall(r"\b\w+\b", boundary)
 
         # Check if significant keywords appear in text
         matches = 0
@@ -431,15 +421,17 @@ class GenericMarkdownAgent(BaseAgent):
         """
         change_entries: List[Dict[str, Any]] = []
 
-        provided_changes = context.get('proposed_changes') or context.get('changes')
+        provided_changes = context.get("proposed_changes") or context.get("changes")
         if isinstance(provided_changes, list):
             for entry in provided_changes:
-                if isinstance(entry, dict) and entry.get('path') and 'content' in entry:
-                    change_entries.append({
-                        'path': str(entry['path']),
-                        'content': entry.get('content', ''),
-                        'mode': entry.get('mode', 'replace')
-                    })
+                if isinstance(entry, dict) and entry.get("path") and "content" in entry:
+                    change_entries.append(
+                        {
+                            "path": str(entry["path"]),
+                            "content": entry.get("content", ""),
+                            "mode": entry.get("mode", "replace"),
+                        }
+                    )
             if change_entries:
                 return change_entries
 
@@ -450,48 +442,54 @@ class GenericMarkdownAgent(BaseAgent):
 
     def _infer_extension(self, context: Dict[str, Any], task: str) -> str:
         """Infer file extension for generated stub."""
-        parameters = context.get('parameters', {}) or {}
-        framework = str(parameters.get('framework') or '').lower()
-        language = str(parameters.get('language') or '').lower()
+        parameters = context.get("parameters", {}) or {}
+        framework = str(parameters.get("framework") or "").lower()
+        language = str(parameters.get("language") or "").lower()
         request = f"{task} {' '.join(context.get('flags', []))} {framework} {language}".lower()
 
         def has_any(*needles: str) -> bool:
             return any(needle in request for needle in needles)
 
-        if has_any('readme', 'docs', 'documentation', 'spec', 'note', 'adr'):
-            return 'md'
-        if framework in {'react', 'next', 'nextjs'} or has_any('component', 'frontend', 'ui', 'tsx'):
-            return 'tsx'
-        if framework == 'vue' or has_any('vue'):
-            return 'vue'
-        if framework in {'svelte', 'solid'} or has_any('svelte'):
-            return 'svelte'
-        if framework in {'express', 'node'} or has_any('typescript', 'ts', 'lambda', 'api endpoint'):
-            return 'ts'
-        if framework in {'go', 'golang'} or has_any('golang', ' go'):
-            return 'go'
-        if framework in {'rust'} or has_any(' rust', 'rust '):
-            return 'rs'
-        if framework in {'java', 'spring'} or has_any('java ', 'spring'):
-            return 'java'
-        if framework in {'csharp', '.net', 'dotnet'} or has_any('c#', 'csharp', '.net', 'dotnet'):
-            return 'cs'
+        if has_any("readme", "docs", "documentation", "spec", "note", "adr"):
+            return "md"
+        if framework in {"react", "next", "nextjs"} or has_any(
+            "component", "frontend", "ui", "tsx"
+        ):
+            return "tsx"
+        if framework == "vue" or has_any("vue"):
+            return "vue"
+        if framework in {"svelte", "solid"} or has_any("svelte"):
+            return "svelte"
+        if framework in {"express", "node"} or has_any(
+            "typescript", "ts", "lambda", "api endpoint"
+        ):
+            return "ts"
+        if framework in {"go", "golang"} or has_any("golang", " go"):
+            return "go"
+        if framework in {"rust"} or has_any(" rust", "rust "):
+            return "rs"
+        if framework in {"java", "spring"} or has_any("java ", "spring"):
+            return "java"
+        if framework in {"csharp", ".net", "dotnet"} or has_any(
+            "c#", "csharp", ".net", "dotnet"
+        ):
+            return "cs"
 
         if isinstance(self.default_extension, str) and self.default_extension:
             return self.default_extension
 
-        if has_any('frontend', 'javascript', 'typescript'):
-            return 'ts'
+        if has_any("frontend", "javascript", "typescript"):
+            return "ts"
 
-        return 'py'
+        return "py"
 
     def _build_stub_path(self, task: str, extension: str) -> str:
         """Construct stub file path under SuperClaude/Implementation/Auto."""
         slug = self._slugify(task or self.name)
-        timestamp = datetime.utcnow().strftime('%Y%m%d%H%M%S')
+        timestamp = datetime.utcnow().strftime("%Y%m%d%H%M%S")
         file_name = f"{slug}-{timestamp}.{extension}"
         subdir = self._slugify(self.category or "general")
-        rel_path = Path('SuperClaude') / 'Implementation' / 'Auto' / subdir / file_name
+        rel_path = Path("SuperClaude") / "Implementation" / "Auto" / subdir / file_name
         return str(rel_path)
 
     def _render_stub_content(
@@ -503,35 +501,51 @@ class GenericMarkdownAgent(BaseAgent):
         """Render language-appropriate stub content describing the plan."""
         plan_lines = [line.strip() for line in planned_actions if line and line.strip()]
         sanitized_steps = [self._clean_plan_line(line) for line in plan_lines]
-        plan_steps = sanitized_steps or ["Review the generated plan and implement the requested behaviour."]
+        plan_steps = sanitized_steps or [
+            "Review the generated plan and implement the requested behaviour."
+        ]
         category_label = self.category or "general"
         timestamp = datetime.utcnow().isoformat()
-        agent_name = self.name.replace('-', ' ').title()
+        agent_name = self.name.replace("-", " ").title()
 
-        if extension == 'py':
-            return self._render_python_plan_stub(task, agent_name, plan_steps, timestamp, category_label)
+        if extension == "py":
+            return self._render_python_plan_stub(
+                task, agent_name, plan_steps, timestamp, category_label
+            )
 
-        if extension in {'ts', 'tsx'}:
-            return self._render_typescript_plan_stub(extension, task, agent_name, plan_steps, timestamp, category_label)
+        if extension in {"ts", "tsx"}:
+            return self._render_typescript_plan_stub(
+                extension, task, agent_name, plan_steps, timestamp, category_label
+            )
 
-        if extension == 'md':
-            plan_section = '\n'.join(f"- {step}" for step in plan_lines) or "- Flesh out the behaviour."
-            return textwrap.dedent(f"""
+        if extension == "md":
+            plan_section = (
+                "\n".join(f"- {step}" for step in plan_lines)
+                or "- Flesh out the behaviour."
+            )
+            return (
+                textwrap.dedent(f"""
                 # Auto-generated Implementation Stub
 
                 - Agent: {agent_name}
                 - Generated: {timestamp}
-                - Task: {task or 'unspecified'}
+                - Task: {task or "unspecified"}
 
                 ## Recommended Steps
                 {plan_section}
 
                 Replace this stub with detailed documentation once the work is complete.
-            """).strip() + "\n"
+            """).strip()
+                + "\n"
+            )
 
-        plan_comment = '\n'.join(f"//  - {step}" for step in plan_lines) or "//  - flesh out behaviour"
+        plan_comment = (
+            "\n".join(f"//  - {step}" for step in plan_lines)
+            or "//  - flesh out behaviour"
+        )
         function_name = self._to_pascal(self._slugify(task or agent_name) or "AutoStub")
-        return textwrap.dedent(f"""
+        return (
+            textwrap.dedent(f"""
             // Auto-generated implementation stub for {task or agent_name}
             // Generated: {timestamp}
             // Plan:
@@ -546,7 +560,9 @@ class GenericMarkdownAgent(BaseAgent):
                 steps: {json.dumps(plan_steps)},
               }};
             }}
-        """).strip() + "\n"
+        """).strip()
+            + "\n"
+        )
 
     def _render_python_plan_stub(
         self,
@@ -559,8 +575,9 @@ class GenericMarkdownAgent(BaseAgent):
         function_name = self._to_snake(self._slugify(task or agent_name))
         plan_literal = json.dumps(plan_steps, indent=2)
         task_label = task or agent_name
-        return textwrap.dedent(
-            f'''
+        return (
+            textwrap.dedent(
+                f'''
                 """Auto-generated implementation plan for {task_label}.
 
                 Generated by {agent_name} on {timestamp}. Records the plan for follow-up execution.
@@ -595,7 +612,9 @@ class GenericMarkdownAgent(BaseAgent):
                         handle.write(json.dumps(entry) + "\n")
                     return plan
             '''
-        ).strip() + "\n"
+            ).strip()
+            + "\n"
+        )
 
     def _render_typescript_plan_stub(
         self,
@@ -606,12 +625,14 @@ class GenericMarkdownAgent(BaseAgent):
         timestamp: str,
         category_label: str,
     ) -> str:
-        helper_import = '../shared/implementation-runner'
-        ts_plan = ',\n      '.join(json.dumps(step) for step in plan_steps)
+        helper_import = "../shared/implementation-runner"
+        ts_plan = ",\n      ".join(json.dumps(step) for step in plan_steps)
         command_label = task or agent_name
 
-        if extension == 'tsx':
-            component_name = self._to_pascal(self._slugify(task or agent_name) or "AutoComponent")
+        if extension == "tsx":
+            component_name = self._to_pascal(
+                self._slugify(task or agent_name) or "AutoComponent"
+            )
             body = textwrap.dedent(
                 f"""
                     import React from 'react';
@@ -636,7 +657,9 @@ class GenericMarkdownAgent(BaseAgent):
                 """
             ).strip()
         else:
-            function_name = self._to_pascal(self._slugify(task or agent_name) or "AutoFunction")
+            function_name = self._to_pascal(
+                self._slugify(task or agent_name) or "AutoFunction"
+            )
             body = textwrap.dedent(
                 f"""
                     import {{ executeImplementationPlan }} from '{helper_import}';
@@ -654,30 +677,35 @@ class GenericMarkdownAgent(BaseAgent):
                 """
             ).strip()
 
-        return textwrap.dedent(
-            f"""
+        return (
+            textwrap.dedent(
+                f"""
                 /**
                  * Auto-generated implementation plan for {command_label}.
                  * Generated: {timestamp}
                  */
                 {body}
             """
-        ).strip() + "\n"
+            ).strip()
+            + "\n"
+        )
 
     @staticmethod
     def _slugify(value: str) -> str:
-        sanitized = ''.join(ch if ch.isalnum() or ch in {'-', '_'} else '-' for ch in value.lower())
-        sanitized = '-'.join(part for part in sanitized.split('-') if part)
-        return sanitized or 'auto-task'
+        sanitized = "".join(
+            ch if ch.isalnum() or ch in {"-", "_"} else "-" for ch in value.lower()
+        )
+        sanitized = "-".join(part for part in sanitized.split("-") if part)
+        return sanitized or "auto-task"
 
     @staticmethod
     def _to_snake(value: str) -> str:
-        return value.replace('-', '_')
+        return value.replace("-", "_")
 
     @staticmethod
     def _to_pascal(value: str) -> str:
-        parts = [part for part in value.replace('_', '-').split('-') if part]
-        return ''.join(part.capitalize() for part in parts) or 'AutoStub'
+        parts = [part for part in value.replace("_", "-").split("-") if part]
+        return "".join(part.capitalize() for part in parts) or "AutoStub"
 
     @staticmethod
     def _clean_plan_line(value: str) -> str:

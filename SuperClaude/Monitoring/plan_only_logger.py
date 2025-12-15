@@ -7,14 +7,14 @@ import logging
 import threading
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any
 
 from .paths import get_metrics_dir
 
 logger = logging.getLogger(__name__)
 
 _LOCK = threading.Lock()
-_PLAN_ONLY_PATH: Optional[Path] = None
+_PLAN_ONLY_PATH: Path | None = None
 
 
 def _plan_only_file() -> Path:
@@ -43,15 +43,14 @@ def _sanitize(value: Any) -> Any:
     return str(value)
 
 
-def record_plan_only_event(event: Dict[str, Any]) -> None:
+def record_plan_only_event(event: dict[str, Any]) -> None:
     payload = dict(event)
     payload.setdefault("timestamp", datetime.utcnow().isoformat() + "Z")
     payload = _sanitize(payload)
 
     path = _plan_only_file()
     try:
-        with _LOCK:
-            with path.open("a", encoding="utf-8") as handle:
-                handle.write(json.dumps(payload, ensure_ascii=False) + "\n")
+        with _LOCK, path.open("a", encoding="utf-8") as handle:
+            handle.write(json.dumps(payload, ensure_ascii=False) + "\n")
     except Exception as exc:
         logger.debug("Failed to append plan-only telemetry: %s", exc, exc_info=True)

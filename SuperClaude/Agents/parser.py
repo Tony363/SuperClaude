@@ -41,11 +41,11 @@ class AgentMarkdownParser:
         try:
             # Try UTF-8 first, then fall back to latin-1
             try:
-                with open(file_path, 'r', encoding='utf-8') as f:
+                with open(file_path, encoding="utf-8") as f:
                     content = f.read()
             except UnicodeDecodeError:
                 # Fall back to latin-1 which accepts all byte values
-                with open(file_path, 'r', encoding='latin-1') as f:
+                with open(file_path, encoding="latin-1") as f:
                     content = f.read()
 
             # Parse YAML frontmatter
@@ -61,8 +61,8 @@ class AgentMarkdownParser:
             config.update(self._extract_agent_info(sections))
 
             # Ensure required fields
-            if 'name' not in config and file_path.stem != '__init__':
-                config['name'] = file_path.stem
+            if "name" not in config and file_path.stem != "__init__":
+                config["name"] = file_path.stem
 
             return config
 
@@ -81,7 +81,7 @@ class AgentMarkdownParser:
             Dictionary containing frontmatter data
         """
         # Check for YAML frontmatter (between --- markers)
-        pattern = r'^---\s*\n(.*?)\n---\s*\n'
+        pattern = r"^---\s*\n(.*?)\n---\s*\n"
         match = re.match(pattern, content, re.DOTALL)
 
         if not match:
@@ -112,11 +112,11 @@ class AgentMarkdownParser:
         sections = {}
 
         # Remove frontmatter if present
-        content = re.sub(r'^---\s*\n.*?\n---\s*\n', '', content, flags=re.DOTALL)
+        content = re.sub(r"^---\s*\n.*?\n---\s*\n", "", content, flags=re.DOTALL)
 
         # Split by headers (## or ###)
-        header_pattern = r'^##\s+(.+)$'
-        lines = content.split('\n')
+        header_pattern = r"^##\s+(.+)$"
+        lines = content.split("\n")
 
         current_section = None
         current_content = []
@@ -127,7 +127,7 @@ class AgentMarkdownParser:
             if header_match:
                 # Save previous section
                 if current_section:
-                    sections[current_section] = '\n'.join(current_content).strip()
+                    sections[current_section] = "\n".join(current_content).strip()
 
                 # Start new section
                 current_section = header_match.group(1).strip()
@@ -137,7 +137,7 @@ class AgentMarkdownParser:
 
         # Save last section
         if current_section:
-            sections[current_section] = '\n'.join(current_content).strip()
+            sections[current_section] = "\n".join(current_content).strip()
 
         return sections
 
@@ -154,28 +154,28 @@ class AgentMarkdownParser:
         info = {}
 
         # Extract triggers
-        if 'Triggers' in sections:
-            info['triggers'] = self._parse_list_section(sections['Triggers'])
+        if "Triggers" in sections:
+            info["triggers"] = self._parse_list_section(sections["Triggers"])
 
         # Extract behavioral mindset
-        if 'Behavioral Mindset' in sections:
-            info['behavioral_mindset'] = sections['Behavioral Mindset']
+        if "Behavioral Mindset" in sections:
+            info["behavioral_mindset"] = sections["Behavioral Mindset"]
 
         # Extract focus areas
-        if 'Focus Areas' in sections:
-            info['focus_areas'] = self._parse_focus_areas(sections['Focus Areas'])
+        if "Focus Areas" in sections:
+            info["focus_areas"] = self._parse_focus_areas(sections["Focus Areas"])
 
         # Extract key actions
-        if 'Key Actions' in sections:
-            info['key_actions'] = self._parse_numbered_list(sections['Key Actions'])
+        if "Key Actions" in sections:
+            info["key_actions"] = self._parse_numbered_list(sections["Key Actions"])
 
         # Extract outputs
-        if 'Outputs' in sections:
-            info['outputs'] = self._parse_list_section(sections['Outputs'])
+        if "Outputs" in sections:
+            info["outputs"] = self._parse_list_section(sections["Outputs"])
 
         # Extract boundaries
-        if 'Boundaries' in sections:
-            info['boundaries'] = self._parse_boundaries(sections['Boundaries'])
+        if "Boundaries" in sections:
+            info["boundaries"] = self._parse_boundaries(sections["Boundaries"])
 
         return info
 
@@ -190,11 +190,11 @@ class AgentMarkdownParser:
             List of items
         """
         items = []
-        lines = content.split('\n')
+        lines = content.split("\n")
 
         for line in lines:
             # Match lines starting with - or *
-            match = re.match(r'^[-*]\s+(.+)$', line.strip())
+            match = re.match(r"^[-*]\s+(.+)$", line.strip())
             if match:
                 items.append(match.group(1).strip())
 
@@ -211,17 +211,17 @@ class AgentMarkdownParser:
             List of items
         """
         items = []
-        lines = content.split('\n')
+        lines = content.split("\n")
         current_item = []
 
         for line in lines:
             # Match lines starting with number
-            match = re.match(r'^\d+\.\s+(.+)$', line.strip())
+            match = re.match(r"^\d+\.\s+(.+)$", line.strip())
 
             if match:
                 # Save previous item
                 if current_item:
-                    items.append(' '.join(current_item))
+                    items.append(" ".join(current_item))
                 # Start new item
                 current_item = [match.group(1).strip()]
             elif line.strip() and current_item:
@@ -230,7 +230,7 @@ class AgentMarkdownParser:
 
         # Save last item
         if current_item:
-            items.append(' '.join(current_item))
+            items.append(" ".join(current_item))
 
         return items
 
@@ -245,11 +245,11 @@ class AgentMarkdownParser:
             Dictionary of focus areas
         """
         areas = {}
-        lines = content.split('\n')
+        lines = content.split("\n")
 
         for line in lines:
             # Match lines with bold text followed by colon
-            match = re.match(r'^[-*]\s+\*\*(.+?)\*\*:\s+(.+)$', line.strip())
+            match = re.match(r"^[-*]\s+\*\*(.+?)\*\*:\s+(.+)$", line.strip())
             if match:
                 key = match.group(1).strip()
                 value = match.group(2).strip()
@@ -267,20 +267,20 @@ class AgentMarkdownParser:
         Returns:
             Dictionary with 'will' and 'will_not' lists
         """
-        boundaries = {'will': [], 'will_not': []}
+        boundaries = {"will": [], "will_not": []}
         current_section = None
 
-        lines = content.split('\n')
+        lines = content.split("\n")
 
         for line in lines:
             # Check for Will: or Will Not: headers
-            if line.strip().startswith('**Will:**'):
-                current_section = 'will'
-            elif line.strip().startswith('**Will Not:**'):
-                current_section = 'will_not'
+            if line.strip().startswith("**Will:**"):
+                current_section = "will"
+            elif line.strip().startswith("**Will Not:**"):
+                current_section = "will_not"
             elif current_section:
                 # Parse list items under current section
-                match = re.match(r'^[-*]\s+(.+)$', line.strip())
+                match = re.match(r"^[-*]\s+(.+)$", line.strip())
                 if match:
                     boundaries[current_section].append(match.group(1).strip())
 
@@ -296,8 +296,8 @@ class AgentMarkdownParser:
         Returns:
             True if configuration is valid
         """
-        required_fields = ['name']
-        recommended_fields = ['description', 'category', 'tools']
+        required_fields = ["name"]
+        recommended_fields = ["description", "category", "tools"]
 
         # Check required fields
         for field in required_fields:

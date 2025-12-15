@@ -5,12 +5,10 @@ This agent specializes in creating clear, comprehensive documentation
 for code, APIs, and technical systems.
 """
 
-from typing import Dict, Any, List, Optional
 import re
-import logging
+from typing import Any, Dict, List
 
 from ..base import BaseAgent
-from ..heuristic_markdown import HeuristicMarkdownAgent
 from ..heuristic_markdown import HeuristicMarkdownAgent
 
 
@@ -30,12 +28,12 @@ class TechnicalDocumentationAgent(BaseAgent):
             config: Agent configuration
         """
         # Ensure proper configuration
-        if 'name' not in config:
-            config['name'] = 'technical-writer'
-        if 'description' not in config:
-            config['description'] = 'Create clear technical documentation'
-        if 'category' not in config:
-            config['category'] = 'documentation'
+        if "name" not in config:
+            config["name"] = "technical-writer"
+        if "description" not in config:
+            config["description"] = "Create clear technical documentation"
+        if "category" not in config:
+            config["category"] = "documentation"
 
         super().__init__(config)
 
@@ -54,63 +52,63 @@ class TechnicalDocumentationAgent(BaseAgent):
             Generated documentation
         """
         result = {
-            'success': False,
-            'output': '',
-            'actions_taken': [],
-            'errors': [],
-            'doc_type': None,
-            'sections_created': []
+            "success": False,
+            "output": "",
+            "actions_taken": [],
+            "errors": [],
+            "doc_type": None,
+            "sections_created": [],
         }
 
         try:
             # Initialize if needed
             if not self._initialized:
                 if not self.initialize():
-                    result['errors'].append("Failed to initialize agent")
+                    result["errors"].append("Failed to initialize agent")
                     return result
 
-            task = context.get('task', '')
-            subject = context.get('subject', '')
-            doc_type = context.get('doc_type', 'auto')
-            code = context.get('code', '')
+            task = context.get("task", "")
+            subject = context.get("subject", "")
+            doc_type = context.get("doc_type", "auto")
+            code = context.get("code", "")
 
             if not task and not subject:
-                result['errors'].append("No documentation subject provided")
+                result["errors"].append("No documentation subject provided")
                 return result
 
             self.logger.info(f"Creating documentation: {task[:100]}...")
 
             # Phase 1: Determine documentation type
-            if doc_type == 'auto':
+            if doc_type == "auto":
                 doc_type = self._determine_doc_type(task, subject, code)
-            result['doc_type'] = doc_type
-            result['actions_taken'].append(f"Determined doc type: {doc_type}")
+            result["doc_type"] = doc_type
+            result["actions_taken"].append(f"Determined doc type: {doc_type}")
 
             # Phase 2: Analyze subject matter
             analysis = self._analyze_subject(task, subject, code, doc_type)
-            result['actions_taken'].append("Analyzed subject matter")
+            result["actions_taken"].append("Analyzed subject matter")
 
             # Phase 3: Plan documentation structure
             structure = self._plan_structure(doc_type, analysis)
-            result['actions_taken'].append(f"Planned {len(structure)} sections")
+            result["actions_taken"].append(f"Planned {len(structure)} sections")
 
             # Phase 4: Generate documentation sections
             sections = self._generate_sections(structure, analysis, doc_type)
-            result['sections_created'] = [s['title'] for s in sections]
-            result['actions_taken'].append(f"Generated {len(sections)} sections")
+            result["sections_created"] = [s["title"] for s in sections]
+            result["actions_taken"].append(f"Generated {len(sections)} sections")
 
             # Phase 5: Assemble final documentation
             documentation = self._assemble_documentation(
                 sections, doc_type, task, analysis
             )
-            result['output'] = documentation
+            result["output"] = documentation
 
-            result['success'] = True
+            result["success"] = True
             self.log_execution(context, result)
 
         except Exception as e:
             self.logger.error(f"Documentation generation failed: {e}")
-            result['errors'].append(str(e))
+            result["errors"].append(str(e))
 
         return result
 
@@ -121,16 +119,25 @@ class TechnicalWriter(HeuristicMarkdownAgent):
     STRATEGIST_TIER = True
 
     DOC_KEYWORDS = {
-        'document', 'documentation', 'docs', 'readme', 'explain', 'describe',
-        'write docs', 'api docs', 'user guide', 'technical docs', 'comment'
+        "document",
+        "documentation",
+        "docs",
+        "readme",
+        "explain",
+        "describe",
+        "write docs",
+        "api docs",
+        "user guide",
+        "technical docs",
+        "comment",
     }
 
     def __init__(self, config: Dict[str, Any]):
         defaults = {
-            'name': 'technical-writer',
-            'description': 'Create clear technical documentation',
-            'category': 'documentation',
-            'capability_tier': 'strategist'
+            "name": "technical-writer",
+            "description": "Create clear technical documentation",
+            "category": "documentation",
+            "capability_tier": "strategist",
         }
         merged = {**defaults, **config}
         super().__init__(merged)
@@ -139,10 +146,10 @@ class TechnicalWriter(HeuristicMarkdownAgent):
         self.doc_agent.logger = self.logger
 
     def validate(self, context: Dict[str, Any]) -> bool:
-        task = str(context.get('task', '')).lower()
+        task = str(context.get("task", "")).lower()
         if any(keyword in task for keyword in self.DOC_KEYWORDS):
             return True
-        subject = str(context.get('subject', '')).lower()
+        subject = str(context.get("subject", "")).lower()
         if any(keyword in subject for keyword in self.DOC_KEYWORDS):
             return True
         return super().validate(context) or self.doc_agent.validate(context)
@@ -151,39 +158,48 @@ class TechnicalWriter(HeuristicMarkdownAgent):
         result = super().execute(context)
 
         doc_result = self.doc_agent.execute(context)
-        result['documentation_artifact'] = doc_result
+        result["documentation_artifact"] = doc_result
 
-        if doc_result.get('success'):
-            doc_output = doc_result.get('output') or ''
-            doc_type = doc_result.get('doc_type')
-            sections = doc_result.get('sections_created') or []
+        if doc_result.get("success"):
+            doc_output = doc_result.get("output") or ""
+            doc_type = doc_result.get("doc_type")
+            sections = doc_result.get("sections_created") or []
 
-            actions = self._ensure_list(result, 'actions_taken')
-            actions.append('Drafted structured documentation artifact')
+            actions = self._ensure_list(result, "actions_taken")
+            actions.append("Drafted structured documentation artifact")
             if sections:
-                actions.append(f"Created documentation sections: {', '.join(sections[:5])}")
+                actions.append(
+                    f"Created documentation sections: {', '.join(sections[:5])}"
+                )
 
-            follow_up = self._ensure_list(result, 'follow_up_actions')
-            follow_up.append('Review generated documentation with stakeholders for accuracy.')
+            follow_up = self._ensure_list(result, "follow_up_actions")
+            follow_up.append(
+                "Review generated documentation with stakeholders for accuracy."
+            )
 
             if doc_type:
-                follow_up.append(f"Ensure {doc_type} documentation stays in sync with implementation changes.")
+                follow_up.append(
+                    f"Ensure {doc_type} documentation stays in sync with implementation changes."
+                )
 
             if doc_output:
-                result['documentation_body'] = doc_output
-                if result.get('output'):
-                    result['output'] = f"{result['output']}\n\n## Documentation Draft\n{doc_output}".strip()
+                result["documentation_body"] = doc_output
+                if result.get("output"):
+                    result["output"] = (
+                        f"{result['output']}\n\n## Documentation Draft\n{doc_output}".strip()
+                    )
                 else:
-                    result['output'] = doc_output
+                    result["output"] = doc_output
         else:
-            errors = doc_result.get('errors') or []
+            errors = doc_result.get("errors") or []
             if errors:
-                warnings = self._ensure_list(result, 'warnings')
+                warnings = self._ensure_list(result, "warnings")
                 for err in errors:
                     if err not in warnings:
                         warnings.append(err)
 
         return result
+
     def validate(self, context: Dict[str, Any]) -> bool:
         """
         Check if this agent can handle the context.
@@ -194,13 +210,21 @@ class TechnicalWriter(HeuristicMarkdownAgent):
         Returns:
             True if context contains documentation task
         """
-        task = context.get('task', '')
+        task = context.get("task", "")
 
         # Check for documentation keywords
         doc_keywords = [
-            'document', 'documentation', 'docs', 'readme',
-            'explain', 'describe', 'write docs', 'api docs',
-            'user guide', 'technical docs', 'comment'
+            "document",
+            "documentation",
+            "docs",
+            "readme",
+            "explain",
+            "describe",
+            "write docs",
+            "api docs",
+            "user guide",
+            "technical docs",
+            "comment",
         ]
 
         task_lower = task.lower()
@@ -214,7 +238,7 @@ class TechnicalWriter(HeuristicMarkdownAgent):
             Dictionary of documentation templates
         """
         return {
-            'readme': """# {title}
+            "readme": """# {title}
 
 {description}
 
@@ -238,7 +262,7 @@ class TechnicalWriter(HeuristicMarkdownAgent):
 
 {license}
 """,
-            'api': """# {title} API Documentation
+            "api": """# {title} API Documentation
 
 ## Overview
 
@@ -264,7 +288,7 @@ class TechnicalWriter(HeuristicMarkdownAgent):
 
 {rate_limiting}
 """,
-            'function': """## {function_name}
+            "function": """## {function_name}
 
 ### Description
 {description}
@@ -283,7 +307,7 @@ class TechnicalWriter(HeuristicMarkdownAgent):
 ### Exceptions
 {exceptions}
 """,
-            'class': """## Class: {class_name}
+            "class": """## Class: {class_name}
 
 ### Description
 {description}
@@ -299,7 +323,7 @@ class TechnicalWriter(HeuristicMarkdownAgent):
 {example}
 ```
 """,
-            'guide': """# {title}
+            "guide": """# {title}
 
 ## Introduction
 {introduction}
@@ -315,7 +339,7 @@ class TechnicalWriter(HeuristicMarkdownAgent):
 
 ## Additional Resources
 {resources}
-"""
+""",
         }
 
     def _initialize_sections(self) -> Dict[str, List[str]]:
@@ -326,30 +350,57 @@ class TechnicalWriter(HeuristicMarkdownAgent):
             Dictionary of section lists by doc type
         """
         return {
-            'readme': [
-                'Overview', 'Installation', 'Quick Start', 'Features',
-                'Usage', 'Configuration', 'Contributing', 'License'
+            "readme": [
+                "Overview",
+                "Installation",
+                "Quick Start",
+                "Features",
+                "Usage",
+                "Configuration",
+                "Contributing",
+                "License",
             ],
-            'api': [
-                'Overview', 'Authentication', 'Base URL', 'Endpoints',
-                'Request Format', 'Response Format', 'Error Handling',
-                'Examples', 'Rate Limiting'
+            "api": [
+                "Overview",
+                "Authentication",
+                "Base URL",
+                "Endpoints",
+                "Request Format",
+                "Response Format",
+                "Error Handling",
+                "Examples",
+                "Rate Limiting",
             ],
-            'technical': [
-                'Architecture Overview', 'Components', 'Data Flow',
-                'Dependencies', 'Configuration', 'Deployment',
-                'Performance', 'Security', 'Troubleshooting'
+            "technical": [
+                "Architecture Overview",
+                "Components",
+                "Data Flow",
+                "Dependencies",
+                "Configuration",
+                "Deployment",
+                "Performance",
+                "Security",
+                "Troubleshooting",
             ],
-            'user_guide': [
-                'Introduction', 'Getting Started', 'Features',
-                'How-To Guides', 'Best Practices', 'FAQ',
-                'Troubleshooting', 'Support'
+            "user_guide": [
+                "Introduction",
+                "Getting Started",
+                "Features",
+                "How-To Guides",
+                "Best Practices",
+                "FAQ",
+                "Troubleshooting",
+                "Support",
             ],
-            'code': [
-                'Purpose', 'Parameters', 'Return Values',
-                'Usage Examples', 'Edge Cases', 'Performance Notes',
-                'Related Functions'
-            ]
+            "code": [
+                "Purpose",
+                "Parameters",
+                "Return Values",
+                "Usage Examples",
+                "Edge Cases",
+                "Performance Notes",
+                "Related Functions",
+            ],
         }
 
     def _determine_doc_type(self, task: str, subject: str, code: str) -> str:
@@ -367,24 +418,27 @@ class TechnicalWriter(HeuristicMarkdownAgent):
         combined = f"{task} {subject}".lower()
 
         # Check for specific doc type indicators
-        if 'readme' in combined:
-            return 'readme'
-        elif 'api' in combined or 'endpoint' in combined:
-            return 'api'
-        elif 'guide' in combined or 'tutorial' in combined:
-            return 'user_guide'
-        elif 'function' in combined or 'method' in combined:
-            return 'code'
-        elif 'class' in combined or 'object' in combined:
-            return 'code'
-        elif 'architecture' in combined or 'system' in combined:
-            return 'technical'
+        if "readme" in combined:
+            return "readme"
+        elif "api" in combined or "endpoint" in combined:
+            return "api"
+        elif "guide" in combined or "tutorial" in combined:
+            return "user_guide"
+        elif (
+            "function" in combined
+            or "method" in combined
+            or "class" in combined
+            or "object" in combined
+        ):
+            return "code"
+        elif "architecture" in combined or "system" in combined:
+            return "technical"
 
         # Default based on presence of code
         if code:
-            return 'code'
+            return "code"
         else:
-            return 'technical'
+            return "technical"
 
     def _analyze_subject(
         self, task: str, subject: str, code: str, doc_type: str
@@ -402,34 +456,36 @@ class TechnicalWriter(HeuristicMarkdownAgent):
             Analysis results
         """
         analysis = {
-            'main_topic': subject or self._extract_topic(task),
-            'key_concepts': [],
-            'technical_level': 'intermediate',
-            'audience': 'developers',
-            'scope': 'comprehensive'
+            "main_topic": subject or self._extract_topic(task),
+            "key_concepts": [],
+            "technical_level": "intermediate",
+            "audience": "developers",
+            "scope": "comprehensive",
         }
 
         # Extract key concepts
         concepts = self._extract_concepts(task, subject, code)
-        analysis['key_concepts'] = concepts
+        analysis["key_concepts"] = concepts
 
         # Determine technical level
-        if any(word in task.lower() for word in ['beginner', 'intro', 'basic']):
-            analysis['technical_level'] = 'beginner'
-        elif any(word in task.lower() for word in ['advanced', 'expert', 'complex']):
-            analysis['technical_level'] = 'advanced'
+        if any(word in task.lower() for word in ["beginner", "intro", "basic"]):
+            analysis["technical_level"] = "beginner"
+        elif any(word in task.lower() for word in ["advanced", "expert", "complex"]):
+            analysis["technical_level"] = "advanced"
 
         # Determine audience
-        if 'user' in task.lower() or 'guide' in doc_type:
-            analysis['audience'] = 'end users'
-        elif 'internal' in task.lower():
-            analysis['audience'] = 'internal team'
+        if "user" in task.lower() or "guide" in doc_type:
+            analysis["audience"] = "end users"
+        elif "internal" in task.lower():
+            analysis["audience"] = "internal team"
 
         # Determine scope
-        if any(word in task.lower() for word in ['quick', 'brief', 'summary']):
-            analysis['scope'] = 'summary'
-        elif any(word in task.lower() for word in ['detailed', 'comprehensive', 'complete']):
-            analysis['scope'] = 'comprehensive'
+        if any(word in task.lower() for word in ["quick", "brief", "summary"]):
+            analysis["scope"] = "summary"
+        elif any(
+            word in task.lower() for word in ["detailed", "comprehensive", "complete"]
+        ):
+            analysis["scope"] = "comprehensive"
 
         return analysis
 
@@ -444,12 +500,12 @@ class TechnicalWriter(HeuristicMarkdownAgent):
             Main topic
         """
         # Remove common words
-        stop_words = {'the', 'a', 'an', 'for', 'to', 'of', 'in', 'on', 'at', 'by'}
+        stop_words = {"the", "a", "an", "for", "to", "of", "in", "on", "at", "by"}
         words = text.split()
         meaningful_words = [w for w in words if w.lower() not in stop_words]
 
         # Return first few meaningful words as topic
-        return ' '.join(meaningful_words[:5])
+        return " ".join(meaningful_words[:5])
 
     def _extract_concepts(self, task: str, subject: str, code: str) -> List[str]:
         """
@@ -468,11 +524,11 @@ class TechnicalWriter(HeuristicMarkdownAgent):
 
         # Technical concept patterns
         patterns = {
-            'functions': r'\bdef\s+(\w+)',
-            'classes': r'\bclass\s+(\w+)',
-            'apis': r'(?:GET|POST|PUT|DELETE)\s+([/\w]+)',
-            'variables': r'\b([A-Z_]+)\s*=',
-            'imports': r'(?:import|from)\s+(\w+)'
+            "functions": r"\bdef\s+(\w+)",
+            "classes": r"\bclass\s+(\w+)",
+            "apis": r"(?:GET|POST|PUT|DELETE)\s+([/\w]+)",
+            "variables": r"\b([A-Z_]+)\s*=",
+            "imports": r"(?:import|from)\s+(\w+)",
         }
 
         for concept_type, pattern in patterns.items():
@@ -482,8 +538,16 @@ class TechnicalWriter(HeuristicMarkdownAgent):
 
         # Add mentioned technologies
         tech_keywords = [
-            'python', 'javascript', 'api', 'database', 'server',
-            'client', 'frontend', 'backend', 'framework', 'library'
+            "python",
+            "javascript",
+            "api",
+            "database",
+            "server",
+            "client",
+            "frontend",
+            "backend",
+            "framework",
+            "library",
         ]
 
         combined_lower = combined.lower()
@@ -509,31 +573,39 @@ class TechnicalWriter(HeuristicMarkdownAgent):
         structure = []
 
         # Get base sections for doc type
-        base_sections = self.doc_sections.get(doc_type, ['Overview', 'Details', 'Examples'])
+        base_sections = self.doc_sections.get(
+            doc_type, ["Overview", "Details", "Examples"]
+        )
 
         # Adapt sections based on analysis
         for section in base_sections:
             include = True
 
             # Skip sections based on scope
-            if analysis['scope'] == 'summary':
-                if section in ['Troubleshooting', 'Performance Notes', 'Advanced Features']:
+            if analysis["scope"] == "summary":
+                if section in [
+                    "Troubleshooting",
+                    "Performance Notes",
+                    "Advanced Features",
+                ]:
                     include = False
 
             # Skip sections based on audience
-            if analysis['audience'] == 'end users':
-                if section in ['Architecture Overview', 'Data Flow', 'Dependencies']:
+            if analysis["audience"] == "end users":
+                if section in ["Architecture Overview", "Data Flow", "Dependencies"]:
                     include = False
 
             if include:
-                structure.append({
-                    'title': section,
-                    'content_type': self._get_content_type(section),
-                    'priority': self._get_section_priority(section)
-                })
+                structure.append(
+                    {
+                        "title": section,
+                        "content_type": self._get_content_type(section),
+                        "priority": self._get_section_priority(section),
+                    }
+                )
 
         # Sort by priority
-        structure.sort(key=lambda x: x['priority'])
+        structure.sort(key=lambda x: x["priority"])
 
         return structure
 
@@ -547,16 +619,16 @@ class TechnicalWriter(HeuristicMarkdownAgent):
         Returns:
             Content type
         """
-        if section in ['Overview', 'Introduction', 'Description']:
-            return 'narrative'
-        elif section in ['Installation', 'Configuration', 'Setup']:
-            return 'procedural'
-        elif section in ['API', 'Endpoints', 'Methods', 'Functions']:
-            return 'reference'
-        elif section in ['Examples', 'Usage', 'Quick Start']:
-            return 'example'
+        if section in ["Overview", "Introduction", "Description"]:
+            return "narrative"
+        elif section in ["Installation", "Configuration", "Setup"]:
+            return "procedural"
+        elif section in ["API", "Endpoints", "Methods", "Functions"]:
+            return "reference"
+        elif section in ["Examples", "Usage", "Quick Start"]:
+            return "example"
         else:
-            return 'general'
+            return "general"
 
     def _get_section_priority(self, section: str) -> int:
         """
@@ -569,19 +641,19 @@ class TechnicalWriter(HeuristicMarkdownAgent):
             Priority (lower is higher priority)
         """
         priority_map = {
-            'Overview': 1,
-            'Introduction': 1,
-            'Installation': 2,
-            'Quick Start': 3,
-            'Getting Started': 3,
-            'Usage': 4,
-            'Features': 5,
-            'Configuration': 6,
-            'Examples': 7,
-            'API': 8,
-            'Troubleshooting': 9,
-            'Contributing': 10,
-            'License': 11
+            "Overview": 1,
+            "Introduction": 1,
+            "Installation": 2,
+            "Quick Start": 3,
+            "Getting Started": 3,
+            "Usage": 4,
+            "Features": 5,
+            "Configuration": 6,
+            "Examples": 7,
+            "API": 8,
+            "Troubleshooting": 9,
+            "Contributing": 10,
+            "License": 11,
         }
 
         return priority_map.get(section, 5)
@@ -604,10 +676,10 @@ class TechnicalWriter(HeuristicMarkdownAgent):
 
         for section_plan in structure:
             section = {
-                'title': section_plan['title'],
-                'content': self._generate_section_content(
+                "title": section_plan["title"],
+                "content": self._generate_section_content(
                     section_plan, analysis, doc_type
-                )
+                ),
             }
             sections.append(section)
 
@@ -627,33 +699,37 @@ class TechnicalWriter(HeuristicMarkdownAgent):
         Returns:
             Section content
         """
-        title = section['title']
-        content_type = section['content_type']
-        topic = analysis['main_topic']
+        title = section["title"]
+        content_type = section["content_type"]
+        topic = analysis["main_topic"]
 
         # Generate content based on type
-        if content_type == 'narrative':
-            return f"This section provides an overview of {topic}. " \
-                   f"It is designed for {analysis['audience']} " \
-                   f"at a {analysis['technical_level']} level."
+        if content_type == "narrative":
+            return (
+                f"This section provides an overview of {topic}. "
+                f"It is designed for {analysis['audience']} "
+                f"at a {analysis['technical_level']} level."
+            )
 
-        elif content_type == 'procedural':
+        elif content_type == "procedural":
             steps = [
-                f"1. First, ensure prerequisites are met",
-                f"2. Install required dependencies",
+                "1. First, ensure prerequisites are met",
+                "2. Install required dependencies",
                 f"3. Configure {topic}",
-                f"4. Verify installation"
+                "4. Verify installation",
             ]
-            return '\n'.join(steps)
+            return "\n".join(steps)
 
-        elif content_type == 'example':
-            return f"```python\n# Example usage of {topic}\n" \
-                   f"# TODO: Add specific examples\n```"
+        elif content_type == "example":
+            return (
+                f"```python\n# Example usage of {topic}\n"
+                f"# TODO: Add specific examples\n```"
+            )
 
-        elif content_type == 'reference':
-            if analysis['key_concepts']:
-                items = [f"- {concept}" for concept in analysis['key_concepts'][:5]]
-                return f"Key components:\n" + '\n'.join(items)
+        elif content_type == "reference":
+            if analysis["key_concepts"]:
+                items = [f"- {concept}" for concept in analysis["key_concepts"][:5]]
+                return "Key components:\n" + "\n".join(items)
             else:
                 return f"Reference documentation for {topic}."
 
@@ -661,8 +737,11 @@ class TechnicalWriter(HeuristicMarkdownAgent):
             return f"Content for {title} section."
 
     def _assemble_documentation(
-        self, sections: List[Dict[str, Any]], doc_type: str,
-        task: str, analysis: Dict[str, Any]
+        self,
+        sections: List[Dict[str, Any]],
+        doc_type: str,
+        task: str,
+        analysis: Dict[str, Any],
     ) -> str:
         """
         Assemble final documentation.
@@ -687,12 +766,12 @@ class TechnicalWriter(HeuristicMarkdownAgent):
         # Add sections
         for section in sections:
             lines.append(f"\n## {section['title']}\n")
-            lines.append(section['content'])
+            lines.append(section["content"])
 
         # Add footer
-        lines.append(f"\n---\n")
+        lines.append("\n---\n")
         lines.append(f"*Documentation type: {doc_type}*")
         lines.append(f"*Technical level: {analysis['technical_level']}*")
         lines.append(f"*Target audience: {analysis['audience']}*")
 
-        return '\n'.join(lines)
+        return "\n".join(lines)

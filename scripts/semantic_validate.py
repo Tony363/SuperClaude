@@ -13,7 +13,9 @@ from SuperClaude.Commands.executor import _PythonSemanticAnalyzer
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Semantic validator for SuperClaude Python files")
+    parser = argparse.ArgumentParser(
+        description="Semantic validator for SuperClaude Python files"
+    )
     parser.add_argument("paths", nargs="+", help="File or directory paths to validate")
     return parser.parse_args()
 
@@ -30,11 +32,13 @@ def iter_python_files(paths: list[str]) -> list[Path]:
 
 
 def validate_file(path: Path, repo_root: Path) -> list[str]:
-    rel_path = str(path.relative_to(repo_root) if path.is_relative_to(repo_root) else path)
+    rel_path = str(
+        path.relative_to(repo_root) if path.is_relative_to(repo_root) else path
+    )
     issues: list[str] = []
     try:
         py_compile.compile(str(path), doraise=True)
-    except py_compile.PyCompileError as exc:  # noqa: PERF203 - small script
+    except py_compile.PyCompileError as exc:
         issues.append(f"{rel_path}: python syntax error — {getattr(exc, 'msg', exc)}")
         return issues
     except Exception as exc:

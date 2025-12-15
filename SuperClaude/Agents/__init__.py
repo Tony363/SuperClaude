@@ -13,55 +13,52 @@ Features:
 """
 
 from .base import BaseAgent
-from .registry import AgentRegistry
-from .selector import AgentSelector
-from .loader import AgentLoader
-from .parser import AgentMarkdownParser
-from .generic import GenericMarkdownAgent
-
-# Extended agent system
-from .extended_loader import (
-    ExtendedAgentLoader,
-    AgentCategory,
-    AgentMetadata,
-    MatchScore
-)
 
 # Import core agents
 from .core import (
     GeneralPurposeAgent,
-    RootCauseAnalyst,
-    RefactoringExpert,
-    TechnicalWriter,
+    LearningGuide,
     PerformanceEngineer,
-    LearningGuide
+    RefactoringExpert,
+    RootCauseAnalyst,
+    TechnicalWriter,
 )
+
+# Extended agent system
+from .extended_loader import (
+    AgentCategory,
+    AgentMetadata,
+    ExtendedAgentLoader,
+    MatchScore,
+)
+from .generic import GenericMarkdownAgent
+from .loader import AgentLoader
+from .parser import AgentMarkdownParser
+from .registry import AgentRegistry
+from .selector import AgentSelector
 
 __all__ = [
     # Base classes
-    'BaseAgent',
-
+    "BaseAgent",
     # System components
-    'AgentRegistry',
-    'AgentSelector',
-    'AgentLoader',
-    'AgentMarkdownParser',
-    'GenericMarkdownAgent',
-
+    "AgentRegistry",
+    "AgentSelector",
+    "AgentLoader",
+    "AgentMarkdownParser",
+    "GenericMarkdownAgent",
     # Extended agent system
-    'ExtendedAgentLoader',
-    'AgentCategory',
-    'AgentMetadata',
-    'MatchScore',
-
+    "ExtendedAgentLoader",
+    "AgentCategory",
+    "AgentMetadata",
+    "MatchScore",
     # Core agents
-    'GeneralPurposeAgent',
-    'RootCauseAnalyst',
-    'RefactoringExpert',
-    'TechnicalWriter',
-    'PerformanceEngineer',
-    'LearningGuide'
+    "GeneralPurposeAgent",
+    "RootCauseAnalyst",
+    "RefactoringExpert",
+    "TechnicalWriter",
+    "PerformanceEngineer",
+    "LearningGuide",
 ]
 
 # Version information
-__version__ = '6.0.0-alpha'
+__version__ = "6.0.0-alpha"

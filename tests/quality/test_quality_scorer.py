@@ -28,7 +28,11 @@ def test_weighted_formula_without_external_signal():
     score, meta = scorer._calculate_overall_score(metrics, {})
     expected = (80 * 0.6) + (70 * 0.25) + (60 * 0.15)
     assert pytest.approx(score, rel=1e-6) == expected
-    assert set(meta["weights"].keys()) == {"superclaude", "completeness", "test_coverage"}
+    assert set(meta["weights"].keys()) == {
+        "superclaude",
+        "completeness",
+        "test_coverage",
+    }
 
 
 def test_renormalizes_weights_when_component_missing():
@@ -44,11 +48,13 @@ def test_renormalizes_weights_when_component_missing():
 
 def test_calculate_score_exposes_band():
     scorer = QualityScorer()
-    score = scorer.calculate_score({
-        "correctness": 95,
-        "completeness": 93,
-        "test_coverage": 97,
-    })
+    score = scorer.calculate_score(
+        {
+            "correctness": 95,
+            "completeness": 93,
+            "test_coverage": 97,
+        }
+    )
     assert score["band"] == "production_ready"
     assert score["grade"] == "Excellent"
 

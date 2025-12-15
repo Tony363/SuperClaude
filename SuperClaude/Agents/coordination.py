@@ -7,15 +7,14 @@ protection against infinite recursion and circular dependencies.
 
 import logging
 import time
-from typing import Dict, Any, List, Optional, Set, Tuple
 from collections import defaultdict
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
-import json
+from datetime import datetime
+from typing import Any, Dict, List, Optional, Set, Tuple
 
+from .loader import AgentLoader
 from .registry import AgentRegistry
 from .selector import AgentSelector
-from .loader import AgentLoader
 
 
 @dataclass
@@ -28,7 +27,7 @@ class ExecutionContext:
     depth: int = 0
     parent: Optional[str] = None
     children: List[str] = field(default_factory=list)
-    status: str = 'pending'  # pending, running, completed, failed
+    status: str = "pending"  # pending, running, completed, failed
     result: Optional[Dict[str, Any]] = None
     metadata: Dict[str, Any] = field(default_factory=dict)
 
@@ -51,7 +50,9 @@ class CoordinationManager:
     EXECUTION_TIMEOUT = 300  # 5 minutes per agent
     DELEGATION_COOLDOWN = 1.0  # Seconds between delegations
 
-    def __init__(self, registry: AgentRegistry, selector: AgentSelector, loader: AgentLoader):
+    def __init__(
+        self, registry: AgentRegistry, selector: AgentSelector, loader: AgentLoader
+    ):
         """
         Initialize the coordination manager.
 
@@ -73,13 +74,13 @@ class CoordinationManager:
 
         # Performance metrics
         self.metrics = {
-            'total_executions': 0,
-            'successful_executions': 0,
-            'failed_executions': 0,
-            'total_delegation_time': 0.0,
-            'average_execution_time': 0.0,
-            'max_delegation_depth': 0,
-            'delegation_chains': []
+            "total_executions": 0,
+            "successful_executions": 0,
+            "failed_executions": 0,
+            "total_delegation_time": 0.0,
+            "average_execution_time": 0.0,
+            "max_delegation_depth": 0,
+            "delegation_chains": [],
         }
 
         # Protection mechanisms
@@ -91,7 +92,7 @@ class CoordinationManager:
         agent_name: str,
         context: Dict[str, Any],
         allow_delegation: bool = True,
-        max_depth: Optional[int] = None
+        max_depth: Optional[int] = None,
     ) -> Dict[str, Any]:
         """
         Execute an agent with delegation support.
@@ -108,19 +109,19 @@ class CoordinationManager:
         # Check if agent can be executed
         if not self._can_execute(agent_name):
             return {
-                'success': False,
-                'error': f'Agent {agent_name} is blocked or already active',
-                'delegation_blocked': True
+                "success": False,
+                "error": f"Agent {agent_name} is blocked or already active",
+                "delegation_blocked": True,
             }
 
         # Create execution context
         current_depth = self._get_current_depth()
         exec_context = ExecutionContext(
             agent_name=agent_name,
-            task=context.get('task', ''),
+            task=context.get("task", ""),
             start_time=datetime.now(),
             depth=current_depth,
-            parent=self._get_current_agent()
+            parent=self._get_current_agent(),
         )
 
         # Check delegation depth
@@ -128,9 +129,9 @@ class CoordinationManager:
         if current_depth >= max_allowed:
             self.logger.warning(f"Max delegation depth {max_allowed} reached")
             return {
-                'success': False,
-                'error': f'Maximum delegation depth ({max_allowed}) reached',
-                'depth': current_depth
+                "success": False,
+                "error": f"Maximum delegation depth ({max_allowed}) reached",
+                "depth": current_depth,
             }
 
         # Add to execution stack
@@ -139,10 +140,9 @@ class CoordinationManager:
 
         try:
             # Update metrics
-            self.metrics['total_executions'] += 1
-            self.metrics['max_delegation_depth'] = max(
-                self.metrics['max_delegation_depth'],
-                current_depth
+            self.metrics["total_executions"] += 1
+            self.metrics["max_delegation_depth"] = max(
+                self.metrics["max_delegation_depth"], current_depth
             )
 
             # Apply delegation cooldown
@@ -162,37 +162,37 @@ class CoordinationManager:
             execution_time = time.time() - start_time
 
             # Update execution context
-            exec_context.status = 'completed' if result.get('success') else 'failed'
+            exec_context.status = "completed" if result.get("success") else "failed"
             exec_context.result = result
-            exec_context.metadata['execution_time'] = execution_time
+            exec_context.metadata["execution_time"] = execution_time
 
             # Handle sub-delegations if requested
-            if allow_delegation and result.get('delegate_to'):
+            if allow_delegation and result.get("delegate_to"):
                 result = self._handle_delegation(result, enhanced_context)
 
             # Update metrics
-            if result.get('success'):
-                self.metrics['successful_executions'] += 1
+            if result.get("success"):
+                self.metrics["successful_executions"] += 1
             else:
-                self.metrics['failed_executions'] += 1
+                self.metrics["failed_executions"] += 1
 
-            self.metrics['total_delegation_time'] += execution_time
-            self.metrics['average_execution_time'] = (
-                self.metrics['total_delegation_time'] / self.metrics['total_executions']
+            self.metrics["total_delegation_time"] += execution_time
+            self.metrics["average_execution_time"] = (
+                self.metrics["total_delegation_time"] / self.metrics["total_executions"]
             )
 
             return result
 
         except Exception as e:
             self.logger.error(f"Agent execution failed: {e}")
-            exec_context.status = 'failed'
-            self.metrics['failed_executions'] += 1
+            exec_context.status = "failed"
+            self.metrics["failed_executions"] += 1
 
             return {
-                'success': False,
-                'error': str(e),
-                'agent': agent_name,
-                'depth': current_depth
+                "success": False,
+                "error": str(e),
+                "agent": agent_name,
+                "depth": current_depth,
             }
 
         finally:
@@ -209,9 +209,7 @@ class CoordinationManager:
                 self._record_delegation_chain()
 
     def coordinate_parallel(
-        self,
-        tasks: List[Dict[str, Any]],
-        strategy: str = 'best_match'
+        self, tasks: List[Dict[str, Any]], strategy: str = "best_match"
     ) -> List[Dict[str, Any]]:
         """
         Coordinate parallel execution of multiple tasks.
@@ -233,29 +231,27 @@ class CoordinationManager:
             batch_size = min(len(group), self.MAX_PARALLEL_AGENTS)
 
             for i in range(0, len(group), batch_size):
-                batch = group[i:i + batch_size]
+                batch = group[i : i + batch_size]
 
                 # Execute batch in parallel (simplified - would use threading/async in production)
                 batch_results = []
                 for task_info in batch:
                     # Select best agent for task
-                    if strategy == 'best_match':
-                        agent_name = self._select_best_agent(task_info['context'])
+                    if strategy == "best_match":
+                        agent_name = self._select_best_agent(task_info["context"])
                     else:
-                        agent_name = task_info.get('agent', 'general-purpose')
+                        agent_name = task_info.get("agent", "general-purpose")
 
                     # Execute with delegation
                     result = self.execute_with_delegation(
                         agent_name,
-                        task_info['context'],
-                        allow_delegation=task_info.get('allow_delegation', True)
+                        task_info["context"],
+                        allow_delegation=task_info.get("allow_delegation", True),
                     )
 
-                    batch_results.append({
-                        'task': task_info,
-                        'agent': agent_name,
-                        'result': result
-                    })
+                    batch_results.append(
+                        {"task": task_info, "agent": agent_name, "result": result}
+                    )
 
                 results.extend(batch_results)
 
@@ -280,15 +276,15 @@ class CoordinationManager:
         metrics = self.metrics.copy()
 
         # Add current state
-        metrics['active_agents'] = list(self.active_agents)
-        metrics['current_depth'] = self._get_current_depth()
-        metrics['delegation_chain'] = self.get_delegation_chain()
+        metrics["active_agents"] = list(self.active_agents)
+        metrics["current_depth"] = self._get_current_depth()
+        metrics["delegation_chain"] = self.get_delegation_chain()
 
         # Add delegation graph summary
-        metrics['delegation_graph'] = {
-            'nodes': len(self.delegation_graph),
-            'edges': sum(len(targets) for targets in self.delegation_graph.values()),
-            'most_delegated': self._get_most_delegated_agents()
+        metrics["delegation_graph"] = {
+            "nodes": len(self.delegation_graph),
+            "edges": sum(len(targets) for targets in self.delegation_graph.values()),
+            "most_delegated": self._get_most_delegated_agents(),
         }
 
         return metrics
@@ -343,12 +339,16 @@ class CoordinationManager:
         # Check if delegation is blocked
         current_agent = self._get_current_agent()
         if current_agent and (current_agent, agent_name) in self.blocked_delegations:
-            self.logger.warning(f"Delegation from {current_agent} to {agent_name} is blocked")
+            self.logger.warning(
+                f"Delegation from {current_agent} to {agent_name} is blocked"
+            )
             return False
 
         # Check for circular delegation
         if current_agent and self.detect_circular_delegation(current_agent, agent_name):
-            self.logger.warning(f"Circular delegation detected: {current_agent} -> {agent_name}")
+            self.logger.warning(
+                f"Circular delegation detected: {current_agent} -> {agent_name}"
+            )
             # Block this delegation pattern
             self.blocked_delegations.add((current_agent, agent_name))
             return False
@@ -364,9 +364,7 @@ class CoordinationManager:
         return self.execution_stack[-1].agent_name if self.execution_stack else None
 
     def _enhance_context(
-        self,
-        context: Dict[str, Any],
-        exec_context: ExecutionContext
+        self, context: Dict[str, Any], exec_context: ExecutionContext
     ) -> Dict[str, Any]:
         """
         Enhance context with coordination information.
@@ -381,27 +379,25 @@ class CoordinationManager:
         enhanced = context.copy()
 
         # Add coordination metadata
-        enhanced['_coordination'] = {
-            'depth': exec_context.depth,
-            'parent': exec_context.parent,
-            'chain': self.get_delegation_chain(),
-            'max_depth': self.MAX_DELEGATION_DEPTH,
-            'can_delegate': exec_context.depth < self.MAX_DELEGATION_DEPTH - 1
+        enhanced["_coordination"] = {
+            "depth": exec_context.depth,
+            "parent": exec_context.parent,
+            "chain": self.get_delegation_chain(),
+            "max_depth": self.MAX_DELEGATION_DEPTH,
+            "can_delegate": exec_context.depth < self.MAX_DELEGATION_DEPTH - 1,
         }
 
         # Add performance hints
-        enhanced['_performance'] = {
-            'timeout': self.EXECUTION_TIMEOUT,
-            'start_time': exec_context.start_time.isoformat(),
-            'parallel_limit': self.MAX_PARALLEL_AGENTS
+        enhanced["_performance"] = {
+            "timeout": self.EXECUTION_TIMEOUT,
+            "start_time": exec_context.start_time.isoformat(),
+            "parallel_limit": self.MAX_PARALLEL_AGENTS,
         }
 
         return enhanced
 
     def _execute_with_timeout(
-        self,
-        agent: Any,
-        context: Dict[str, Any]
+        self, agent: Any, context: Dict[str, Any]
     ) -> Dict[str, Any]:
         """
         Execute agent with timeout protection.
@@ -420,22 +416,20 @@ class CoordinationManager:
 
             if time.time() - start > self.EXECUTION_TIMEOUT:
                 self.logger.warning(f"Agent exceeded timeout: {agent.name}")
-                result['timeout_warning'] = True
+                result["timeout_warning"] = True
 
             return result
 
         except Exception as e:
             self.logger.error(f"Agent execution error: {e}")
             return {
-                'success': False,
-                'error': str(e),
-                'agent': getattr(agent, 'name', 'unknown')
+                "success": False,
+                "error": str(e),
+                "agent": getattr(agent, "name", "unknown"),
             }
 
     def _handle_delegation(
-        self,
-        result: Dict[str, Any],
-        context: Dict[str, Any]
+        self, result: Dict[str, Any], context: Dict[str, Any]
     ) -> Dict[str, Any]:
         """
         Handle sub-delegation request.
@@ -447,32 +441,32 @@ class CoordinationManager:
         Returns:
             Enhanced result with delegation
         """
-        delegate_to = result.get('delegate_to')
+        delegate_to = result.get("delegate_to")
         if not delegate_to:
             return result
 
         # Check if delegation is allowed
-        if not context['_coordination']['can_delegate']:
-            result['delegation_blocked'] = True
-            result['delegation_reason'] = 'Max depth reached'
+        if not context["_coordination"]["can_delegate"]:
+            result["delegation_blocked"] = True
+            result["delegation_reason"] = "Max depth reached"
             return result
 
         # Prepare delegation context
         delegation_context = context.copy()
-        delegation_context['task'] = result.get('delegation_task', context.get('task', ''))
+        delegation_context["task"] = result.get(
+            "delegation_task", context.get("task", "")
+        )
 
         # Execute delegation
         delegation_result = self.execute_with_delegation(
-            delegate_to,
-            delegation_context,
-            allow_delegation=True
+            delegate_to, delegation_context, allow_delegation=True
         )
 
         # Merge results
-        result['delegation_result'] = delegation_result
-        if delegation_result.get('success'):
-            result['success'] = True
-            result['output'] = delegation_result.get('output', '')
+        result["delegation_result"] = delegation_result
+        if delegation_result.get("success"):
+            result["success"] = True
+            result["output"] = delegation_result.get("output", "")
 
         return result
 
@@ -488,11 +482,10 @@ class CoordinationManager:
         scores = self.selector.select_agent(context)
         if scores:
             return scores[0][0]  # Return highest scoring agent
-        return 'general-purpose'  # Fallback
+        return "general-purpose"  # Fallback
 
     def _group_tasks_by_complexity(
-        self,
-        tasks: List[Dict[str, Any]]
+        self, tasks: List[Dict[str, Any]]
     ) -> List[List[Dict[str, Any]]]:
         """Group tasks by estimated complexity."""
         # Simple grouping - could be enhanced with ML
@@ -501,8 +494,8 @@ class CoordinationManager:
         complex = []
 
         for task in tasks:
-            context = task.get('context', {})
-            task_str = str(context.get('task', ''))
+            context = task.get("context", {})
+            task_str = str(context.get("task", ""))
 
             # Estimate complexity
             if len(task_str) < 50:
@@ -522,45 +515,43 @@ class CoordinationManager:
             for target in targets:
                 delegation_counts[target] += 1
 
-        return sorted(
-            delegation_counts.items(),
-            key=lambda x: x[1],
-            reverse=True
-        )[:5]
+        return sorted(delegation_counts.items(), key=lambda x: x[1], reverse=True)[:5]
 
     def _record_delegation_chain(self):
         """Record current delegation chain for analysis."""
         chain = self.get_delegation_chain()
         if len(chain) > 1:
-            self.metrics['delegation_chains'].append({
-                'chain': chain,
-                'depth': len(chain),
-                'timestamp': datetime.now().isoformat()
-            })
+            self.metrics["delegation_chains"].append(
+                {
+                    "chain": chain,
+                    "depth": len(chain),
+                    "timestamp": datetime.now().isoformat(),
+                }
+            )
 
             # Keep only last 100 chains
-            if len(self.metrics['delegation_chains']) > 100:
-                self.metrics['delegation_chains'] = self.metrics['delegation_chains'][-100:]
+            if len(self.metrics["delegation_chains"]) > 100:
+                self.metrics["delegation_chains"] = self.metrics["delegation_chains"][
+                    -100:
+                ]
 
     def reset_metrics(self):
         """Reset execution metrics."""
         self.metrics = {
-            'total_executions': 0,
-            'successful_executions': 0,
-            'failed_executions': 0,
-            'total_delegation_time': 0.0,
-            'average_execution_time': 0.0,
-            'max_delegation_depth': 0,
-            'delegation_chains': []
+            "total_executions": 0,
+            "successful_executions": 0,
+            "failed_executions": 0,
+            "total_delegation_time": 0.0,
+            "average_execution_time": 0.0,
+            "max_delegation_depth": 0,
+            "delegation_chains": [],
         }
         self.execution_history.clear()
         self.delegation_graph.clear()
         self.blocked_delegations.clear()
 
     def get_execution_history(
-        self,
-        limit: int = 10,
-        status: Optional[str] = None
+        self, limit: int = 10, status: Optional[str] = None
     ) -> List[Dict[str, Any]]:
         """
         Get execution history.
@@ -579,14 +570,14 @@ class CoordinationManager:
 
         return [
             {
-                'agent': h.agent_name,
-                'task': h.task[:100],  # Truncate long tasks
-                'depth': h.depth,
-                'parent': h.parent,
-                'status': h.status,
-                'start_time': h.start_time.isoformat(),
-                'execution_time': h.metadata.get('execution_time', 0),
-                'children': h.children
+                "agent": h.agent_name,
+                "task": h.task[:100],  # Truncate long tasks
+                "depth": h.depth,
+                "parent": h.parent,
+                "status": h.status,
+                "start_time": h.start_time.isoformat(),
+                "execution_time": h.metadata.get("execution_time", 0),
+                "children": h.children,
             }
             for h in history
         ]

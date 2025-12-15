@@ -6,13 +6,13 @@ operates, including brainstorming, introspection, task management,
 token efficiency, and orchestration modes.
 """
 
-import logging
 import json
-from pathlib import Path
-from typing import Dict, Any, List, Optional, Set, Callable
+import logging
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
+from pathlib import Path
+from typing import Any, Callable, Dict, List, Optional
 
 
 class BehavioralMode(Enum):
@@ -103,9 +103,9 @@ class BehavioralModeManager:
                 "verbosity": "normal",
                 "question_asking": "minimal",
                 "exploration": "focused",
-                "output_style": "balanced"
+                "output_style": "balanced",
             },
-            output_format="standard"
+            output_format="standard",
         )
 
         # Brainstorming mode
@@ -120,10 +120,10 @@ class BehavioralModeManager:
                 "output_style": "interactive",
                 "discovery_questions": True,
                 "assumption_challenging": True,
-                "idea_generation": "expansive"
+                "idea_generation": "expansive",
             },
             output_format="conversational",
-            active_tools=["TodoWrite", "WebSearch"]
+            active_tools=["TodoWrite", "WebSearch"],
         )
 
         # Introspection mode
@@ -137,10 +137,10 @@ class BehavioralModeManager:
                 "decision_analysis": True,
                 "pattern_detection": True,
                 "self_correction": True,
-                "reasoning_markers": ["🤔", "🎯", "⚡", "📊", "💡"]
+                "reasoning_markers": ["🤔", "🎯", "⚡", "📊", "💡"],
             },
             output_format="analytical",
-            metadata={"expose_thinking": True}
+            metadata={"expose_thinking": True},
         )
 
         # Task Management mode
@@ -154,11 +154,11 @@ class BehavioralModeManager:
                 "tracking": "comprehensive",
                 "delegation": True,
                 "progress_monitoring": True,
-                "task_hierarchy": ["plan", "phase", "task", "todo"]
+                "task_hierarchy": ["plan", "phase", "task", "todo"],
             },
             output_format="structured",
             active_tools=["TodoWrite", "Task", "Grep"],
-            metadata={"auto_todo": True}
+            metadata={"auto_todo": True},
         )
 
         # Token Efficiency mode
@@ -171,7 +171,7 @@ class BehavioralModeManager:
                 "abbreviation": True,
                 "symbol_usage": "maximum",
                 "output_compression": "aggressive",
-                "explanation": "none"
+                "explanation": "none",
             },
             symbol_system={
                 "→": "leads to",
@@ -180,11 +180,11 @@ class BehavioralModeManager:
                 "🔄": "in progress",
                 "⚠️": "warning",
                 "∴": "therefore",
-                "∵": "because"
+                "∵": "because",
             },
             output_format="compressed",
             token_reduction_target=0.5,
-            disabled_tools=["WebSearch"]  # Disable verbose tools
+            disabled_tools=["WebSearch"],  # Disable verbose tools
         )
 
         # Orchestration mode
@@ -198,11 +198,11 @@ class BehavioralModeManager:
                 "parallel_execution": True,
                 "resource_awareness": True,
                 "performance_focus": True,
-                "delegation": "automatic"
+                "delegation": "automatic",
             },
             output_format="strategic",
             active_tools=["Task", "MultiEdit", "Bash"],
-            metadata={"parallel_by_default": True}
+            metadata={"parallel_by_default": True},
         )
 
     def get_current_mode(self) -> BehavioralMode:
@@ -215,8 +215,7 @@ class BehavioralModeManager:
         return self.current_mode
 
     def get_mode_configuration(
-        self,
-        mode: Optional[BehavioralMode] = None
+        self, mode: Optional[BehavioralMode] = None
     ) -> ModeConfiguration:
         """
         Get configuration for a mode.
@@ -229,11 +228,12 @@ class BehavioralModeManager:
         """
         target_mode = mode or self.current_mode
         return self.configurations.get(
-            target_mode,
-            self.configurations[BehavioralMode.NORMAL]
+            target_mode, self.configurations[BehavioralMode.NORMAL]
         )
 
-    def detect_mode_from_context(self, context: Dict[str, Any]) -> Optional[BehavioralMode]:
+    def detect_mode_from_context(
+        self, context: Dict[str, Any]
+    ) -> Optional[BehavioralMode]:
         """
         Detect appropriate mode from context.
 
@@ -245,11 +245,11 @@ class BehavioralModeManager:
         """
         # Extract text from context
         text_parts = []
-        for field in ['task', 'prompt', 'flags', 'command']:
+        for field in ["task", "prompt", "flags", "command"]:
             if field in context:
                 text_parts.append(str(context[field]).lower())
 
-        text = ' '.join(text_parts)
+        text = " ".join(text_parts)
 
         # Check each mode's triggers
         for mode, config in self.configurations.items():
@@ -274,7 +274,7 @@ class BehavioralModeManager:
         self,
         mode: BehavioralMode,
         context: Optional[Dict[str, Any]] = None,
-        trigger: str = "manual"
+        trigger: str = "manual",
     ) -> bool:
         """
         Switch to a different behavioral mode.
@@ -297,7 +297,7 @@ class BehavioralModeManager:
                 to_mode=mode.value,
                 timestamp=datetime.now(),
                 trigger=trigger,
-                context=context or {}
+                context=context or {},
             )
             self.transition_history.append(transition)
 
@@ -315,7 +315,9 @@ class BehavioralModeManager:
                 except Exception as e:
                     self.logger.error(f"Mode change callback error: {e}")
 
-            self.logger.info(f"Switched from {previous_mode.value} to {mode.value} mode")
+            self.logger.info(
+                f"Switched from {previous_mode.value} to {mode.value} mode"
+            )
             return True
 
         except Exception as e:
@@ -361,26 +363,26 @@ class BehavioralModeManager:
         enhanced = context.copy()
 
         # Add mode information
-        enhanced['_mode'] = {
-            'name': config.name,
-            'behaviors': config.behaviors,
-            'output_format': config.output_format
+        enhanced["_mode"] = {
+            "name": config.name,
+            "behaviors": config.behaviors,
+            "output_format": config.output_format,
         }
 
         # Add symbol system for token efficiency
         if config.symbol_system:
-            enhanced['_symbols'] = config.symbol_system
+            enhanced["_symbols"] = config.symbol_system
 
         # Add tool preferences
         if config.active_tools:
-            enhanced['_preferred_tools'] = config.active_tools
+            enhanced["_preferred_tools"] = config.active_tools
 
         if config.disabled_tools:
-            enhanced['_disabled_tools'] = config.disabled_tools
+            enhanced["_disabled_tools"] = config.disabled_tools
 
         # Apply token reduction target
         if config.token_reduction_target > 0:
-            enhanced['_token_target'] = config.token_reduction_target
+            enhanced["_token_target"] = config.token_reduction_target
 
         # Apply specific behavioral modifications
         enhanced = self._apply_specific_behaviors(enhanced, config)
@@ -442,10 +444,10 @@ class BehavioralModeManager:
         history = self.transition_history[-limit:]
         return [
             {
-                'from': t.from_mode,
-                'to': t.to_mode,
-                'timestamp': t.timestamp.isoformat(),
-                'trigger': t.trigger
+                "from": t.from_mode,
+                "to": t.to_mode,
+                "timestamp": t.timestamp.isoformat(),
+                "trigger": t.trigger,
             }
             for t in history
         ]
@@ -475,12 +477,12 @@ class BehavioralModeManager:
                 self.logger.warning(f"Configuration file not found: {config_path}")
                 return False
 
-            with open(path, 'r', encoding='utf-8') as f:
+            with open(path, encoding="utf-8") as f:
                 config = json.load(f)
 
             # Load custom mode configurations
-            for mode_config in config.get('modes', []):
-                mode_name = mode_config.get('name', '').upper()
+            for mode_config in config.get("modes", []):
+                mode_name = mode_config.get("name", "").upper()
                 if hasattr(BehavioralMode, mode_name):
                     mode_enum = getattr(BehavioralMode, mode_name)
                     self.configurations[mode_enum] = ModeConfiguration(**mode_config)
@@ -495,18 +497,32 @@ class BehavioralModeManager:
     def _detect_brainstorming_pattern(self, text: str) -> bool:
         """Detect if text suggests brainstorming mode."""
         patterns = [
-            'what if', 'explore', 'brainstorm', 'ideas',
-            'possibilities', 'alternatives', 'creative',
-            'think about', 'consider', 'imagine'
+            "what if",
+            "explore",
+            "brainstorm",
+            "ideas",
+            "possibilities",
+            "alternatives",
+            "creative",
+            "think about",
+            "consider",
+            "imagine",
         ]
         return any(pattern in text for pattern in patterns)
 
     def _detect_task_management_pattern(self, text: str) -> bool:
         """Detect if text suggests task management mode."""
         patterns = [
-            'todo', 'task', 'organize', 'plan',
-            'schedule', 'track', 'manage', 'delegate',
-            'workflow', 'pipeline'
+            "todo",
+            "task",
+            "organize",
+            "plan",
+            "schedule",
+            "track",
+            "manage",
+            "delegate",
+            "workflow",
+            "pipeline",
         ]
         return any(pattern in text for pattern in patterns)
 
@@ -518,56 +534,52 @@ class BehavioralModeManager:
             return True
 
         # Check for efficiency hints
-        if context.get('resource_constrained'):
+        if context.get("resource_constrained"):
             return True
 
-        if context.get('token_limit') and context['token_limit'] < 5000:
+        if context.get("token_limit") and context["token_limit"] < 5000:
             return True
 
         return False
 
     def _apply_specific_behaviors(
-        self,
-        context: Dict[str, Any],
-        config: ModeConfiguration
+        self, context: Dict[str, Any], config: ModeConfiguration
     ) -> Dict[str, Any]:
         """Apply mode-specific behavioral modifications."""
 
-        behaviors = config.behaviors
-
         # Brainstorming mode modifications
         if config.name == "brainstorming":
-            context['_questions'] = [
+            context["_questions"] = [
                 "What problem are we trying to solve?",
                 "What constraints do we have?",
                 "What alternatives have been considered?",
-                "What are the success criteria?"
+                "What are the success criteria?",
             ]
-            context['_exploration_depth'] = 'broad'
+            context["_exploration_depth"] = "broad"
 
         # Introspection mode modifications
         elif config.name == "introspection":
-            context['_expose_reasoning'] = True
-            context['_decision_tracking'] = True
-            context['_pattern_analysis'] = True
+            context["_expose_reasoning"] = True
+            context["_decision_tracking"] = True
+            context["_pattern_analysis"] = True
 
         # Task management modifications
         elif config.name == "task_management":
-            context['_auto_organize'] = True
-            context['_hierarchy_depth'] = 4
-            context['_tracking_enabled'] = True
+            context["_auto_organize"] = True
+            context["_hierarchy_depth"] = 4
+            context["_tracking_enabled"] = True
 
         # Token efficiency modifications
         elif config.name == "token_efficiency":
-            context['_max_response_tokens'] = 500
-            context['_use_abbreviations'] = True
-            context['_skip_explanations'] = True
+            context["_max_response_tokens"] = 500
+            context["_use_abbreviations"] = True
+            context["_skip_explanations"] = True
 
         # Orchestration modifications
         elif config.name == "orchestration":
-            context['_parallel_execution'] = True
-            context['_tool_optimization'] = True
-            context['_batch_operations'] = True
+            context["_parallel_execution"] = True
+            context["_tool_optimization"] = True
+            context["_batch_operations"] = True
 
         return context
 
@@ -581,102 +593,102 @@ class BehavioralModeManager:
                 compressed = compressed.replace(meaning, symbol)
 
         # Remove unnecessary words
-        remove_words = ['the', 'a', 'an', 'is', 'are', 'was', 'were']
+        remove_words = ["the", "a", "an", "is", "are", "was", "were"]
         for word in remove_words:
-            compressed = compressed.replace(f' {word} ', ' ')
+            compressed = compressed.replace(f" {word} ", " ")
 
         # Truncate long explanations
-        lines = compressed.split('\n')
+        lines = compressed.split("\n")
         compressed_lines = []
         for line in lines:
             if len(line) > 80:
-                line = line[:77] + '...'
+                line = line[:77] + "..."
             compressed_lines.append(line)
 
-        return '\n'.join(compressed_lines)
+        return "\n".join(compressed_lines)
 
     def _conversational_output(self, output: str) -> str:
         """Format output for conversational brainstorming."""
-        lines = output.split('\n')
+        lines = output.split("\n")
         formatted = []
 
         for line in lines:
             if line.strip():
                 # Add conversational markers
-                if line.startswith('-'):
-                    line = '💭 ' + line[1:].strip()
-                elif '?' in line:
-                    line = '🤔 ' + line
+                if line.startswith("-"):
+                    line = "💭 " + line[1:].strip()
+                elif "?" in line:
+                    line = "🤔 " + line
 
                 formatted.append(line)
 
-        return '\n'.join(formatted)
+        return "\n".join(formatted)
 
     def _structured_output(self, output: str) -> str:
         """Format output for structured task management."""
         # Add structure markers
-        lines = output.split('\n')
+        lines = output.split("\n")
         formatted = []
         indent_level = 0
 
         for line in lines:
             if line.strip():
                 # Detect hierarchy
-                if line.startswith('##'):
+                if line.startswith("##"):
                     indent_level = 0
                     line = f"📋 {line}"
-                elif line.startswith('#'):
+                elif line.startswith("#"):
                     indent_level = 0
                     line = f"🎯 {line}"
-                elif line.startswith('-'):
-                    line = '  ' * indent_level + '✓ ' + line[1:].strip()
+                elif line.startswith("-"):
+                    line = "  " * indent_level + "✓ " + line[1:].strip()
 
                 formatted.append(line)
 
-        return '\n'.join(formatted)
+        return "\n".join(formatted)
 
     def _analytical_output(self, output: str, config: ModeConfiguration) -> str:
         """Format output for analytical introspection."""
         # Add reasoning markers
-        markers = config.behaviors.get('reasoning_markers', [])
+        config.behaviors.get("reasoning_markers", [])
 
-        lines = output.split('\n')
+        lines = output.split("\n")
         formatted = []
 
         for line in lines:
             if line.strip():
                 # Add appropriate markers
-                if 'decision' in line.lower():
-                    line = '🎯 ' + line
-                elif 'pattern' in line.lower():
-                    line = '📊 ' + line
-                elif 'insight' in line.lower():
-                    line = '💡 ' + line
-                elif 'thinking' in line.lower() or 'reasoning' in line.lower():
-                    line = '🤔 ' + line
+                if "decision" in line.lower():
+                    line = "🎯 " + line
+                elif "pattern" in line.lower():
+                    line = "📊 " + line
+                elif "insight" in line.lower():
+                    line = "💡 " + line
+                elif "thinking" in line.lower() or "reasoning" in line.lower():
+                    line = "🤔 " + line
 
                 formatted.append(line)
 
-        return '\n'.join(formatted)
+        return "\n".join(formatted)
 
     def _strategic_output(self, output: str) -> str:
         """Format output for strategic orchestration."""
-        lines = output.split('\n')
+        lines = output.split("\n")
         formatted = []
 
         for line in lines:
             if line.strip():
                 # Add strategic markers
-                if 'parallel' in line.lower():
-                    line = '⚡ ' + line
-                elif 'optimize' in line.lower():
-                    line = '🎯 ' + line
-                elif 'coordinate' in line.lower():
-                    line = '🔄 ' + line
+                if "parallel" in line.lower():
+                    line = "⚡ " + line
+                elif "optimize" in line.lower():
+                    line = "🎯 " + line
+                elif "coordinate" in line.lower():
+                    line = "🔄 " + line
 
                 formatted.append(line)
 
-        return '\n'.join(formatted)
+        return "\n".join(formatted)
 
     def _update_mode_metrics(self, mode: BehavioralMode):
         """Update metrics for mode usage."""
@@ -684,13 +696,13 @@ class BehavioralModeManager:
 
         if mode_name not in self.mode_metrics:
             self.mode_metrics[mode_name] = {
-                'activation_count': 0,
-                'total_time': 0,
-                'last_activated': None
+                "activation_count": 0,
+                "total_time": 0,
+                "last_activated": None,
             }
 
-        self.mode_metrics[mode_name]['activation_count'] += 1
-        self.mode_metrics[mode_name]['last_activated'] = datetime.now().isoformat()
+        self.mode_metrics[mode_name]["activation_count"] += 1
+        self.mode_metrics[mode_name]["last_activated"] = datetime.now().isoformat()
 
     def reset_metrics(self):
         """Reset all mode metrics."""

@@ -1,14 +1,7 @@
 """Utility modules for SuperClaude installation system"""
 
-from .ui import ProgressBar, Menu, confirm, Colors
 from .logger import Logger
 from .security import SecurityValidator
+from .ui import Colors, Menu, ProgressBar, confirm
 
-__all__ = [
-    'ProgressBar',
-    'Menu', 
-    'confirm',
-    'Colors',
-    'Logger',
-    'SecurityValidator'
-]
+__all__ = ["Colors", "Logger", "Menu", "ProgressBar", "SecurityValidator", "confirm"]

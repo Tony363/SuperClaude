@@ -6,12 +6,12 @@ persist collected metrics for later analysis.
 """
 
 from .performance_monitor import PerformanceMonitor
-from .sink import MetricsSink, JsonlMetricsSink
+from .sink import JsonlMetricsSink, MetricsSink
 from .sqlite_sink import SQLiteMetricsSink
 
 __all__ = [
-    'PerformanceMonitor',
-    'MetricsSink',
-    'JsonlMetricsSink',
-    'SQLiteMetricsSink',
+    "JsonlMetricsSink",
+    "MetricsSink",
+    "PerformanceMonitor",
+    "SQLiteMetricsSink",
 ]

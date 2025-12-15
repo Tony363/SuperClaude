@@ -4,16 +4,15 @@ Performance Monitoring System for SuperClaude.
 Tracks metrics, performance, and resource usage across all components.
 """
 
-import time
-import logging
 import asyncio
-from typing import Dict, List, Any, Optional, Callable
-from dataclasses import dataclass, field
-from datetime import datetime, timedelta
-from collections import deque, defaultdict
-from enum import Enum
 import json
-from pathlib import Path
+import logging
+import time
+from collections import defaultdict, deque
+from dataclasses import dataclass, field
+from datetime import datetime
+from enum import Enum
+from typing import Any, Callable, Dict, List, Optional
 
 try:  # Optional dependency used when available for richer telemetry
     import psutil  # type: ignore
@@ -26,11 +25,11 @@ logger = logging.getLogger(__name__)
 class MetricType(Enum):
     """Types of metrics to track."""
 
-    COUNTER = "counter"      # Incremental count
-    GAUGE = "gauge"          # Current value
+    COUNTER = "counter"  # Incremental count
+    GAUGE = "gauge"  # Current value
     HISTOGRAM = "histogram"  # Distribution of values
-    TIMER = "timer"          # Execution time
-    RATE = "rate"           # Events per second
+    TIMER = "timer"  # Execution time
+    RATE = "rate"  # Events per second
 
 
 class AlertSeverity(Enum):
@@ -101,7 +100,9 @@ class PerformanceMonitor:
     - Historical analysis
     """
 
-    def __init__(self, config: Optional[Dict[str, Any]] = None, sinks: Optional[list] = None):
+    def __init__(
+        self, config: Optional[Dict[str, Any]] = None, sinks: Optional[list] = None
+    ):
         """Initialize performance monitor."""
         self.config = config or {}
         self.metrics: Dict[str, deque] = defaultdict(lambda: deque(maxlen=10000))
@@ -111,24 +112,31 @@ class PerformanceMonitor:
         self.start_time = datetime.now()
         self.is_monitoring = False
         self.monitor_task = None
-        self.token_usage_counters = defaultdict(lambda: {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0, "calls": 0})
+        self.token_usage_counters = defaultdict(
+            lambda: {
+                "prompt_tokens": 0,
+                "completion_tokens": 0,
+                "total_tokens": 0,
+                "calls": 0,
+            }
+        )
         self.token_usage_history = deque(maxlen=10000)
 
         # Persistence sinks (best-effort)
         self.sinks: List[MetricsSink] = []
         if sinks:
             self.sinks.extend(sinks)
-        elif self.config.get('persist_metrics', True):
+        elif self.config.get("persist_metrics", True):
             # Default to SQLite sink with JSONL as secondary
             self.sinks.append(SQLiteMetricsSink())
             self.sinks.append(JsonlMetricsSink())
 
         # Performance thresholds
         self.thresholds = {
-            'cpu_percent': self.config.get('cpu_threshold', 80),
-            'memory_percent': self.config.get('memory_threshold', 85),
-            'response_time_ms': self.config.get('response_time_threshold', 1000),
-            'error_rate': self.config.get('error_rate_threshold', 0.05)
+            "cpu_percent": self.config.get("cpu_threshold", 80),
+            "memory_percent": self.config.get("memory_threshold", 85),
+            "response_time_ms": self.config.get("response_time_threshold", 1000),
+            "error_rate": self.config.get("error_rate_threshold", 0.05),
         }
 
         # Metric aggregators
@@ -137,7 +145,7 @@ class PerformanceMonitor:
             MetricType.GAUGE: self._aggregate_gauge,
             MetricType.HISTOGRAM: self._aggregate_histogram,
             MetricType.TIMER: self._aggregate_timer,
-            MetricType.RATE: self._aggregate_rate
+            MetricType.RATE: self._aggregate_rate,
         }
 
     async def start_monitoring(self, interval_seconds: int = 10):
@@ -152,9 +160,7 @@ class PerformanceMonitor:
             return
 
         self.is_monitoring = True
-        self.monitor_task = asyncio.create_task(
-            self._monitoring_loop(interval_seconds)
-        )
+        self.monitor_task = asyncio.create_task(self._monitoring_loop(interval_seconds))
         logger.info(f"Started performance monitoring (interval: {interval_seconds}s)")
 
     async def stop_monitoring(self):
@@ -185,12 +191,12 @@ class PerformanceMonitor:
         snap = self.snapshots[-1] if self.snapshots else None
         tokens_snapshot = self.token_usage_counters.get("aggregate", {})
         return {
-            'cpu_percent': getattr(snap, 'cpu_percent', 0.0),
-            'memory_percent': getattr(snap, 'memory_percent', 0.0),
-            'token_prompt_total': tokens_snapshot.get('prompt_tokens', 0),
-            'token_completion_total': tokens_snapshot.get('completion_tokens', 0),
-            'token_total': tokens_snapshot.get('total_tokens', 0),
-            'token_calls': tokens_snapshot.get('calls', 0)
+            "cpu_percent": getattr(snap, "cpu_percent", 0.0),
+            "memory_percent": getattr(snap, "memory_percent", 0.0),
+            "token_prompt_total": tokens_snapshot.get("prompt_tokens", 0),
+            "token_completion_total": tokens_snapshot.get("completion_tokens", 0),
+            "token_total": tokens_snapshot.get("total_tokens", 0),
+            "token_calls": tokens_snapshot.get("calls", 0),
         }
 
     def record_metric(
@@ -198,7 +204,7 @@ class PerformanceMonitor:
         name: str,
         value: float,
         metric_type: MetricType = MetricType.GAUGE,
-        tags: Optional[Dict[str, str]] = None
+        tags: Optional[Dict[str, str]] = None,
     ):
         """
         Record a metric.
@@ -209,12 +215,7 @@ class PerformanceMonitor:
             metric_type: Type of metric
             tags: Optional tags
         """
-        metric = Metric(
-            name=name,
-            type=metric_type,
-            value=value,
-            tags=tags or {}
-        )
+        metric = Metric(name=name, type=metric_type, value=value, tags=tags or {})
 
         self.metrics[name].append(metric)
 
@@ -225,20 +226,22 @@ class PerformanceMonitor:
 
         # Persist event (best-effort)
         event = {
-            'type': 'metric',
-            'data': {
-                'name': metric.name,
-                'type': metric.type.value,
-                'value': metric.value,
-                'timestamp': metric.timestamp.isoformat(),
-                'tags': metric.tags,
-            }
+            "type": "metric",
+            "data": {
+                "name": metric.name,
+                "type": metric.type.value,
+                "value": metric.value,
+                "timestamp": metric.timestamp.isoformat(),
+                "tags": metric.tags,
+            },
         }
         for sink in self.sinks:
             try:
                 sink.write_event(event)
             except Exception:
-                logger.debug("Failed to persist metric event via %s", sink, exc_info=True)
+                logger.debug(
+                    "Failed to persist metric event via %s", sink, exc_info=True
+                )
 
     def record_token_usage(
         self,
@@ -246,7 +249,7 @@ class PerformanceMonitor:
         model: Optional[str],
         provider: Optional[str],
         usage: Dict[str, int],
-        metadata: Optional[Dict[str, Any]] = None
+        metadata: Optional[Dict[str, Any]] = None,
     ) -> None:
         """
         Record token usage statistics for model invocations.
@@ -276,7 +279,12 @@ class PerformanceMonitor:
         }
         self.token_usage_history.append(entry)
 
-        for key in {"aggregate", provider_key, model_key, f"{provider_key}:{model_key}"}:
+        for key in {
+            "aggregate",
+            provider_key,
+            model_key,
+            f"{provider_key}:{model_key}",
+        }:
             bucket = self.token_usage_counters[key]
             bucket["prompt_tokens"] += prompt_tokens
             bucket["completion_tokens"] += completion_tokens
@@ -330,19 +338,23 @@ class PerformanceMonitor:
             try:
                 sink.write_event(token_event)
             except Exception:
-                logger.debug("Failed to persist token usage event via %s", sink, exc_info=True)
+                logger.debug(
+                    "Failed to persist token usage event via %s", sink, exc_info=True
+                )
 
     def record_event(self, event_type: str, data: Dict[str, Any]) -> None:
         """Persist a structured monitoring event."""
         payload = {
-            'type': event_type,
-            'data': dict(data),
+            "type": event_type,
+            "data": dict(data),
         }
         for sink in self.sinks:
             try:
                 sink.write_event(payload)
             except Exception:
-                logger.debug("Failed to persist custom event via %s", sink, exc_info=True)
+                logger.debug(
+                    "Failed to persist custom event via %s", sink, exc_info=True
+                )
 
     def start_timer(self, name: str) -> Callable:
         """
@@ -383,7 +395,7 @@ class PerformanceMonitor:
             self.record_metric(f"{name}.success", 1, MetricType.COUNTER)
             return result
 
-        except Exception as e:
+        except Exception:
             duration_ms = (time.perf_counter() - start_time) * 1000
             self.record_metric(f"{name}.duration", duration_ms, MetricType.TIMER)
             self.record_metric(f"{name}.error", 1, MetricType.COUNTER)
@@ -454,30 +466,32 @@ class PerformanceMonitor:
 
     def _finalize_snapshot(self, snapshot: PerformanceSnapshot) -> PerformanceSnapshot:
         """Persist and record snapshot metrics."""
-        
+
         self.snapshots.append(snapshot)
 
         # Record as metrics
         self.record_metric("system.cpu_percent", snapshot.cpu_percent, MetricType.GAUGE)
-        self.record_metric("system.memory_percent", snapshot.memory_percent, MetricType.GAUGE)
+        self.record_metric(
+            "system.memory_percent", snapshot.memory_percent, MetricType.GAUGE
+        )
         self.record_metric("system.memory_mb", snapshot.memory_mb, MetricType.GAUGE)
 
         # Persist snapshot (best-effort)
         event = {
-            'type': 'snapshot',
-            'data': {
-                'timestamp': snapshot.timestamp.isoformat(),
-                'cpu_percent': snapshot.cpu_percent,
-                'memory_percent': snapshot.memory_percent,
-                'memory_mb': snapshot.memory_mb,
-                'disk_io_read_mb': snapshot.disk_io_read_mb,
-                'disk_io_write_mb': snapshot.disk_io_write_mb,
-                'network_sent_mb': snapshot.network_sent_mb,
-                'network_recv_mb': snapshot.network_recv_mb,
-                'active_tasks': snapshot.active_tasks,
-                'thread_count': snapshot.thread_count,
-                'process_count': snapshot.process_count,
-            }
+            "type": "snapshot",
+            "data": {
+                "timestamp": snapshot.timestamp.isoformat(),
+                "cpu_percent": snapshot.cpu_percent,
+                "memory_percent": snapshot.memory_percent,
+                "memory_mb": snapshot.memory_mb,
+                "disk_io_read_mb": snapshot.disk_io_read_mb,
+                "disk_io_write_mb": snapshot.disk_io_write_mb,
+                "network_sent_mb": snapshot.network_sent_mb,
+                "network_recv_mb": snapshot.network_recv_mb,
+                "active_tasks": snapshot.active_tasks,
+                "thread_count": snapshot.thread_count,
+                "process_count": snapshot.process_count,
+            },
         }
         for sink in self.sinks:
             try:
@@ -492,7 +506,7 @@ class PerformanceMonitor:
         metric_name: str,
         threshold: float,
         condition: str = "greater",
-        severity: AlertSeverity = AlertSeverity.WARNING
+        severity: AlertSeverity = AlertSeverity.WARNING,
     ):
         """
         Add an alert rule.
@@ -504,10 +518,10 @@ class PerformanceMonitor:
             severity: Alert severity
         """
         rule = {
-            'metric_name': metric_name,
-            'threshold': threshold,
-            'condition': condition,
-            'severity': severity
+            "metric_name": metric_name,
+            "threshold": threshold,
+            "condition": condition,
+            "severity": severity,
         }
 
         self.alert_rules.append(rule)
@@ -558,25 +572,25 @@ class PerformanceMonitor:
         # Get active alerts
         active_alerts = [
             {
-                'id': alert.id,
-                'severity': alert.severity.value,
-                'message': alert.message,
-                'metric': alert.metric_name,
-                'value': alert.current_value,
-                'threshold': alert.threshold
+                "id": alert.id,
+                "severity": alert.severity.value,
+                "message": alert.message,
+                "metric": alert.metric_name,
+                "value": alert.current_value,
+                "threshold": alert.threshold,
             }
             for alert in self.alerts.values()
             if not alert.resolved
         ]
 
         report = {
-            'uptime_seconds': uptime,
-            'start_time': self.start_time.isoformat(),
-            'current_snapshot': self._serialize_snapshot(latest_snapshot),
-            'metrics_summary': metrics_summary,
-            'active_alerts': active_alerts,
-            'alert_count': len(active_alerts),
-            'total_metrics_recorded': sum(len(m) for m in self.metrics.values())
+            "uptime_seconds": uptime,
+            "start_time": self.start_time.isoformat(),
+            "current_snapshot": self._serialize_snapshot(latest_snapshot),
+            "metrics_summary": metrics_summary,
+            "active_alerts": active_alerts,
+            "alert_count": len(active_alerts),
+            "total_metrics_recorded": sum(len(m) for m in self.metrics.values()),
         }
 
         return report
@@ -596,14 +610,16 @@ class PerformanceMonitor:
             recent_cpu = [m.value for m in cpu_metrics[-10:]]
             avg_cpu = sum(recent_cpu) / len(recent_cpu)
 
-            if avg_cpu > self.thresholds['cpu_percent']:
-                bottlenecks.append({
-                    'type': 'CPU',
-                    'severity': 'high' if avg_cpu > 90 else 'medium',
-                    'value': avg_cpu,
-                    'threshold': self.thresholds['cpu_percent'],
-                    'suggestion': 'Consider optimizing CPU-intensive operations or scaling horizontally'
-                })
+            if avg_cpu > self.thresholds["cpu_percent"]:
+                bottlenecks.append(
+                    {
+                        "type": "CPU",
+                        "severity": "high" if avg_cpu > 90 else "medium",
+                        "value": avg_cpu,
+                        "threshold": self.thresholds["cpu_percent"],
+                        "suggestion": "Consider optimizing CPU-intensive operations or scaling horizontally",
+                    }
+                )
 
         # Check memory bottleneck
         mem_metrics = list(self.metrics.get("system.memory_percent", []))
@@ -611,14 +627,16 @@ class PerformanceMonitor:
             recent_mem = [m.value for m in mem_metrics[-10:]]
             avg_mem = sum(recent_mem) / len(recent_mem)
 
-            if avg_mem > self.thresholds['memory_percent']:
-                bottlenecks.append({
-                    'type': 'Memory',
-                    'severity': 'high' if avg_mem > 95 else 'medium',
-                    'value': avg_mem,
-                    'threshold': self.thresholds['memory_percent'],
-                    'suggestion': 'Consider optimizing memory usage or increasing available memory'
-                })
+            if avg_mem > self.thresholds["memory_percent"]:
+                bottlenecks.append(
+                    {
+                        "type": "Memory",
+                        "severity": "high" if avg_mem > 95 else "medium",
+                        "value": avg_mem,
+                        "threshold": self.thresholds["memory_percent"],
+                        "suggestion": "Consider optimizing memory usage or increasing available memory",
+                    }
+                )
 
         # Check response time bottleneck
         timer_metrics = {
@@ -632,15 +650,17 @@ class PerformanceMonitor:
             if recent_times:
                 avg_time = sum(recent_times) / len(recent_times)
 
-                if avg_time > self.thresholds['response_time_ms']:
-                    bottlenecks.append({
-                        'type': 'Response Time',
-                        'metric': name,
-                        'severity': 'high' if avg_time > 2000 else 'medium',
-                        'value': avg_time,
-                        'threshold': self.thresholds['response_time_ms'],
-                        'suggestion': f'Optimize {name} operation for better performance'
-                    })
+                if avg_time > self.thresholds["response_time_ms"]:
+                    bottlenecks.append(
+                        {
+                            "type": "Response Time",
+                            "metric": name,
+                            "severity": "high" if avg_time > 2000 else "medium",
+                            "value": avg_time,
+                            "threshold": self.thresholds["response_time_ms"],
+                            "suggestion": f"Optimize {name} operation for better performance",
+                        }
+                    )
 
         return bottlenecks
 
@@ -652,16 +672,16 @@ class PerformanceMonitor:
             filepath: Export file path
         """
         data = {
-            'report': self.get_performance_report(),
-            'bottlenecks': self.detect_bottlenecks(),
-            'metrics': {
+            "report": self.get_performance_report(),
+            "bottlenecks": self.detect_bottlenecks(),
+            "metrics": {
                 name: [self._serialize_metric(m) for m in list(metrics)]
                 for name, metrics in self.metrics.items()
             },
-            'snapshots': [self._serialize_snapshot(s) for s in self.snapshots]
+            "snapshots": [self._serialize_snapshot(s) for s in self.snapshots],
         }
 
-        with open(filepath, 'w') as f:
+        with open(filepath, "w") as f:
             json.dump(data, f, indent=2, default=str)
 
         logger.info(f"Exported metrics to: {filepath}")
@@ -693,15 +713,15 @@ class PerformanceMonitor:
     def _check_alerts(self, metric: Metric):
         """Check if metric triggers any alerts."""
         for rule in self.alert_rules:
-            if metric.name != rule['metric_name']:
+            if metric.name != rule["metric_name"]:
                 continue
 
             triggered = False
-            if rule['condition'] == 'greater' and metric.value > rule['threshold']:
-                triggered = True
-            elif rule['condition'] == 'less' and metric.value < rule['threshold']:
-                triggered = True
-            elif rule['condition'] == 'equal' and metric.value == rule['threshold']:
+            if (
+                (rule["condition"] == "greater" and metric.value > rule["threshold"])
+                or (rule["condition"] == "less" and metric.value < rule["threshold"])
+                or (rule["condition"] == "equal" and metric.value == rule["threshold"])
+            ):
                 triggered = True
 
             if triggered:
@@ -710,33 +730,37 @@ class PerformanceMonitor:
                 if alert_id not in self.alerts or self.alerts[alert_id].resolved:
                     alert = Alert(
                         id=alert_id,
-                        severity=rule['severity'],
+                        severity=rule["severity"],
                         metric_name=metric.name,
                         message=f"{metric.name} {rule['condition']} {rule['threshold']}",
-                        threshold=rule['threshold'],
-                        current_value=metric.value
+                        threshold=rule["threshold"],
+                        current_value=metric.value,
                     )
 
                     self.alerts[alert_id] = alert
-                    logger.warning(f"Alert triggered: {alert.message} (current: {metric.value})")
+                    logger.warning(
+                        f"Alert triggered: {alert.message} (current: {metric.value})"
+                    )
                     # Persist alert
                     event = {
-                        'type': 'alert',
-                        'data': {
-                            'id': alert.id,
-                            'severity': alert.severity.value,
-                            'metric_name': alert.metric_name,
-                            'message': alert.message,
-                            'threshold': alert.threshold,
-                            'current_value': alert.current_value,
-                            'timestamp': alert.timestamp.isoformat(),
-                        }
+                        "type": "alert",
+                        "data": {
+                            "id": alert.id,
+                            "severity": alert.severity.value,
+                            "metric_name": alert.metric_name,
+                            "message": alert.message,
+                            "threshold": alert.threshold,
+                            "current_value": alert.current_value,
+                            "timestamp": alert.timestamp.isoformat(),
+                        },
                     }
                     for sink in self.sinks:
                         try:
                             sink.write_event(event)
                         except Exception:
-                            logger.debug("Failed to persist snapshot via %s", sink, exc_info=True)
+                            logger.debug(
+                                "Failed to persist snapshot via %s", sink, exc_info=True
+                            )
 
             else:
                 # Resolve alert if it exists
@@ -752,9 +776,10 @@ class PerformanceMonitor:
 
         total = sum(m.value for m in metrics)
         return {
-            'total': total,
-            'count': len(metrics),
-            'rate_per_second': total / max(1, (metrics[-1].timestamp - metrics[0].timestamp).total_seconds())
+            "total": total,
+            "count": len(metrics),
+            "rate_per_second": total
+            / max(1, (metrics[-1].timestamp - metrics[0].timestamp).total_seconds()),
         }
 
     def _aggregate_gauge(self, metrics: List[Metric]) -> Dict[str, float]:
@@ -764,10 +789,10 @@ class PerformanceMonitor:
 
         values = [m.value for m in metrics]
         return {
-            'current': values[-1],
-            'min': min(values),
-            'max': max(values),
-            'avg': sum(values) / len(values)
+            "current": values[-1],
+            "min": min(values),
+            "max": max(values),
+            "avg": sum(values) / len(values),
         }
 
     def _aggregate_histogram(self, metrics: List[Metric]) -> Dict[str, float]:
@@ -779,13 +804,13 @@ class PerformanceMonitor:
         count = len(values)
 
         return {
-            'count': count,
-            'min': values[0],
-            'max': values[-1],
-            'avg': sum(values) / count,
-            'p50': values[count // 2],
-            'p95': values[int(count * 0.95)],
-            'p99': values[int(count * 0.99)]
+            "count": count,
+            "min": values[0],
+            "max": values[-1],
+            "avg": sum(values) / count,
+            "p50": values[count // 2],
+            "p95": values[int(count * 0.95)],
+            "p99": values[int(count * 0.99)],
         }
 
     def _aggregate_timer(self, metrics: List[Metric]) -> Dict[str, float]:
@@ -799,40 +824,39 @@ class PerformanceMonitor:
 
         time_window = (metrics[-1].timestamp - metrics[0].timestamp).total_seconds()
         if time_window == 0:
-            return {'rate_per_second': 0}
+            return {"rate_per_second": 0}
 
         total = sum(m.value for m in metrics)
-        return {
-            'rate_per_second': total / time_window,
-            'total_events': total
-        }
+        return {"rate_per_second": total / time_window, "total_events": total}
 
     def _serialize_metric(self, metric: Metric) -> Dict[str, Any]:
         """Serialize metric for export."""
         return {
-            'name': metric.name,
-            'type': metric.type.value,
-            'value': metric.value,
-            'timestamp': metric.timestamp.isoformat(),
-            'tags': metric.tags
+            "name": metric.name,
+            "type": metric.type.value,
+            "value": metric.value,
+            "timestamp": metric.timestamp.isoformat(),
+            "tags": metric.tags,
         }
 
-    def _serialize_snapshot(self, snapshot: Optional[PerformanceSnapshot]) -> Optional[Dict[str, Any]]:
+    def _serialize_snapshot(
+        self, snapshot: Optional[PerformanceSnapshot]
+    ) -> Optional[Dict[str, Any]]:
         """Serialize snapshot for export."""
         if not snapshot:
             return None
 
         return {
-            'timestamp': snapshot.timestamp.isoformat(),
-            'cpu_percent': snapshot.cpu_percent,
-            'memory_percent': snapshot.memory_percent,
-            'memory_mb': snapshot.memory_mb,
-            'disk_io_read_mb': snapshot.disk_io_read_mb,
-            'disk_io_write_mb': snapshot.disk_io_write_mb,
-            'network_sent_mb': snapshot.network_sent_mb,
-            'network_recv_mb': snapshot.network_recv_mb,
-            'active_tasks': snapshot.active_tasks,
-            'thread_count': snapshot.thread_count
+            "timestamp": snapshot.timestamp.isoformat(),
+            "cpu_percent": snapshot.cpu_percent,
+            "memory_percent": snapshot.memory_percent,
+            "memory_mb": snapshot.memory_mb,
+            "disk_io_read_mb": snapshot.disk_io_read_mb,
+            "disk_io_write_mb": snapshot.disk_io_write_mb,
+            "network_sent_mb": snapshot.network_sent_mb,
+            "network_recv_mb": snapshot.network_recv_mb,
+            "active_tasks": snapshot.active_tasks,
+            "thread_count": snapshot.thread_count,
         }
 
 
@@ -850,8 +874,10 @@ def get_monitor() -> PerformanceMonitor:
 
 # Convenience decorators
 
+
 def measure_performance(metric_name: str = None):
     """Decorator to measure function performance."""
+
     def decorator(func):
         name = metric_name or f"{func.__module__}.{func.__name__}"
 
@@ -867,7 +893,7 @@ def measure_performance(metric_name: str = None):
                 stop_timer()
                 monitor.record_metric(f"{name}.success", 1, MetricType.COUNTER)
                 return result
-            except Exception as e:
+            except Exception:
                 stop_timer()
                 monitor.record_metric(f"{name}.error", 1, MetricType.COUNTER)
                 raise

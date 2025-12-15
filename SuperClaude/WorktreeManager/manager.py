@@ -5,21 +5,21 @@ Manages git worktree lifecycle for parallel feature development and
 progressive merge workflows.
 """
 
+import logging
 import os
 import subprocess
-import json
-import logging
-from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Any
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 
 
 class WorktreeStatus(Enum):
     """Worktree status states."""
+
     ACTIVE = "active"
     READY_TO_MERGE = "ready_to_merge"
     MERGED = "merged"
@@ -29,6 +29,7 @@ class WorktreeStatus(Enum):
 
 class MergeTarget(Enum):
     """Merge target branches."""
+
     FEATURE = "feature"
     INTEGRATION = "integration"
     MAIN = "main"
@@ -37,6 +38,7 @@ class MergeTarget(Enum):
 @dataclass
 class Worktree:
     """Worktree information."""
+
     name: str
     branch: str
     path: Path
@@ -94,11 +96,11 @@ class WorktreeManager:
                 ["git", "symbolic-ref", "refs/remotes/origin/HEAD"],
                 cwd=self.repo_path,
                 capture_output=True,
-                text=True
+                text=True,
             )
             if result.returncode == 0:
                 # Extract branch name from refs/remotes/origin/main
-                return result.stdout.strip().split('/')[-1]
+                return result.stdout.strip().split("/")[-1]
         except:
             pass
 
@@ -108,7 +110,7 @@ class WorktreeManager:
                 ["git", "rev-parse", "--verify", "main"],
                 cwd=self.repo_path,
                 capture_output=True,
-                text=True
+                text=True,
             )
             if result.returncode == 0:
                 return "main"
@@ -124,7 +126,7 @@ class WorktreeManager:
                 ["git", "worktree", "list", "--porcelain"],
                 cwd=self.repo_path,
                 capture_output=True,
-                text=True
+                text=True,
             )
 
             if result.returncode != 0:
@@ -132,7 +134,7 @@ class WorktreeManager:
                 return
 
             # Parse worktree list
-            lines = result.stdout.strip().split('\n')
+            lines = result.stdout.strip().split("\n")
             current_worktree = {}
 
             for line in lines:
@@ -165,10 +167,10 @@ class WorktreeManager:
             name = path.name
             if name.startswith("wt-"):
                 # Parse our naming convention: wt-{task}-{timestamp}
-                parts = name.split('-')
+                parts = name.split("-")
                 if len(parts) >= 3:
                     task_id = parts[1]
-                    timestamp = parts[2] if len(parts) > 2 else ""
+                    parts[2] if len(parts) > 2 else ""
 
                     worktree = Worktree(
                         name=name,
@@ -176,7 +178,7 @@ class WorktreeManager:
                         path=path,
                         task_id=task_id,
                         created_at=datetime.fromtimestamp(path.stat().st_ctime),
-                        parent_branch=self._get_parent_branch(info.get("branch", ""))
+                        parent_branch=self._get_parent_branch(info.get("branch", "")),
                     )
 
                     self.worktrees[name] = worktree
@@ -189,7 +191,7 @@ class WorktreeManager:
                 ["git", "merge-base", branch, self.main_branch],
                 cwd=self.repo_path,
                 capture_output=True,
-                text=True
+                text=True,
             )
             if result.returncode == 0:
                 return self.main_branch
@@ -197,10 +199,12 @@ class WorktreeManager:
             pass
         return self.main_branch
 
-    def create_worktree(self,
-                        task_id: str,
-                        branch_name: Optional[str] = None,
-                        base_branch: Optional[str] = None) -> Worktree:
+    def create_worktree(
+        self,
+        task_id: str,
+        branch_name: Optional[str] = None,
+        base_branch: Optional[str] = None,
+    ) -> Worktree:
         """
         Create a new worktree for a task.
 
@@ -229,10 +233,18 @@ class WorktreeManager:
         try:
             # Create worktree with new branch
             result = subprocess.run(
-                ["git", "worktree", "add", "-b", branch_name, str(worktree_path), base_branch],
+                [
+                    "git",
+                    "worktree",
+                    "add",
+                    "-b",
+                    branch_name,
+                    str(worktree_path),
+                    base_branch,
+                ],
                 cwd=self.repo_path,
                 capture_output=True,
-                text=True
+                text=True,
             )
 
             if result.returncode != 0:
@@ -245,7 +257,7 @@ class WorktreeManager:
                 path=worktree_path,
                 task_id=task_id,
                 created_at=datetime.now(),
-                parent_branch=base_branch
+                parent_branch=base_branch,
             )
 
             self.worktrees[worktree_name] = worktree
@@ -309,7 +321,7 @@ class WorktreeManager:
                 ["git", "status", "--porcelain"],
                 cwd=worktree.path,
                 capture_output=True,
-                text=True
+                text=True,
             )
             if result.stdout.strip():
                 issues.append("Uncommitted changes present")
@@ -323,7 +335,7 @@ class WorktreeManager:
                 ["git", "merge-tree", target_branch, worktree.branch],
                 cwd=worktree.path,
                 capture_output=True,
-                text=True
+                text=True,
             )
             if "<<<<<<< " in result.stdout:
                 issues.append(f"Merge conflicts with {target_branch}")
@@ -339,7 +351,7 @@ class WorktreeManager:
                     cwd=worktree.path,
                     capture_output=True,
                     text=True,
-                    timeout=300
+                    timeout=300,
                 )
                 if result.returncode != 0:
                     issues.append("Tests failed")
@@ -355,10 +367,12 @@ class WorktreeManager:
 
         return worktree.validation_passed, issues
 
-    def merge_worktree(self,
-                       worktree_name: str,
-                       target: MergeTarget = MergeTarget.INTEGRATION,
-                       force: bool = False) -> Tuple[bool, str]:
+    def merge_worktree(
+        self,
+        worktree_name: str,
+        target: MergeTarget = MergeTarget.INTEGRATION,
+        force: bool = False,
+    ) -> Tuple[bool, str]:
         """
         Merge worktree to target branch.
 
@@ -397,20 +411,29 @@ class WorktreeManager:
             subprocess.run(
                 ["git", "checkout", "-B", target_branch],
                 cwd=self.repo_path,
-                capture_output=True
+                capture_output=True,
             )
 
             # Merge the worktree branch
             result = subprocess.run(
-                ["git", "merge", "--no-ff", worktree.branch, "-m",
-                 f"Merge {worktree.branch} from worktree {worktree_name}"],
+                [
+                    "git",
+                    "merge",
+                    "--no-ff",
+                    worktree.branch,
+                    "-m",
+                    f"Merge {worktree.branch} from worktree {worktree_name}",
+                ],
                 cwd=self.repo_path,
                 capture_output=True,
-                text=True
+                text=True,
             )
 
             if result.returncode != 0:
-                if "conflict" in result.stdout.lower() or "conflict" in result.stderr.lower():
+                if (
+                    "conflict" in result.stdout.lower()
+                    or "conflict" in result.stderr.lower()
+                ):
                     worktree.status = WorktreeStatus.CONFLICTED
                     return False, f"Merge conflicts detected: {result.stderr}"
                 return False, f"Merge failed: {result.stderr}"
@@ -450,10 +473,7 @@ class WorktreeManager:
                 cmd.append("--force")
 
             result = subprocess.run(
-                cmd,
-                cwd=self.repo_path,
-                capture_output=True,
-                text=True
+                cmd, cwd=self.repo_path, capture_output=True, text=True
             )
 
             if result.returncode != 0:
@@ -479,11 +499,9 @@ class WorktreeManager:
             age = now - worktree.created_at
 
             # Remove merged worktrees after 1 day
-            if worktree.status == WorktreeStatus.MERGED and age > timedelta(days=1):
-                to_remove.append(name)
-
-            # Remove abandoned worktrees after cleanup age
-            elif worktree.status == WorktreeStatus.ABANDONED and age > cleanup_age:
+            if (
+                worktree.status == WorktreeStatus.MERGED and age > timedelta(days=1)
+            ) or (worktree.status == WorktreeStatus.ABANDONED and age > cleanup_age):
                 to_remove.append(name)
 
             # Mark as abandoned if inactive for too long
@@ -504,7 +522,7 @@ class WorktreeManager:
                 ["git", "log", "-1", "--format=%at"],
                 cwd=worktree.path,
                 capture_output=True,
-                text=True
+                text=True,
             )
             if result.returncode == 0 and result.stdout.strip():
                 last_commit_time = datetime.fromtimestamp(int(result.stdout.strip()))
@@ -516,23 +534,23 @@ class WorktreeManager:
     def get_status(self) -> Dict[str, Any]:
         """Get overall worktree status."""
         status = {
-            'total_worktrees': len(self.worktrees),
-            'active': 0,
-            'ready_to_merge': 0,
-            'merged': 0,
-            'conflicted': 0,
-            'worktrees': []
+            "total_worktrees": len(self.worktrees),
+            "active": 0,
+            "ready_to_merge": 0,
+            "merged": 0,
+            "conflicted": 0,
+            "worktrees": [],
         }
 
         for name, worktree in self.worktrees.items():
             if worktree.status == WorktreeStatus.ACTIVE:
-                status['active'] += 1
+                status["active"] += 1
             elif worktree.status == WorktreeStatus.READY_TO_MERGE:
-                status['ready_to_merge'] += 1
+                status["ready_to_merge"] += 1
             elif worktree.status == WorktreeStatus.MERGED:
-                status['merged'] += 1
+                status["merged"] += 1
             elif worktree.status == WorktreeStatus.CONFLICTED:
-                status['conflicted'] += 1
+                status["conflicted"] += 1
 
             # Get commit count
             try:
@@ -540,20 +558,22 @@ class WorktreeManager:
                     ["git", "rev-list", "--count", f"{worktree.parent_branch}..HEAD"],
                     cwd=worktree.path,
                     capture_output=True,
-                    text=True
+                    text=True,
                 )
                 commits = int(result.stdout.strip()) if result.returncode == 0 else 0
             except:
                 commits = 0
 
-            status['worktrees'].append({
-                'name': name,
-                'branch': worktree.branch,
-                'task_id': worktree.task_id,
-                'status': worktree.status.value,
-                'age_days': (datetime.now() - worktree.created_at).days,
-                'commits': commits
-            })
+            status["worktrees"].append(
+                {
+                    "name": name,
+                    "branch": worktree.branch,
+                    "task_id": worktree.task_id,
+                    "status": worktree.status.value,
+                    "age_days": (datetime.now() - worktree.created_at).days,
+                    "commits": commits,
+                }
+            )
 
         return status
 
@@ -565,11 +585,11 @@ class WorktreeManager:
             Number of pruned worktrees
         """
         try:
-            result = subprocess.run(
+            subprocess.run(
                 ["git", "worktree", "prune"],
                 cwd=self.repo_path,
                 capture_output=True,
-                text=True
+                text=True,
             )
 
             # Re-discover worktrees
