@@ -12,9 +12,9 @@ import asyncio
 import json
 import os
 from dataclasses import dataclass
-from typing import Any, Dict, Iterable, List, Optional
+from typing import Any
 
-from .openai_client import OpenAIClient, CompletionRequest, CompletionResponse
+from .openai_client import CompletionRequest, CompletionResponse, OpenAIClient
 
 
 class CodexUnavailable(RuntimeError):
@@ -28,13 +28,13 @@ class CodexConfig:
     model: str = os.getenv("SUPERCLAUDE_CODEX_MODEL", "gpt-4o-mini")
     temperature: float = float(os.getenv("SUPERCLAUDE_CODEX_TEMPERATURE", "0.15"))
     max_tokens: int = int(os.getenv("SUPERCLAUDE_CODEX_MAX_TOKENS", "1024"))
-    user: Optional[str] = os.getenv("SUPERCLAUDE_CODEX_USER")
+    user: str | None = os.getenv("SUPERCLAUDE_CODEX_USER")
 
 
 class CodexClient:
     """Thin synchronous wrapper around :class:`OpenAIClient`."""
 
-    def __init__(self, config: Optional[CodexConfig] = None) -> None:
+    def __init__(self, config: CodexConfig | None = None) -> None:
         self.config = config or CodexConfig()
         api_key = os.getenv("OPENAI_API_KEY") or os.getenv("CODEX_API_KEY")
         if not api_key:
@@ -45,7 +45,9 @@ class CodexClient:
         except ValueError as exc:  # OpenAIClient re-raises when key missing
             raise CodexUnavailable(str(exc)) from exc
 
-    def complete_structured(self, system_prompt: str, user_prompt: str) -> Dict[str, Any]:
+    def complete_structured(
+        self, system_prompt: str, user_prompt: str
+    ) -> dict[str, Any]:
         """Execute a Codex request and parse JSON output.
 
         Parameters
@@ -83,7 +85,7 @@ class CodexClient:
         return self._parse_response(response)
 
     @staticmethod
-    def _parse_response(response: CompletionResponse) -> Dict[str, Any]:
+    def _parse_response(response: CompletionResponse) -> dict[str, Any]:
         """Parse the textual response into JSON."""
 
         content = response.content.strip()
@@ -118,4 +120,3 @@ def _run_async(coro: asyncio.Future) -> CompletionResponse:
         return future.result()
 
     return asyncio.run(coro)
-

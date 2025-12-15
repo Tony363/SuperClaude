@@ -12,7 +12,7 @@ from __future__ import annotations
 import asyncio
 import json
 from dataclasses import dataclass
-from typing import Any, Dict, Mapping, Optional, Tuple
+from typing import Any, Mapping
 from urllib import error as urllib_error
 from urllib import parse as urllib_parse
 from urllib import request as urllib_request
@@ -22,9 +22,9 @@ from urllib import request as urllib_request
 class HTTPClientError(RuntimeError):
     """Error raised when an HTTP request fails."""
 
-    status: Optional[int]
+    status: int | None
     message: str
-    payload: Optional[Dict[str, Any]] = None
+    payload: dict[str, Any] | None = None
 
     def __str__(self) -> str:
         status_part = f"HTTP {self.status}" if self.status is not None else "HTTP error"
@@ -41,12 +41,12 @@ class HTTPClientError(RuntimeError):
 
 async def post_json(
     url: str,
-    payload: Dict[str, Any],
+    payload: dict[str, Any],
     *,
-    headers: Optional[Mapping[str, str]] = None,
-    params: Optional[Mapping[str, Any]] = None,
+    headers: Mapping[str, str] | None = None,
+    params: Mapping[str, Any] | None = None,
     timeout: int = 120,
-) -> Tuple[int, Dict[str, Any], Dict[str, str]]:
+) -> tuple[int, dict[str, Any], dict[str, str]]:
     """
     Execute an HTTP POST request that sends and expects JSON payloads.
 
@@ -68,7 +68,7 @@ async def post_json(
     if headers:
         request_headers.update(headers)
 
-    def _do_request() -> Tuple[int, bytes, Dict[str, str]]:
+    def _do_request() -> tuple[int, bytes, dict[str, str]]:
         encoded = json.dumps(payload).encode("utf-8")
         target_url = url
         if params:
@@ -94,7 +94,7 @@ async def post_json(
         status_code, raw_body, response_headers = await asyncio.to_thread(_do_request)
     except urllib_error.HTTPError as err:
         error_body = err.read()
-        decoded: Optional[Dict[str, Any]] = None
+        decoded: dict[str, Any] | None = None
         if error_body:
             try:
                 decoded = json.loads(error_body.decode("utf-8"))

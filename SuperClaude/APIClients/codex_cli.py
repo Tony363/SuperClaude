@@ -17,43 +17,49 @@ import subprocess
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional
+from typing import Any, Iterable
 
 
 class CodexCLIUnavailable(RuntimeError):
     """Raised when the Codex CLI cannot be invoked successfully."""
 
-    def __init__(self, message: str, *, details: Optional[Dict[str, Any]] = None) -> None:
+    def __init__(self, message: str, *, details: dict[str, Any] | None = None) -> None:
         super().__init__(message)
-        self.details: Dict[str, Any] = details or {}
+        self.details: dict[str, Any] = details or {}
 
 
 @dataclass
 class CodexCLIConfig:
     """Configuration for invoking the Codex CLI."""
 
-    binary: str = field(default_factory=lambda: os.getenv("SUPERCLAUDE_CODEX_CLI", "codex"))
+    binary: str = field(
+        default_factory=lambda: os.getenv("SUPERCLAUDE_CODEX_CLI", "codex")
+    )
     timeout_seconds: float = float(os.getenv("SUPERCLAUDE_CODEX_TIMEOUT", "120"))
-    extra_args: List[str] = field(default_factory=lambda: shlex.split(os.getenv("SUPERCLAUDE_CODEX_ARGS", "--full-auto --json")))
-    env: Dict[str, str] = field(default_factory=dict)
+    extra_args: list[str] = field(
+        default_factory=lambda: shlex.split(
+            os.getenv("SUPERCLAUDE_CODEX_ARGS", "--full-auto --json")
+        )
+    )
+    env: dict[str, str] = field(default_factory=dict)
 
 
 @dataclass
 class CodexCLIResult:
     """Structured result from a Codex CLI invocation."""
 
-    payload: Dict[str, Any]
+    payload: dict[str, Any]
     stdout: str
     stderr: str
     duration_s: float
     returncode: int
-    command: List[str]
+    command: list[str]
 
 
 class CodexCLIClient:
     """Shells out to ``codex exec`` and parses the JSON response."""
 
-    def __init__(self, config: Optional[CodexCLIConfig] = None) -> None:
+    def __init__(self, config: CodexCLIConfig | None = None) -> None:
         self.config = config or CodexCLIConfig()
 
     # ------------------------------------------------------------------
@@ -75,7 +81,13 @@ class CodexCLIClient:
     # ------------------------------------------------------------------
     # Invocation
     # ------------------------------------------------------------------
-    def run(self, prompt: str, *, workdir: Optional[Path] = None, extra_args: Optional[Iterable[str]] = None) -> CodexCLIResult:
+    def run(
+        self,
+        prompt: str,
+        *,
+        workdir: Path | None = None,
+        extra_args: Iterable[str] | None = None,
+    ) -> CodexCLIResult:
         """Execute ``codex exec`` and parse the JSON payload."""
 
         binary = self.config.binary
@@ -86,11 +98,13 @@ class CodexCLIClient:
                 details={
                     "binary": binary,
                     "path": shutil.which(binary) or "not found",
-                }
+                },
             )
 
-        args: List[str] = [binary, "exec", prompt]
-        cli_args = list(extra_args) if extra_args is not None else list(self.config.extra_args)
+        args: list[str] = [binary, "exec", prompt]
+        cli_args = (
+            list(extra_args) if extra_args is not None else list(self.config.extra_args)
+        )
         args.extend(cli_args)
 
         command_env = os.environ.copy()
@@ -115,7 +129,7 @@ class CodexCLIClient:
                     "binary": binary,
                     "command": args,
                     "cwd": cwd,
-                }
+                },
             ) from exc
         except subprocess.TimeoutExpired as exc:
             raise CodexCLIUnavailable(
@@ -125,7 +139,7 @@ class CodexCLIClient:
                     "command": args,
                     "cwd": cwd,
                     "timeout_seconds": self.config.timeout_seconds,
-                }
+                },
             ) from exc
 
         duration = time.perf_counter() - start
@@ -141,7 +155,7 @@ class CodexCLIClient:
                     "returncode": completed.returncode,
                     "stdout": self._truncate_log(completed.stdout),
                     "stderr": self._truncate_log(completed.stderr),
-                }
+                },
             )
 
         stdout = completed.stdout.strip()
@@ -163,7 +177,7 @@ class CodexCLIClient:
     # Helpers
     # ------------------------------------------------------------------
     @staticmethod
-    def _extract_json(stdout: str) -> Dict[str, Any]:
+    def _extract_json(stdout: str) -> dict[str, Any]:
         """Parse Codex CLI JSONL output and return the change payload."""
 
         # Some Codex builds still emit a single JSON blob – keep the fast path.
@@ -197,11 +211,11 @@ class CodexCLIClient:
 
         raise CodexCLIUnavailable(
             "Codex CLI output did not contain valid JSON",
-            details={"stdout": CodexCLIClient._truncate_log(stdout)}
+            details={"stdout": CodexCLIClient._truncate_log(stdout)},
         )
 
     @staticmethod
-    def _parse_payload_from_record(record: Any) -> Optional[Dict[str, Any]]:
+    def _parse_payload_from_record(record: Any) -> dict[str, Any] | None:
         """Return the Codex diff payload from a decoded JSON object, if present."""
 
         if not isinstance(record, dict):
@@ -233,7 +247,7 @@ class CodexCLIClient:
         return None
 
     @staticmethod
-    def _safe_json_loads(blob: str) -> Optional[Any]:
+    def _safe_json_loads(blob: str) -> Any | None:
         """Best-effort JSON parsing that tolerates code fences and whitespace."""
 
         snippet = blob.strip()
@@ -255,7 +269,7 @@ class CodexCLIClient:
             return None
 
     @staticmethod
-    def _truncate_log(payload: Optional[str], limit: int = 2000) -> str:
+    def _truncate_log(payload: str | None, limit: int = 2000) -> str:
         """Return the tail of a log string to avoid flooding diagnostics."""
 
         if not payload:

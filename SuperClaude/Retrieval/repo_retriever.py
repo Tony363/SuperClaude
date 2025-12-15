@@ -5,8 +5,6 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable, List
-
 
 EXCLUDED_DIRECTORIES = {
     ".git",
@@ -48,8 +46,8 @@ class RepoRetriever:
         self.max_files = max_files
         self._candidate_files = self._discover_files()
 
-    def _discover_files(self) -> List[Path]:
-        files: List[Path] = []
+    def _discover_files(self) -> list[Path]:
+        files: list[Path] = []
         for path in self.root.rglob("*"):
             if path.is_dir():
                 if path.name in EXCLUDED_DIRECTORIES:
@@ -64,7 +62,10 @@ class RepoRetriever:
             if path.suffix.lower() not in ALLOWED_SUFFIXES:
                 continue
 
-            if any(part in EXCLUDED_DIRECTORIES for part in path.relative_to(self.root).parts):
+            if any(
+                part in EXCLUDED_DIRECTORIES
+                for part in path.relative_to(self.root).parts
+            ):
                 continue
 
             files.append(path)
@@ -72,13 +73,15 @@ class RepoRetriever:
                 break
         return files
 
-    def retrieve(self, query: str, *, limit: int = 5, context_radius: int = 2) -> List[RetrievalHit]:
+    def retrieve(
+        self, query: str, *, limit: int = 5, context_radius: int = 2
+    ) -> list[RetrievalHit]:
         query = (query or "").strip()
         if not query or len(query) < 3:
             return []
 
         pattern = re.compile(re.escape(query), re.IGNORECASE)
-        hits: List[RetrievalHit] = []
+        hits: list[RetrievalHit] = []
 
         for file_path in self._candidate_files:
             if len(hits) >= limit:

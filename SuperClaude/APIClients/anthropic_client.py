@@ -4,16 +4,17 @@ Anthropic API Client for Claude Opus 4.1 model.
 Provides unified interface for Anthropic's Claude models with streaming support.
 """
 
+import asyncio
 import json
 import logging
 import os
 from dataclasses import dataclass, field, replace
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any, AsyncIterator, Dict, List, Mapping, Optional
+from typing import Any, AsyncIterator, Dict, List, Mapping, Optional, Tuple
 
-from .http_utils import HTTPClientError, post_json
 from ..Monitoring.performance_monitor import get_monitor
+from .http_utils import HTTPClientError, post_json
 
 logger = logging.getLogger(__name__)
 
@@ -38,7 +39,10 @@ def _default_enable_thinking() -> bool:
         pass
 
     return str(os.getenv("ANTHROPIC_ENABLE_THINKING", "true")).lower() in {
-        "1", "true", "yes", "on"
+        "1",
+        "true",
+        "yes",
+        "on",
     }
 
 
@@ -51,10 +55,9 @@ class AnthropicConfig:
     api_version: str = "2023-06-01"
     beta_headers: List[str] = field(
         default_factory=lambda: [
-            h.strip() for h in os.getenv(
-                "ANTHROPIC_BETA",
-                "clear_thinking_20251015"
-            ).split(",") if h.strip()
+            h.strip()
+            for h in os.getenv("ANTHROPIC_BETA", "clear_thinking_20251015").split(",")
+            if h.strip()
         ]
     )
     timeout: int = 120
@@ -119,7 +122,7 @@ class AnthropicClient:
             "context_window": 200000,
             "supports_system": True,
             "cost_per_1k_input": 0.015,
-            "cost_per_1k_output": 0.075
+            "cost_per_1k_output": 0.075,
         },
         "claude-opus-4-1-20250805": {
             "full_name": "claude-opus-4-1-20250805",
@@ -127,11 +130,13 @@ class AnthropicClient:
             "context_window": 200000,
             "supports_system": True,
             "cost_per_1k_input": 0.015,
-            "cost_per_1k_output": 0.075
-        }
+            "cost_per_1k_output": 0.075,
+        },
     }
 
-    def __init__(self, config: Optional[AnthropicConfig] = None, api_key: Optional[str] = None):
+    def __init__(
+        self, config: Optional[AnthropicConfig] = None, api_key: Optional[str] = None
+    ):
         """Initialize Anthropic client."""
         if not config:
             # Try to load from environment
@@ -218,7 +223,9 @@ class AnthropicClient:
         for block in content_blocks:
             if isinstance(block, dict) and block.get("type") == "text":
                 text_parts.append(block.get("text", ""))
-        content_text = "\n".join(part for part in text_parts if part) or str(content_blocks)
+        content_text = "\n".join(part for part in text_parts if part) or str(
+            content_blocks
+        )
 
         usage = data.get("usage") or {}
         response = ClaudeResponse(
@@ -231,7 +238,11 @@ class AnthropicClient:
                 "type": data.get("type"),
                 "role": data.get("role"),
                 "status": status,
-                "headers": {k: v for k, v in response_headers.items() if k.lower().startswith("x-")},
+                "headers": {
+                    k: v
+                    for k, v in response_headers.items()
+                    if k.lower().startswith("x-")
+                },
             },
         )
 
@@ -239,7 +250,8 @@ class AnthropicClient:
         logger.info(
             "Completed Claude request with %s: %s tokens",
             response.model,
-            response.usage.get("input_tokens", 0) + response.usage.get("output_tokens", 0),
+            response.usage.get("input_tokens", 0)
+            + response.usage.get("output_tokens", 0),
         )
         if self.monitor:
             self.monitor.record_token_usage(
@@ -281,7 +293,7 @@ class AnthropicClient:
         prompt: str,
         system_prompt: str,
         model: str = "claude-opus-4.1",
-        max_tokens: int = 4096
+        max_tokens: int = 4096,
     ) -> ClaudeResponse:
         """
         Complete with system prompt.
@@ -299,7 +311,7 @@ class AnthropicClient:
             model=model,
             messages=[{"role": "user", "content": prompt}],
             system=system_prompt,
-            max_tokens=max_tokens
+            max_tokens=max_tokens,
         )
 
         return await self.complete(request)
@@ -309,13 +321,10 @@ class AnthropicClient:
         if not content:
             return [""]
 
-        return [content[i:i + chunk_size] for i in range(0, len(content), chunk_size)]
+        return [content[i : i + chunk_size] for i in range(0, len(content), chunk_size)]
 
     async def validate_response(
-        self,
-        original_prompt: str,
-        response: str,
-        validation_criteria: str
+        self, original_prompt: str, response: str, validation_criteria: str
     ) -> Dict[str, Any]:
         """
         Validate a response using Claude.
@@ -346,7 +355,7 @@ Provide:
             model="claude-opus-4.1",
             messages=[{"role": "user", "content": validation_prompt}],
             max_tokens=1000,
-            temperature=0.3  # Lower temperature for validation
+            temperature=0.3,  # Lower temperature for validation
         )
 
         result = await self.complete(validation_request)
@@ -390,7 +399,7 @@ Provide:
             "input_cost": round(input_cost, 4),
             "output_cost": round(output_cost, 4),
             "total_cost": round(input_cost + output_cost, 4),
-            "estimated_tokens": input_tokens + output_tokens
+            "estimated_tokens": input_tokens + output_tokens,
         }
 
     def get_model_info(self, model: str) -> Optional[Dict[str, Any]]:
@@ -420,9 +429,13 @@ Provide:
             normalized = line.lower()
 
             if verdict is None:
-                if normalized in {"yes", "valid: yes", "valid - yes"} or ("yes" in normalized and "no" not in normalized):
+                if normalized in {"yes", "valid: yes", "valid - yes"} or (
+                    "yes" in normalized and "no" not in normalized
+                ):
                     verdict = True
-                elif normalized in {"no", "valid: no", "valid - no"} or ("no" in normalized and "yes" not in normalized):
+                elif normalized in {"no", "valid: no", "valid - no"} or (
+                    "no" in normalized and "yes" not in normalized
+                ):
                     verdict = False
 
             if confidence is None and "confidence" in normalized:
@@ -475,10 +488,16 @@ Provide:
         if error.message:
             fragments.append(error.message)
 
-        normalized = " ".join(part for part in fragments if part).lower().replace("`", "")
-        return "requires thinking" in normalized or "thinking to be enabled" in normalized
+        normalized = (
+            " ".join(part for part in fragments if part).lower().replace("`", "")
+        )
+        return (
+            "requires thinking" in normalized or "thinking to be enabled" in normalized
+        )
 
-    def _should_retry_with_thinking(self, error: HTTPClientError, payload: Dict[str, Any]) -> bool:
+    def _should_retry_with_thinking(
+        self, error: HTTPClientError, payload: Dict[str, Any]
+    ) -> bool:
         """Determine if we should retry a request after enabling thinking."""
 
         if payload.get("thinking"):
@@ -493,7 +512,7 @@ Provide:
             "max_tokens": request.max_tokens,
             "temperature": request.temperature,
             "top_p": request.top_p,
-            "stream": request.stream
+            "stream": request.stream,
         }
 
         if request.system:
@@ -537,7 +556,9 @@ class RateLimiter:
 
         # Check RPM
         if len(self.request_times) >= self.rpm_limit:
-            wait_time = (self.request_times[0] + timedelta(minutes=1) - now).total_seconds()
+            wait_time = (
+                self.request_times[0] + timedelta(minutes=1) - now
+            ).total_seconds()
             if wait_time > 0:
                 logger.debug(f"Rate limit: waiting {wait_time:.2f}s for RPM")
                 await asyncio.sleep(wait_time)
@@ -578,7 +599,9 @@ class TokenCounter:
             "total_output_tokens": self.total_output_tokens,
             "total_tokens": total,
             "request_count": self.request_count,
-            "average_tokens_per_request": total // self.request_count if self.request_count > 0 else 0
+            "average_tokens_per_request": total // self.request_count
+            if self.request_count > 0
+            else 0,
         }
 
 

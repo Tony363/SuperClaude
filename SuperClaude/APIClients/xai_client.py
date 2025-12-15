@@ -4,14 +4,15 @@ X.AI API Client for Grok-4 and Grok-Code-Fast-1 models.
 Provides unified interface for X.AI's Grok models with code analysis capabilities.
 """
 
+import asyncio
 import logging
 import os
 from dataclasses import dataclass, field, replace
 from datetime import datetime, timedelta
-from typing import Any, AsyncIterator, Dict, List, Optional
+from typing import Any, AsyncIterator, Dict, List, Optional, Tuple
 
-from .http_utils import HTTPClientError, post_json
 from ..Monitoring.performance_monitor import get_monitor
+from .http_utils import HTTPClientError, post_json
 
 logger = logging.getLogger(__name__)
 
@@ -82,7 +83,7 @@ class XAIClient:
             "supports_tools": True,
             "optimized_for": "code_analysis",
             "cost_per_1k_input": 0.01,
-            "cost_per_1k_output": 0.03
+            "cost_per_1k_output": 0.03,
         },
         "grok-code-fast-1": {
             "full_name": "grok-code-fast-1",
@@ -92,11 +93,13 @@ class XAIClient:
             "supports_tools": True,
             "optimized_for": "quick_iteration",
             "cost_per_1k_input": 0.005,
-            "cost_per_1k_output": 0.015
-        }
+            "cost_per_1k_output": 0.015,
+        },
     }
 
-    def __init__(self, config: Optional[XAIConfig] = None, api_key: Optional[str] = None):
+    def __init__(
+        self, config: Optional[XAIConfig] = None, api_key: Optional[str] = None
+    ):
         """Initialize X.AI client."""
         if not config:
             # Try to load from environment
@@ -170,7 +173,11 @@ class XAIClient:
             usage=data.get("usage", {}),
             metadata={
                 "status": status,
-                "headers": {k: v for k, v in response_headers.items() if k.lower().startswith("x-")},
+                "headers": {
+                    k: v
+                    for k, v in response_headers.items()
+                    if k.lower().startswith("x-")
+                },
             },
         )
 
@@ -194,7 +201,7 @@ class XAIClient:
         code: str,
         language: str,
         analysis_type: str = "full",
-        model: str = "grok-4"
+        model: str = "grok-4",
     ) -> Dict[str, Any]:
         """
         Analyze code with Grok.
@@ -252,7 +259,7 @@ Code:
 Code:
 ```{language}
 {code}
-```"""
+```""",
         }
 
         prompt = analysis_prompts.get(analysis_type, analysis_prompts["full"])
@@ -261,7 +268,7 @@ Code:
             model=model,
             messages=[{"role": "user", "content": prompt}],
             max_tokens=4096,
-            temperature=0.3  # Lower temperature for analysis
+            temperature=0.3,  # Lower temperature for analysis
         )
 
         response = await self.complete(request)
@@ -272,15 +279,11 @@ Code:
             "model": model,
             "language": language,
             "findings": response.content,
-            "timestamp": datetime.now().isoformat()
+            "timestamp": datetime.now().isoformat(),
         }
 
     async def quick_fix(
-        self,
-        code: str,
-        error: str,
-        language: str,
-        model: str = "grok-code-fast-1"
+        self, code: str, error: str, language: str, model: str = "grok-code-fast-1"
     ) -> Dict[str, Any]:
         """
         Quick fix for code errors using fast model.
@@ -311,7 +314,7 @@ Provide:
             model=model,
             messages=[{"role": "user", "content": prompt}],
             max_tokens=2048,
-            temperature=0.5
+            temperature=0.5,
         )
 
         response = await self.complete(request)
@@ -321,15 +324,11 @@ Provide:
             "fixed_code": response.content,
             "model": model,
             "error": error,
-            "timestamp": datetime.now().isoformat()
+            "timestamp": datetime.now().isoformat(),
         }
 
     async def refactor_code(
-        self,
-        code: str,
-        language: str,
-        refactor_goals: List[str],
-        model: str = "grok-4"
+        self, code: str, language: str, refactor_goals: List[str], model: str = "grok-4"
     ) -> Dict[str, Any]:
         """
         Refactor code with specific goals.
@@ -362,7 +361,7 @@ Provide:
             model=model,
             messages=[{"role": "user", "content": prompt}],
             max_tokens=8192,
-            temperature=0.5
+            temperature=0.5,
         )
 
         response = await self.complete(request)
@@ -371,13 +370,11 @@ Provide:
             "refactored_code": response.content,
             "goals": refactor_goals,
             "model": model,
-            "timestamp": datetime.now().isoformat()
+            "timestamp": datetime.now().isoformat(),
         }
 
     async def complete_with_thinking(
-        self,
-        prompt: str,
-        model: str = "grok-4"
+        self, prompt: str, model: str = "grok-4"
     ) -> GrokResponse:
         """
         Complete with thinking mode (Grok-4 only).
@@ -391,10 +388,9 @@ Provide:
         """
         if model not in ["grok-4"]:
             logger.warning(f"Model {model} doesn't support thinking mode")
-            return await self.complete(GrokRequest(
-                model=model,
-                messages=[{"role": "user", "content": prompt}]
-            ))
+            return await self.complete(
+                GrokRequest(model=model, messages=[{"role": "user", "content": prompt}])
+            )
 
         # Add thinking instruction
         thinking_prompt = f"""<thinking_mode>
@@ -408,7 +404,7 @@ Consider edge cases, performance implications, and best practices.
             model=model,
             messages=[{"role": "user", "content": thinking_prompt}],
             max_tokens=8192,
-            temperature=0.7
+            temperature=0.7,
         )
 
         return await self.complete(request)
@@ -468,7 +464,7 @@ Consider edge cases, performance implications, and best practices.
             "input_cost": round(input_cost, 4),
             "output_cost": round(output_cost, 4),
             "total_cost": round(input_cost + output_cost, 4),
-            "estimated_tokens": prompt_tokens + completion_tokens
+            "estimated_tokens": prompt_tokens + completion_tokens,
         }
 
     def get_model_info(self, model: str) -> Optional[Dict[str, Any]]:
@@ -480,7 +476,7 @@ Consider edge cases, performance implications, and best practices.
         if not content:
             return [""]
 
-        return [content[i:i + chunk_size] for i in range(0, len(content), chunk_size)]
+        return [content[i : i + chunk_size] for i in range(0, len(content), chunk_size)]
 
     def _build_payload(self, request: GrokRequest) -> Dict[str, Any]:
         """Build API request payload."""
@@ -492,7 +488,7 @@ Consider edge cases, performance implications, and best practices.
             "top_p": request.top_p,
             "frequency_penalty": request.frequency_penalty,
             "presence_penalty": request.presence_penalty,
-            "stream": request.stream
+            "stream": request.stream,
         }
 
         if request.system:
@@ -530,7 +526,9 @@ class RateLimiter:
 
         # Check RPM
         if len(self.request_times) >= self.rpm_limit:
-            wait_time = (self.request_times[0] + timedelta(minutes=1) - now).total_seconds()
+            wait_time = (
+                self.request_times[0] + timedelta(minutes=1) - now
+            ).total_seconds()
             if wait_time > 0:
                 logger.debug(f"Rate limit: waiting {wait_time:.2f}s for RPM")
                 await asyncio.sleep(wait_time)
@@ -573,7 +571,9 @@ class TokenCounter:
             "total_completion_tokens": self.total_completion_tokens,
             "total_tokens": self.total_tokens,
             "request_count": self.request_count,
-            "average_tokens_per_request": self.total_tokens // self.request_count if self.request_count > 0 else 0
+            "average_tokens_per_request": self.total_tokens // self.request_count
+            if self.request_count > 0
+            else 0,
         }
 
 

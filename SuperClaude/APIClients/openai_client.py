@@ -4,15 +4,15 @@ OpenAI API Client for GPT-5, GPT-4.1, GPT-4o, and GPT-4o-mini models.
 Provides unified interface for all OpenAI models with streaming and function calling support.
 """
 
-import json
+import asyncio
 import logging
 import os
 from dataclasses import dataclass, field, replace
 from datetime import datetime, timedelta
-from typing import Any, AsyncIterator, Dict, List, Optional
+from typing import Any, AsyncIterator, Dict, List, Optional, Tuple
 
-from .http_utils import HTTPClientError, post_json
 from ..Monitoring.performance_monitor import get_monitor
+from .http_utils import HTTPClientError, post_json
 
 logger = logging.getLogger(__name__)
 
@@ -80,32 +80,34 @@ class OpenAIClient:
             "supports_thinking": True,
             "context_window": 400000,
             "cost_per_1k_input": 0.02,
-            "cost_per_1k_output": 0.06
+            "cost_per_1k_output": 0.06,
         },
         "gpt-4.1": {
             "max_tokens": 50000,
             "supports_thinking": False,
             "context_window": 1000000,
             "cost_per_1k_input": 0.015,
-            "cost_per_1k_output": 0.045
+            "cost_per_1k_output": 0.045,
         },
         "gpt-4o": {
             "max_tokens": 4096,
             "supports_thinking": False,
             "context_window": 128000,
             "cost_per_1k_input": 0.01,
-            "cost_per_1k_output": 0.03
+            "cost_per_1k_output": 0.03,
         },
         "gpt-4o-mini": {
             "max_tokens": 4096,
             "supports_thinking": False,
             "context_window": 128000,
             "cost_per_1k_input": 0.001,
-            "cost_per_1k_output": 0.002
-        }
+            "cost_per_1k_output": 0.002,
+        },
     }
 
-    def __init__(self, config: Optional[OpenAIConfig] = None, api_key: Optional[str] = None):
+    def __init__(
+        self, config: Optional[OpenAIConfig] = None, api_key: Optional[str] = None
+    ):
         """Initialize OpenAI client."""
         if not config:
             # Try to load from environment
@@ -187,7 +189,11 @@ class OpenAIClient:
                 "created": data.get("created"),
                 "system_fingerprint": data.get("system_fingerprint"),
                 "status": status,
-                "headers": {k: v for k, v in response_headers.items() if k.lower().startswith("x-")},
+                "headers": {
+                    k: v
+                    for k, v in response_headers.items()
+                    if k.lower().startswith("x-")
+                },
             },
         )
 
@@ -195,7 +201,11 @@ class OpenAIClient:
             response.metadata["prompt_annotations"] = data["prompt_annotations"]
         if "usage" not in data:
             # Populate total tokens when API response omits them
-            response.usage.setdefault("total_tokens", response.usage.get("prompt_tokens", 0) + response.usage.get("completion_tokens", 0))
+            response.usage.setdefault(
+                "total_tokens",
+                response.usage.get("prompt_tokens", 0)
+                + response.usage.get("completion_tokens", 0),
+            )
 
         self.token_counter.add(response.usage)
         logger.info(
@@ -241,12 +251,8 @@ class OpenAIClient:
         for chunk in self._chunk_stream_text(response.content):
             yield chunk
 
-
     async def complete_with_thinking(
-        self,
-        prompt: str,
-        model: str = "gpt-5",
-        think_level: int = 3
+        self, prompt: str, model: str = "gpt-5", think_level: int = 3
     ) -> CompletionResponse:
         """
         Complete with thinking mode (GPT-5 only).
@@ -260,11 +266,14 @@ class OpenAIClient:
             CompletionResponse with thinking
         """
         if model not in ["gpt-5", "grok-4"]:
-            logger.warning(f"Model {model} doesn't support thinking mode, using standard completion")
-            return await self.complete(CompletionRequest(
-                model=model,
-                messages=[{"role": "user", "content": prompt}]
-            ))
+            logger.warning(
+                f"Model {model} doesn't support thinking mode, using standard completion"
+            )
+            return await self.complete(
+                CompletionRequest(
+                    model=model, messages=[{"role": "user", "content": prompt}]
+                )
+            )
 
         # Calculate token budget based on think level
         token_budgets = {1: 5000, 2: 15000, 3: 50000}
@@ -282,16 +291,13 @@ Use structured reasoning and consider multiple angles.
             model=model,
             messages=[{"role": "user", "content": thinking_prompt}],
             max_tokens=max_tokens,
-            temperature=0.7
+            temperature=0.7,
         )
 
         return await self.complete(request)
 
     async def complete_with_functions(
-        self,
-        prompt: str,
-        functions: List[Dict[str, Any]],
-        model: str = "gpt-4o"
+        self, prompt: str, functions: List[Dict[str, Any]], model: str = "gpt-4o"
     ) -> CompletionResponse:
         """
         Complete with function calling.
@@ -308,7 +314,7 @@ Use structured reasoning and consider multiple angles.
             model=model,
             messages=[{"role": "user", "content": prompt}],
             functions=functions,
-            function_call="auto"
+            function_call="auto",
         )
 
         return await self.complete(request)
@@ -318,7 +324,7 @@ Use structured reasoning and consider multiple angles.
         if not content:
             return [""]
 
-        return [content[i:i + chunk_size] for i in range(0, len(content), chunk_size)]
+        return [content[i : i + chunk_size] for i in range(0, len(content), chunk_size)]
 
     def estimate_cost(self, request: CompletionRequest) -> Dict[str, float]:
         """
@@ -346,7 +352,7 @@ Use structured reasoning and consider multiple angles.
             "input_cost": round(input_cost, 4),
             "output_cost": round(output_cost, 4),
             "total_cost": round(input_cost + output_cost, 4),
-            "estimated_tokens": prompt_tokens + completion_tokens
+            "estimated_tokens": prompt_tokens + completion_tokens,
         }
 
     def get_model_info(self, model: str) -> Optional[Dict[str, Any]]:
@@ -363,7 +369,7 @@ Use structured reasoning and consider multiple angles.
             "top_p": request.top_p,
             "frequency_penalty": request.frequency_penalty,
             "presence_penalty": request.presence_penalty,
-            "stream": request.stream
+            "stream": request.stream,
         }
 
         if request.functions:
@@ -398,13 +404,17 @@ class RateLimiter:
 
         # Check RPM
         if len(self.request_times) >= self.rpm_limit:
-            wait_time = (self.request_times[0] + timedelta(minutes=1) - now).total_seconds()
+            wait_time = (
+                self.request_times[0] + timedelta(minutes=1) - now
+            ).total_seconds()
             if wait_time > 0:
                 logger.debug(f"Rate limit: waiting {wait_time:.2f}s for RPM")
                 await asyncio.sleep(wait_time)
 
         # Check TPM (estimate)
-        estimated_tokens = len(str(request.messages)) // 4 + (request.max_tokens or 1000)
+        estimated_tokens = len(str(request.messages)) // 4 + (
+            request.max_tokens or 1000
+        )
         current_tpm = sum(c for _, c in self.token_counts)
 
         if current_tpm + estimated_tokens > self.tpm_limit:
@@ -440,7 +450,9 @@ class TokenCounter:
             "total_completion_tokens": self.total_completion_tokens,
             "total_tokens": self.total_tokens,
             "request_count": self.request_count,
-            "average_tokens_per_request": self.total_tokens // self.request_count if self.request_count > 0 else 0
+            "average_tokens_per_request": self.total_tokens // self.request_count
+            if self.request_count > 0
+            else 0,
         }
 
 

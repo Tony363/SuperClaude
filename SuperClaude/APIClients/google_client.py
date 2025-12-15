@@ -4,14 +4,15 @@ Google API Client for Gemini 2.5 Pro model.
 Provides unified interface for Google's Gemini models with long context support.
 """
 
+import asyncio
 import logging
 import os
 from dataclasses import dataclass, field, replace
 from datetime import datetime, timedelta
-from typing import Any, AsyncIterator, Dict, List, Optional
+from typing import Any, AsyncIterator, Dict, List, Optional, Tuple
 
-from .http_utils import HTTPClientError, post_json
 from ..Monitoring.performance_monitor import get_monitor
+from .http_utils import HTTPClientError, post_json
 
 logger = logging.getLogger(__name__)
 
@@ -80,7 +81,7 @@ class GoogleClient:
             "supports_tools": True,
             "supports_thinking": True,
             "cost_per_1k_input": 0.00125,
-            "cost_per_1k_output": 0.005
+            "cost_per_1k_output": 0.005,
         },
         "gemini-2.5-pro-exp": {
             "full_name": "gemini-2.5-pro-experimental",
@@ -90,11 +91,13 @@ class GoogleClient:
             "supports_tools": True,
             "supports_thinking": True,
             "cost_per_1k_input": 0.00125,
-            "cost_per_1k_output": 0.005
-        }
+            "cost_per_1k_output": 0.005,
+        },
     }
 
-    def __init__(self, config: Optional[GoogleConfig] = None, api_key: Optional[str] = None):
+    def __init__(
+        self, config: Optional[GoogleConfig] = None, api_key: Optional[str] = None
+    ):
         """Initialize Google client."""
         if not config:
             # Try to load from environment
@@ -141,7 +144,9 @@ class GoogleClient:
         await self.rate_limiter.acquire(request)
 
         payload = self._build_payload(request)
-        url = f"{self.config.endpoint}/models/{model_config['full_name']}:generateContent"
+        url = (
+            f"{self.config.endpoint}/models/{model_config['full_name']}:generateContent"
+        )
 
         try:
             status, data, response_headers = await post_json(
@@ -179,7 +184,11 @@ class GoogleClient:
             token_count=token_count,
             metadata={
                 "status": status,
-                "headers": {k: v for k, v in response_headers.items() if k.lower().startswith("x-")},
+                "headers": {
+                    k: v
+                    for k, v in response_headers.items()
+                    if k.lower().startswith("x-")
+                },
                 "prompt_feedback": data.get("promptFeedback"),
             },
         )
@@ -204,7 +213,7 @@ class GoogleClient:
         prompt: str,
         context_files: List[str],
         model: str = "gemini-2.5-pro",
-        max_tokens: int = 8192
+        max_tokens: int = 8192,
     ) -> GeminiResponse:
         """
         Complete with long context (up to 2M tokens).
@@ -244,16 +253,13 @@ class GoogleClient:
             model=model,
             prompt=full_prompt,
             max_output_tokens=max_tokens,
-            temperature=0.7
+            temperature=0.7,
         )
 
         return await self.complete(request)
 
     async def complete_with_tools(
-        self,
-        prompt: str,
-        tools: List[Dict[str, Any]],
-        model: str = "gemini-2.5-pro"
+        self, prompt: str, tools: List[Dict[str, Any]], model: str = "gemini-2.5-pro"
     ) -> GeminiResponse:
         """
         Complete with function calling.
@@ -267,19 +273,13 @@ class GoogleClient:
             GeminiResponse with potential function calls
         """
         request = GeminiRequest(
-            model=model,
-            prompt=prompt,
-            tools=tools,
-            max_output_tokens=8192
+            model=model, prompt=prompt, tools=tools, max_output_tokens=8192
         )
 
         return await self.complete(request)
 
     async def complete_with_thinking(
-        self,
-        prompt: str,
-        model: str = "gemini-2.5-pro",
-        thinking_depth: str = "medium"
+        self, prompt: str, model: str = "gemini-2.5-pro", thinking_depth: str = "medium"
     ) -> GeminiResponse:
         """
         Complete with thinking mode (Gemini 2.5 Pro feature).
@@ -304,10 +304,7 @@ Analyze this problem systematically:
 {prompt}"""
 
         request = GeminiRequest(
-            model=model,
-            prompt=thinking_prompt,
-            max_output_tokens=8192,
-            temperature=0.7
+            model=model, prompt=thinking_prompt, max_output_tokens=8192, temperature=0.7
         )
 
         return await self.complete(request)
@@ -355,7 +352,7 @@ Analyze this problem systematically:
         if not content:
             return [""]
 
-        return [content[i:i + chunk_size] for i in range(0, len(content), chunk_size)]
+        return [content[i : i + chunk_size] for i in range(0, len(content), chunk_size)]
 
     def estimate_cost(self, request: GeminiRequest) -> Dict[str, float]:
         """
@@ -390,7 +387,7 @@ Analyze this problem systematically:
             "output_cost": round(output_cost, 4),
             "total_cost": round(input_cost + output_cost, 4),
             "estimated_input_tokens": input_tokens,
-            "max_output_tokens": output_tokens
+            "max_output_tokens": output_tokens,
         }
 
     def get_model_info(self, model: str) -> Optional[Dict[str, Any]]:
@@ -413,7 +410,7 @@ Analyze this problem systematically:
             "temperature": request.temperature,
             "topP": request.top_p,
             "maxOutputTokens": request.max_output_tokens,
-            "candidateCount": request.candidate_count
+            "candidateCount": request.candidate_count,
         }
 
         if request.top_k is not None:
@@ -422,13 +419,12 @@ Analyze this problem systematically:
         if request.stop_sequences:
             generation_config["stopSequences"] = request.stop_sequences
 
-        payload = {
-            "contents": contents,
-            "generationConfig": generation_config
-        }
+        payload = {"contents": contents, "generationConfig": generation_config}
 
         if request.system_instruction:
-            payload["systemInstruction"] = {"parts": [{"text": request.system_instruction}]}
+            payload["systemInstruction"] = {
+                "parts": [{"text": request.system_instruction}]
+            }
 
         if request.safety_settings:
             payload["safetySettings"] = request.safety_settings
@@ -460,7 +456,9 @@ class RateLimiter:
 
         # Check RPM
         if len(self.request_times) >= self.rpm_limit:
-            wait_time = (self.request_times[0] + timedelta(minutes=1) - now).total_seconds()
+            wait_time = (
+                self.request_times[0] + timedelta(minutes=1) - now
+            ).total_seconds()
             if wait_time > 0:
                 logger.debug(f"Rate limit: waiting {wait_time:.2f}s for RPM")
                 await asyncio.sleep(wait_time)
@@ -503,7 +501,9 @@ class TokenCounter:
             "total_output_tokens": self.total_output_tokens,
             "total_tokens": self.total_tokens,
             "request_count": self.request_count,
-            "average_tokens_per_request": self.total_tokens // self.request_count if self.request_count > 0 else 0
+            "average_tokens_per_request": self.total_tokens // self.request_count
+            if self.request_count > 0
+            else 0,
         }
 
 
