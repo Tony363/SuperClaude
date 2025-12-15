@@ -12,9 +12,6 @@ on:
 permissions:
   contents: read
 
-env:
-  PYTEST_DISABLE_PLUGIN_AUTOLOAD: "1"
-
 jobs:
   # ============================================
   # Quality Gate - Fast fail on style/lint issues
@@ -130,7 +127,6 @@ jobs:
       - name: Check coverage threshold
         env:
           SUPERCLAUDE_OFFLINE_MODE: "1"
-          PYTEST_DISABLE_PLUGIN_AUTOLOAD: "1"
         run: |
           pytest tests/ -m "not slow" \
             --cov=SuperClaude \

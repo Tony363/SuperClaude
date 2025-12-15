@@ -11,7 +11,7 @@ authors = [
 ]
 description = "SuperClaude Framework Management Hub - AI-enhanced development framework for Claude Code"
 readme = "README.md"
-license = "MIT"
+license = {text = "MIT"}
 requires-python = ">=3.8"
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -55,9 +55,10 @@ dev = [
     "pyyaml>=6.0"
 ]
 test = [
-    "pytest>=6.0", 
+    "pytest>=6.0",
     "pytest-cov>=2.0",
-    "pyyaml>=6.0"
+    "pytest-asyncio>=0.21.0",
+    "pyyaml>=6.0",
 ]
 
 [tool.setuptools]

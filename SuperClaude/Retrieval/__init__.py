@@ -1,5 +1,5 @@
-"""Retrieval module stub for SuperClaude Framework."""
+"""Retrieval utilities for SuperClaude."""
 
-from .repo_retriever import RepoRetriever
+from .repo_retriever import RepoRetriever, RetrievalHit
 
-__all__ = ["RepoRetriever"]
+__all__ = ["RepoRetriever", "RetrievalHit"]
