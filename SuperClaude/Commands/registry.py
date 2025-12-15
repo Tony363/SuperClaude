@@ -36,6 +36,7 @@ class CommandMetadata:
     file_path: str = ""
     content: str = ""
     requires_evidence: bool = False
+    aliases: List[str] = field(default_factory=list)
 
 
 class CommandRegistry:
@@ -62,6 +63,7 @@ class CommandRegistry:
         ))
         self.commands: Dict[str, CommandMetadata] = {}
         self.categories: Dict[str, List[str]] = {}
+        self.aliases: Dict[str, str] = {}  # Maps alias -> canonical command name
         self._discover_commands()
 
     def _discover_commands(self) -> None:
@@ -130,7 +132,8 @@ class CommandRegistry:
                 parameters=self._extract_parameters(command_content),
                 file_path=str(file_path),
                 content=command_content,
-                requires_evidence=bool(frontmatter.get('requires_evidence', False))
+                requires_evidence=bool(frontmatter.get('requires_evidence', False)),
+                aliases=frontmatter.get('aliases', []) or []
             )
 
             return command
@@ -215,19 +218,34 @@ class CommandRegistry:
             self.categories[command.category] = []
         self.categories[command.category].append(command.name)
 
+        # Register aliases
+        for alias in command.aliases:
+            self.aliases[alias] = command.name
+            logger.debug(f"Registered alias: {alias} -> {command.name}")
+
     def get_command(self, name: str) -> Optional[CommandMetadata]:
         """
-        Get command by name.
+        Get command by name or alias.
 
         Args:
-            name: Command name (without /sc: prefix)
+            name: Command name or alias (without /sc: prefix)
 
         Returns:
             CommandMetadata or None if not found
         """
         # Strip /sc: prefix if present
         name = name.replace('/sc:', '').strip()
-        return self.commands.get(name)
+
+        # Check direct command lookup first
+        if name in self.commands:
+            return self.commands[name]
+
+        # Check aliases
+        if name in self.aliases:
+            canonical_name = self.aliases[name]
+            return self.commands.get(canonical_name)
+
+        return None
 
     @lru_cache(maxsize=128)
     def find_command(self, query: str) -> List[Tuple[str, float]]:

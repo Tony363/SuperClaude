@@ -16,8 +16,7 @@ from typing import Any, Dict
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from SuperClaude.APIClients import openai_client as openai_module
-from SuperClaude.APIClients.openai_client import CompletionResponse
+# Note: APIClients imports removed - module was deleted in cleanup
 from SuperClaude.ModelRouter import (
     ModelRouter,
     RoutingDecision,
@@ -411,39 +410,7 @@ class TestModelRouterFacade:
         assert 'No consensus executors registered' in result['error']
 
 
-    def test_facade_invokes_openai_provider_with_api_key(self, monkeypatch):
-        monkeypatch.setenv("OPENAI_API_KEY", "test-key")
-        call_log: Dict[str, Any] = {}
-
-        async def fake_complete(self, request):
-            call_log.setdefault("models", []).append(request.model)
-            return CompletionResponse(
-                id="chatcmpl-test",
-                model=request.model,
-                content="approve — strong evidence of completion",
-                usage={"prompt_tokens": 10, "completion_tokens": 5, "total_tokens": 15},
-                finish_reason="stop",
-            )
-
-        monkeypatch.setattr(
-            openai_module.OpenAIClient,
-            "complete",
-            fake_complete,
-            raising=False,
-        )
-
-        facade = ModelRouterFacade(offline=False)
-        result = run(
-            facade.run_consensus(
-                "Should we approve the implementation?",
-                models=["gpt-4o"],
-            )
-        )
-
-        assert call_log.get("models") == ["gpt-4o"]
-        assert result["offline"] is False
-        assert result["votes"][0]["metadata"].get("provider") == "openai"
-        assert "approve" in str(result["votes"][0]["response"]).lower()
+    # Note: test_facade_invokes_openai_provider_with_api_key removed - APIClients module was deleted in cleanup
 
 
 def test_executor_think_flag_routes_models(monkeypatch):

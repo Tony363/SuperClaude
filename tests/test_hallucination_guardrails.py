@@ -11,7 +11,8 @@ from SuperClaude.Commands.registry import CommandRegistry
 from SuperClaude.ModelRouter.consensus import ConsensusBuilder, ModelVote, VoteType
 from SuperClaude.Monitoring.performance_monitor import PerformanceMonitor
 from SuperClaude.Monitoring.sink import MetricsSink
-from SuperClaude.Retrieval import RepoRetriever
+
+# Note: RepoRetriever import removed - Retrieval module was deleted in cleanup
 
 
 class MemorySink(MetricsSink):
@@ -29,7 +30,7 @@ def build_executor(tmp_path: Path) -> tuple[CommandExecutor, MemorySink]:
     executor.repo_root = tmp_path
     sink = MemorySink()
     executor.monitor = PerformanceMonitor(config={"persist_metrics": False}, sinks=[sink])
-    executor.retriever = RepoRetriever(tmp_path)
+    # Note: retriever removed - Retrieval module was deleted in cleanup
     return executor, sink
 
 
@@ -68,18 +69,7 @@ def test_static_validation_detects_import_error(tmp_path):
     assert "unresolved symbol 'value'" in joined
 
 
-def test_retriever_returns_hits(tmp_path):
-    sample = tmp_path / 'src'
-    sample.mkdir()
-    target = sample / 'example.py'
-    target.write_text('def add(a, b):\n    return a + b\n', encoding='utf-8')
-
-    retriever = RepoRetriever(tmp_path)
-    hits = retriever.retrieve('add', limit=1)
-    assert hits
-    hit = hits[0]
-    assert 'example.py' in hit.file
-    assert hit.line >= 1
+# Note: test_retriever_returns_hits removed - Retrieval module was deleted in cleanup
 
 
 def test_record_requires_evidence_event_records_payload(tmp_path):

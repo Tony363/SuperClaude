@@ -8,7 +8,6 @@ from pathlib import Path
 
 import pytest
 
-from SuperClaude.APIClients.codex_cli import CodexCLIClient, CodexCLIResult
 from SuperClaude.Commands import CommandRegistry, CommandParser, CommandExecutor
 
 
@@ -32,40 +31,7 @@ def executor(command_workspace):
     return CommandExecutor(registry, parser)
 
 
-@pytest.fixture
-def codex_cli_binary(monkeypatch):
-    """Provide a deterministic Codex CLI stub so fast-codex tests stay hermetic."""
-
-    monkeypatch.setenv("SUPERCLAUDE_CODEX_CLI", "codex-stub")
-
-    def _always_available(cls):
-        return True
-
-    monkeypatch.setattr(CodexCLIClient, "is_available", classmethod(_always_available))
-
-    def _fake_run(self, prompt, *, workdir=None, extra_args=None):
-        payload = {
-            "summary": "Stub diff generated during tests",
-            "changes": [
-                {
-                    "path": "README.md",
-                    "content": "Updated by Codex stub",
-                    "mode": "replace",
-                }
-            ],
-            "model": "codex-stub",
-        }
-        return CodexCLIResult(
-            payload=payload,
-            stdout=json.dumps(payload),
-            stderr="",
-            duration_s=0.05,
-            returncode=0,
-            command=["codex-stub", "exec"],
-        )
-
-    monkeypatch.setattr(CodexCLIClient, "run", _fake_run, raising=False)
-    return "codex-stub"
+# Note: codex_cli_binary fixture removed - APIClients module was deleted in cleanup
 
 
 def test_executor_accepts_explicit_repo_root(tmp_path, monkeypatch):
@@ -85,87 +51,13 @@ def test_executor_accepts_explicit_repo_root(tmp_path, monkeypatch):
     assert os.environ.get("SUPERCLAUDE_METRICS_DIR") == str(target_repo / ".superclaude_metrics")
 
 
-def test_implement_fast_codex_requires_evidence(executor, codex_cli_binary):
-    result = asyncio.run(executor.execute("/sc:implement search google for pictures of dogs --fast-codex"))
-
-    if any("Codex CLI invocation failed" in error for error in result.errors):
-        pytest.fail("Codex CLI invocation failed; install or configure the real codex CLI")
-
-    assert result.status == "failed"
-    assert result.success is False
-    assert any("no concrete change plan" in error.lower() for error in result.errors)
-
-    assert result.output, "Result output missing despite fast-codex execution"
-    fast_state = result.output.get("fast_codex") or {}
-    assert fast_state.get("requested") is True
-    assert fast_state.get("active") is True
-    assert not fast_state.get("blocked")
-
-    consensus = result.consensus or {}
-    assert "No consensus executors registered" in (consensus.get("error") or "")
-    assert consensus.get("quorum_size") == 3
-    assert consensus.get("offline") is True
-
-    # Artefacts still recorded for tracing purposes
-    assert result.artifacts
-    for artifact in result.artifacts:
-        assert Path(artifact).exists()
-
-
-def test_implement_safe_apply_fails_without_plan(executor, command_workspace, codex_cli_binary):
-    result = asyncio.run(
-        executor.execute("/sc:implement search google for pictures of dogs --fast-codex --safe-apply")
-    )
-
-    if any("Codex CLI invocation failed" in error for error in result.errors):
-        pytest.fail("Codex CLI invocation failed; install or configure the real codex CLI")
-
-    assert result.status == "failed"
-    assert result.success is False
-    assert any("no concrete change plan" in error.lower() for error in result.errors)
-
-    metrics_dir = command_workspace / ".superclaude_metrics"
-    safe_root = metrics_dir / "safe_apply"
-    assert not safe_root.exists()
-
-
-def test_fast_codex_respects_safe_flag(executor, codex_cli_binary):
-    result = asyncio.run(executor.execute("/sc:implement search google for pictures of dogs --fast-codex --safe"))
-
-    if any("Codex CLI invocation failed" in error for error in result.errors):
-        pytest.fail("Codex CLI invocation failed; install or configure the real codex CLI")
-
-    fast_state = result.output.get("fast_codex") or {}
-    assert fast_state.get("requested") is True
-    assert fast_state.get("active") is False
-    assert "safety-requested" in (fast_state.get("blocked") or [])
-    assert any("no concrete change plan" in error.lower() for error in result.errors)
-
-
-def test_fast_codex_invokes_codex_exec(executor, codex_cli_binary):
-    result = asyncio.run(executor.execute("/sc:implement search google for pictures of dogs --fast-codex"))
-
-    if any("Codex CLI invocation failed" in error for error in result.errors):
-        pytest.fail("Codex CLI invocation failed; install or configure the real codex CLI")
-
-    assert result.output, "Result output missing despite fast-codex execution"
-    fast_state = result.output.get("fast_codex") or {}
-    assert fast_state.get("requested") is True
-    assert fast_state.get("active") is True
-    cli_meta = fast_state.get("cli")
-    assert cli_meta, "Codex CLI metadata missing; codex exec may not have run"
-
-
-def test_fast_codex_requires_cli(monkeypatch, command_workspace):
-    monkeypatch.setenv("SUPERCLAUDE_CODEX_CLI", "codex-missing-binary")
-    registry = CommandRegistry()
-    parser = CommandParser()
-    exec_instance = CommandExecutor(registry, parser)
-
-    result = asyncio.run(exec_instance.execute("/sc:implement demo feature --fast-codex"))
-
-    assert result.success is False
-    assert any("Codex CLI is required" in err for err in result.errors)
+# Note: fast-codex tests removed - APIClients/codex_cli module was deleted in cleanup
+# The following tests were removed:
+# - test_implement_fast_codex_requires_evidence
+# - test_implement_safe_apply_fails_without_plan
+# - test_fast_codex_respects_safe_flag
+# - test_fast_codex_invokes_codex_exec
+# - test_fast_codex_requires_cli
 
 
 def test_business_panel_produces_artifact(executor):
