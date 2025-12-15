@@ -102,7 +102,7 @@ setup(
             "google-generativeai>=0.3",
         ],
     },
-    python_requires=">=3.9",
+    python_requires=">=3.8",
     entry_points={
         "console_scripts": [
             "superclaude=SuperClaude.__main__:main",

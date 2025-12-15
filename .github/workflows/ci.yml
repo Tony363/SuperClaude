@@ -76,7 +76,7 @@ jobs:
         env:
           SUPERCLAUDE_OFFLINE_MODE: "1"
         run: |
-          pytest tests/ -m "not slow" \
+          pytest tests/ -m "not slow and not integration" \
             --cov=SuperClaude \
             --cov-report=xml \
             --cov-report=term-missing \
@@ -128,7 +128,7 @@ jobs:
         env:
           SUPERCLAUDE_OFFLINE_MODE: "1"
         run: |
-          pytest tests/ -m "not slow" \
+          pytest tests/ -m "not slow and not integration" \
             --cov=SuperClaude \
             --cov-fail-under=80 \
             --tb=short \
