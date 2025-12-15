@@ -38,125 +38,24 @@ from ..MCP import get_mcp_integration
 from ..ModelRouter.consensus import VoteType
 from ..ModelRouter.facade import ModelRouterFacade
 from ..Modes.behavioral_manager import BehavioralMode, BehavioralModeManager
-from ..Monitoring.paths import get_metrics_dir
-from ..Monitoring.performance_monitor import MetricType, get_monitor
-from ..Monitoring.plan_only_logger import record_plan_only_event
 from ..Quality.quality_scorer import (
     QualityAssessment,
     QualityDimension,
     QualityMetric,
     QualityScorer,
 )
-from ..Retrieval import RepoRetriever
 from .artifact_manager import CommandArtifactManager
 from .parser import CommandParser, ParsedCommand
 from .registry import CommandMetadata, CommandRegistry
 
 logger = logging.getLogger(__name__)
 
-BUSINESS_PANEL_EXPERTS = {
-    "christensen": {
-        "name": "Clayton Christensen",
-        "lens": "Disruption theory & jobs-to-be-done",
-        "focus": ["disruption", "innovation cadence", "non-consumption"],
-        "questions": [
-            "What job is the customer hiring this to do?",
-            "Which segments are overserved or underserved?",
-            "How does this shift the value network?",
-        ],
-    },
-    "porter": {
-        "name": "Michael Porter",
-        "lens": "Competitive strategy & five forces",
-        "focus": ["competitive-analysis", "moats", "positioning"],
-        "questions": [
-            "How do the five forces shift under this move?",
-            "Where can we create a defensible moat?",
-            "What assumptions competitors rely on?",
-        ],
-    },
-    "drucker": {
-        "name": "Peter Drucker",
-        "lens": "Management effectiveness & execution",
-        "focus": ["operational-discipline", "management"],
-        "questions": [
-            "What is the mission and is it still valid?",
-            "What does the customer value now?",
-            "Where do we place scarce resources?",
-        ],
-    },
-    "godin": {
-        "name": "Seth Godin",
-        "lens": "Marketing innovation & tribe building",
-        "focus": ["narrative", "community", "positioning"],
-        "questions": [
-            "Who is the smallest viable audience?",
-            "What story are we telling that people repeat?",
-            "How do we create remarkable signals?",
-        ],
-    },
-    "kim_mauborgne": {
-        "name": "W. Chan Kim & Renee Mauborgne",
-        "lens": "Blue ocean strategy",
-        "focus": ["value-innovation", "differentiation", "cost"],
-        "questions": [
-            "Which factors can we eliminate or reduce?",
-            "Where can we raise new value for users?",
-            "What uncontested space emerges?",
-        ],
-    },
-    "collins": {
-        "name": "Jim Collins",
-        "lens": "Enduring companies & flywheels",
-        "focus": ["execution", "discipline", "flywheel"],
-        "questions": [
-            "What is the hedgehog concept here?",
-            "Which flywheel can we accelerate?",
-            "What brutal facts must we confront?",
-        ],
-    },
-    "taleb": {
-        "name": "Nassim Nicholas Taleb",
-        "lens": "Risk, optionality, and antifragility",
-        "focus": ["risk", "resilience", "optionality"],
-        "questions": [
-            "Where are we exposed to tail risks?",
-            "How do we gain from volatility?",
-            "What optionality can we preserve?",
-        ],
-    },
-    "meadows": {
-        "name": "Donella Meadows",
-        "lens": "Systems thinking & leverage points",
-        "focus": ["systems-dynamics", "feedback"],
-        "questions": [
-            "What reinforcing and balancing loops exist?",
-            "Where is the highest leverage point?",
-            "What delays or bottlenecks dominate?",
-        ],
-    },
-    "doumont": {
-        "name": "Jean-luc Doumont",
-        "lens": "Structured communication & clarity",
-        "focus": ["communication", "decision-alignment"],
-        "questions": [
-            "How do we communicate the core message?",
-            "What structure clarifies the decision?",
-            "Which stakeholders need tailored framing?",
-        ],
-    },
-}
 
-BUSINESS_PANEL_FOCUS_MAP = {
-    "disruption": ["christensen", "porter", "kim_mauborgne"],
-    "competitive-analysis": ["porter", "taleb", "collins"],
-    "go-to-market": ["godin", "doumont", "porter"],
-    "systems": ["meadows", "christensen", "collins"],
-    "risk": ["taleb", "porter", "christensen"],
-    "execution": ["drucker", "collins", "kim_mauborgne"],
-}
-
-DEFAULT_BUSINESS_PANEL_EXPERTS = ["porter", "drucker", "godin"]
+# Stub for removed Monitoring module
+class MetricType:
+    COUNTER = "counter"
+    GAUGE = "gauge"
+    TIMER = "timer"
 
 
 @dataclass
@@ -262,7 +161,7 @@ class CommandExecutor:
         self.consensus_facade = ModelRouterFacade()
         self.consensus_policies = self._load_consensus_policies()
         self.quality_scorer = QualityScorer()
-        self.retriever = RepoRetriever(base_path)
+        self.retriever = None  # Retrieval module removed
         self.delegate_category_map = {
             "delegate_core": AgentCategory.CORE_DEVELOPMENT,
             "delegate-debug": AgentCategory.QUALITY_SECURITY,
@@ -272,7 +171,7 @@ class CommandExecutor:
             "delegate-search": AgentCategory.DEVELOPER_EXPERIENCE,
         }
         try:
-            self.monitor = get_monitor()
+            self.monitor = None  # Monitoring removed
         except Exception as exc:
             logger.debug(f"Performance monitor unavailable: {exc}")
             self.monitor = None
@@ -1016,8 +915,6 @@ class CommandExecutor:
             return await self._execute_git(context)
         elif command_name == "workflow":
             return await self._execute_workflow(context)
-        elif command_name == "business-panel":
-            return await self._execute_business_panel(context)
         else:
             # Generic execution for other commands
             return await self._execute_generic(context)
@@ -1075,7 +972,7 @@ class CommandExecutor:
                 )
                 if self.monitor:
                     try:
-                        self.monitor.record_event(
+                        self.monitor and self.monitor.record_event(
                             "commands.fast_codex.cli",
                             {
                                 "timestamp": datetime.now().isoformat(),
@@ -1083,7 +980,7 @@ class CommandExecutor:
                                 "returncode": cli_meta.get("returncode"),
                             },
                         )
-                        self.monitor.record_metric(
+                        self.monitor and self.monitor.record_metric(
                             "commands.fast_codex.cli.duration",
                             float(cli_meta.get("duration_s", 0.0)),
                             MetricType.TIMER,
@@ -1820,131 +1717,6 @@ class CommandExecutor:
             output["source_path"] = str(source_path.relative_to(repo_root))
         return output
 
-    async def _execute_business_panel(self, context: CommandContext) -> Dict[str, Any]:
-        """Execute the business panel orchestration command."""
-        agent_result = self._run_agent_pipeline(context)
-
-        panel_topic = (
-            " ".join(context.command.arguments).strip()
-            or "unspecified business scenario"
-        )
-        panel_mode = self._determine_business_panel_mode(context.command)
-        focus_domain = self._determine_business_panel_focus(context.command)
-        expert_ids = self._select_business_panel_experts(context.command, focus_domain)
-        phases = self._determine_business_panel_phases(panel_mode)
-        insights = self._generate_business_panel_insights(
-            panel_topic, expert_ids, focus_domain
-        )
-        recommendations = self._generate_business_panel_recommendations(
-            panel_topic, insights, focus_domain
-        )
-
-        panel_operations = [
-            f"panel_mode: {panel_mode}",
-            f"panel_focus: {focus_domain}",
-            "experts_engaged: "
-            + ", ".join(BUSINESS_PANEL_EXPERTS[eid]["name"] for eid in expert_ids),
-            "panel_phases: " + ", ".join(phases),
-        ]
-
-        # Merge operations into execution evidence
-        context.results.setdefault("executed_operations", []).extend(panel_operations)
-        context.results["executed_operations"] = self._deduplicate(
-            context.results["executed_operations"]
-        )
-
-        if agent_result["operations"]:
-            context.results["executed_operations"].extend(
-                op
-                for op in agent_result["operations"]
-                if op not in context.results["executed_operations"]
-            )
-            context.results["executed_operations"] = self._deduplicate(
-                context.results["executed_operations"]
-            )
-
-        context.results.setdefault("panel", {}).update(
-            {
-                "topic": panel_topic,
-                "mode": panel_mode,
-                "focus": focus_domain,
-                "experts": expert_ids,
-                "phases": phases,
-            }
-        )
-
-        summary_lines = [
-            f"Business panel analysis for: {panel_topic}",
-            f"Mode: {panel_mode} | Focus: {focus_domain}",
-            "",
-            "Experts engaged:",
-        ]
-        for expert_id in expert_ids:
-            expert = BUSINESS_PANEL_EXPERTS[expert_id]
-            summary_lines.append(f"- {expert['name']} — {expert['lens']}")
-
-        summary_lines.append("")
-        summary_lines.append("Key insights:")
-        for insight in insights[:5]:
-            summary_lines.append(f"- {insight['expert']}: {insight['headline']}")
-
-        summary = "\n".join(summary_lines).strip()
-
-        metadata = {
-            "topic": panel_topic,
-            "mode": panel_mode,
-            "focus": focus_domain,
-            "experts": [BUSINESS_PANEL_EXPERTS[eid]["name"] for eid in expert_ids],
-            "phases": phases,
-        }
-        artifact_path = self._record_artifact(
-            context,
-            context.command.name,
-            summary,
-            operations=context.results["executed_operations"],
-            metadata=metadata,
-        )
-
-        status = (
-            "executed"
-            if context.results["executed_operations"]
-            else "panel_initialized"
-        )
-
-        panel_payload = {
-            "topic": panel_topic,
-            "mode": panel_mode,
-            "focus": focus_domain,
-            "phases": phases,
-            "experts": [
-                {
-                    "id": expert_id,
-                    "name": BUSINESS_PANEL_EXPERTS[expert_id]["name"],
-                    "lens": BUSINESS_PANEL_EXPERTS[expert_id]["lens"],
-                }
-                for expert_id in expert_ids
-            ],
-        }
-
-        output = {
-            "status": status,
-            "panel": panel_payload,
-            "insights": insights,
-            "recommendations": recommendations,
-            "agent_notes": agent_result["notes"],
-            "agent_warnings": agent_result["warnings"],
-            "mcp_servers": context.mcp_servers,
-            "artifact": artifact_path,
-            "mode": context.behavior_mode,
-        }
-
-        if artifact_path:
-            output.setdefault(
-                "executed_operations", context.results["executed_operations"]
-            )
-
-        return output
-
     def _ensure_worktree_manager(self) -> Optional[WorktreeManager]:
         """Ensure a worktree manager instance is available."""
         if getattr(self, "worktree_manager", None) is None:
@@ -2100,8 +1872,8 @@ class CommandExecutor:
 
         if self.monitor:
             tags = {"command": context.command.name, "source": source}
-            self.monitor.record_event("commands.followup", entry)
-            self.monitor.record_metric(
+            self.monitor and self.monitor.record_event("commands.followup", entry)
+            self.monitor and self.monitor.record_metric(
                 "commands.followup.queued", 1, MetricType.COUNTER, tags
             )
 
@@ -3304,129 +3076,6 @@ class CommandExecutor:
 
         return steps
 
-    def _determine_business_panel_mode(self, command: ParsedCommand) -> str:
-        """Select the panel interaction mode."""
-        requested_mode = command.parameters.get("mode")
-        if isinstance(requested_mode, str):
-            requested_mode = requested_mode.lower()
-        elif command.flags.get("mode"):
-            requested_mode = str(command.flags.get("mode")).lower()
-
-        valid_modes = {"discussion", "debate", "socratic", "adaptive"}
-        if requested_mode in valid_modes:
-            return requested_mode
-
-        for flag_name in (
-            "mode_discussion",
-            "mode_debate",
-            "mode_socratic",
-            "mode_adaptive",
-        ):
-            if command.flags.get(flag_name):
-                suffix = flag_name.split("_", 1)[1]
-                if suffix in valid_modes:
-                    return suffix
-
-        return "discussion"
-
-    def _determine_business_panel_focus(self, command: ParsedCommand) -> str:
-        """Determine strategic focus for the panel."""
-        focus = command.parameters.get("focus")
-        if isinstance(focus, str) and focus:
-            return focus.lower()
-
-        return "general"
-
-    def _select_business_panel_experts(
-        self, command: ParsedCommand, focus: str
-    ) -> List[str]:
-        """Resolve which experts participate in the panel."""
-        if command.flags.get("all-experts") or command.flags.get("all_experts"):
-            return list(BUSINESS_PANEL_EXPERTS.keys())
-
-        explicit = command.parameters.get("experts")
-        if isinstance(explicit, str) and explicit.strip():
-            return self._normalize_expert_identifiers(explicit)
-
-        focus_candidates = BUSINESS_PANEL_FOCUS_MAP.get(focus)
-        if focus_candidates:
-            return focus_candidates
-
-        return DEFAULT_BUSINESS_PANEL_EXPERTS
-
-    def _normalize_expert_identifiers(self, raw_value: str) -> List[str]:
-        """Normalize a comma or space separated list of expert identifiers."""
-        tokens = [
-            token.strip().lower()
-            for token in raw_value.replace(";", ",").split(",")
-            if token.strip()
-        ]
-        resolved: List[str] = []
-
-        alias_map: Dict[str, str] = {}
-        for expert_id, data in BUSINESS_PANEL_EXPERTS.items():
-            alias_map[expert_id] = expert_id
-            alias_map[data["name"].lower()] = expert_id
-            alias_map[data["name"].split()[0].lower()] = expert_id
-
-        for token in tokens:
-            key = alias_map.get(token)
-            if key and key not in resolved:
-                resolved.append(key)
-
-        return resolved if resolved else DEFAULT_BUSINESS_PANEL_EXPERTS
-
-    def _determine_business_panel_phases(self, mode: str) -> List[str]:
-        """Return the phases the panel will run based on mode."""
-        phase_map = {
-            "discussion": ["discussion"],
-            "debate": ["discussion", "debate"],
-            "socratic": ["socratic"],
-            "adaptive": ["discussion", "debate", "socratic"],
-        }
-        return phase_map.get(mode, ["discussion"])
-
-    def _generate_business_panel_insights(
-        self, topic: str, expert_ids: List[str], focus: str
-    ) -> List[Dict[str, Any]]:
-        """Generate synthesized insights for each expert."""
-        insights: List[Dict[str, Any]] = []
-        for expert_id in expert_ids:
-            expert = BUSINESS_PANEL_EXPERTS[expert_id]
-            headline = f"{expert['name']} signals {expert['focus'][0] if expert['focus'] else 'strategic'} priority for {topic}"
-            insights.append(
-                {
-                    "expert": expert["name"],
-                    "headline": headline,
-                    "lens": expert["lens"],
-                    "questions": expert["questions"],
-                    "focus_points": expert["focus"],
-                    "focus_alignment": focus,
-                }
-            )
-        return insights
-
-    def _generate_business_panel_recommendations(
-        self, topic: str, insights: List[Dict[str, Any]], focus: str
-    ) -> List[str]:
-        """Create actionable recommendations from the panel insights."""
-        recommendations: List[str] = []
-        if focus != "general":
-            recommendations.append(
-                f"Establish success metrics for {focus} around '{topic}'."
-            )
-
-        if insights:
-            lead = insights[0]
-            recommendations.append(
-                f"Activate a focused workstream led by {lead['expert']} to pressure-test {topic} against the primary lens: {lead['lens']}."
-            )
-
-        recommendations.append(
-            "Capture debate outcomes and assign owners for the top three decision points."
-        )
-        return recommendations
-
     def _normalize_repo_root(self, repo_root: Optional[Path]) -> Optional[Path]:
         """Normalize desired repo root, falling back to detected git root."""
         env_root = os.environ.get("SUPERCLAUDE_REPO_ROOT")
@@ -4249,24 +3898,24 @@ class CommandExecutor:
         }
 
         base = "commands.requires_evidence"
-        self.monitor.record_metric(f"{base}.invocations", 1, MetricType.COUNTER, tags)
+        self.monitor and self.monitor.record_metric(f"{base}.invocations", 1, MetricType.COUNTER, tags)
 
         if derived_status == "plan-only":
-            self.monitor.record_metric(f"{base}.plan_only", 1, MetricType.COUNTER, tags)
-            self.monitor.record_metric(
+            self.monitor and self.monitor.record_metric(f"{base}.plan_only", 1, MetricType.COUNTER, tags)
+            self.monitor and self.monitor.record_metric(
                 f"{base}.missing_evidence", 1, MetricType.COUNTER, tags
             )
 
         if static_issues:
             issue_tags = dict(tags)
             issue_tags["issue_count"] = str(len(static_issues))
-            self.monitor.record_metric(
+            self.monitor and self.monitor.record_metric(
                 f"{base}.static_validation_fail",
                 len(static_issues),
                 MetricType.COUNTER,
                 issue_tags,
             )
-            self.monitor.record_metric(
+            self.monitor and self.monitor.record_metric(
                 f"{base}.static_issue_count",
                 len(static_issues),
                 MetricType.GAUGE,
@@ -4281,7 +3930,7 @@ class CommandExecutor:
             score_tags = dict(tags)
             score_tags["score"] = f"{score_value:.1f}"
             score_tags["threshold"] = f"{assessment.threshold:.1f}"
-            self.monitor.record_metric(
+            self.monitor and self.monitor.record_metric(
                 f"{base}.quality_score", score_value, MetricType.GAUGE, score_tags
             )
             assessment_passed = bool(assessment.passed)
@@ -4290,7 +3939,7 @@ class CommandExecutor:
             metric_name = (
                 f"{base}.quality_pass" if assessment_passed else f"{base}.quality_fail"
             )
-            self.monitor.record_metric(metric_name, 1, MetricType.COUNTER, score_tags)
+            self.monitor and self.monitor.record_metric(metric_name, 1, MetricType.COUNTER, score_tags)
 
         fast_codex_state = {}
         raw_fast_codex = snapshot.get("fast_codex")
@@ -4303,11 +3952,11 @@ class CommandExecutor:
                 "mode": execution_mode,
                 "active": str(bool(fast_codex_state.get("active"))),
             }
-            self.monitor.record_metric(
+            self.monitor and self.monitor.record_metric(
                 "commands.fast_codex.requested", 1, MetricType.COUNTER, fast_tags
             )
             if fast_codex_state.get("active"):
-                self.monitor.record_metric(
+                self.monitor and self.monitor.record_metric(
                     "commands.fast_codex.active", 1, MetricType.COUNTER, fast_tags
                 )
 
@@ -4318,7 +3967,7 @@ class CommandExecutor:
                     blocked_tags["blocked"] = ",".join(
                         sorted(str(reason) for reason in blocked)
                     )
-                self.monitor.record_metric(
+                self.monitor and self.monitor.record_metric(
                     "commands.fast_codex.blocked", 1, MetricType.COUNTER, blocked_tags
                 )
 
@@ -4327,7 +3976,7 @@ class CommandExecutor:
                 "command": command_name,
                 "mode": execution_mode,
             }
-            self.monitor.record_metric(
+            self.monitor and self.monitor.record_metric(
                 "commands.fast_codex.cli.used",
                 1,
                 MetricType.COUNTER,
@@ -4340,7 +3989,7 @@ class CommandExecutor:
             except (TypeError, ValueError):
                 duration_value = 0.0
             if duration_value:
-                self.monitor.record_metric(
+                self.monitor and self.monitor.record_metric(
                     "commands.fast_codex.cli.duration",
                     duration_value,
                     MetricType.TIMER,
@@ -4368,11 +4017,11 @@ class CommandExecutor:
             "fast_codex_cli": snapshot.get("fast_codex_cli"),
         }
         try:
-            self.monitor.record_event("hallucination.guardrail", event_payload)
+            self.monitor and self.monitor.record_event("hallucination.guardrail", event_payload)
         except Exception:
             logger.debug("Failed to record hallucination event payload", exc_info=True)
         else:
-            self.monitor.record_metric(
+            self.monitor and self.monitor.record_metric(
                 f"{base}.quality_missing", 1, MetricType.COUNTER, tags
             )
 
@@ -4382,16 +4031,16 @@ class CommandExecutor:
             decision = consensus.get("final_decision")
             if decision is not None:
                 consensus_tags["decision"] = str(decision)
-            self.monitor.record_metric(
+            self.monitor and self.monitor.record_metric(
                 f"{base}.consensus", 1, MetricType.COUNTER, consensus_tags
             )
             if not consensus.get("consensus_reached", False):
-                self.monitor.record_metric(
+                self.monitor and self.monitor.record_metric(
                     f"{base}.consensus_failed", 1, MetricType.COUNTER, consensus_tags
                 )
 
         outcome_metric = f"{base}.success" if success else f"{base}.failure"
-        self.monitor.record_metric(outcome_metric, 1, MetricType.COUNTER, tags)
+        self.monitor and self.monitor.record_metric(outcome_metric, 1, MetricType.COUNTER, tags)
 
     def _attach_plan_only_guidance(
         self, context: CommandContext, output: Optional[Dict[str, Any]]
@@ -4478,7 +4127,7 @@ class CommandExecutor:
     def _write_safe_apply_snapshot(
         self, context: CommandContext, stubs: Sequence[Dict[str, Any]]
     ) -> Optional[Dict[str, Any]]:
-        metrics_dir = get_metrics_dir()
+        import tempfile; metrics_dir = Path(tempfile.gettempdir()) / "superclaude_metrics"
         base_dir = metrics_dir / "safe_apply" / context.session_id
         base_dir.mkdir(parents=True, exist_ok=True)
         timestamp = datetime.utcnow().strftime("%Y%m%d%H%M%S")
@@ -4620,10 +4269,8 @@ class CommandExecutor:
         if context.results.get("safe_apply_directory"):
             event["safe_apply_directory"] = context.results["safe_apply_directory"]
 
-        try:
-            record_plan_only_event(event)
-        except Exception:
-            logger.debug("Failed to record plan-only event", exc_info=True)
+        # Monitoring removed - plan_only_event logging disabled
+        pass
 
     async def _dispatch_rube_actions(
         self, context: CommandContext, output: Any
@@ -4657,11 +4304,11 @@ class CommandExecutor:
             if self.monitor:
                 base = "commands.rube"
                 tags = {"command": context.command.name, "status": status}
-                self.monitor.record_metric(
+                self.monitor and self.monitor.record_metric(
                     f"{base}.invocations", 1, MetricType.COUNTER, tags
                 )
                 metric = f"{base}.dry_run" if status == "dry-run" else f"{base}.success"
-                self.monitor.record_metric(metric, 1, MetricType.COUNTER, tags)
+                self.monitor and self.monitor.record_metric(metric, 1, MetricType.COUNTER, tags)
 
             return [f"rube:{tool}:{status}"]
         except Exception as exc:  # pragma: no cover - network behaviour
@@ -4670,7 +4317,7 @@ class CommandExecutor:
             context.errors.append(message)
             if self.monitor:
                 tags = {"command": context.command.name}
-                self.monitor.record_metric(
+                self.monitor and self.monitor.record_metric(
                     "commands.rube.failure", 1, MetricType.COUNTER, tags
                 )
             return [f"rube:{tool}:error"]
@@ -4685,7 +4332,6 @@ class CommandExecutor:
             "workflow": "workflow.dispatch",
             "spawn": "workflow.dispatch",
             "improve": "automation.log",
-            "business-panel": "insights.record",
             "implement": "automation.log",
         }
 
@@ -5681,7 +5327,7 @@ class CommandExecutor:
                 context.results["retrieved_context"] = retrieved_context
                 if self.monitor:
                     try:
-                        self.monitor.record_event(
+                        self.monitor and self.monitor.record_event(
                             "hallucination.retrieval",
                             {
                                 "timestamp": datetime.now().isoformat(),

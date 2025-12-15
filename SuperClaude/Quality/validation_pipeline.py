@@ -3,12 +3,18 @@
 from __future__ import annotations
 
 import json
+import tempfile
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable
 
-from ..Monitoring.paths import get_metrics_dir
+
+def _get_validation_dir() -> Path:
+    """Get validation evidence directory (uses temp dir since Monitoring removed)."""
+    base = Path(tempfile.gettempdir()) / "superclaude_validation"
+    base.mkdir(parents=True, exist_ok=True)
+    return base
 
 
 @dataclass
@@ -38,7 +44,7 @@ class ValidationPipeline:
 
     def __init__(self, stages: list[ValidationStage] | None = None) -> None:
         self.stages = stages or self._default_stages()
-        self.evidence_dir = get_metrics_dir() / "validation"
+        self.evidence_dir = _get_validation_dir()
         self.evidence_dir.mkdir(parents=True, exist_ok=True)
 
     def run(self, context: dict[str, Any] | None = None) -> list[ValidationStageResult]:

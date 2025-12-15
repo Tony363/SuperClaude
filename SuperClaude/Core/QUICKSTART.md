@@ -79,6 +79,14 @@
 --brainstorm --task-manage --test
 ```
 
+## Quality Scoring
+
+| Score | Action |
+|-------|--------|
+| 90-100 | ✅ Accept |
+| 70-89 | ⚠️ Review |
+| <70 | 🔄 Auto-retry |
+
 ## Rules to Remember
 
 ✅ **Always Do:**

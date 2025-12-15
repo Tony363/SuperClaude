@@ -210,9 +210,8 @@ async def example_performance_monitoring():
     """Example: Performance monitoring"""
     print("\n=== Performance Monitoring Example ===")
 
-    from SuperClaude.Monitoring.performance_monitor import PerformanceMonitor
 
-    monitor = PerformanceMonitor()
+    monitor = None  # Monitoring removed
 
     # Start monitoring
     monitor.start_collection()
