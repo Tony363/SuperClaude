@@ -9,7 +9,7 @@ frontend/backend reasoning, validation advice, and remediation loops.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Dict, List
+from typing import Any
 
 from ..heuristic_markdown import HeuristicMarkdownAgent
 
@@ -18,10 +18,10 @@ from ..heuristic_markdown import HeuristicMarkdownAgent
 class _SurfaceAnalysis:
     """Lightweight inspection of the current repository context."""
 
-    frontend_files: List[str] = field(default_factory=list)
-    backend_files: List[str] = field(default_factory=list)
-    shared_files: List[str] = field(default_factory=list)
-    tests: List[str] = field(default_factory=list)
+    frontend_files: list[str] = field(default_factory=list)
+    backend_files: list[str] = field(default_factory=list)
+    shared_files: list[str] = field(default_factory=list)
+    tests: list[str] = field(default_factory=list)
 
 
 class FullstackDeveloper(HeuristicMarkdownAgent):
@@ -49,7 +49,7 @@ class FullstackDeveloper(HeuristicMarkdownAgent):
         "controller",
     ]
 
-    def __init__(self, config: Dict[str, Any]):
+    def __init__(self, config: dict[str, Any]):
         defaults = {
             "name": "fullstack-developer",
             "description": (
@@ -69,7 +69,7 @@ class FullstackDeveloper(HeuristicMarkdownAgent):
     # Validation
     # ------------------------------------------------------------------ #
 
-    def validate(self, context: Dict[str, Any]) -> bool:
+    def validate(self, context: dict[str, Any]) -> bool:
         """Prefer tasks that touch both front and backend concerns."""
         task = str(context.get("task", "")).lower()
         if not task:
@@ -83,10 +83,14 @@ class FullstackDeveloper(HeuristicMarkdownAgent):
         if not isinstance(files, list):
             files = []
         frontend_hits = sum(
-            1 for path in files if any(path.endswith(ext) for ext in self.frontend_patterns)
+            1
+            for path in files
+            if any(path.endswith(ext) for ext in self.frontend_patterns)
         )
         backend_hits = sum(
-            1 for path in files if any(path.endswith(ext) for ext in self.backend_patterns)
+            1
+            for path in files
+            if any(path.endswith(ext) for ext in self.backend_patterns)
         )
         return frontend_hits > 0 and backend_hits > 0
 
@@ -94,7 +98,7 @@ class FullstackDeveloper(HeuristicMarkdownAgent):
     # Execution
     # ------------------------------------------------------------------ #
 
-    def execute(self, context: Dict[str, Any]) -> Dict[str, Any]:
+    def execute(self, context: dict[str, Any]) -> dict[str, Any]:
         """
         Run the heuristic markdown execution, then augment with additional
         strategy layers that align frontend/backend changes.
@@ -128,15 +132,15 @@ class FullstackDeveloper(HeuristicMarkdownAgent):
     # Strategy builders
     # ------------------------------------------------------------------ #
 
-    def _inspect_context(self, context: Dict[str, Any]) -> _SurfaceAnalysis:
+    def _inspect_context(self, context: dict[str, Any]) -> _SurfaceAnalysis:
         files = context.get("files") or []
         if not isinstance(files, list):
             files = []
 
-        frontend: List[str] = []
-        backend: List[str] = []
-        shared: List[str] = []
-        tests: List[str] = []
+        frontend: list[str] = []
+        backend: list[str] = []
+        shared: list[str] = []
+        tests: list[str] = []
 
         for raw_path in files:
             path = str(raw_path)
@@ -159,9 +163,9 @@ class FullstackDeveloper(HeuristicMarkdownAgent):
 
     def _build_backend_strategy(
         self,
-        context: Dict[str, Any],
+        context: dict[str, Any],
         analysis: _SurfaceAnalysis,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         task = str(context.get("task", "")).strip()
         baseline = {
             "summary": "Design or adjust backend endpoints and domain logic.",
@@ -169,9 +173,13 @@ class FullstackDeveloper(HeuristicMarkdownAgent):
             "suggested_files": analysis.backend_files[:5],
         }
         if "graphql" in task.lower():
-            baseline["considerations"].append("Update schema resolvers and regenerate types.")
+            baseline["considerations"].append(
+                "Update schema resolvers and regenerate types."
+            )
         if "fastapi" in task.lower():
-            baseline["considerations"].append("Add pydantic models and route signature updates.")
+            baseline["considerations"].append(
+                "Add pydantic models and route signature updates."
+            )
         if not baseline["suggested_files"]:
             baseline["considerations"].append(
                 "Identify the service layer or handler that owns the requested capability."
@@ -180,9 +188,9 @@ class FullstackDeveloper(HeuristicMarkdownAgent):
 
     def _build_frontend_strategy(
         self,
-        context: Dict[str, Any],
+        context: dict[str, Any],
         analysis: _SurfaceAnalysis,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         task = str(context.get("task", "")).strip()
         baseline = {
             "summary": "Adjust UI components and state management to consume the backend updates.",
@@ -190,9 +198,13 @@ class FullstackDeveloper(HeuristicMarkdownAgent):
             "suggested_files": analysis.frontend_files[:5],
         }
         if "accessibility" in task.lower():
-            baseline["considerations"].append("Include axe checks and ARIA annotations.")
+            baseline["considerations"].append(
+                "Include axe checks and ARIA annotations."
+            )
         if "react server component" in task.lower() or "rsc" in task.lower():
-            baseline["considerations"].append("Validate server/client component split and data fetching.")
+            baseline["considerations"].append(
+                "Validate server/client component split and data fetching."
+            )
         if not baseline["suggested_files"]:
             baseline["considerations"].append(
                 "Determine the entry component that renders the new capability."
@@ -201,9 +213,9 @@ class FullstackDeveloper(HeuristicMarkdownAgent):
 
     def _build_contract_strategy(
         self,
-        context: Dict[str, Any],
+        context: dict[str, Any],
         analysis: _SurfaceAnalysis,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         task = str(context.get("task", "")).strip()
         contracts = {
             "summary": "Keep shared contracts (types, schemas) aligned between backend and frontend.",
@@ -211,16 +223,20 @@ class FullstackDeveloper(HeuristicMarkdownAgent):
             "files": analysis.shared_files[:5],
         }
         if "validation" in task.lower():
-            contracts["actions"].append("Document validation requirements in shared DTOs.")
+            contracts["actions"].append(
+                "Document validation requirements in shared DTOs."
+            )
         if not contracts["files"]:
-            contracts["actions"].append("Introduce a shared contract module for new responses.")
+            contracts["actions"].append(
+                "Introduce a shared contract module for new responses."
+            )
         return contracts
 
     def _build_testing_strategy(
         self,
-        context: Dict[str, Any],
+        context: dict[str, Any],
         analysis: _SurfaceAnalysis,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         tests = analysis.tests[:5]
         actions = [
             "Cover backend service changes with unit tests.",
@@ -228,7 +244,9 @@ class FullstackDeveloper(HeuristicMarkdownAgent):
             "Update frontend tests (unit or Playwright) for user flows.",
         ]
         if not tests:
-            actions.append("No existing tests detected; create new suites in backend and frontend directories.")
+            actions.append(
+                "No existing tests detected; create new suites in backend and frontend directories."
+            )
         return {
             "summary": "Ensure regressions are prevented across the stack.",
             "existing_tests": tests,
@@ -237,17 +255,21 @@ class FullstackDeveloper(HeuristicMarkdownAgent):
 
     def _build_deployment_strategy(
         self,
-        context: Dict[str, Any],
+        context: dict[str, Any],
         analysis: _SurfaceAnalysis,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         task = str(context.get("task", "")).lower()
-        actions: List[str] = []
+        actions: list[str] = []
         if "feature flag" in task:
             actions.append("Add feature flag toggles and document rollout plan.")
         if any(token in task for token in ("docker", "container", "k8s", "helm")):
-            actions.append("Update container image or Helm chart to include new service dependencies.")
+            actions.append(
+                "Update container image or Helm chart to include new service dependencies."
+            )
         if not actions:
-            actions.append("Review CI/CD workflow to ensure both backend and frontend build steps remain green.")
+            actions.append(
+                "Review CI/CD workflow to ensure both backend and frontend build steps remain green."
+            )
         return {
             "summary": "Confirm deployment/observability alignment.",
             "actions": actions,
@@ -259,10 +281,10 @@ class FullstackDeveloper(HeuristicMarkdownAgent):
 
     def _derive_remediation_paths(
         self,
-        result: Dict[str, Any],
-        strategy: Dict[str, Any],
-    ) -> List[str]:
-        remediation: List[str] = []
+        result: dict[str, Any],
+        strategy: dict[str, Any],
+    ) -> list[str]:
+        remediation: list[str] = []
         if result.get("status") == "plan-only":
             remediation.append(
                 "Switch to a strategist-tier agent (backend-architect + frontend-architect) "
@@ -270,7 +292,9 @@ class FullstackDeveloper(HeuristicMarkdownAgent):
             )
         static_validation = result.get("static_validation") or []
         if static_validation:
-            remediation.append("Resolve static validation issues before re-running guardrails.")
+            remediation.append(
+                "Resolve static validation issues before re-running guardrails."
+            )
         if strategy["testing"]["existing_tests"]:
             remediation.append("Update listed tests to reflect new behaviour.")
         else:

@@ -6,11 +6,10 @@ Framework. All agents must inherit from BaseAgent and implement the required
 abstract methods.
 """
 
-from abc import ABC, abstractmethod
-from typing import Dict, List, Optional, Any
-from pathlib import Path
-import logging
 import json
+import logging
+from abc import ABC, abstractmethod
+from typing import Any, Dict, List
 
 
 class BaseAgent(ABC):
@@ -33,21 +32,21 @@ class BaseAgent(ABC):
         """
         self.config = dict(config)
 
-        self.name = config.get('name', 'unnamed-agent')
-        self.description = config.get('description', '')
-        self.category = config.get('category', 'general')
-        self.tools = config.get('tools', [])
-        self.triggers = config.get('triggers', [])
-        self.focus_areas = config.get('focus_areas', {})
-        self.boundaries = config.get('boundaries', {})
-        self.mindset = config.get('behavioral_mindset', '')
+        self.name = config.get("name", "unnamed-agent")
+        self.description = config.get("description", "")
+        self.category = config.get("category", "general")
+        self.tools = config.get("tools", [])
+        self.triggers = config.get("triggers", [])
+        self.focus_areas = config.get("focus_areas", {})
+        self.boundaries = config.get("boundaries", {})
+        self.mindset = config.get("behavioral_mindset", "")
 
         # Setup logging
         self.logger = logging.getLogger(f"agent.{self.name}")
 
         # Metadata
-        self.version = config.get('version', '1.0.0')
-        self.source_file = config.get('source_file', None)
+        self.version = config.get("version", "1.0.0")
+        self.source_file = config.get("source_file")
 
         # Runtime state
         self._initialized = False
@@ -117,14 +116,14 @@ class BaseAgent(ABC):
             Dictionary containing agent metadata
         """
         return {
-            'name': self.name,
-            'description': self.description,
-            'category': self.category,
-            'version': self.version,
-            'tools': self.tools,
-            'triggers': self.triggers,
-            'source_file': str(self.source_file) if self.source_file else None,
-            'execution_count': self._execution_count
+            "name": self.name,
+            "description": self.description,
+            "category": self.category,
+            "version": self.version,
+            "tools": self.tools,
+            "triggers": self.triggers,
+            "source_file": str(self.source_file) if self.source_file else None,
+            "execution_count": self._execution_count,
         }
 
     def initialize(self) -> bool:

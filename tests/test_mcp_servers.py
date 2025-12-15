@@ -8,16 +8,17 @@ from pathlib import Path
 from typing import Any, Dict
 
 import pytest
+
 try:
     import yaml
 except ModuleNotFoundError:  # pragma: no cover - optional dev dependency
     yaml = None  # type: ignore
 
+import SuperClaude.MCP as mcp_module
 from SuperClaude.Commands.executor import CommandContext, CommandExecutor
 from SuperClaude.Commands.parser import CommandParser, ParsedCommand
 from SuperClaude.Commands.registry import CommandMetadata, CommandRegistry
 from SuperClaude.MCP import MCP_SERVERS, get_mcp_integration
-import SuperClaude.MCP as mcp_module
 from SuperClaude.MCP.rube_integration import RubeIntegration
 from SuperClaude.Quality.quality_scorer import QualityDimension
 
@@ -131,7 +132,9 @@ def test_loop_flag_enables_zen_review(monkeypatch):
         complexity="standard",
         mcp_servers=[],
     )
-    parsed = ParsedCommand(name="implement", raw_string="/sc:implement --loop", flags={"loop": True})
+    parsed = ParsedCommand(
+        name="implement", raw_string="/sc:implement --loop", flags={"loop": True}
+    )
     context = CommandContext(command=parsed, metadata=metadata)
 
     executor._apply_execution_flags(context)
@@ -197,13 +200,16 @@ async def test_activate_mcp_records_warning_on_failure(monkeypatch, caplog):
 
     monkeypatch.setattr(mcp_module, "get_mcp_integration", _failing_get)
     from SuperClaude.Commands import executor as executor_module
+
     monkeypatch.setattr(executor_module, "get_mcp_integration", _failing_get)
     monkeypatch.setattr(executor_module.os.path, "exists", lambda path: False)
 
     await executor._activate_mcp_servers(context)
 
     assert "rube" not in executor.active_mcp_servers
-    assert any("Skipping MCP server 'rube'" in record.message for record in caplog.records)
+    assert any(
+        "Skipping MCP server 'rube'" in record.message for record in caplog.records
+    )
 
 
 @pytest.mark.asyncio
@@ -220,7 +226,9 @@ async def test_run_zen_reviews_attaches_results(monkeypatch):
         complexity="standard",
         mcp_servers=["zen"],
     )
-    parsed = ParsedCommand(name="implement", raw_string="/sc:implement --loop", flags={"loop": True})
+    parsed = ParsedCommand(
+        name="implement", raw_string="/sc:implement --loop", flags={"loop": True}
+    )
     context = CommandContext(command=parsed, metadata=metadata)
     context.zen_review_enabled = True
     context.results["zen_review_targets"] = [
@@ -249,17 +257,38 @@ def test_zen_primary_evaluator_overrides_metrics(tmp_path, monkeypatch):
 
     (tmp_path / ".git").mkdir()
     subprocess.run(["git", "init"], cwd=tmp_path, check=True, stdout=subprocess.PIPE)
-    subprocess.run(["git", "config", "user.name", "Test"], cwd=tmp_path, check=True, stdout=subprocess.PIPE)
-    subprocess.run(["git", "config", "user.email", "test@example.com"], cwd=tmp_path, check=True, stdout=subprocess.PIPE)
+    subprocess.run(
+        ["git", "config", "user.name", "Test"],
+        cwd=tmp_path,
+        check=True,
+        stdout=subprocess.PIPE,
+    )
+    subprocess.run(
+        ["git", "config", "user.email", "test@example.com"],
+        cwd=tmp_path,
+        check=True,
+        stdout=subprocess.PIPE,
+    )
     tracked = tmp_path / "sample.txt"
     tracked.write_text("initial", encoding="utf-8")
-    subprocess.run(["git", "add", "sample.txt"], cwd=tmp_path, check=True, stdout=subprocess.PIPE)
-    subprocess.run(["git", "commit", "-m", "init"], cwd=tmp_path, check=True, stdout=subprocess.PIPE)
+    subprocess.run(
+        ["git", "add", "sample.txt"], cwd=tmp_path, check=True, stdout=subprocess.PIPE
+    )
+    subprocess.run(
+        ["git", "commit", "-m", "init"],
+        cwd=tmp_path,
+        check=True,
+        stdout=subprocess.PIPE,
+    )
     tracked.write_text("changed", encoding="utf-8")
 
     context = CommandContext(
-        command=ParsedCommand(name="implement", raw_string="/sc:implement --loop", flags={"loop": True}),
-        metadata=CommandMetadata(name="implement", description="", category="dev", complexity="standard"),
+        command=ParsedCommand(
+            name="implement", raw_string="/sc:implement --loop", flags={"loop": True}
+        ),
+        metadata=CommandMetadata(
+            name="implement", description="", category="dev", complexity="standard"
+        ),
     )
     context.zen_review_enabled = True
 
@@ -270,7 +299,11 @@ def test_zen_primary_evaluator_overrides_metrics(tmp_path, monkeypatch):
                 "overall_score": 92,
                 "summary": "Looks solid",
                 "dimensions": {
-                    "correctness": {"score": 94, "issues": ["Nit"], "suggestions": ["Add test"]},
+                    "correctness": {
+                        "score": 94,
+                        "issues": ["Nit"],
+                        "suggestions": ["Add test"],
+                    },
                     "testability": {"score": 88, "issues": [], "suggestions": []},
                 },
                 "improvements": ["Add regression tests"],
@@ -278,7 +311,11 @@ def test_zen_primary_evaluator_overrides_metrics(tmp_path, monkeypatch):
 
     executor.active_mcp_servers["zen"] = {"instance": _FakeZen()}
 
-    monkeypatch.setattr(executor, "_collect_full_repo_diff", lambda: "diff --git a/sample.txt b/sample.txt")
+    monkeypatch.setattr(
+        executor,
+        "_collect_full_repo_diff",
+        lambda: "diff --git a/sample.txt b/sample.txt",
+    )
     monkeypatch.setattr(executor, "_list_changed_files", lambda: ["sample.txt"])
 
     cleanup = executor._enable_primary_zen_quality(context)

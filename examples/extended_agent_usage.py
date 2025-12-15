@@ -4,10 +4,7 @@ Extended Agent System Usage Examples
 Demonstrates various usage patterns for the 131-agent system.
 """
 
-from SuperClaude.Agents.extended_loader import (
-    ExtendedAgentLoader,
-    AgentCategory
-)
+from SuperClaude.Agents.extended_loader import AgentCategory, ExtendedAgentLoader
 
 
 def example_basic_loading():
@@ -19,7 +16,7 @@ def example_basic_loading():
     loader = ExtendedAgentLoader(cache_size=10, ttl_seconds=300)
 
     # Load specific agent
-    agent = loader.load_agent('typescript-pro')
+    agent = loader.load_agent("typescript-pro")
 
     if agent:
         print(f"✓ Loaded: {agent.name}")
@@ -29,7 +26,7 @@ def example_basic_loading():
 
     # Show statistics
     stats = loader.get_statistics()
-    print(f"\nStatistics:")
+    print("\nStatistics:")
     print(f"  Total agents: {stats['total_agents']}")
     print(f"  Cache size: {stats['cached_agents']}/{stats['max_cache_size']}")
 
@@ -44,11 +41,11 @@ def example_intelligent_selection():
 
     # Define task context
     context = {
-        'task': 'Build a GraphQL API with authentication and rate limiting',
-        'files': ['schema.graphql', 'resolvers.py', 'auth.py'],
-        'languages': ['python', 'graphql'],
-        'domains': ['api', 'backend', 'graphql', 'authentication'],
-        'keywords': ['graphql', 'api', 'authentication', 'rate-limit']
+        "task": "Build a GraphQL API with authentication and rate limiting",
+        "files": ["schema.graphql", "resolvers.py", "auth.py"],
+        "languages": ["python", "graphql"],
+        "domains": ["api", "backend", "graphql", "authentication"],
+        "keywords": ["graphql", "api", "authentication", "rate-limit"],
     }
 
     print(f"Task: {context['task']}\n")
@@ -77,21 +74,19 @@ def example_category_filtering():
 
     # Infrastructure task
     context = {
-        'task': 'Set up Kubernetes cluster with monitoring and logging',
-        'domains': ['kubernetes', 'devops', 'monitoring'],
-        'keywords': ['k8s', 'prometheus', 'grafana', 'elk']
+        "task": "Set up Kubernetes cluster with monitoring and logging",
+        "domains": ["kubernetes", "devops", "monitoring"],
+        "keywords": ["k8s", "prometheus", "grafana", "elk"],
     }
 
     print(f"Task: {context['task']}\n")
 
     # Filter to infrastructure category
     matches = loader.select_agent(
-        context,
-        category_hint=AgentCategory.INFRASTRUCTURE,
-        top_n=3
+        context, category_hint=AgentCategory.INFRASTRUCTURE, top_n=3
     )
 
-    print(f"Infrastructure Agents:\n")
+    print("Infrastructure Agents:\n")
 
     for match in matches:
         agent = loader._agent_metadata.get(match.agent_id)
@@ -112,7 +107,7 @@ def example_search_and_discovery():
     # Search for React-related agents
     print("Searching for 'react'...\n")
 
-    results = loader.search_agents('react')
+    results = loader.search_agents("react")
 
     for agent in results[:5]:
         print(f"• {agent.name} (ID: {agent.id})")
@@ -137,12 +132,12 @@ def example_detailed_explanation():
     loader = ExtendedAgentLoader()
 
     context = {
-        'task': 'Optimize machine learning model training pipeline',
-        'files': ['train.py', 'model.py', 'data_loader.py'],
-        'languages': ['python'],
-        'domains': ['ml', 'ai', 'data'],
-        'keywords': ['machine-learning', 'tensorflow', 'optimization'],
-        'imports': ['tensorflow', 'sklearn', 'pandas']
+        "task": "Optimize machine learning model training pipeline",
+        "files": ["train.py", "model.py", "data_loader.py"],
+        "languages": ["python"],
+        "domains": ["ml", "ai", "data"],
+        "keywords": ["machine-learning", "tensorflow", "optimization"],
+        "imports": ["tensorflow", "sklearn", "pandas"],
     }
 
     print(f"Task: {context['task']}\n")
@@ -159,16 +154,16 @@ def example_detailed_explanation():
         print(f"Total Score: {explanation['total_score']:.3f}\n")
 
         print("Score Breakdown:")
-        for component, score in explanation['breakdown'].items():
-            percentage = score / explanation['total_score'] * 100
+        for component, score in explanation["breakdown"].items():
+            percentage = score / explanation["total_score"] * 100
             print(f"  {component:15} {score:.3f} ({percentage:.1f}%)")
 
         print("\nMatched Criteria:")
-        for criterion in explanation['matched_criteria']:
+        for criterion in explanation["matched_criteria"]:
             print(f"  • {criterion}")
 
         print("\nAgent Capabilities:")
-        metadata = explanation['metadata']
+        metadata = explanation["metadata"]
         print(f"  Domains: {', '.join(metadata['domains'])}")
         print(f"  Languages: {', '.join(metadata['languages'])}")
         print(f"  Keywords: {', '.join(metadata['keywords'][:5])}")
@@ -186,9 +181,14 @@ def example_performance_optimization():
     print("Simulating access pattern...\n")
 
     access_pattern = [
-        'python-expert', 'typescript-pro', 'react-specialist',
-        'python-expert', 'typescript-pro', 'python-expert',
-        'kubernetes-specialist', 'python-expert'
+        "python-expert",
+        "typescript-pro",
+        "react-specialist",
+        "python-expert",
+        "typescript-pro",
+        "python-expert",
+        "kubernetes-specialist",
+        "python-expert",
     ]
 
     for agent_id in access_pattern:
@@ -198,8 +198,8 @@ def example_performance_optimization():
     stats = loader.get_statistics()
     print("Statistics Before Optimization:")
     print(f"  Cache size: {stats['cached_agents']}/{stats['max_cache_size']}")
-    print(f"  Top accessed agents:")
-    for agent_id, count in list(stats['top_accessed_agents'].items())[:5]:
+    print("  Top accessed agents:")
+    for agent_id, count in list(stats["top_accessed_agents"].items())[:5]:
         print(f"    • {agent_id}: {count} accesses")
 
     # Optimize cache
@@ -210,7 +210,7 @@ def example_performance_optimization():
     stats = loader.get_statistics()
     print("\nStatistics After Optimization:")
     print(f"  Cache size: {stats['cached_agents']}/{stats['max_cache_size']}")
-    print(f"  Agents preloaded based on frequency")
+    print("  Agents preloaded based on frequency")
 
 
 def example_multi_agent_workflow():
@@ -224,39 +224,39 @@ def example_multi_agent_workflow():
     # Define multi-step workflow
     workflow_steps = [
         {
-            'name': 'Design API',
-            'context': {
-                'task': 'Design RESTful API endpoints',
-                'domains': ['api', 'rest'],
-                'keywords': ['api', 'rest', 'endpoint', 'design']
-            }
+            "name": "Design API",
+            "context": {
+                "task": "Design RESTful API endpoints",
+                "domains": ["api", "rest"],
+                "keywords": ["api", "rest", "endpoint", "design"],
+            },
         },
         {
-            'name': 'Implement Backend',
-            'context': {
-                'task': 'Implement Python Flask backend',
-                'files': ['app.py', 'routes.py'],
-                'languages': ['python'],
-                'keywords': ['flask', 'python', 'backend']
-            }
+            "name": "Implement Backend",
+            "context": {
+                "task": "Implement Python Flask backend",
+                "files": ["app.py", "routes.py"],
+                "languages": ["python"],
+                "keywords": ["flask", "python", "backend"],
+            },
         },
         {
-            'name': 'Add Security',
-            'context': {
-                'task': 'Add authentication and authorization',
-                'domains': ['security', 'authentication'],
-                'keywords': ['auth', 'security', 'jwt']
-            }
+            "name": "Add Security",
+            "context": {
+                "task": "Add authentication and authorization",
+                "domains": ["security", "authentication"],
+                "keywords": ["auth", "security", "jwt"],
+            },
         },
         {
-            'name': 'Write Tests',
-            'context': {
-                'task': 'Write unit and integration tests',
-                'files': ['test_app.py', 'test_auth.py'],
-                'domains': ['testing'],
-                'keywords': ['test', 'pytest', 'unittest']
-            }
-        }
+            "name": "Write Tests",
+            "context": {
+                "task": "Write unit and integration tests",
+                "files": ["test_app.py", "test_auth.py"],
+                "domains": ["testing"],
+                "keywords": ["test", "pytest", "unittest"],
+            },
+        },
     ]
 
     print("Multi-step workflow:\n")
@@ -265,7 +265,7 @@ def example_multi_agent_workflow():
         print(f"Step: {step['name']}")
 
         # Select best agent for step
-        matches = loader.select_agent(step['context'], top_n=1)
+        matches = loader.select_agent(step["context"], top_n=1)
 
         if matches:
             agent = loader._agent_metadata.get(matches[0].agent_id)
@@ -314,7 +314,7 @@ def main():
         example_detailed_explanation,
         example_performance_optimization,
         example_multi_agent_workflow,
-        example_category_exploration
+        example_category_exploration,
     ]
 
     for example in examples:
@@ -324,6 +324,7 @@ def main():
         except Exception as e:
             print(f"Error in {example.__name__}: {e}")
             import traceback
+
             traceback.print_exc()
 
     print("=" * 60)
@@ -331,5 +332,5 @@ def main():
     print("=" * 60)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

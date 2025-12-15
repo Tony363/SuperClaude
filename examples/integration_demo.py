@@ -10,7 +10,7 @@ from pathlib import Path
 # Add SuperClaude to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from SuperClaude.Agents import ExtendedAgentLoader, AgentCategory
+from SuperClaude.Agents import AgentCategory, ExtendedAgentLoader
 
 
 class SuperClaudeOrchestrator:
@@ -22,7 +22,7 @@ class SuperClaudeOrchestrator:
         """Initialize with extended agent loader."""
         self.loader = ExtendedAgentLoader(
             cache_size=25,  # Larger cache for orchestration
-            ttl_seconds=3600  # 1 hour TTL
+            ttl_seconds=3600,  # 1 hour TTL
         )
         print("✓ SuperClaude Orchestrator initialized")
         print(f"  Loaded metadata for {len(self.loader._agent_metadata)} agents")
@@ -57,7 +57,9 @@ class SuperClaudeOrchestrator:
         for i, match in enumerate(matches, 1):
             agent = self.loader._agent_metadata.get(match.agent_id)
             if agent:
-                print(f"  {i}. {agent.name} ({match.confidence}, score: {match.total_score:.3f})")
+                print(
+                    f"  {i}. {agent.name} ({match.confidence}, score: {match.total_score:.3f})"
+                )
 
         if matches:
             best = matches[0]
@@ -79,66 +81,66 @@ class SuperClaudeOrchestrator:
 
         phases = [
             {
-                'name': 'Phase 1: Requirements Analysis',
-                'context': {
-                    'task': 'Analyze requirements for e-commerce platform',
-                    'domains': ['requirements', 'business', 'analysis'],
-                    'keywords': ['requirements', 'specification', 'scope']
-                }
+                "name": "Phase 1: Requirements Analysis",
+                "context": {
+                    "task": "Analyze requirements for e-commerce platform",
+                    "domains": ["requirements", "business", "analysis"],
+                    "keywords": ["requirements", "specification", "scope"],
+                },
             },
             {
-                'name': 'Phase 2: API Design',
-                'context': {
-                    'task': 'Design RESTful API for product catalog',
-                    'domains': ['api', 'rest', 'design'],
-                    'keywords': ['api', 'rest', 'design', 'openapi']
-                }
+                "name": "Phase 2: API Design",
+                "context": {
+                    "task": "Design RESTful API for product catalog",
+                    "domains": ["api", "rest", "design"],
+                    "keywords": ["api", "rest", "design", "openapi"],
+                },
             },
             {
-                'name': 'Phase 3: Backend Implementation',
-                'context': {
-                    'task': 'Implement Python/Django backend',
-                    'files': ['views.py', 'models.py', 'serializers.py'],
-                    'languages': ['python'],
-                    'domains': ['backend', 'django'],
-                    'keywords': ['django', 'python', 'backend', 'api']
-                }
+                "name": "Phase 3: Backend Implementation",
+                "context": {
+                    "task": "Implement Python/Django backend",
+                    "files": ["views.py", "models.py", "serializers.py"],
+                    "languages": ["python"],
+                    "domains": ["backend", "django"],
+                    "keywords": ["django", "python", "backend", "api"],
+                },
             },
             {
-                'name': 'Phase 4: Frontend Development',
-                'context': {
-                    'task': 'Build React frontend with TypeScript',
-                    'files': ['App.tsx', 'components/*.tsx'],
-                    'languages': ['typescript', 'javascript'],
-                    'domains': ['frontend', 'react'],
-                    'keywords': ['react', 'typescript', 'hooks', 'components']
-                }
+                "name": "Phase 4: Frontend Development",
+                "context": {
+                    "task": "Build React frontend with TypeScript",
+                    "files": ["App.tsx", "components/*.tsx"],
+                    "languages": ["typescript", "javascript"],
+                    "domains": ["frontend", "react"],
+                    "keywords": ["react", "typescript", "hooks", "components"],
+                },
             },
             {
-                'name': 'Phase 5: Testing & QA',
-                'context': {
-                    'task': 'Write comprehensive test suite',
-                    'files': ['test_*.py', '*.test.tsx'],
-                    'domains': ['testing', 'qa'],
-                    'keywords': ['test', 'pytest', 'jest', 'coverage']
-                }
+                "name": "Phase 5: Testing & QA",
+                "context": {
+                    "task": "Write comprehensive test suite",
+                    "files": ["test_*.py", "*.test.tsx"],
+                    "domains": ["testing", "qa"],
+                    "keywords": ["test", "pytest", "jest", "coverage"],
+                },
             },
             {
-                'name': 'Phase 6: Deployment',
-                'context': {
-                    'task': 'Set up Kubernetes deployment pipeline',
-                    'files': ['deployment.yaml', 'service.yaml'],
-                    'domains': ['devops', 'kubernetes'],
-                    'keywords': ['kubernetes', 'deployment', 'ci/cd', 'helm']
-                }
-            }
+                "name": "Phase 6: Deployment",
+                "context": {
+                    "task": "Set up Kubernetes deployment pipeline",
+                    "files": ["deployment.yaml", "service.yaml"],
+                    "domains": ["devops", "kubernetes"],
+                    "keywords": ["kubernetes", "deployment", "ci/cd", "helm"],
+                },
+            },
         ]
 
         for phase in phases:
             print(f"📋 {phase['name']}")
 
             # Select best agent for phase
-            matches = self.loader.select_agent(phase['context'], top_n=1)
+            matches = self.loader.select_agent(phase["context"], top_n=1)
 
             if matches:
                 agent_meta = self.loader._agent_metadata.get(matches[0].agent_id)
@@ -158,32 +160,32 @@ class SuperClaudeOrchestrator:
 
         scenarios = [
             {
-                'title': 'Machine Learning Pipeline',
-                'category': AgentCategory.DATA_AI,
-                'context': {
-                    'task': 'Build ML training pipeline',
-                    'domains': ['ml', 'data'],
-                    'keywords': ['machine-learning', 'training', 'pipeline']
-                }
+                "title": "Machine Learning Pipeline",
+                "category": AgentCategory.DATA_AI,
+                "context": {
+                    "task": "Build ML training pipeline",
+                    "domains": ["ml", "data"],
+                    "keywords": ["machine-learning", "training", "pipeline"],
+                },
             },
             {
-                'title': 'Security Audit',
-                'category': AgentCategory.QUALITY_SECURITY,
-                'context': {
-                    'task': 'Perform security vulnerability assessment',
-                    'domains': ['security', 'audit'],
-                    'keywords': ['security', 'vulnerability', 'audit']
-                }
+                "title": "Security Audit",
+                "category": AgentCategory.QUALITY_SECURITY,
+                "context": {
+                    "task": "Perform security vulnerability assessment",
+                    "domains": ["security", "audit"],
+                    "keywords": ["security", "vulnerability", "audit"],
+                },
             },
             {
-                'title': 'Cloud Infrastructure',
-                'category': AgentCategory.INFRASTRUCTURE,
-                'context': {
-                    'task': 'Design AWS cloud architecture',
-                    'domains': ['cloud', 'aws', 'infrastructure'],
-                    'keywords': ['aws', 'cloud', 'architecture', 's3', 'ec2']
-                }
-            }
+                "title": "Cloud Infrastructure",
+                "category": AgentCategory.INFRASTRUCTURE,
+                "context": {
+                    "task": "Design AWS cloud architecture",
+                    "domains": ["cloud", "aws", "infrastructure"],
+                    "keywords": ["aws", "cloud", "architecture", "s3", "ec2"],
+                },
+            },
         ]
 
         for scenario in scenarios:
@@ -192,16 +194,16 @@ class SuperClaudeOrchestrator:
 
             # Filter to specific category
             matches = self.loader.select_agent(
-                scenario['context'],
-                category_hint=scenario['category'],
-                top_n=3
+                scenario["context"], category_hint=scenario["category"], top_n=3
             )
 
             print("   Top Agents:")
             for i, match in enumerate(matches, 1):
                 agent_meta = self.loader._agent_metadata.get(match.agent_id)
                 if agent_meta:
-                    print(f"     {i}. {agent_meta.name} (score: {match.total_score:.3f})")
+                    print(
+                        f"     {i}. {agent_meta.name} (score: {match.total_score:.3f})"
+                    )
             print()
 
     def show_performance_metrics(self):
@@ -228,9 +230,9 @@ class SuperClaudeOrchestrator:
         print(f"  Avg Load Time: {stats['avg_load_time']:.3f}s")
         print()
 
-        if stats['top_accessed_agents']:
+        if stats["top_accessed_agents"]:
             print("Most Used Agents:")
-            for agent_id, count in list(stats['top_accessed_agents'].items())[:5]:
+            for agent_id, count in list(stats["top_accessed_agents"].items())[:5]:
                 print(f"  • {agent_id}: {count} accesses")
         print()
 
@@ -246,28 +248,28 @@ class SuperClaudeOrchestrator:
             Context dictionary
         """
         context = {
-            'task': task,
-            'files': files,
-            'languages': [],
-            'domains': [],
-            'keywords': []
+            "task": task,
+            "files": files,
+            "languages": [],
+            "domains": [],
+            "keywords": [],
         }
 
         # Detect languages from file extensions
         language_map = {
-            '.py': 'python',
-            '.js': 'javascript',
-            '.ts': 'typescript',
-            '.tsx': 'typescript',
-            '.jsx': 'javascript',
-            '.go': 'go',
-            '.rs': 'rust',
-            '.java': 'java',
-            '.rb': 'ruby',
-            '.php': 'php',
-            '.cs': 'csharp',
-            '.kt': 'kotlin',
-            '.swift': 'swift'
+            ".py": "python",
+            ".js": "javascript",
+            ".ts": "typescript",
+            ".tsx": "typescript",
+            ".jsx": "javascript",
+            ".go": "go",
+            ".rs": "rust",
+            ".java": "java",
+            ".rb": "ruby",
+            ".php": "php",
+            ".cs": "csharp",
+            ".kt": "kotlin",
+            ".swift": "swift",
         }
 
         seen_languages = set()
@@ -276,20 +278,20 @@ class SuperClaudeOrchestrator:
             if ext in language_map:
                 lang = language_map[ext]
                 if lang not in seen_languages:
-                    context['languages'].append(lang)
+                    context["languages"].append(lang)
                     seen_languages.add(lang)
 
         # Extract keywords from task
         task_lower = task.lower()
         keyword_indicators = {
-            'api': ['api', 'rest', 'graphql', 'endpoint'],
-            'frontend': ['frontend', 'ui', 'component', 'react', 'vue'],
-            'backend': ['backend', 'server', 'database', 'api'],
-            'testing': ['test', 'qa', 'coverage', 'validate'],
-            'security': ['security', 'auth', 'authentication', 'vulnerability'],
-            'performance': ['performance', 'optimize', 'speed', 'latency'],
-            'devops': ['deploy', 'docker', 'kubernetes', 'ci/cd'],
-            'database': ['database', 'sql', 'query', 'migration']
+            "api": ["api", "rest", "graphql", "endpoint"],
+            "frontend": ["frontend", "ui", "component", "react", "vue"],
+            "backend": ["backend", "server", "database", "api"],
+            "testing": ["test", "qa", "coverage", "validate"],
+            "security": ["security", "auth", "authentication", "vulnerability"],
+            "performance": ["performance", "optimize", "speed", "latency"],
+            "devops": ["deploy", "docker", "kubernetes", "ci/cd"],
+            "database": ["database", "sql", "query", "migration"],
         }
 
         seen_domains = set()
@@ -299,10 +301,10 @@ class SuperClaudeOrchestrator:
             for keyword in keywords:
                 if keyword in task_lower:
                     if domain not in seen_domains:
-                        context['domains'].append(domain)
+                        context["domains"].append(domain)
                         seen_domains.add(domain)
                     if keyword not in seen_keywords:
-                        context['keywords'].append(keyword)
+                        context["keywords"].append(keyword)
                         seen_keywords.add(keyword)
 
         return context
@@ -324,7 +326,7 @@ def main():
     # Demo 1: Single development task
     orchestrator.handle_development_task(
         "Implement GraphQL API with authentication and rate limiting",
-        ['schema.graphql', 'resolvers.py', 'auth.py', 'middleware.py']
+        ["schema.graphql", "resolvers.py", "auth.py", "middleware.py"],
     )
 
     # Demo 2: Multi-phase project
@@ -349,5 +351,5 @@ def main():
     print()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

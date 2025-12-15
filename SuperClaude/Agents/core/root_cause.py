@@ -5,9 +5,8 @@ This agent specializes in systematic investigation and debugging,
 finding the underlying causes of issues through evidence-based analysis.
 """
 
-from typing import Dict, Any, List, Optional
 import re
-import logging
+from typing import Any, Dict, List, Optional
 
 from ..base import BaseAgent
 
@@ -28,12 +27,12 @@ class RootCauseAnalyst(BaseAgent):
             config: Agent configuration
         """
         # Ensure proper configuration
-        if 'name' not in config:
-            config['name'] = 'root-cause-analyst'
-        if 'description' not in config:
-            config['description'] = 'Systematically investigate complex problems'
-        if 'category' not in config:
-            config['category'] = 'analysis'
+        if "name" not in config:
+            config["name"] = "root-cause-analyst"
+        if "description" not in config:
+            config["description"] = "Systematically investigate complex problems"
+        if "category" not in config:
+            config["category"] = "analysis"
 
         super().__init__(config)
 
@@ -53,24 +52,24 @@ class RootCauseAnalyst(BaseAgent):
             Analysis results with findings
         """
         result = {
-            'success': False,
-            'output': '',
-            'actions_taken': [],
-            'errors': [],
-            'findings': {},
-            'root_cause': None
+            "success": False,
+            "output": "",
+            "actions_taken": [],
+            "errors": [],
+            "findings": {},
+            "root_cause": None,
         }
 
         try:
             # Initialize if needed
             if not self._initialized:
                 if not self.initialize():
-                    result['errors'].append("Failed to initialize agent")
+                    result["errors"].append("Failed to initialize agent")
                     return result
 
-            task = context.get('task', '')
+            task = context.get("task", "")
             if not task:
-                result['errors'].append("No issue to investigate")
+                result["errors"].append("No issue to investigate")
                 return result
 
             # Start investigation
@@ -79,45 +78,49 @@ class RootCauseAnalyst(BaseAgent):
 
             # Phase 1: Gather evidence
             evidence = self._gather_evidence(task, context)
-            result['actions_taken'].append(f"Gathered {len(evidence)} pieces of evidence")
+            result["actions_taken"].append(
+                f"Gathered {len(evidence)} pieces of evidence"
+            )
 
             # Phase 2: Form hypotheses
             hypotheses = self._form_hypotheses(evidence)
-            result['actions_taken'].append(f"Formed {len(hypotheses)} hypotheses")
+            result["actions_taken"].append(f"Formed {len(hypotheses)} hypotheses")
 
             # Phase 3: Test hypotheses
             tested_hypotheses = self._test_hypotheses(hypotheses, evidence)
-            result['actions_taken'].append("Tested hypotheses against evidence")
+            result["actions_taken"].append("Tested hypotheses against evidence")
 
             # Phase 4: Identify root cause
             root_cause = self._identify_root_cause(tested_hypotheses)
 
             if root_cause:
-                result['root_cause'] = root_cause
-                result['actions_taken'].append("Identified root cause")
+                result["root_cause"] = root_cause
+                result["actions_taken"].append("Identified root cause")
             else:
-                result['actions_taken'].append("Root cause unclear - more investigation needed")
+                result["actions_taken"].append(
+                    "Root cause unclear - more investigation needed"
+                )
 
             # Phase 5: Generate report
             report = self._generate_investigation_report(
                 task, evidence, tested_hypotheses, root_cause
             )
-            result['output'] = report
+            result["output"] = report
 
             # Store findings
-            result['findings'] = {
-                'evidence': evidence,
-                'hypotheses': [h['description'] for h in tested_hypotheses],
-                'root_cause': root_cause,
-                'confidence': self._calculate_confidence(root_cause, tested_hypotheses)
+            result["findings"] = {
+                "evidence": evidence,
+                "hypotheses": [h["description"] for h in tested_hypotheses],
+                "root_cause": root_cause,
+                "confidence": self._calculate_confidence(root_cause, tested_hypotheses),
             }
 
-            result['success'] = True
+            result["success"] = True
             self.log_execution(context, result)
 
         except Exception as e:
             self.logger.error(f"Investigation failed: {e}")
-            result['errors'].append(str(e))
+            result["errors"].append(str(e))
 
         return result
 
@@ -131,13 +134,23 @@ class RootCauseAnalyst(BaseAgent):
         Returns:
             True if context contains investigation-worthy task
         """
-        task = context.get('task', '')
+        task = context.get("task", "")
 
         # Check for investigation keywords
         investigation_keywords = [
-            'debug', 'investigate', 'analyze', 'root cause',
-            'why', 'issue', 'problem', 'error', 'failure',
-            'broken', 'not working', 'bug', 'crash'
+            "debug",
+            "investigate",
+            "analyze",
+            "root cause",
+            "why",
+            "issue",
+            "problem",
+            "error",
+            "failure",
+            "broken",
+            "not working",
+            "bug",
+            "crash",
         ]
 
         task_lower = task.lower()
@@ -150,15 +163,14 @@ class RootCauseAnalyst(BaseAgent):
         Args:
             issue: Issue description
         """
-        self.current_investigation = {
-            'issue': issue,
-            'started': True
-        }
+        self.current_investigation = {"issue": issue, "started": True}
         self.hypotheses = []
         self.evidence = []
         self.logger.debug(f"Investigation started: {issue}")
 
-    def _gather_evidence(self, issue: str, context: Dict[str, Any]) -> List[Dict[str, Any]]:
+    def _gather_evidence(
+        self, issue: str, context: Dict[str, Any]
+    ) -> List[Dict[str, Any]]:
         """
         Gather evidence related to the issue.
 
@@ -174,38 +186,38 @@ class RootCauseAnalyst(BaseAgent):
         # Extract symptoms from issue description
         symptoms = self._extract_symptoms(issue)
         for symptom in symptoms:
-            evidence.append({
-                'type': 'symptom',
-                'description': symptom,
-                'relevance': 'high'
-            })
+            evidence.append(
+                {"type": "symptom", "description": symptom, "relevance": "high"}
+            )
 
         # Check for error patterns
         error_patterns = self._find_error_patterns(issue)
         for pattern in error_patterns:
-            evidence.append({
-                'type': 'error_pattern',
-                'description': pattern,
-                'relevance': 'high'
-            })
+            evidence.append(
+                {"type": "error_pattern", "description": pattern, "relevance": "high"}
+            )
 
         # Context clues
-        files = context.get('files', [])
+        files = context.get("files", [])
         if files:
-            evidence.append({
-                'type': 'context',
-                'description': f"Involves {len(files)} files",
-                'relevance': 'medium',
-                'details': files[:5]  # First 5 files
-            })
+            evidence.append(
+                {
+                    "type": "context",
+                    "description": f"Involves {len(files)} files",
+                    "relevance": "medium",
+                    "details": files[:5],  # First 5 files
+                }
+            )
 
         # Timing information
-        if 'when' in issue.lower():
-            evidence.append({
-                'type': 'timing',
-                'description': 'Issue has temporal aspect',
-                'relevance': 'medium'
-            })
+        if "when" in issue.lower():
+            evidence.append(
+                {
+                    "type": "timing",
+                    "description": "Issue has temporal aspect",
+                    "relevance": "medium",
+                }
+            )
 
         self.evidence = evidence
         return evidence
@@ -224,11 +236,11 @@ class RootCauseAnalyst(BaseAgent):
 
         # Common symptom patterns
         patterns = [
-            r'(?:fails?|failing) (?:to |when |at )?(\w+(?:\s+\w+)*)',
-            r'(?:error|exception|crash)(?:s|es|ed)? (?:in|at|during) (\w+(?:\s+\w+)*)',
-            r'(?:can\'t|cannot|unable to) (\w+(?:\s+\w+)*)',
-            r'(\w+(?:\s+\w+)*) (?:not working|broken|failing)',
-            r'(?:returns?|gives?|shows?) (?:wrong |incorrect |invalid )?(\w+(?:\s+\w+)*)'
+            r"(?:fails?|failing) (?:to |when |at )?(\w+(?:\s+\w+)*)",
+            r"(?:error|exception|crash)(?:s|es|ed)? (?:in|at|during) (\w+(?:\s+\w+)*)",
+            r"(?:can\'t|cannot|unable to) (\w+(?:\s+\w+)*)",
+            r"(\w+(?:\s+\w+)*) (?:not working|broken|failing)",
+            r"(?:returns?|gives?|shows?) (?:wrong |incorrect |invalid )?(\w+(?:\s+\w+)*)",
         ]
 
         for pattern in patterns:
@@ -251,16 +263,16 @@ class RootCauseAnalyst(BaseAgent):
 
         # Common error types
         error_types = {
-            'null': 'Null reference or undefined value',
-            'timeout': 'Operation timeout or deadlock',
-            'permission': 'Permission or authorization issue',
-            'connection': 'Network or connection problem',
-            'memory': 'Memory leak or allocation issue',
-            'syntax': 'Syntax or parsing error',
-            'type': 'Type mismatch or conversion error',
-            'index': 'Index out of bounds or array error',
-            'file': 'File I/O or path issue',
-            'config': 'Configuration or settings problem'
+            "null": "Null reference or undefined value",
+            "timeout": "Operation timeout or deadlock",
+            "permission": "Permission or authorization issue",
+            "connection": "Network or connection problem",
+            "memory": "Memory leak or allocation issue",
+            "syntax": "Syntax or parsing error",
+            "type": "Type mismatch or conversion error",
+            "index": "Index out of bounds or array error",
+            "file": "File I/O or path issue",
+            "config": "Configuration or settings problem",
         }
 
         issue_lower = issue.lower()
@@ -283,37 +295,43 @@ class RootCauseAnalyst(BaseAgent):
         hypotheses = []
 
         # Analyze evidence patterns
-        symptom_count = sum(1 for e in evidence if e['type'] == 'symptom')
-        error_count = sum(1 for e in evidence if e['type'] == 'error_pattern')
+        symptom_count = sum(1 for e in evidence if e["type"] == "symptom")
+        error_count = sum(1 for e in evidence if e["type"] == "error_pattern")
 
         # Form hypotheses based on evidence
         if error_count > 0:
             # Error-based hypotheses
             for e in evidence:
-                if e['type'] == 'error_pattern':
-                    hypotheses.append({
-                        'description': f"Root cause: {e['description']}",
-                        'confidence': 0.7,
-                        'supporting_evidence': [e]
-                    })
+                if e["type"] == "error_pattern":
+                    hypotheses.append(
+                        {
+                            "description": f"Root cause: {e['description']}",
+                            "confidence": 0.7,
+                            "supporting_evidence": [e],
+                        }
+                    )
 
         if symptom_count > 0:
             # Symptom-based hypotheses
-            symptoms = [e for e in evidence if e['type'] == 'symptom']
+            symptoms = [e for e in evidence if e["type"] == "symptom"]
             if len(symptoms) > 2:
-                hypotheses.append({
-                    'description': "Multiple related failures suggest systemic issue",
-                    'confidence': 0.6,
-                    'supporting_evidence': symptoms
-                })
+                hypotheses.append(
+                    {
+                        "description": "Multiple related failures suggest systemic issue",
+                        "confidence": 0.6,
+                        "supporting_evidence": symptoms,
+                    }
+                )
 
         # Default hypotheses if nothing specific found
         if not hypotheses:
-            hypotheses.append({
-                'description': "Configuration or environment issue",
-                'confidence': 0.3,
-                'supporting_evidence': evidence
-            })
+            hypotheses.append(
+                {
+                    "description": "Configuration or environment issue",
+                    "confidence": 0.3,
+                    "supporting_evidence": evidence,
+                }
+            )
 
         self.hypotheses = hypotheses
         return hypotheses
@@ -335,19 +353,19 @@ class RootCauseAnalyst(BaseAgent):
 
         for hypothesis in hypotheses:
             # Count supporting vs contradicting evidence
-            supporting = len(hypothesis.get('supporting_evidence', []))
+            supporting = len(hypothesis.get("supporting_evidence", []))
             total_evidence = len(evidence)
 
             # Adjust confidence based on evidence ratio
             if total_evidence > 0:
                 evidence_ratio = supporting / total_evidence
-                hypothesis['confidence'] *= (1 + evidence_ratio)
-                hypothesis['confidence'] = min(hypothesis['confidence'], 0.95)
+                hypothesis["confidence"] *= 1 + evidence_ratio
+                hypothesis["confidence"] = min(hypothesis["confidence"], 0.95)
 
             tested.append(hypothesis)
 
         # Sort by confidence
-        tested.sort(key=lambda h: h['confidence'], reverse=True)
+        tested.sort(key=lambda h: h["confidence"], reverse=True)
         return tested
 
     def _identify_root_cause(self, hypotheses: List[Dict[str, Any]]) -> Optional[str]:
@@ -367,8 +385,8 @@ class RootCauseAnalyst(BaseAgent):
         best = hypotheses[0]
 
         # Need minimum confidence threshold
-        if best['confidence'] >= 0.5:
-            return best['description']
+        if best["confidence"] >= 0.5:
+            return best["description"]
 
         return None
 
@@ -390,8 +408,8 @@ class RootCauseAnalyst(BaseAgent):
 
         # Get confidence of root cause hypothesis
         for h in hypotheses:
-            if h['description'] == root_cause:
-                return h['confidence']
+            if h["description"] == root_cause:
+                return h["confidence"]
 
         return 0.0
 
@@ -400,7 +418,7 @@ class RootCauseAnalyst(BaseAgent):
         issue: str,
         evidence: List[Dict[str, Any]],
         hypotheses: List[Dict[str, Any]],
-        root_cause: Optional[str]
+        root_cause: Optional[str],
     ) -> str:
         """
         Generate investigation report.
@@ -454,4 +472,4 @@ class RootCauseAnalyst(BaseAgent):
             lines.append("2. Reproduce issue in controlled environment")
             lines.append("3. Perform systematic component isolation")
 
-        return '\n'.join(lines)
+        return "\n".join(lines)

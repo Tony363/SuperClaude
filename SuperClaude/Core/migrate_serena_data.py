@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 from SuperClaude.Core.unified_store import SymbolInfo, UnifiedStore
 
@@ -33,7 +33,7 @@ def migrate_serena_data() -> bool:
 
     try:
         content = serena_file.read_text(encoding="utf-8")
-        data: Dict[str, Any] = json.loads(content)
+        data: dict[str, Any] = json.loads(content)
     except Exception as exc:  # pragma: no cover - defensive logging
         print(f"Failed to read Serena data: {exc}")
         store.close()
@@ -51,8 +51,7 @@ def migrate_serena_data() -> bool:
         symbol = SymbolInfo(
             name=symbol_data.get("name", ""),
             kind=symbol_data.get("kind", ""),
-            file_path=symbol_data.get("path")
-            or symbol_data.get("file_path", ""),
+            file_path=symbol_data.get("path") or symbol_data.get("file_path", ""),
             line=symbol_data.get("line", 0),
             signature=symbol_data.get("signature"),
         )

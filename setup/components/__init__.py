@@ -1,17 +1,17 @@
 """Component implementations for SuperClaude installation system"""
 
-from .core import CoreComponent
-from .commands import CommandsComponent
-from .mcp import MCPComponent
 from .agents import AgentsComponent
-from .modes import ModesComponent
+from .commands import CommandsComponent
+from .core import CoreComponent
+from .mcp import MCPComponent
 from .mcp_docs import MCPDocsComponent
+from .modes import ModesComponent
 
 __all__ = [
-    'CoreComponent',
-    'CommandsComponent', 
-    'MCPComponent',
-    'AgentsComponent',
-    'ModesComponent',
-    'MCPDocsComponent'
+    "AgentsComponent",
+    "CommandsComponent",
+    "CoreComponent",
+    "MCPComponent",
+    "MCPDocsComponent",
+    "ModesComponent",
 ]

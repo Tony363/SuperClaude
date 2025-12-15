@@ -15,7 +15,7 @@ import textwrap
 from dataclasses import dataclass
 from pathlib import Path
 from time import perf_counter
-from typing import Iterable, List, Mapping, MutableMapping, Sequence
+from typing import Iterable, Mapping, MutableMapping, Sequence
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
@@ -58,7 +58,7 @@ def _cli_case(name: str, command: Sequence[str], description: str) -> BenchmarkC
     return BenchmarkCase(name=name, command=command, description=description)
 
 
-SUITES: Mapping[str, List[BenchmarkCase]] = {
+SUITES: Mapping[str, list[BenchmarkCase]] = {
     "smoke": [
         _pytest_case(
             "version-tests",
@@ -131,9 +131,7 @@ def run_case(case: BenchmarkCase) -> BenchmarkResult:
 
 def _format_result(result: BenchmarkResult) -> str:
     status = "PASS" if result.success else "FAIL"
-    return (
-        f"[{status:4}] {result.name:<20} {result.duration_s:6.2f}s — {result.description}"
-    )
+    return f"[{status:4}] {result.name:<20} {result.duration_s:6.2f}s — {result.description}"
 
 
 def _print_details(result: BenchmarkResult) -> None:

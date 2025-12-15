@@ -10,10 +10,14 @@ from __future__ import annotations
 import datetime as _dt
 import json
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
+from ...APIClients.codex_cli import (
+    CodexCLIClient,
+    CodexCLIConfig,
+    CodexCLIResult,
+)
 from ..heuristic_markdown import HeuristicMarkdownAgent
-from ...APIClients.codex_cli import CodexCLIClient, CodexCLIConfig, CodexCLIResult, CodexCLIUnavailable
 
 
 class CodexImplementer(HeuristicMarkdownAgent):
@@ -36,7 +40,7 @@ class CodexImplementer(HeuristicMarkdownAgent):
         "nit",
     ]
 
-    def __init__(self, config: Dict[str, Any]):
+    def __init__(self, config: dict[str, Any]):
         defaults = {
             "name": "codex-implementer",
             "description": (
@@ -48,18 +52,18 @@ class CodexImplementer(HeuristicMarkdownAgent):
             "triggers": ["fast-codex", "quick"],
             "focus_areas": {
                 "implementation": "Rapid iteration on localized code edits with evidence capture.",
-                "guardrails": "Maintains requires_evidence while bypassing heavy persona stacks."
+                "guardrails": "Maintains requires_evidence while bypassing heavy persona stacks.",
             },
         }
         merged = {**defaults, **config}
         super().__init__(merged)
-        cli_config = merged.get('codex_cli', {})
+        cli_config = merged.get("codex_cli", {})
         config_obj = None
         if isinstance(cli_config, dict) and cli_config:
             config_obj = CodexCLIConfig(**cli_config)
         self._cli_client = CodexCLIClient(config_obj)
 
-    def validate(self, context: Dict[str, Any]) -> bool:
+    def validate(self, context: dict[str, Any]) -> bool:
         """Prefer small or well-scoped implementation tasks."""
         task = str(context.get("task", "")).lower()
         if not task:
@@ -72,7 +76,7 @@ class CodexImplementer(HeuristicMarkdownAgent):
         # Allow fallback for explicit fast mode invocations even without keywords.
         return "fast-codex" in task or "fast codex" in task
 
-    def execute(self, context: Dict[str, Any]) -> Dict[str, Any]:
+    def execute(self, context: dict[str, Any]) -> dict[str, Any]:
         """Run heuristic synthesis and annotate the result for Codex telemetry."""
         result = super().execute(context)
 
@@ -109,9 +113,14 @@ class CodexImplementer(HeuristicMarkdownAgent):
                 "Codex CLI produced no actionable changes; inspect stdout for details."
             )
 
-        quick_notes: List[str] = result.setdefault("notes", [])
-        if "Codex strategy: prioritize minimal diff with evidence attached." not in quick_notes:
-            quick_notes.append("Codex strategy: prioritize minimal diff with evidence attached.")
+        quick_notes: list[str] = result.setdefault("notes", [])
+        if (
+            "Codex strategy: prioritize minimal diff with evidence attached."
+            not in quick_notes
+        ):
+            quick_notes.append(
+                "Codex strategy: prioritize minimal diff with evidence attached."
+            )
 
         return result
 
@@ -121,8 +130,8 @@ class CodexImplementer(HeuristicMarkdownAgent):
 
     def _generate_codex_payload(
         self,
-        context: Dict[str, Any],
-    ) -> Tuple[Optional[Dict[str, Any]], Optional[CodexCLIResult]]:
+        context: dict[str, Any],
+    ) -> tuple[dict[str, Any] | None, CodexCLIResult | None]:
         """Invoke the Codex CLI and normalise its response."""
 
         prompt = self._build_codex_prompt(context)
@@ -130,7 +139,7 @@ class CodexImplementer(HeuristicMarkdownAgent):
             return None, None
 
         repo_root_str = context.get("repo_root") or context.get("base_path")
-        workdir: Optional[Path] = Path(repo_root_str) if repo_root_str else None
+        workdir: Path | None = Path(repo_root_str) if repo_root_str else None
 
         cli_result = self._cli_client.run(prompt, workdir=workdir)
         payload = cli_result.payload or {}
@@ -150,38 +159,44 @@ class CodexImplementer(HeuristicMarkdownAgent):
 
     def _apply_codex_changes(
         self,
-        result: Dict[str, Any],
-        changes: List[Dict[str, Any]],
-        payload: Optional[Dict[str, Any]]
+        result: dict[str, Any],
+        changes: list[dict[str, Any]],
+        payload: dict[str, Any] | None,
     ) -> None:
         """Promote Codex CLI changes into the agent result for execution."""
 
         summary = (payload or {}).get("summary") or "Codex CLI changes"
         result["proposed_changes"] = changes
 
-        writes = [f"write {change.get('path')}" for change in changes if change.get('path')]
+        writes = [
+            f"write {change.get('path')}" for change in changes if change.get("path")
+        ]
         existing_actions = result.get("actions_taken") or []
-        result["actions_taken"] = existing_actions + [action for action in writes if action not in existing_actions]
+        result["actions_taken"] = existing_actions + [
+            action for action in writes if action not in existing_actions
+        ]
 
         if not result.get("output"):
             result["output"] = summary
 
         # Clear plan-only warning when Codex produced concrete diffs.
         warnings = result.get("warnings") or []
-        plan_warning = "No concrete file or command changes detected; escalating to follow-up."
+        plan_warning = (
+            "No concrete file or command changes detected; escalating to follow-up."
+        )
         result["warnings"] = [w for w in warnings if w.strip() != plan_warning]
 
         result.pop("requires_followup", None)
         result["status"] = "executed"
         result["success"] = True
 
-    def _build_codex_prompt(self, context: Dict[str, Any]) -> Optional[str]:
+    def _build_codex_prompt(self, context: dict[str, Any]) -> str | None:
         task = str(context.get("task", "")).strip()
         if not task:
             return None
 
         retrieved_context = context.get("retrieved_context") or []
-        snippets: List[str] = []
+        snippets: list[str] = []
         for entry in retrieved_context[:3]:
             if isinstance(entry, dict):
                 summary = entry.get("summary") or entry.get("content") or ""
@@ -191,8 +206,8 @@ class CodexImplementer(HeuristicMarkdownAgent):
 
         instructions = (
             "You are an AI pair-programmer operating inside the SuperClaude fast Codex flow. "
-            "Respond with STRICT JSON matching the schema {\"summary\": str, \"changes\": ["
-            "{\"path\": str, \"content\": str, \"mode\": \"replace\"|\"append\"}]}. "
+            'Respond with STRICT JSON matching the schema {"summary": str, "changes": ['
+            '{"path": str, "content": str, "mode": "replace"|"append"}]}. '
             "All paths must be repository-relative and valid. Keep diffs minimal and self-contained."
         )
 
@@ -209,8 +224,8 @@ class CodexImplementer(HeuristicMarkdownAgent):
 
         return "\n".join(parts)
 
-    def _normalise_changes(self, raw_changes: Any) -> List[Dict[str, Any]]:
-        changes: List[Dict[str, Any]] = []
+    def _normalise_changes(self, raw_changes: Any) -> list[dict[str, Any]]:
+        changes: list[dict[str, Any]] = []
         if not isinstance(raw_changes, list):
             return changes
 
@@ -222,9 +237,11 @@ class CodexImplementer(HeuristicMarkdownAgent):
             if not path or not isinstance(path, str) or not isinstance(content, str):
                 continue
             mode = item.get("mode", "replace")
-            changes.append({
-                "path": path,
-                "content": content,
-                "mode": mode if isinstance(mode, str) else "replace",
-            })
+            changes.append(
+                {
+                    "path": path,
+                    "content": content,
+                    "mode": mode if isinstance(mode, str) else "replace",
+                }
+            )
         return changes

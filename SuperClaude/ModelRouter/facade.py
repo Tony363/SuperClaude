@@ -13,14 +13,14 @@ import logging
 import os
 import re
 import time
-from typing import Any, Dict, List, Optional
+from typing import Any
 
-from .router import ModelRouter, RoutingDecision, ModelProvider
-from .consensus import ConsensusBuilder, ConsensusResult, VoteType
-from ..APIClients.openai_client import OpenAIClient, CompletionRequest
 from ..APIClients.anthropic_client import AnthropicClient, ClaudeRequest
-from ..APIClients.google_client import GoogleClient, GeminiRequest
-from ..APIClients.xai_client import XAIClient, GrokRequest
+from ..APIClients.google_client import GeminiRequest, GoogleClient
+from ..APIClients.openai_client import CompletionRequest, OpenAIClient
+from ..APIClients.xai_client import GrokRequest, XAIClient
+from .consensus import ConsensusBuilder, ConsensusResult, VoteType
+from .router import ModelProvider, ModelRouter, RoutingDecision
 
 logger = logging.getLogger(__name__)
 
@@ -30,13 +30,13 @@ class ModelRouterFacade:
 
     def __init__(
         self,
-        router: Optional[ModelRouter] = None,
-        consensus: Optional[ConsensusBuilder] = None,
-        offline: Optional[bool] = None,
+        router: ModelRouter | None = None,
+        consensus: ConsensusBuilder | None = None,
+        offline: bool | None = None,
     ) -> None:
         self.router = router or ModelRouter()
         self.consensus = consensus or ConsensusBuilder(self.router)
-        self._provider_clients: Dict[str, Any] = {}
+        self._provider_clients: dict[str, Any] = {}
         self.offline_mode = self._resolve_offline_mode(offline)
 
         self._initialize_executors()
@@ -45,47 +45,57 @@ class ModelRouterFacade:
         self,
         prompt: str,
         *,
-        models: Optional[List[str]] = None,
+        models: list[str] | None = None,
         vote_type: VoteType = VoteType.MAJORITY,
         quorum_size: int = 2,
-        context: Optional[Dict[str, Any]] = None,
-        think_level: Optional[int] = None,
+        context: dict[str, Any] | None = None,
+        think_level: int | None = None,
         task_type: str = "consensus",
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Execute consensus evaluation and return a JSON-serializable payload."""
         effective_think = think_level if think_level is not None else 2
         effective_think = max(1, min(3, effective_think))
 
-        routing_decision: Optional[RoutingDecision] = None
+        routing_decision: RoutingDecision | None = None
         selected_models = models
         if not selected_models:
             routing_decision = self.router.route(
-                task_type=task_type,
-                think_level=effective_think
+                task_type=task_type, think_level=effective_think
             )
-            selected_models = [routing_decision.primary_model, *routing_decision.fallback_chain]
-            unique_models: List[str] = []
+            selected_models = [
+                routing_decision.primary_model,
+                *routing_decision.fallback_chain,
+            ]
+            unique_models: list[str] = []
             for model_name in selected_models:
                 if model_name not in unique_models:
                     unique_models.append(model_name)
             selected_models = unique_models[:3] or self.router.get_ensemble()
 
         context_payload = dict(context or {})
-        context_payload.setdefault('think_level', effective_think)
+        context_payload.setdefault("think_level", effective_think)
         if routing_decision:
-            context_payload.setdefault('routing_decision', self._serialize_routing(routing_decision))
+            context_payload.setdefault(
+                "routing_decision", self._serialize_routing(routing_decision)
+            )
 
-        missing_executors = [model for model in selected_models if model not in self.consensus.model_executors]
+        missing_executors = [
+            model
+            for model in selected_models
+            if model not in self.consensus.model_executors
+        ]
         if missing_executors:
-            message = (
-                "No consensus executors registered for: " + ", ".join(sorted(missing_executors))
+            message = "No consensus executors registered for: " + ", ".join(
+                sorted(missing_executors)
             )
             logger.error(message)
             return {
                 "consensus_reached": False,
                 "error": message,
                 "models": selected_models,
-                "routing_decision": self._serialize_routing(routing_decision) if routing_decision else None,
+                "routing_decision": self._serialize_routing(routing_decision)
+                if routing_decision
+                else None,
                 "think_level": effective_think,
                 "offline": self.offline_mode,
                 "quorum_size": quorum_size,
@@ -105,7 +115,9 @@ class ModelRouterFacade:
                 "consensus_reached": False,
                 "error": str(exc),
                 "models": selected_models,
-                "routing_decision": self._serialize_routing(routing_decision) if routing_decision else None,
+                "routing_decision": self._serialize_routing(routing_decision)
+                if routing_decision
+                else None,
                 "think_level": effective_think,
                 "offline": self.offline_mode,
                 "quorum_size": quorum_size,
@@ -135,13 +147,13 @@ class ModelRouterFacade:
         if missing:
             logger.warning(
                 "No consensus executors registered for models without available providers: %s",
-                ", ".join(sorted(missing))
+                ", ".join(sorted(missing)),
             )
         if len(missing) == len(self.router.MODEL_CAPABILITIES):
             # No providers registered successfully; keep offline semantics for telemetry.
             self.offline_mode = True
 
-    def _resolve_offline_mode(self, offline: Optional[bool]) -> bool:
+    def _resolve_offline_mode(self, offline: bool | None) -> bool:
         if offline is not None:
             return bool(offline)
 
@@ -151,12 +163,17 @@ class ModelRouterFacade:
 
         has_key = any(
             os.getenv(var)
-            for var in ("OPENAI_API_KEY", "ANTHROPIC_API_KEY", "GOOGLE_API_KEY", "XAI_API_KEY")
+            for var in (
+                "OPENAI_API_KEY",
+                "ANTHROPIC_API_KEY",
+                "GOOGLE_API_KEY",
+                "XAI_API_KEY",
+            )
         )
         return not has_key
 
-    def _register_provider_executors(self) -> List[str]:
-        unavailable: List[str] = []
+    def _register_provider_executors(self) -> list[str]:
+        unavailable: list[str] = []
 
         for model_name, capabilities in self.router.MODEL_CAPABILITIES.items():
             executor = self._build_provider_executor(model_name, capabilities.provider)
@@ -172,7 +189,9 @@ class ModelRouterFacade:
         if not client:
             return None
 
-        async def executor(prompt: str, *, model=model_name, provider_enum=provider) -> Dict[str, Any]:
+        async def executor(
+            prompt: str, *, model=model_name, provider_enum=provider
+        ) -> dict[str, Any]:
             return await self._execute_provider_model(provider_enum, model, prompt)
 
         return executor
@@ -200,11 +219,13 @@ class ModelRouterFacade:
         self._provider_clients[key] = client
         return client
 
-    async def _execute_provider_model(self, provider: ModelProvider, model: str, prompt: str) -> Dict[str, Any]:
+    async def _execute_provider_model(
+        self, provider: ModelProvider, model: str, prompt: str
+    ) -> dict[str, Any]:
         start = time.monotonic()
         response_text = ""
         tokens_used = 0
-        metadata: Dict[str, Any] = {"provider": provider.value, "model": model}
+        metadata: dict[str, Any] = {"provider": provider.value, "model": model}
 
         if provider == ModelProvider.OPENAI:
             client: OpenAIClient = self._provider_clients.get(provider.value)
@@ -218,13 +239,15 @@ class ModelRouterFacade:
             response = await client.complete(request)
             response_text = response.content
             usage = response.usage or {}
-            tokens_used = usage.get('total_tokens') or (
-                usage.get('prompt_tokens', 0) + usage.get('completion_tokens', 0)
+            tokens_used = usage.get("total_tokens") or (
+                usage.get("prompt_tokens", 0) + usage.get("completion_tokens", 0)
             )
-            metadata.update({
-                "usage": usage,
-                "finish_reason": response.finish_reason,
-            })
+            metadata.update(
+                {
+                    "usage": usage,
+                    "finish_reason": response.finish_reason,
+                }
+            )
 
         elif provider == ModelProvider.ANTHROPIC:
             client: AnthropicClient = self._provider_clients.get(provider.value)
@@ -241,11 +264,13 @@ class ModelRouterFacade:
             response = await client.complete(request)
             response_text = response.content
             usage = response.usage or {}
-            tokens_used = usage.get('input_tokens', 0) + usage.get('output_tokens', 0)
-            metadata.update({
-                "usage": usage,
-                "stop_reason": response.stop_reason,
-            })
+            tokens_used = usage.get("input_tokens", 0) + usage.get("output_tokens", 0)
+            metadata.update(
+                {
+                    "usage": usage,
+                    "stop_reason": response.stop_reason,
+                }
+            )
 
         elif provider == ModelProvider.GOOGLE:
             client: GoogleClient = self._provider_clients.get(provider.value)
@@ -259,11 +284,13 @@ class ModelRouterFacade:
             response = await client.complete(request)
             response_text = response.text
             token_count = response.token_count or {}
-            tokens_used = token_count.get('total_tokens', 0)
-            metadata.update({
-                "token_count": token_count,
-                "finish_reason": response.finish_reason,
-            })
+            tokens_used = token_count.get("total_tokens", 0)
+            metadata.update(
+                {
+                    "token_count": token_count,
+                    "finish_reason": response.finish_reason,
+                }
+            )
 
         elif provider == ModelProvider.XAI:
             client: XAIClient = self._provider_clients.get(provider.value)
@@ -279,13 +306,15 @@ class ModelRouterFacade:
             response = await client.complete(request)
             response_text = response.content
             usage = response.usage or {}
-            tokens_used = usage.get('total_tokens') or (
-                usage.get('prompt_tokens', 0) + usage.get('completion_tokens', 0)
+            tokens_used = usage.get("total_tokens") or (
+                usage.get("prompt_tokens", 0) + usage.get("completion_tokens", 0)
             )
-            metadata.update({
-                "usage": usage,
-                "finish_reason": response.finish_reason,
-            })
+            metadata.update(
+                {
+                    "usage": usage,
+                    "finish_reason": response.finish_reason,
+                }
+            )
 
         else:
             raise RuntimeError(f"Unsupported provider: {provider}")
@@ -294,10 +323,12 @@ class ModelRouterFacade:
         confidence = self._infer_confidence(response_text)
         reasoning = self._extract_reasoning(response_text)
 
-        metadata.update({
-            "duration": duration,
-            "offline": False,
-        })
+        metadata.update(
+            {
+                "duration": duration,
+                "offline": False,
+            }
+        )
 
         return {
             "response": response_text,
@@ -307,7 +338,9 @@ class ModelRouterFacade:
             "metadata": metadata,
         }
 
-    def _serialize_routing(self, decision: Optional[RoutingDecision]) -> Optional[Dict[str, Any]]:
+    def _serialize_routing(
+        self, decision: RoutingDecision | None
+    ) -> dict[str, Any] | None:
         if not decision:
             return None
         return {
@@ -319,12 +352,14 @@ class ModelRouterFacade:
             "confidence": decision.confidence,
         }
 
-    def _serialize_consensus(self, result: ConsensusResult) -> Dict[str, Any]:
+    def _serialize_consensus(self, result: ConsensusResult) -> dict[str, Any]:
         """Convert ConsensusResult into a plain dictionary."""
         payload = {
             "consensus_reached": result.consensus_reached,
             "agreement_score": result.agreement_score,
-            "vote_type": result.vote_type.value if hasattr(result.vote_type, "value") else str(result.vote_type),
+            "vote_type": result.vote_type.value
+            if hasattr(result.vote_type, "value")
+            else str(result.vote_type),
             "total_tokens": result.total_tokens,
             "total_time": result.total_time,
             "final_decision": result.final_decision,
@@ -334,19 +369,21 @@ class ModelRouterFacade:
 
         votes = []
         for vote in result.votes:
-            votes.append({
-                "model": vote.model_name,
-                "confidence": vote.confidence,
-                "reasoning": vote.reasoning,
-                "response": vote.response,
-                "stance": vote.stance.value if vote.stance else None,
-                "tokens_used": vote.tokens_used,
-                "metadata": vote.metadata,
-            })
+            votes.append(
+                {
+                    "model": vote.model_name,
+                    "confidence": vote.confidence,
+                    "reasoning": vote.reasoning,
+                    "response": vote.response,
+                    "stance": vote.stance.value if vote.stance else None,
+                    "tokens_used": vote.tokens_used,
+                    "metadata": vote.metadata,
+                }
+            )
         payload["votes"] = votes
         return payload
 
-    def _build_chat_messages(self, prompt: str) -> List[Dict[str, str]]:
+    def _build_chat_messages(self, prompt: str) -> list[dict[str, str]]:
         system_prompt = self._build_system_prompt()
         return [
             {"role": "system", "content": system_prompt},
@@ -369,14 +406,21 @@ class ModelRouterFacade:
     def _infer_confidence(self, text: str) -> float:
         if not text:
             return 0.5
-        match = re.search(r"confidence(?: level)?\s*[:=-]\s*(\d{1,3})", text, re.IGNORECASE)
+        match = re.search(
+            r"confidence(?: level)?\s*[:=-]\s*(\d{1,3})", text, re.IGNORECASE
+        )
         if match:
             value = int(match.group(1))
             return max(0.0, min(1.0, value / 100.0))
 
         lowered = text.lower()
-        positive = any(word in lowered for word in ("approve", "accept", "success", "ready", "pass"))
-        negative = any(word in lowered for word in ("reject", "fail", "block", "concern", "risk"))
+        positive = any(
+            word in lowered
+            for word in ("approve", "accept", "success", "ready", "pass")
+        )
+        negative = any(
+            word in lowered for word in ("reject", "fail", "block", "concern", "risk")
+        )
 
         if positive and not negative:
             return 0.78

@@ -5,12 +5,11 @@ This agent serves as the default fallback and can handle a wide variety
 of tasks by delegating to specialized agents when appropriate.
 """
 
-from typing import Dict, Any, List, Optional
-import logging
+from typing import Any, Dict, List
 
 from ..base import BaseAgent
-from ..selector import AgentSelector
 from ..registry import AgentRegistry
+from ..selector import AgentSelector
 
 
 class GeneralPurposeAgent(BaseAgent):
@@ -29,12 +28,12 @@ class GeneralPurposeAgent(BaseAgent):
             config: Agent configuration
         """
         # Ensure proper configuration
-        if 'name' not in config:
-            config['name'] = 'general-purpose'
-        if 'description' not in config:
-            config['description'] = 'General purpose agent for various tasks'
-        if 'category' not in config:
-            config['category'] = 'general'
+        if "name" not in config:
+            config["name"] = "general-purpose"
+        if "description" not in config:
+            config["description"] = "General purpose agent for various tasks"
+        if "category" not in config:
+            config["category"] = "general"
 
         super().__init__(config)
 
@@ -67,23 +66,23 @@ class GeneralPurposeAgent(BaseAgent):
             Execution results
         """
         result = {
-            'success': False,
-            'output': '',
-            'actions_taken': [],
-            'errors': [],
-            'delegated_to': None
+            "success": False,
+            "output": "",
+            "actions_taken": [],
+            "errors": [],
+            "delegated_to": None,
         }
 
         try:
             # Initialize if needed
             if not self._initialized:
                 if not self.initialize():
-                    result['errors'].append("Failed to initialize agent")
+                    result["errors"].append("Failed to initialize agent")
                     return result
 
-            task = context.get('task', '')
+            task = context.get("task", "")
             if not task:
-                result['errors'].append("No task provided")
+                result["errors"].append("No task provided")
                 return result
 
             # Log the task
@@ -92,13 +91,12 @@ class GeneralPurposeAgent(BaseAgent):
             # Check if we should delegate
             delegation_result = self._consider_delegation(task, context)
 
-            if delegation_result['should_delegate']:
+            if delegation_result["should_delegate"]:
                 # Delegate to specialist
-                result.update(self._delegate_task(
-                    delegation_result['agent_name'],
-                    context
-                ))
-                result['delegated_to'] = delegation_result['agent_name']
+                result.update(
+                    self._delegate_task(delegation_result["agent_name"], context)
+                )
+                result["delegated_to"] = delegation_result["agent_name"]
             else:
                 # Handle directly
                 result.update(self._handle_directly(task, context, delegation_result))
@@ -108,7 +106,7 @@ class GeneralPurposeAgent(BaseAgent):
 
         except Exception as e:
             self.logger.error(f"Execution failed: {e}")
-            result['errors'].append(str(e))
+            result["errors"].append(str(e))
 
         return result
 
@@ -138,27 +136,29 @@ class GeneralPurposeAgent(BaseAgent):
             Dictionary with delegation decision
         """
         decision = {
-            'should_delegate': False,
-            'agent_name': None,
-            'confidence': 0.0,
-            'reason': '',
-            'suggestions': []
+            "should_delegate": False,
+            "agent_name": None,
+            "confidence": 0.0,
+            "reason": "",
+            "suggestions": [],
         }
 
         # Skip delegation if components not available
         if not self.selector:
-            decision['reason'] = "Delegation not available"
+            decision["reason"] = "Delegation not available"
             return decision
 
         # Check delegation depth to prevent infinite loops
-        current_depth = context.get('delegation_depth', 0)
+        current_depth = context.get("delegation_depth", 0)
         if current_depth >= self.max_delegation_depth:
-            decision['reason'] = f"Max delegation depth ({self.max_delegation_depth}) reached"
+            decision["reason"] = (
+                f"Max delegation depth ({self.max_delegation_depth}) reached"
+            )
             return decision
 
         # Get agent suggestions
         suggestions = self.selector.get_agent_suggestions(task, top_n=3)
-        decision['suggestions'] = suggestions
+        decision["suggestions"] = suggestions
 
         if suggestions:
             # Check top suggestion
@@ -169,20 +169,20 @@ class GeneralPurposeAgent(BaseAgent):
                 if len(suggestions) > 1:
                     agent_name, confidence = suggestions[1]
                 else:
-                    decision['reason'] = "No suitable specialist found"
+                    decision["reason"] = "No suitable specialist found"
                     return decision
 
             # Check confidence threshold
             if confidence >= self.delegation_confidence_threshold:
-                decision['should_delegate'] = True
-                decision['agent_name'] = agent_name
-                decision['confidence'] = confidence
-                decision['reason'] = f"High confidence match ({confidence:.2f})"
+                decision["should_delegate"] = True
+                decision["agent_name"] = agent_name
+                decision["confidence"] = confidence
+                decision["reason"] = f"High confidence match ({confidence:.2f})"
             else:
-                decision['reason'] = f"Confidence too low ({confidence:.2f})"
+                decision["reason"] = f"Confidence too low ({confidence:.2f})"
         else:
-            decision['reason'] = "No matching specialists"
-            decision['suggestions'] = suggestions
+            decision["reason"] = "No matching specialists"
+            decision["suggestions"] = suggestions
 
         return decision
 
@@ -207,38 +207,32 @@ class GeneralPurposeAgent(BaseAgent):
 
             if not agent:
                 return {
-                    'success': False,
-                    'errors': [f"Failed to load agent: {agent_name}"]
+                    "success": False,
+                    "errors": [f"Failed to load agent: {agent_name}"],
                 }
 
             # Update context with delegation depth
             delegated_context = context.copy()
-            delegated_context['delegation_depth'] = context.get('delegation_depth', 0) + 1
-            delegated_context['delegated_from'] = self.name
+            delegated_context["delegation_depth"] = (
+                context.get("delegation_depth", 0) + 1
+            )
+            delegated_context["delegated_from"] = self.name
 
             # Execute delegated task
             result = agent.execute(delegated_context)
 
             # Add delegation info to actions
-            if 'actions_taken' in result:
-                result['actions_taken'].insert(
-                    0, f"Delegated to {agent_name}"
-                )
+            if "actions_taken" in result:
+                result["actions_taken"].insert(0, f"Delegated to {agent_name}")
 
             return result
 
         except Exception as e:
             self.logger.error(f"Delegation failed: {e}")
-            return {
-                'success': False,
-                'errors': [f"Delegation error: {str(e)}"]
-            }
+            return {"success": False, "errors": [f"Delegation error: {e!s}"]}
 
     def _handle_directly(
-        self,
-        task: str,
-        context: Dict[str, Any],
-        delegation_result: Dict[str, Any]
+        self, task: str, context: Dict[str, Any], delegation_result: Dict[str, Any]
     ) -> Dict[str, Any]:
         """
         Handle task directly without delegation.
@@ -263,25 +257,35 @@ class GeneralPurposeAgent(BaseAgent):
         # Determine approach based on keywords
         task_lower = task.lower()
 
-        if any(word in task_lower for word in ['implement', 'create', 'build', 'develop']):
+        if any(
+            word in task_lower for word in ["implement", "create", "build", "develop"]
+        ):
             planned_steps.append("Identify task as implementation work")
             output_lines.append("\n## Approach\nImplementation strategy required.\n")
-            output_lines.append("\n## Steps\n1. Design component structure\n2. Implement core functionality\n3. Add error handling\n4. Create tests\n")
+            output_lines.append(
+                "\n## Steps\n1. Design component structure\n2. Implement core functionality\n3. Add error handling\n4. Create tests\n"
+            )
 
-        elif any(word in task_lower for word in ['fix', 'debug', 'solve', 'issue']):
+        elif any(word in task_lower for word in ["fix", "debug", "solve", "issue"]):
             planned_steps.append("Identify task as debugging work")
             output_lines.append("\n## Approach\nDebugging strategy required.\n")
-            output_lines.append("\n## Steps\n1. Reproduce issue\n2. Identify root cause\n3. Implement fix\n4. Verify solution\n")
+            output_lines.append(
+                "\n## Steps\n1. Reproduce issue\n2. Identify root cause\n3. Implement fix\n4. Verify solution\n"
+            )
 
-        elif any(word in task_lower for word in ['analyze', 'review', 'evaluate']):
+        elif any(word in task_lower for word in ["analyze", "review", "evaluate"]):
             planned_steps.append("Identify task as analysis work")
             output_lines.append("\n## Approach\nAnalysis strategy required.\n")
-            output_lines.append("\n## Steps\n1. Gather information\n2. Analyze patterns\n3. Draw conclusions\n4. Provide recommendations\n")
+            output_lines.append(
+                "\n## Steps\n1. Gather information\n2. Analyze patterns\n3. Draw conclusions\n4. Provide recommendations\n"
+            )
 
         else:
             planned_steps.append("Apply general problem-solving approach")
             output_lines.append("\n## Approach\nGeneral problem-solving strategy.\n")
-            output_lines.append("\n## Steps\n1. Understand requirements\n2. Plan approach\n3. Execute solution\n4. Validate results\n")
+            output_lines.append(
+                "\n## Steps\n1. Understand requirements\n2. Plan approach\n3. Execute solution\n4. Validate results\n"
+            )
 
         # Add tools information
         if self.tools:
@@ -289,61 +293,63 @@ class GeneralPurposeAgent(BaseAgent):
             output_lines.append(f"\n## Available Tools\n{', '.join(self.tools)}\n")
 
         # Context information
-        files = context.get('files', [])
+        files = context.get("files", [])
         if files:
             planned_steps.append(f"Review {len(files)} relevant files")
-            output_lines.append(f"\n## Relevant Files\n")
+            output_lines.append("\n## Relevant Files\n")
             for file in files[:5]:  # List first 5
                 output_lines.append(f"- {file}\n")
 
         executed_ops = self._extract_executed_operations(context)
         warnings = []
         success = False
-        status = 'plan-only'
+        status = "plan-only"
         actions_taken: List[str] = []
 
         if executed_ops:
             success = True
-            status = 'executed'
+            status = "executed"
             actions_taken.extend(executed_ops)
         else:
             warning_msg = "No concrete repository operations were executed; escalating to follow-up."
             warnings.append(warning_msg)
-            status = 'followup'
+            status = "followup"
             success = False
 
         response_body = self._render_direct_response(
-            task,
-            ''.join(output_lines),
-            planned_steps,
-            executed_ops
+            task, "".join(output_lines), planned_steps, executed_ops
         )
 
         result_payload: Dict[str, Any] = {
-            'success': success,
-            'status': status,
-            'output': response_body,
-            'actions_taken': actions_taken,
-            'planned_actions': planned_steps,
-            'warnings': warnings,
-            'errors': []
+            "success": success,
+            "status": status,
+            "output": response_body,
+            "actions_taken": actions_taken,
+            "planned_actions": planned_steps,
+            "warnings": warnings,
+            "errors": [],
         }
 
-        if status == 'followup':
-            followup_reason = delegation_result.get('reason') or "General-purpose agent could not perform the requested work."
-            suggestions = delegation_result.get('suggestions') or self.selector.get_agent_suggestions(task, top_n=3)
+        if status == "followup":
+            followup_reason = (
+                delegation_result.get("reason")
+                or "General-purpose agent could not perform the requested work."
+            )
+            suggestions = delegation_result.get(
+                "suggestions"
+            ) or self.selector.get_agent_suggestions(task, top_n=3)
             if suggestions:
-                suggested_agents = [name for name, _ in suggestions if name != self.name]
+                suggested_agents = [
+                    name for name, _ in suggestions if name != self.name
+                ]
             else:
                 suggested_agents = []
 
             if suggested_agents:
-                followup_reason = (
-                    f"{followup_reason} Recommended specialists: {', '.join(suggested_agents[:3])}."
-                )
-                result_payload['followup_suggestions'] = suggested_agents
+                followup_reason = f"{followup_reason} Recommended specialists: {', '.join(suggested_agents[:3])}."
+                result_payload["followup_suggestions"] = suggested_agents
 
-            result_payload['requires_followup'] = followup_reason
+            result_payload["requires_followup"] = followup_reason
 
         return result_payload
 
@@ -359,11 +365,11 @@ class GeneralPurposeAgent(BaseAgent):
         """
         executed: List[str] = []
         candidate_keys = [
-            'executed_operations',
-            'applied_changes',
-            'files_modified',
-            'commands_run',
-            'diff_summary'
+            "executed_operations",
+            "applied_changes",
+            "files_modified",
+            "commands_run",
+            "diff_summary",
         ]
 
         for key in candidate_keys:
@@ -373,7 +379,9 @@ class GeneralPurposeAgent(BaseAgent):
             elif isinstance(value, dict):
                 for subkey, subvalue in value.items():
                     if isinstance(subvalue, list):
-                        executed.extend(f"{subkey}: {item}" for item in subvalue if item)
+                        executed.extend(
+                            f"{subkey}: {item}" for item in subvalue if item
+                        )
                     elif subvalue:
                         executed.append(f"{subkey}: {subvalue}")
             elif isinstance(value, str) and value.strip():
@@ -386,7 +394,7 @@ class GeneralPurposeAgent(BaseAgent):
         task: str,
         analysis: str,
         planned_steps: List[str],
-        executed_ops: List[str]
+        executed_ops: List[str],
     ) -> str:
         """
         Render the response combining analysis, plan, and execution evidence.
@@ -420,7 +428,7 @@ class GeneralPurposeAgent(BaseAgent):
                 "rerun validation once concrete changes exist.\n"
             )
 
-        return ''.join(sections)
+        return "".join(sections)
 
     def get_capabilities(self) -> List[str]:
         """
@@ -432,7 +440,9 @@ class GeneralPurposeAgent(BaseAgent):
         capabilities = super().get_capabilities()
 
         # Add delegation capability
-        capabilities.insert(0, "Task delegation: Can identify and delegate to specialists")
+        capabilities.insert(
+            0, "Task delegation: Can identify and delegate to specialists"
+        )
         capabilities.insert(1, "Universal handling: Can process any type of task")
 
         return capabilities

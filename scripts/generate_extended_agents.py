@@ -3,9 +3,9 @@
 Generate all 127 extended agent YAML definitions for SuperClaude Framework.
 """
 
-import os
-import yaml
 from pathlib import Path
+
+import yaml
 
 # Base directory for extended agents
 BASE_DIR = Path(__file__).parent.parent / "SuperClaude" / "Agents" / "extended"
@@ -19,7 +19,7 @@ AGENT_DEFINITIONS = {
             "description": "Expert in modern frontend frameworks and UI/UX implementation",
             "domains": ["frontend", "ui", "spa", "pwa", "responsive-design"],
             "languages": ["javascript", "typescript", "html", "css"],
-            "frameworks": ["react", "vue", "angular", "svelte", "nextjs"]
+            "frameworks": ["react", "vue", "angular", "svelte", "nextjs"],
         },
         {
             "id": "full-stack-developer",
@@ -27,7 +27,7 @@ AGENT_DEFINITIONS = {
             "description": "End-to-end application development across frontend and backend",
             "domains": ["fullstack", "frontend", "backend", "database", "deployment"],
             "languages": ["javascript", "python", "typescript", "sql"],
-            "frameworks": ["nextjs", "django", "express", "react", "postgresql"]
+            "frameworks": ["nextjs", "django", "express", "react", "postgresql"],
         },
         {
             "id": "mobile-developer",
@@ -35,15 +35,20 @@ AGENT_DEFINITIONS = {
             "description": "Native and cross-platform mobile application development",
             "domains": ["mobile", "ios", "android", "cross-platform"],
             "languages": ["swift", "kotlin", "java", "dart", "javascript"],
-            "frameworks": ["react-native", "flutter", "swiftui", "jetpack-compose"]
+            "frameworks": ["react-native", "flutter", "swiftui", "jetpack-compose"],
         },
         {
             "id": "microservices-architect",
             "name": "Microservices Architect",
             "description": "Design and implementation of microservices architectures",
-            "domains": ["microservices", "distributed-systems", "service-mesh", "api-gateway"],
+            "domains": [
+                "microservices",
+                "distributed-systems",
+                "service-mesh",
+                "api-gateway",
+            ],
             "languages": ["go", "java", "python", "rust"],
-            "frameworks": ["kubernetes", "istio", "consul", "spring-cloud"]
+            "frameworks": ["kubernetes", "istio", "consul", "spring-cloud"],
         },
         {
             "id": "database-engineer",
@@ -51,7 +56,7 @@ AGENT_DEFINITIONS = {
             "description": "Database design, optimization, and management",
             "domains": ["database", "sql", "nosql", "data-modeling", "optimization"],
             "languages": ["sql", "python", "java"],
-            "frameworks": ["postgresql", "mysql", "mongodb", "redis", "elasticsearch"]
+            "frameworks": ["postgresql", "mysql", "mongodb", "redis", "elasticsearch"],
         },
         {
             "id": "real-time-systems",
@@ -59,7 +64,7 @@ AGENT_DEFINITIONS = {
             "description": "WebSockets, streaming, and real-time communication systems",
             "domains": ["realtime", "websockets", "streaming", "pubsub"],
             "languages": ["javascript", "go", "rust", "python"],
-            "frameworks": ["socket.io", "signalr", "webrtc", "kafka", "rabbitmq"]
+            "frameworks": ["socket.io", "signalr", "webrtc", "kafka", "rabbitmq"],
         },
         {
             "id": "cli-developer",
@@ -67,7 +72,7 @@ AGENT_DEFINITIONS = {
             "description": "Command-line interface and developer tools",
             "domains": ["cli", "tools", "automation", "scripting"],
             "languages": ["python", "go", "rust", "bash"],
-            "frameworks": ["click", "cobra", "clap", "argparse"]
+            "frameworks": ["click", "cobra", "clap", "argparse"],
         },
         {
             "id": "desktop-developer",
@@ -75,10 +80,9 @@ AGENT_DEFINITIONS = {
             "description": "Cross-platform desktop application development",
             "domains": ["desktop", "gui", "cross-platform"],
             "languages": ["python", "javascript", "csharp", "cpp"],
-            "frameworks": ["electron", "tauri", "pyqt", "wpf", "gtk"]
+            "frameworks": ["electron", "tauri", "pyqt", "wpf", "gtk"],
         },
     ],
-
     "02-language-specialists": [
         {
             "id": "python-specialist",
@@ -86,7 +90,7 @@ AGENT_DEFINITIONS = {
             "description": "Advanced Python patterns, async programming, and optimization",
             "domains": ["python", "async", "metaclasses", "decorators"],
             "languages": ["python"],
-            "frameworks": ["asyncio", "django", "fastapi", "pandas", "numpy"]
+            "frameworks": ["asyncio", "django", "fastapi", "pandas", "numpy"],
         },
         {
             "id": "javascript-specialist",
@@ -94,7 +98,7 @@ AGENT_DEFINITIONS = {
             "description": "Modern JavaScript, ES6+, and Node.js expertise",
             "domains": ["javascript", "nodejs", "es6", "async-await"],
             "languages": ["javascript"],
-            "frameworks": ["nodejs", "express", "webpack", "babel"]
+            "frameworks": ["nodejs", "express", "webpack", "babel"],
         },
         {
             "id": "rust-specialist",
@@ -102,7 +106,7 @@ AGENT_DEFINITIONS = {
             "description": "Systems programming with Rust, memory safety, and concurrency",
             "domains": ["rust", "systems", "memory-safety", "concurrency"],
             "languages": ["rust"],
-            "frameworks": ["tokio", "actix", "rocket", "serde"]
+            "frameworks": ["tokio", "actix", "rocket", "serde"],
         },
         {
             "id": "go-specialist",
@@ -110,7 +114,7 @@ AGENT_DEFINITIONS = {
             "description": "Concurrent programming, microservices, and cloud-native Go",
             "domains": ["golang", "concurrency", "microservices", "cloud-native"],
             "languages": ["go"],
-            "frameworks": ["gin", "echo", "fiber", "grpc"]
+            "frameworks": ["gin", "echo", "fiber", "grpc"],
         },
         {
             "id": "java-specialist",
@@ -118,7 +122,7 @@ AGENT_DEFINITIONS = {
             "description": "Enterprise Java, Spring ecosystem, and JVM optimization",
             "domains": ["java", "jvm", "enterprise", "spring"],
             "languages": ["java", "kotlin"],
-            "frameworks": ["spring-boot", "spring-cloud", "hibernate", "maven"]
+            "frameworks": ["spring-boot", "spring-cloud", "hibernate", "maven"],
         },
         {
             "id": "cpp-specialist",
@@ -126,7 +130,7 @@ AGENT_DEFINITIONS = {
             "description": "Modern C++, performance optimization, and systems programming",
             "domains": ["cpp", "systems", "performance", "memory"],
             "languages": ["cpp", "c"],
-            "frameworks": ["boost", "qt", "cmake", "stl"]
+            "frameworks": ["boost", "qt", "cmake", "stl"],
         },
         {
             "id": "csharp-specialist",
@@ -134,7 +138,7 @@ AGENT_DEFINITIONS = {
             "description": ".NET ecosystem, enterprise applications, and game development",
             "domains": ["csharp", "dotnet", "enterprise", "gaming"],
             "languages": ["csharp", "fsharp"],
-            "frameworks": ["dotnet", "aspnet", "entity-framework", "unity"]
+            "frameworks": ["dotnet", "aspnet", "entity-framework", "unity"],
         },
         {
             "id": "ruby-specialist",
@@ -142,7 +146,7 @@ AGENT_DEFINITIONS = {
             "description": "Ruby on Rails, metaprogramming, and DSL creation",
             "domains": ["ruby", "rails", "metaprogramming", "dsl"],
             "languages": ["ruby"],
-            "frameworks": ["rails", "sinatra", "rspec", "sidekiq"]
+            "frameworks": ["rails", "sinatra", "rspec", "sidekiq"],
         },
         {
             "id": "swift-specialist",
@@ -150,7 +154,7 @@ AGENT_DEFINITIONS = {
             "description": "iOS development, SwiftUI, and Apple ecosystem",
             "domains": ["swift", "ios", "macos", "swiftui"],
             "languages": ["swift", "objective-c"],
-            "frameworks": ["swiftui", "uikit", "combine", "coredata"]
+            "frameworks": ["swiftui", "uikit", "combine", "coredata"],
         },
         {
             "id": "kotlin-specialist",
@@ -158,7 +162,7 @@ AGENT_DEFINITIONS = {
             "description": "Android development, Kotlin Multiplatform, and coroutines",
             "domains": ["kotlin", "android", "multiplatform", "coroutines"],
             "languages": ["kotlin", "java"],
-            "frameworks": ["android", "ktor", "compose", "coroutines"]
+            "frameworks": ["android", "ktor", "compose", "coroutines"],
         },
         {
             "id": "php-specialist",
@@ -166,7 +170,7 @@ AGENT_DEFINITIONS = {
             "description": "Modern PHP, Laravel, and web application development",
             "domains": ["php", "web", "laravel", "symfony"],
             "languages": ["php"],
-            "frameworks": ["laravel", "symfony", "wordpress", "composer"]
+            "frameworks": ["laravel", "symfony", "wordpress", "composer"],
         },
         {
             "id": "scala-specialist",
@@ -174,7 +178,7 @@ AGENT_DEFINITIONS = {
             "description": "Functional programming, Akka, and big data with Scala",
             "domains": ["scala", "functional", "akka", "spark"],
             "languages": ["scala"],
-            "frameworks": ["akka", "play", "spark", "cats"]
+            "frameworks": ["akka", "play", "spark", "cats"],
         },
         {
             "id": "elixir-specialist",
@@ -182,7 +186,7 @@ AGENT_DEFINITIONS = {
             "description": "Concurrent, fault-tolerant applications with Elixir",
             "domains": ["elixir", "erlang", "otp", "phoenix"],
             "languages": ["elixir", "erlang"],
-            "frameworks": ["phoenix", "nerves", "otp", "ecto"]
+            "frameworks": ["phoenix", "nerves", "otp", "ecto"],
         },
         {
             "id": "react-specialist",
@@ -190,7 +194,7 @@ AGENT_DEFINITIONS = {
             "description": "React ecosystem, hooks, state management, and optimization",
             "domains": ["react", "frontend", "hooks", "state-management"],
             "languages": ["javascript", "typescript"],
-            "frameworks": ["react", "nextjs", "gatsby", "redux", "mobx"]
+            "frameworks": ["react", "nextjs", "gatsby", "redux", "mobx"],
         },
         {
             "id": "vue-specialist",
@@ -198,7 +202,7 @@ AGENT_DEFINITIONS = {
             "description": "Vue 3, Composition API, and Vue ecosystem",
             "domains": ["vue", "frontend", "composition-api", "vuex"],
             "languages": ["javascript", "typescript"],
-            "frameworks": ["vue", "nuxt", "vuex", "pinia", "vite"]
+            "frameworks": ["vue", "nuxt", "vuex", "pinia", "vite"],
         },
         {
             "id": "angular-specialist",
@@ -206,7 +210,7 @@ AGENT_DEFINITIONS = {
             "description": "Angular framework, RxJS, and enterprise frontend",
             "domains": ["angular", "frontend", "rxjs", "enterprise"],
             "languages": ["typescript", "javascript"],
-            "frameworks": ["angular", "rxjs", "ngrx", "angular-material"]
+            "frameworks": ["angular", "rxjs", "ngrx", "angular-material"],
         },
         {
             "id": "dart-specialist",
@@ -214,7 +218,7 @@ AGENT_DEFINITIONS = {
             "description": "Flutter development and Dart programming",
             "domains": ["dart", "flutter", "mobile", "cross-platform"],
             "languages": ["dart"],
-            "frameworks": ["flutter", "dart-sdk", "provider", "bloc"]
+            "frameworks": ["flutter", "dart-sdk", "provider", "bloc"],
         },
         {
             "id": "haskell-specialist",
@@ -222,7 +226,7 @@ AGENT_DEFINITIONS = {
             "description": "Pure functional programming with Haskell",
             "domains": ["haskell", "functional", "category-theory"],
             "languages": ["haskell"],
-            "frameworks": ["ghc", "stack", "cabal", "yesod"]
+            "frameworks": ["ghc", "stack", "cabal", "yesod"],
         },
         {
             "id": "clojure-specialist",
@@ -230,7 +234,7 @@ AGENT_DEFINITIONS = {
             "description": "Functional programming on the JVM with Clojure",
             "domains": ["clojure", "functional", "lisp", "jvm"],
             "languages": ["clojure", "clojurescript"],
-            "frameworks": ["ring", "compojure", "reagent", "re-frame"]
+            "frameworks": ["ring", "compojure", "reagent", "re-frame"],
         },
         {
             "id": "lua-specialist",
@@ -238,7 +242,7 @@ AGENT_DEFINITIONS = {
             "description": "Embedded scripting and game development with Lua",
             "domains": ["lua", "scripting", "embedded", "gaming"],
             "languages": ["lua"],
-            "frameworks": ["love2d", "openresty", "torch", "neovim"]
+            "frameworks": ["love2d", "openresty", "torch", "neovim"],
         },
         {
             "id": "perl-specialist",
@@ -246,7 +250,7 @@ AGENT_DEFINITIONS = {
             "description": "Text processing, system administration, and web development",
             "domains": ["perl", "regex", "scripting", "web"],
             "languages": ["perl"],
-            "frameworks": ["mojolicious", "catalyst", "dancer", "cpan"]
+            "frameworks": ["mojolicious", "catalyst", "dancer", "cpan"],
         },
         {
             "id": "r-specialist",
@@ -254,10 +258,9 @@ AGENT_DEFINITIONS = {
             "description": "Statistical computing and data analysis with R",
             "domains": ["r", "statistics", "data-analysis", "visualization"],
             "languages": ["r"],
-            "frameworks": ["tidyverse", "shiny", "ggplot2", "dplyr"]
-        }
+            "frameworks": ["tidyverse", "shiny", "ggplot2", "dplyr"],
+        },
     ],
-
     "03-infrastructure": [
         {
             "id": "devops-engineer",
@@ -265,7 +268,13 @@ AGENT_DEFINITIONS = {
             "description": "CI/CD pipelines, automation, and infrastructure management",
             "domains": ["devops", "cicd", "automation", "monitoring"],
             "languages": ["python", "bash", "yaml"],
-            "frameworks": ["jenkins", "gitlab-ci", "github-actions", "terraform", "ansible"]
+            "frameworks": [
+                "jenkins",
+                "gitlab-ci",
+                "github-actions",
+                "terraform",
+                "ansible",
+            ],
         },
         {
             "id": "kubernetes-specialist",
@@ -273,7 +282,7 @@ AGENT_DEFINITIONS = {
             "description": "Container orchestration, cluster management, and cloud-native",
             "domains": ["kubernetes", "k8s", "containers", "orchestration"],
             "languages": ["yaml", "go", "bash"],
-            "frameworks": ["helm", "istio", "prometheus", "grafana"]
+            "frameworks": ["helm", "istio", "prometheus", "grafana"],
         },
         {
             "id": "cloud-architect",
@@ -281,7 +290,7 @@ AGENT_DEFINITIONS = {
             "description": "Multi-cloud architecture and cloud-native solutions",
             "domains": ["cloud", "aws", "azure", "gcp", "architecture"],
             "languages": ["python", "typescript", "yaml"],
-            "frameworks": ["terraform", "cloudformation", "pulumi", "cdk"]
+            "frameworks": ["terraform", "cloudformation", "pulumi", "cdk"],
         },
         {
             "id": "sre-engineer",
@@ -289,7 +298,7 @@ AGENT_DEFINITIONS = {
             "description": "Reliability, observability, and incident management",
             "domains": ["sre", "reliability", "observability", "monitoring"],
             "languages": ["python", "go", "bash"],
-            "frameworks": ["prometheus", "grafana", "datadog", "pagerduty"]
+            "frameworks": ["prometheus", "grafana", "datadog", "pagerduty"],
         },
         {
             "id": "network-engineer",
@@ -297,7 +306,7 @@ AGENT_DEFINITIONS = {
             "description": "Network architecture, security, and optimization",
             "domains": ["networking", "tcp-ip", "security", "load-balancing"],
             "languages": ["python", "bash"],
-            "frameworks": ["nginx", "haproxy", "istio", "envoy"]
+            "frameworks": ["nginx", "haproxy", "istio", "envoy"],
         },
         {
             "id": "terraform-specialist",
@@ -305,7 +314,7 @@ AGENT_DEFINITIONS = {
             "description": "Infrastructure as Code with Terraform",
             "domains": ["iac", "terraform", "infrastructure", "automation"],
             "languages": ["hcl", "python"],
-            "frameworks": ["terraform", "terragrunt", "atlantis"]
+            "frameworks": ["terraform", "terragrunt", "atlantis"],
         },
         {
             "id": "docker-specialist",
@@ -313,7 +322,7 @@ AGENT_DEFINITIONS = {
             "description": "Containerization, Docker, and container security",
             "domains": ["docker", "containers", "containerization", "security"],
             "languages": ["dockerfile", "yaml", "bash"],
-            "frameworks": ["docker", "docker-compose", "buildkit", "containerd"]
+            "frameworks": ["docker", "docker-compose", "buildkit", "containerd"],
         },
         {
             "id": "ci-cd-specialist",
@@ -321,7 +330,7 @@ AGENT_DEFINITIONS = {
             "description": "Continuous integration and deployment pipelines",
             "domains": ["cicd", "automation", "testing", "deployment"],
             "languages": ["yaml", "groovy", "bash"],
-            "frameworks": ["jenkins", "gitlab", "circleci", "argocd"]
+            "frameworks": ["jenkins", "gitlab", "circleci", "argocd"],
         },
         {
             "id": "monitoring-specialist",
@@ -329,7 +338,7 @@ AGENT_DEFINITIONS = {
             "description": "System monitoring, alerting, and observability",
             "domains": ["monitoring", "observability", "metrics", "logging"],
             "languages": ["python", "promql"],
-            "frameworks": ["prometheus", "grafana", "elk", "datadog"]
+            "frameworks": ["prometheus", "grafana", "elk", "datadog"],
         },
         {
             "id": "security-operations",
@@ -337,7 +346,7 @@ AGENT_DEFINITIONS = {
             "description": "Infrastructure security and compliance",
             "domains": ["security", "compliance", "scanning", "hardening"],
             "languages": ["python", "bash"],
-            "frameworks": ["vault", "trivy", "falco", "opensca"]
+            "frameworks": ["vault", "trivy", "falco", "opensca"],
         },
         {
             "id": "platform-engineer",
@@ -345,7 +354,7 @@ AGENT_DEFINITIONS = {
             "description": "Internal developer platforms and tooling",
             "domains": ["platform", "tooling", "developer-experience"],
             "languages": ["go", "python", "typescript"],
-            "frameworks": ["backstage", "crossplane", "kubevela"]
+            "frameworks": ["backstage", "crossplane", "kubevela"],
         },
         {
             "id": "edge-computing",
@@ -353,10 +362,9 @@ AGENT_DEFINITIONS = {
             "description": "Edge infrastructure and distributed computing",
             "domains": ["edge", "iot", "distributed", "5g"],
             "languages": ["rust", "go", "cpp"],
-            "frameworks": ["k3s", "openfaas", "kubeedge"]
-        }
+            "frameworks": ["k3s", "openfaas", "kubeedge"],
+        },
     ],
-
     "04-quality-security": [
         {
             "id": "qa-engineer",
@@ -364,7 +372,7 @@ AGENT_DEFINITIONS = {
             "description": "Comprehensive testing strategies and quality assurance",
             "domains": ["testing", "qa", "automation", "quality"],
             "languages": ["python", "javascript", "java"],
-            "frameworks": ["selenium", "pytest", "jest", "cypress"]
+            "frameworks": ["selenium", "pytest", "jest", "cypress"],
         },
         {
             "id": "security-analyst",
@@ -372,7 +380,7 @@ AGENT_DEFINITIONS = {
             "description": "Security assessment, vulnerability analysis, and threat modeling",
             "domains": ["security", "vulnerability", "pentesting", "threat-modeling"],
             "languages": ["python", "bash", "ruby"],
-            "frameworks": ["metasploit", "burp", "owasp", "nmap"]
+            "frameworks": ["metasploit", "burp", "owasp", "nmap"],
         },
         {
             "id": "test-automation",
@@ -380,7 +388,7 @@ AGENT_DEFINITIONS = {
             "description": "Automated testing frameworks and continuous testing",
             "domains": ["automation", "testing", "e2e", "integration"],
             "languages": ["python", "javascript", "java"],
-            "frameworks": ["selenium", "appium", "testcafe", "robot"]
+            "frameworks": ["selenium", "appium", "testcafe", "robot"],
         },
         {
             "id": "performance-tester",
@@ -388,7 +396,7 @@ AGENT_DEFINITIONS = {
             "description": "Load testing, performance analysis, and optimization",
             "domains": ["performance", "load-testing", "stress-testing"],
             "languages": ["python", "java", "javascript"],
-            "frameworks": ["jmeter", "gatling", "k6", "locust"]
+            "frameworks": ["jmeter", "gatling", "k6", "locust"],
         },
         {
             "id": "code-reviewer",
@@ -396,7 +404,7 @@ AGENT_DEFINITIONS = {
             "description": "Code quality, best practices, and technical debt analysis",
             "domains": ["code-review", "quality", "best-practices"],
             "languages": ["multiple"],
-            "frameworks": ["sonarqube", "eslint", "pylint", "rubocop"]
+            "frameworks": ["sonarqube", "eslint", "pylint", "rubocop"],
         },
         {
             "id": "compliance-engineer",
@@ -404,7 +412,7 @@ AGENT_DEFINITIONS = {
             "description": "Regulatory compliance and security standards",
             "domains": ["compliance", "gdpr", "hipaa", "pci-dss"],
             "languages": ["python", "sql"],
-            "frameworks": ["compliance-tools", "audit-frameworks"]
+            "frameworks": ["compliance-tools", "audit-frameworks"],
         },
         {
             "id": "penetration-tester",
@@ -412,7 +420,7 @@ AGENT_DEFINITIONS = {
             "description": "Ethical hacking and security testing",
             "domains": ["pentesting", "ethical-hacking", "vulnerability"],
             "languages": ["python", "bash", "powershell"],
-            "frameworks": ["kali", "metasploit", "nmap", "wireshark"]
+            "frameworks": ["kali", "metasploit", "nmap", "wireshark"],
         },
         {
             "id": "devsecops-engineer",
@@ -420,7 +428,7 @@ AGENT_DEFINITIONS = {
             "description": "Security integration in CI/CD pipelines",
             "domains": ["devsecops", "security", "automation"],
             "languages": ["python", "yaml", "bash"],
-            "frameworks": ["snyk", "aqua", "twistlock", "sonarqube"]
+            "frameworks": ["snyk", "aqua", "twistlock", "sonarqube"],
         },
         {
             "id": "accessibility-specialist",
@@ -428,7 +436,7 @@ AGENT_DEFINITIONS = {
             "description": "Web accessibility and WCAG compliance",
             "domains": ["accessibility", "wcag", "a11y", "usability"],
             "languages": ["javascript", "html", "css"],
-            "frameworks": ["axe", "wave", "lighthouse", "nvda"]
+            "frameworks": ["axe", "wave", "lighthouse", "nvda"],
         },
         {
             "id": "chaos-engineer",
@@ -436,7 +444,7 @@ AGENT_DEFINITIONS = {
             "description": "Resilience testing and failure injection",
             "domains": ["chaos", "resilience", "failure-testing"],
             "languages": ["python", "go"],
-            "frameworks": ["chaos-monkey", "litmus", "gremlin"]
+            "frameworks": ["chaos-monkey", "litmus", "gremlin"],
         },
         {
             "id": "api-tester",
@@ -444,7 +452,7 @@ AGENT_DEFINITIONS = {
             "description": "API testing, contract testing, and validation",
             "domains": ["api-testing", "contract-testing", "validation"],
             "languages": ["javascript", "python"],
-            "frameworks": ["postman", "newman", "pact", "rest-assured"]
+            "frameworks": ["postman", "newman", "pact", "rest-assured"],
         },
         {
             "id": "static-analysis",
@@ -452,10 +460,9 @@ AGENT_DEFINITIONS = {
             "description": "Code analysis, linting, and quality metrics",
             "domains": ["static-analysis", "linting", "metrics"],
             "languages": ["multiple"],
-            "frameworks": ["sonarqube", "codeclimate", "semgrep"]
-        }
+            "frameworks": ["sonarqube", "codeclimate", "semgrep"],
+        },
     ],
-
     "05-data-ai": [
         {
             "id": "data-engineer",
@@ -463,7 +470,7 @@ AGENT_DEFINITIONS = {
             "description": "Data pipelines, ETL, and data infrastructure",
             "domains": ["data", "etl", "pipelines", "warehousing"],
             "languages": ["python", "sql", "scala"],
-            "frameworks": ["spark", "airflow", "kafka", "dbt"]
+            "frameworks": ["spark", "airflow", "kafka", "dbt"],
         },
         {
             "id": "ml-engineer",
@@ -471,7 +478,7 @@ AGENT_DEFINITIONS = {
             "description": "ML model development, training, and deployment",
             "domains": ["ml", "ai", "deep-learning", "mlops"],
             "languages": ["python", "r"],
-            "frameworks": ["tensorflow", "pytorch", "scikit-learn", "mlflow"]
+            "frameworks": ["tensorflow", "pytorch", "scikit-learn", "mlflow"],
         },
         {
             "id": "data-scientist",
@@ -479,7 +486,7 @@ AGENT_DEFINITIONS = {
             "description": "Statistical analysis, modeling, and insights",
             "domains": ["statistics", "analysis", "modeling", "visualization"],
             "languages": ["python", "r", "sql"],
-            "frameworks": ["pandas", "numpy", "matplotlib", "seaborn"]
+            "frameworks": ["pandas", "numpy", "matplotlib", "seaborn"],
         },
         {
             "id": "ai-architect",
@@ -487,7 +494,7 @@ AGENT_DEFINITIONS = {
             "description": "AI system design and architecture",
             "domains": ["ai", "architecture", "llm", "nlp"],
             "languages": ["python"],
-            "frameworks": ["transformers", "langchain", "openai", "huggingface"]
+            "frameworks": ["transformers", "langchain", "openai", "huggingface"],
         },
         {
             "id": "llm-specialist",
@@ -495,7 +502,7 @@ AGENT_DEFINITIONS = {
             "description": "Large language models and prompt engineering",
             "domains": ["llm", "nlp", "prompt-engineering", "fine-tuning"],
             "languages": ["python"],
-            "frameworks": ["openai", "anthropic", "langchain", "llamaindex"]
+            "frameworks": ["openai", "anthropic", "langchain", "llamaindex"],
         },
         {
             "id": "computer-vision",
@@ -503,7 +510,7 @@ AGENT_DEFINITIONS = {
             "description": "Image processing and computer vision",
             "domains": ["cv", "image-processing", "object-detection"],
             "languages": ["python", "cpp"],
-            "frameworks": ["opencv", "yolo", "detectron", "mediapipe"]
+            "frameworks": ["opencv", "yolo", "detectron", "mediapipe"],
         },
         {
             "id": "nlp-engineer",
@@ -511,7 +518,7 @@ AGENT_DEFINITIONS = {
             "description": "Natural language processing and text analysis",
             "domains": ["nlp", "text-analysis", "sentiment", "ner"],
             "languages": ["python"],
-            "frameworks": ["spacy", "nltk", "transformers", "bert"]
+            "frameworks": ["spacy", "nltk", "transformers", "bert"],
         },
         {
             "id": "data-analyst",
@@ -519,7 +526,7 @@ AGENT_DEFINITIONS = {
             "description": "Business intelligence and data visualization",
             "domains": ["analytics", "bi", "visualization", "reporting"],
             "languages": ["python", "sql", "r"],
-            "frameworks": ["tableau", "powerbi", "looker", "metabase"]
+            "frameworks": ["tableau", "powerbi", "looker", "metabase"],
         },
         {
             "id": "mlops-engineer",
@@ -527,15 +534,19 @@ AGENT_DEFINITIONS = {
             "description": "ML operations and model deployment",
             "domains": ["mlops", "deployment", "monitoring", "versioning"],
             "languages": ["python", "yaml"],
-            "frameworks": ["mlflow", "kubeflow", "seldon", "bentoml"]
+            "frameworks": ["mlflow", "kubeflow", "seldon", "bentoml"],
         },
         {
             "id": "recommendation-systems",
             "name": "Recommendation Systems Engineer",
             "description": "Recommendation algorithms and personalization",
-            "domains": ["recommendations", "collaborative-filtering", "personalization"],
+            "domains": [
+                "recommendations",
+                "collaborative-filtering",
+                "personalization",
+            ],
             "languages": ["python"],
-            "frameworks": ["surprise", "lightfm", "tensorflow-recommenders"]
+            "frameworks": ["surprise", "lightfm", "tensorflow-recommenders"],
         },
         {
             "id": "time-series-analyst",
@@ -543,7 +554,7 @@ AGENT_DEFINITIONS = {
             "description": "Time series analysis and forecasting",
             "domains": ["time-series", "forecasting", "anomaly-detection"],
             "languages": ["python", "r"],
-            "frameworks": ["prophet", "statsmodels", "arima", "lstm"]
+            "frameworks": ["prophet", "statsmodels", "arima", "lstm"],
         },
         {
             "id": "big-data-engineer",
@@ -551,10 +562,9 @@ AGENT_DEFINITIONS = {
             "description": "Large-scale data processing and distributed computing",
             "domains": ["big-data", "distributed", "streaming"],
             "languages": ["scala", "java", "python"],
-            "frameworks": ["spark", "hadoop", "flink", "storm"]
-        }
+            "frameworks": ["spark", "hadoop", "flink", "storm"],
+        },
     ],
-
     "06-developer-experience": [
         {
             "id": "dx-engineer",
@@ -562,7 +572,7 @@ AGENT_DEFINITIONS = {
             "description": "Developer tools, productivity, and workflow optimization",
             "domains": ["dx", "tooling", "productivity", "automation"],
             "languages": ["typescript", "python", "go"],
-            "frameworks": ["vscode", "cli-tools", "sdk-design"]
+            "frameworks": ["vscode", "cli-tools", "sdk-design"],
         },
         {
             "id": "documentation-engineer",
@@ -570,7 +580,7 @@ AGENT_DEFINITIONS = {
             "description": "Technical documentation and developer guides",
             "domains": ["documentation", "api-docs", "tutorials"],
             "languages": ["markdown", "python", "javascript"],
-            "frameworks": ["docusaurus", "mkdocs", "sphinx", "swagger"]
+            "frameworks": ["docusaurus", "mkdocs", "sphinx", "swagger"],
         },
         {
             "id": "refactoring-specialist",
@@ -578,7 +588,7 @@ AGENT_DEFINITIONS = {
             "description": "Code refactoring and technical debt reduction",
             "domains": ["refactoring", "clean-code", "technical-debt"],
             "languages": ["multiple"],
-            "frameworks": ["refactoring-tools", "ast-manipulation"]
+            "frameworks": ["refactoring-tools", "ast-manipulation"],
         },
         {
             "id": "tooling-engineer",
@@ -586,7 +596,7 @@ AGENT_DEFINITIONS = {
             "description": "Development tools and automation",
             "domains": ["tooling", "cli", "automation", "sdk"],
             "languages": ["go", "rust", "typescript"],
-            "frameworks": ["cli-frameworks", "sdk-tools"]
+            "frameworks": ["cli-frameworks", "sdk-tools"],
         },
         {
             "id": "build-engineer",
@@ -594,7 +604,7 @@ AGENT_DEFINITIONS = {
             "description": "Build systems and compilation optimization",
             "domains": ["build", "compilation", "optimization"],
             "languages": ["python", "bash", "makefile"],
-            "frameworks": ["webpack", "rollup", "bazel", "gradle"]
+            "frameworks": ["webpack", "rollup", "bazel", "gradle"],
         },
         {
             "id": "package-maintainer",
@@ -602,7 +612,7 @@ AGENT_DEFINITIONS = {
             "description": "Package management and distribution",
             "domains": ["packages", "dependencies", "versioning"],
             "languages": ["javascript", "python", "ruby"],
-            "frameworks": ["npm", "pip", "gem", "cargo"]
+            "frameworks": ["npm", "pip", "gem", "cargo"],
         },
         {
             "id": "ide-plugin-developer",
@@ -610,7 +620,7 @@ AGENT_DEFINITIONS = {
             "description": "IDE extensions and editor plugins",
             "domains": ["ide", "plugins", "extensions", "editor"],
             "languages": ["typescript", "java"],
-            "frameworks": ["vscode-api", "intellij-platform"]
+            "frameworks": ["vscode-api", "intellij-platform"],
         },
         {
             "id": "api-designer",
@@ -618,7 +628,7 @@ AGENT_DEFINITIONS = {
             "description": "API design, versioning, and documentation",
             "domains": ["api-design", "rest", "graphql", "grpc"],
             "languages": ["yaml", "json"],
-            "frameworks": ["openapi", "asyncapi", "graphql-schema"]
+            "frameworks": ["openapi", "asyncapi", "graphql-schema"],
         },
         {
             "id": "legacy-modernization",
@@ -626,7 +636,7 @@ AGENT_DEFINITIONS = {
             "description": "Modernizing legacy systems and migrations",
             "domains": ["legacy", "migration", "modernization"],
             "languages": ["multiple"],
-            "frameworks": ["strangler-fig", "event-sourcing"]
+            "frameworks": ["strangler-fig", "event-sourcing"],
         },
         {
             "id": "code-generation",
@@ -634,10 +644,9 @@ AGENT_DEFINITIONS = {
             "description": "Code generators and scaffolding tools",
             "domains": ["codegen", "scaffolding", "templates"],
             "languages": ["typescript", "python"],
-            "frameworks": ["yeoman", "plop", "hygen"]
-        }
+            "frameworks": ["yeoman", "plop", "hygen"],
+        },
     ],
-
     "07-specialized-domains": [
         {
             "id": "blockchain-developer",
@@ -645,7 +654,7 @@ AGENT_DEFINITIONS = {
             "description": "Smart contracts and blockchain applications",
             "domains": ["blockchain", "web3", "smart-contracts", "defi"],
             "languages": ["solidity", "rust", "javascript"],
-            "frameworks": ["ethereum", "hardhat", "truffle", "web3js"]
+            "frameworks": ["ethereum", "hardhat", "truffle", "web3js"],
         },
         {
             "id": "game-developer",
@@ -653,7 +662,7 @@ AGENT_DEFINITIONS = {
             "description": "Game development and engine programming",
             "domains": ["gaming", "graphics", "physics", "ai"],
             "languages": ["cpp", "csharp", "lua"],
-            "frameworks": ["unity", "unreal", "godot", "phaser"]
+            "frameworks": ["unity", "unreal", "godot", "phaser"],
         },
         {
             "id": "iot-engineer",
@@ -661,7 +670,7 @@ AGENT_DEFINITIONS = {
             "description": "Internet of Things and embedded systems",
             "domains": ["iot", "embedded", "sensors", "mqtt"],
             "languages": ["c", "cpp", "python", "rust"],
-            "frameworks": ["arduino", "raspberry-pi", "mqtt", "lwm2m"]
+            "frameworks": ["arduino", "raspberry-pi", "mqtt", "lwm2m"],
         },
         {
             "id": "fintech-engineer",
@@ -669,7 +678,7 @@ AGENT_DEFINITIONS = {
             "description": "Financial technology and trading systems",
             "domains": ["fintech", "trading", "payments", "banking"],
             "languages": ["java", "python", "cpp"],
-            "frameworks": ["fix-protocol", "swift", "iso20022"]
+            "frameworks": ["fix-protocol", "swift", "iso20022"],
         },
         {
             "id": "healthcare-engineer",
@@ -677,7 +686,7 @@ AGENT_DEFINITIONS = {
             "description": "Healthcare systems and medical software",
             "domains": ["healthcare", "hl7", "fhir", "medical"],
             "languages": ["java", "python", "csharp"],
-            "frameworks": ["hl7", "fhir", "dicom"]
+            "frameworks": ["hl7", "fhir", "dicom"],
         },
         {
             "id": "robotics-engineer",
@@ -685,7 +694,7 @@ AGENT_DEFINITIONS = {
             "description": "Robotics and autonomous systems",
             "domains": ["robotics", "ros", "autonomous", "control"],
             "languages": ["cpp", "python"],
-            "frameworks": ["ros", "ros2", "gazebo", "moveit"]
+            "frameworks": ["ros", "ros2", "gazebo", "moveit"],
         },
         {
             "id": "ar-vr-developer",
@@ -693,7 +702,7 @@ AGENT_DEFINITIONS = {
             "description": "Augmented and virtual reality applications",
             "domains": ["ar", "vr", "xr", "3d"],
             "languages": ["csharp", "cpp", "javascript"],
-            "frameworks": ["unity-xr", "arcore", "arkit", "webxr"]
+            "frameworks": ["unity-xr", "arcore", "arkit", "webxr"],
         },
         {
             "id": "audio-engineer",
@@ -701,7 +710,7 @@ AGENT_DEFINITIONS = {
             "description": "Audio processing and digital signal processing",
             "domains": ["audio", "dsp", "music", "speech"],
             "languages": ["cpp", "python"],
-            "frameworks": ["juce", "portaudio", "web-audio-api"]
+            "frameworks": ["juce", "portaudio", "web-audio-api"],
         },
         {
             "id": "gis-developer",
@@ -709,7 +718,7 @@ AGENT_DEFINITIONS = {
             "description": "Geographic information systems and mapping",
             "domains": ["gis", "mapping", "geospatial", "location"],
             "languages": ["python", "javascript"],
-            "frameworks": ["postgis", "leaflet", "mapbox", "qgis"]
+            "frameworks": ["postgis", "leaflet", "mapbox", "qgis"],
         },
         {
             "id": "ecommerce-developer",
@@ -717,7 +726,7 @@ AGENT_DEFINITIONS = {
             "description": "E-commerce platforms and payment systems",
             "domains": ["ecommerce", "payments", "shopping", "marketplace"],
             "languages": ["javascript", "php", "python"],
-            "frameworks": ["shopify", "woocommerce", "stripe", "magento"]
+            "frameworks": ["shopify", "woocommerce", "stripe", "magento"],
         },
         {
             "id": "education-tech",
@@ -725,10 +734,9 @@ AGENT_DEFINITIONS = {
             "description": "Educational technology and learning platforms",
             "domains": ["edtech", "lms", "e-learning", "assessment"],
             "languages": ["javascript", "python"],
-            "frameworks": ["moodle", "canvas", "scorm", "xapi"]
-        }
+            "frameworks": ["moodle", "canvas", "scorm", "xapi"],
+        },
     ],
-
     "08-business-product": [
         {
             "id": "product-manager",
@@ -736,7 +744,7 @@ AGENT_DEFINITIONS = {
             "description": "Product strategy and technical requirements",
             "domains": ["product", "requirements", "roadmap", "metrics"],
             "languages": ["sql", "python"],
-            "frameworks": ["jira", "analytics", "a-b-testing"]
+            "frameworks": ["jira", "analytics", "a-b-testing"],
         },
         {
             "id": "business-analyst",
@@ -744,7 +752,7 @@ AGENT_DEFINITIONS = {
             "description": "Business requirements and process optimization",
             "domains": ["business", "requirements", "process", "analysis"],
             "languages": ["sql", "python"],
-            "frameworks": ["bpmn", "uml", "excel", "tableau"]
+            "frameworks": ["bpmn", "uml", "excel", "tableau"],
         },
         {
             "id": "technical-writer",
@@ -752,7 +760,7 @@ AGENT_DEFINITIONS = {
             "description": "Documentation, tutorials, and user guides",
             "domains": ["documentation", "writing", "tutorials"],
             "languages": ["markdown"],
-            "frameworks": ["docs-as-code", "dita", "restructuredtext"]
+            "frameworks": ["docs-as-code", "dita", "restructuredtext"],
         },
         {
             "id": "ux-researcher",
@@ -760,7 +768,7 @@ AGENT_DEFINITIONS = {
             "description": "User research and usability testing",
             "domains": ["ux", "research", "usability", "analytics"],
             "languages": ["javascript", "python"],
-            "frameworks": ["hotjar", "fullstory", "mixpanel"]
+            "frameworks": ["hotjar", "fullstory", "mixpanel"],
         },
         {
             "id": "growth-engineer",
@@ -768,7 +776,7 @@ AGENT_DEFINITIONS = {
             "description": "Growth hacking and conversion optimization",
             "domains": ["growth", "analytics", "ab-testing", "conversion"],
             "languages": ["javascript", "python"],
-            "frameworks": ["segment", "amplitude", "optimizely"]
+            "frameworks": ["segment", "amplitude", "optimizely"],
         },
         {
             "id": "sales-engineer",
@@ -776,7 +784,7 @@ AGENT_DEFINITIONS = {
             "description": "Technical sales support and demos",
             "domains": ["sales", "demos", "poc", "integration"],
             "languages": ["multiple"],
-            "frameworks": ["demo-tools", "integration-platforms"]
+            "frameworks": ["demo-tools", "integration-platforms"],
         },
         {
             "id": "customer-success",
@@ -784,7 +792,7 @@ AGENT_DEFINITIONS = {
             "description": "Customer onboarding and technical support",
             "domains": ["support", "onboarding", "troubleshooting"],
             "languages": ["multiple"],
-            "frameworks": ["zendesk", "intercom", "freshdesk"]
+            "frameworks": ["zendesk", "intercom", "freshdesk"],
         },
         {
             "id": "solutions-architect",
@@ -792,7 +800,7 @@ AGENT_DEFINITIONS = {
             "description": "Enterprise solutions and integrations",
             "domains": ["enterprise", "integration", "architecture"],
             "languages": ["multiple"],
-            "frameworks": ["enterprise-patterns", "integration-patterns"]
+            "frameworks": ["enterprise-patterns", "integration-patterns"],
         },
         {
             "id": "developer-advocate",
@@ -800,7 +808,7 @@ AGENT_DEFINITIONS = {
             "description": "Developer relations and community",
             "domains": ["devrel", "community", "evangelism"],
             "languages": ["multiple"],
-            "frameworks": ["community-tools", "content-creation"]
+            "frameworks": ["community-tools", "content-creation"],
         },
         {
             "id": "data-privacy-officer",
@@ -808,10 +816,9 @@ AGENT_DEFINITIONS = {
             "description": "Data privacy and compliance",
             "domains": ["privacy", "gdpr", "compliance", "data-protection"],
             "languages": ["sql", "python"],
-            "frameworks": ["privacy-tools", "compliance-frameworks"]
-        }
+            "frameworks": ["privacy-tools", "compliance-frameworks"],
+        },
     ],
-
     "09-meta-orchestration": [
         {
             "id": "multi-agent-coordinator",
@@ -819,7 +826,7 @@ AGENT_DEFINITIONS = {
             "description": "Orchestrating multiple agents for complex tasks",
             "domains": ["orchestration", "coordination", "delegation"],
             "languages": ["python"],
-            "frameworks": ["agent-frameworks", "workflow-engines"]
+            "frameworks": ["agent-frameworks", "workflow-engines"],
         },
         {
             "id": "task-decomposer",
@@ -827,7 +834,7 @@ AGENT_DEFINITIONS = {
             "description": "Breaking down complex tasks into subtasks",
             "domains": ["task-analysis", "decomposition", "planning"],
             "languages": ["python"],
-            "frameworks": ["task-frameworks", "planning-tools"]
+            "frameworks": ["task-frameworks", "planning-tools"],
         },
         {
             "id": "workflow-orchestrator",
@@ -835,7 +842,7 @@ AGENT_DEFINITIONS = {
             "description": "Managing complex workflows and pipelines",
             "domains": ["workflow", "orchestration", "automation"],
             "languages": ["python", "yaml"],
-            "frameworks": ["airflow", "prefect", "temporal"]
+            "frameworks": ["airflow", "prefect", "temporal"],
         },
         {
             "id": "decision-maker",
@@ -843,7 +850,7 @@ AGENT_DEFINITIONS = {
             "description": "Strategic decision support and analysis",
             "domains": ["decision", "strategy", "analysis"],
             "languages": ["python"],
-            "frameworks": ["decision-trees", "optimization"]
+            "frameworks": ["decision-trees", "optimization"],
         },
         {
             "id": "consensus-builder",
@@ -851,7 +858,7 @@ AGENT_DEFINITIONS = {
             "description": "Building consensus from multiple perspectives",
             "domains": ["consensus", "voting", "aggregation"],
             "languages": ["python"],
-            "frameworks": ["voting-systems", "consensus-algorithms"]
+            "frameworks": ["voting-systems", "consensus-algorithms"],
         },
         {
             "id": "quality-controller",
@@ -859,7 +866,7 @@ AGENT_DEFINITIONS = {
             "description": "Quality assurance and validation",
             "domains": ["quality", "validation", "verification"],
             "languages": ["python"],
-            "frameworks": ["quality-frameworks", "validation-tools"]
+            "frameworks": ["quality-frameworks", "validation-tools"],
         },
         {
             "id": "resource-optimizer",
@@ -867,7 +874,7 @@ AGENT_DEFINITIONS = {
             "description": "Optimizing resource allocation and usage",
             "domains": ["optimization", "resources", "allocation"],
             "languages": ["python"],
-            "frameworks": ["optimization-libraries", "schedulers"]
+            "frameworks": ["optimization-libraries", "schedulers"],
         },
         {
             "id": "meta-learner",
@@ -875,10 +882,9 @@ AGENT_DEFINITIONS = {
             "description": "Learning from agent interactions and outcomes",
             "domains": ["meta-learning", "adaptation", "improvement"],
             "languages": ["python"],
-            "frameworks": ["ml-frameworks", "reinforcement-learning"]
-        }
+            "frameworks": ["ml-frameworks", "reinforcement-learning"],
+        },
     ],
-
     "10-research-analysis": [
         {
             "id": "market-researcher",
@@ -886,7 +892,7 @@ AGENT_DEFINITIONS = {
             "description": "Market analysis and competitive intelligence",
             "domains": ["market", "research", "competitive", "trends"],
             "languages": ["python", "r"],
-            "frameworks": ["analytics-tools", "scraping-tools"]
+            "frameworks": ["analytics-tools", "scraping-tools"],
         },
         {
             "id": "technology-scout",
@@ -894,7 +900,7 @@ AGENT_DEFINITIONS = {
             "description": "Emerging technology identification and evaluation",
             "domains": ["technology", "innovation", "trends", "evaluation"],
             "languages": ["python"],
-            "frameworks": ["research-tools", "trend-analysis"]
+            "frameworks": ["research-tools", "trend-analysis"],
         },
         {
             "id": "patent-analyst",
@@ -902,7 +908,7 @@ AGENT_DEFINITIONS = {
             "description": "Patent research and intellectual property",
             "domains": ["patents", "ip", "research", "analysis"],
             "languages": ["python"],
-            "frameworks": ["patent-databases", "nlp-tools"]
+            "frameworks": ["patent-databases", "nlp-tools"],
         },
         {
             "id": "competitive-analyst",
@@ -910,7 +916,7 @@ AGENT_DEFINITIONS = {
             "description": "Competitor analysis and strategic insights",
             "domains": ["competitive", "intelligence", "strategy"],
             "languages": ["python", "sql"],
-            "frameworks": ["bi-tools", "data-mining"]
+            "frameworks": ["bi-tools", "data-mining"],
         },
         {
             "id": "trend-forecaster",
@@ -918,7 +924,7 @@ AGENT_DEFINITIONS = {
             "description": "Technology and market trend forecasting",
             "domains": ["forecasting", "trends", "prediction"],
             "languages": ["python", "r"],
-            "frameworks": ["forecasting-models", "time-series"]
+            "frameworks": ["forecasting-models", "time-series"],
         },
         {
             "id": "research-synthesizer",
@@ -926,9 +932,9 @@ AGENT_DEFINITIONS = {
             "description": "Synthesizing research from multiple sources",
             "domains": ["research", "synthesis", "analysis", "summary"],
             "languages": ["python"],
-            "frameworks": ["nlp", "text-mining", "knowledge-graphs"]
-        }
-    ]
+            "frameworks": ["nlp", "text-mining", "knowledge-graphs"],
+        },
+    ],
 }
 
 
@@ -941,7 +947,7 @@ def create_agent_yaml(category: str, agent_data: dict) -> dict:
         "name": agent_data["name"],
         "category": category.split("-", 1)[1].replace("-", "_"),
         "description": agent_data["description"],
-        "priority": "medium"
+        "priority": "medium",
     }
 
     # Capabilities
@@ -949,7 +955,7 @@ def create_agent_yaml(category: str, agent_data: dict) -> dict:
         "domains": agent_data.get("domains", []),
         "languages": agent_data.get("languages", []),
         "frameworks": agent_data.get("frameworks", []),
-        "patterns": agent_data.get("patterns", [])
+        "patterns": agent_data.get("patterns", []),
     }
 
     # Keywords - generate from name, id, and domains
@@ -988,7 +994,7 @@ def create_agent_yaml(category: str, agent_data: dict) -> dict:
         "type": "specialized",
         "focus": agent_data.get("domains", ["general"])[0],
         "validation": True,
-        "testing": True
+        "testing": True,
     }
 
     return yaml_data
@@ -1008,7 +1014,7 @@ def main():
 
             # Write YAML file
             yaml_path = category_dir / f"{agent_data['id']}.yaml"
-            with open(yaml_path, 'w') as f:
+            with open(yaml_path, "w") as f:
                 yaml.dump(yaml_content, f, default_flow_style=False, sort_keys=False)
 
             total_agents += 1

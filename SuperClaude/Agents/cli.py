@@ -5,19 +5,16 @@ Provides command-line tools for exploring, testing, and managing
 the 131-agent system.
 """
 
-import sys
-import json
 import argparse
-from pathlib import Path
 from typing import Optional
-from rich.console import Console
-from rich.table import Table
-from rich.panel import Panel
-from rich.tree import Tree
+
 from rich import box
+from rich.console import Console
+from rich.panel import Panel
+from rich.table import Table
+from rich.tree import Tree
 
-from .extended_loader import ExtendedAgentLoader, AgentCategory, MatchScore
-
+from .extended_loader import AgentCategory, ExtendedAgentLoader
 
 console = Console()
 
@@ -52,7 +49,8 @@ def cmd_list_agents(loader: ExtendedAgentLoader, category: Optional[str] = None)
             agent.category.value if agent.category else "core",
             str(agent.priority),
             ", ".join(agent.domains[:3]) + ("..." if len(agent.domains) > 3 else ""),
-            ", ".join(agent.languages[:3]) + ("..." if len(agent.languages) > 3 else "")
+            ", ".join(agent.languages[:3])
+            + ("..." if len(agent.languages) > 3 else ""),
         )
 
     console.print(table)
@@ -78,15 +76,11 @@ def cmd_list_categories(loader: ExtendedAgentLoader):
         AgentCategory.SPECIALIZED_DOMAINS: "Domain-specific specialists",
         AgentCategory.BUSINESS_PRODUCT: "Business and product management",
         AgentCategory.META_ORCHESTRATION: "Multi-agent coordination",
-        AgentCategory.RESEARCH_ANALYSIS: "Research and competitive analysis"
+        AgentCategory.RESEARCH_ANALYSIS: "Research and competitive analysis",
     }
 
     for cat, count in sorted(categories.items(), key=lambda x: x[0].value):
-        table.add_row(
-            cat.value,
-            str(count),
-            category_descriptions.get(cat, "")
-        )
+        table.add_row(cat.value, str(count), category_descriptions.get(cat, ""))
 
     console.print(table)
     console.print(f"\n[bold]Total categories:[/bold] {len(categories)}")
@@ -119,10 +113,7 @@ def cmd_search_agents(loader: ExtendedAgentLoader, query: str):
             match_reason.append("domains")
 
         table.add_row(
-            agent.id,
-            agent.name,
-            ", ".join(match_reason),
-            ", ".join(agent.domains[:3])
+            agent.id, agent.name, ", ".join(match_reason), ", ".join(agent.domains[:3])
         )
 
     console.print(table)
@@ -137,7 +128,7 @@ def cmd_select_agent(loader: ExtendedAgentLoader, context: dict, top_n: int = 5)
         console.print("[yellow]No suitable agents found for the given context[/yellow]")
         return
 
-    console.print(f"\n[bold]Context:[/bold]")
+    console.print("\n[bold]Context:[/bold]")
     console.print(f"  Task: {context.get('task', 'N/A')}")
     console.print(f"  Files: {', '.join(context.get('files', []))[:100]}")
     console.print(f"  Languages: {', '.join(context.get('languages', []))}")
@@ -161,7 +152,7 @@ def cmd_select_agent(loader: ExtendedAgentLoader, context: dict, top_n: int = 5)
             "excellent": "green",
             "high": "blue",
             "medium": "yellow",
-            "low": "red"
+            "low": "red",
         }.get(match.confidence, "white")
 
         table.add_row(
@@ -169,7 +160,7 @@ def cmd_select_agent(loader: ExtendedAgentLoader, context: dict, top_n: int = 5)
             agent.name,
             f"{match.total_score:.3f}",
             f"[{conf_color}]{match.confidence}[/{conf_color}]",
-            ", ".join(match.matched_criteria[:2])
+            ", ".join(match.matched_criteria[:2]),
         )
 
     console.print(table)
@@ -180,24 +171,24 @@ def cmd_select_agent(loader: ExtendedAgentLoader, context: dict, top_n: int = 5)
         explanation = loader.explain_selection(best.agent_id, context)
 
         panel = Panel(
-            f"""[bold]Agent:[/bold] {explanation['agent_name']}
-[bold]Category:[/bold] {explanation['category']}
-[bold]Priority:[/bold] {explanation['priority']}
-[bold]Confidence:[/bold] {explanation['confidence']}
+            f"""[bold]Agent:[/bold] {explanation["agent_name"]}
+[bold]Category:[/bold] {explanation["category"]}
+[bold]Priority:[/bold] {explanation["priority"]}
+[bold]Confidence:[/bold] {explanation["confidence"]}
 
 [bold]Score Breakdown:[/bold]
-  Keywords:  {explanation['breakdown'].get('keywords', 0):.3f} (30% weight)
-  Domains:   {explanation['breakdown'].get('domains', 0):.3f} (25% weight)
-  Languages: {explanation['breakdown'].get('languages', 0):.3f} (20% weight)
-  Files:     {explanation['breakdown'].get('file_patterns', 0):.3f} (15% weight)
-  Imports:   {explanation['breakdown'].get('imports', 0):.3f} (10% weight)
-  Priority:  {explanation['breakdown'].get('priority', 0):.3f} (bonus)
+  Keywords:  {explanation["breakdown"].get("keywords", 0):.3f} (30% weight)
+  Domains:   {explanation["breakdown"].get("domains", 0):.3f} (25% weight)
+  Languages: {explanation["breakdown"].get("languages", 0):.3f} (20% weight)
+  Files:     {explanation["breakdown"].get("file_patterns", 0):.3f} (15% weight)
+  Imports:   {explanation["breakdown"].get("imports", 0):.3f} (10% weight)
+  Priority:  {explanation["breakdown"].get("priority", 0):.3f} (bonus)
 
 [bold]Matched Criteria:[/bold]
-{chr(10).join(f"  • {c}" for c in explanation['matched_criteria'])}
+{chr(10).join(f"  • {c}" for c in explanation["matched_criteria"])}
 """,
             title="[bold cyan]Best Match Details[/bold cyan]",
-            border_style="cyan"
+            border_style="cyan",
         )
         console.print(panel)
 
@@ -215,19 +206,19 @@ def cmd_agent_info(loader: ExtendedAgentLoader, agent_id: str):
 [bold]Identity:[/bold]
   ID:          {agent.id}
   Name:        {agent.name}
-  Category:    {agent.category.value if agent.category else 'core'}
+  Category:    {agent.category.value if agent.category else "core"}
   Priority:    {agent.priority}
 
 [bold]Capabilities:[/bold]
-  Domains:     {', '.join(agent.domains) if agent.domains else 'N/A'}
-  Languages:   {', '.join(agent.languages) if agent.languages else 'N/A'}
-  Keywords:    {', '.join(agent.keywords) if agent.keywords else 'N/A'}
+  Domains:     {", ".join(agent.domains) if agent.domains else "N/A"}
+  Languages:   {", ".join(agent.languages) if agent.languages else "N/A"}
+  Keywords:    {", ".join(agent.keywords) if agent.keywords else "N/A"}
 
 [bold]File Patterns:[/bold]
-  {chr(10).join(f"  • {p}" for p in agent.file_patterns) if agent.file_patterns else '  N/A'}
+  {chr(10).join(f"  • {p}" for p in agent.file_patterns) if agent.file_patterns else "  N/A"}
 
 [bold]Import Patterns:[/bold]
-  {chr(10).join(f"  • {p}" for p in agent.imports) if agent.imports else '  N/A'}
+  {chr(10).join(f"  • {p}" for p in agent.imports) if agent.imports else "  N/A"}
 
 [bold]Description:[/bold]
   {agent.description}
@@ -249,25 +240,25 @@ def cmd_statistics(loader: ExtendedAgentLoader):
     info = f"""[bold cyan]Extended Agent Loader Statistics[/bold cyan]
 
 [bold]Agent Inventory:[/bold]
-  Total Agents:     {stats['total_agents']}
-  Cached Agents:    {stats['cached_agents']} / {stats['max_cache_size']}
+  Total Agents:     {stats["total_agents"]}
+  Cached Agents:    {stats["cached_agents"]} / {stats["max_cache_size"]}
 
 [bold]Performance Metrics:[/bold]
-  Total Loads:      {stats['agent_loads']}
-  Cache Hits:       {stats['cache_hits']}
-  Cache Misses:     {stats['cache_misses']}
-  Hit Rate:         {stats['cache_hit_rate']:.1%}
-  Evictions:        {stats['evictions']}
-  Avg Load Time:    {stats['avg_load_time']:.3f}s
-  Selection Queries: {stats['selection_queries']}
+  Total Loads:      {stats["agent_loads"]}
+  Cache Hits:       {stats["cache_hits"]}
+  Cache Misses:     {stats["cache_misses"]}
+  Hit Rate:         {stats["cache_hit_rate"]:.1%}
+  Evictions:        {stats["evictions"]}
+  Avg Load Time:    {stats["avg_load_time"]:.3f}s
+  Selection Queries: {stats["selection_queries"]}
 
 [bold]Category Distribution:[/bold]
 """
-    for category, count in sorted(stats['category_distribution'].items()):
+    for category, count in sorted(stats["category_distribution"].items()):
         info += f"  {category}: {count}\n"
 
     info += "\n[bold]Top Accessed Agents:[/bold]\n"
-    for agent_id, count in list(stats['top_accessed_agents'].items())[:5]:
+    for agent_id, count in list(stats["top_accessed_agents"].items())[:5]:
         info += f"  {agent_id}: {count} accesses\n"
 
     panel = Panel(info, border_style="cyan", box=box.ROUNDED)
@@ -301,40 +292,50 @@ def main():
     """Main CLI entry point."""
     parser = argparse.ArgumentParser(
         description="Extended Agent System CLI",
-        formatter_class=argparse.RawDescriptionHelpFormatter
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
 
-    subparsers = parser.add_subparsers(dest='command', help='Commands')
+    subparsers = parser.add_subparsers(dest="command", help="Commands")
 
     # list command
-    list_parser = subparsers.add_parser('list', help='List agents')
-    list_parser.add_argument('--category', '-c', help='Filter by category')
+    list_parser = subparsers.add_parser("list", help="List agents")
+    list_parser.add_argument("--category", "-c", help="Filter by category")
 
     # categories command
-    subparsers.add_parser('categories', help='List all categories')
+    subparsers.add_parser("categories", help="List all categories")
 
     # search command
-    search_parser = subparsers.add_parser('search', help='Search agents')
-    search_parser.add_argument('query', help='Search query')
+    search_parser = subparsers.add_parser("search", help="Search agents")
+    search_parser.add_argument("query", help="Search query")
 
     # select command
-    select_parser = subparsers.add_parser('select', help='Select best agent for context')
-    select_parser.add_argument('--task', '-t', required=True, help='Task description')
-    select_parser.add_argument('--files', '-f', nargs='*', default=[], help='File paths')
-    select_parser.add_argument('--languages', '-l', nargs='*', default=[], help='Languages')
-    select_parser.add_argument('--domains', '-d', nargs='*', default=[], help='Domains')
-    select_parser.add_argument('--keywords', '-k', nargs='*', default=[], help='Keywords')
-    select_parser.add_argument('--top', type=int, default=5, help='Number of suggestions')
+    select_parser = subparsers.add_parser(
+        "select", help="Select best agent for context"
+    )
+    select_parser.add_argument("--task", "-t", required=True, help="Task description")
+    select_parser.add_argument(
+        "--files", "-f", nargs="*", default=[], help="File paths"
+    )
+    select_parser.add_argument(
+        "--languages", "-l", nargs="*", default=[], help="Languages"
+    )
+    select_parser.add_argument("--domains", "-d", nargs="*", default=[], help="Domains")
+    select_parser.add_argument(
+        "--keywords", "-k", nargs="*", default=[], help="Keywords"
+    )
+    select_parser.add_argument(
+        "--top", type=int, default=5, help="Number of suggestions"
+    )
 
     # info command
-    info_parser = subparsers.add_parser('info', help='Show agent information')
-    info_parser.add_argument('agent_id', help='Agent ID')
+    info_parser = subparsers.add_parser("info", help="Show agent information")
+    info_parser.add_argument("agent_id", help="Agent ID")
 
     # stats command
-    subparsers.add_parser('stats', help='Show statistics')
+    subparsers.add_parser("stats", help="Show statistics")
 
     # tree command
-    subparsers.add_parser('tree', help='Show category tree')
+    subparsers.add_parser("tree", help="Show category tree")
 
     args = parser.parse_args()
 
@@ -348,26 +349,26 @@ def main():
 
     # Execute command
     try:
-        if args.command == 'list':
+        if args.command == "list":
             cmd_list_agents(loader, args.category)
-        elif args.command == 'categories':
+        elif args.command == "categories":
             cmd_list_categories(loader)
-        elif args.command == 'search':
+        elif args.command == "search":
             cmd_search_agents(loader, args.query)
-        elif args.command == 'select':
+        elif args.command == "select":
             context = {
-                'task': args.task,
-                'files': args.files,
-                'languages': args.languages,
-                'domains': args.domains,
-                'keywords': args.keywords
+                "task": args.task,
+                "files": args.files,
+                "languages": args.languages,
+                "domains": args.domains,
+                "keywords": args.keywords,
             }
             cmd_select_agent(loader, context, args.top)
-        elif args.command == 'info':
+        elif args.command == "info":
             cmd_agent_info(loader, args.agent_id)
-        elif args.command == 'stats':
+        elif args.command == "stats":
             cmd_statistics(loader)
-        elif args.command == 'tree':
+        elif args.command == "tree":
             cmd_category_tree(loader)
         else:
             parser.print_help()
@@ -375,8 +376,9 @@ def main():
     except Exception as e:
         console.print(f"[red]Error: {e}[/red]")
         import traceback
+
         traceback.print_exc()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

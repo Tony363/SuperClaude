@@ -10,7 +10,8 @@ from __future__ import annotations
 import argparse
 import json
 import textwrap
-from typing import Any, Dict
+from typing import Any
+
 
 def _summarize_docstring(obj: Any) -> str:
     doc = (getattr(obj, "__doc__", "") or "").strip()
@@ -29,9 +30,9 @@ def _load_registry():
     return MCP_SERVERS, integration_import_errors()
 
 
-def _describe_server(registry: Dict[str, Any], name: str) -> Dict[str, Any]:
+def _describe_server(registry: dict[str, Any], name: str) -> dict[str, Any]:
     cls = registry[name]
-    info: Dict[str, Any] = {
+    info: dict[str, Any] = {
         "name": name,
         "class": f"{cls.__module__}.{cls.__name__}",
         "summary": _summarize_docstring(cls),
@@ -49,7 +50,7 @@ def _describe_server(registry: Dict[str, Any], name: str) -> Dict[str, Any]:
     try:
         instance = cls()  # type: ignore[call-arg]
     except Exception as exc:  # pragma: no cover - defensive
-        info["warning"] = f"failed to instantiate: {exc}"  # noqa: TRY401
+        info["warning"] = f"failed to instantiate: {exc}"
         return info
 
     for attr in ("enabled", "requires_network", "endpoint", "timeout_seconds"):
@@ -121,7 +122,9 @@ def main(argv: list[str] | None = None) -> int:
                 parser.error(
                     f"server '{args.describe}' is unavailable: missing optional dependency '{missing}'."
                 )
-            parser.error(f"unknown server '{args.describe}'. Run with --list to see options.")
+            parser.error(
+                f"unknown server '{args.describe}'. Run with --list to see options."
+            )
 
         info = _describe_server(registry, key)
 

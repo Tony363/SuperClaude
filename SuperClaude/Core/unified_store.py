@@ -14,7 +14,7 @@ import sqlite3
 import threading
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 
 @dataclass
@@ -25,7 +25,7 @@ class SymbolInfo:
     kind: str
     file_path: str
     line: int
-    signature: Optional[str] = None
+    signature: str | None = None
 
 
 class UnifiedStore:
@@ -41,7 +41,7 @@ class UnifiedStore:
     def __init__(self, db_path: str = "~/.claude/unified_store.db"):
         self.db_path = Path(db_path).expanduser()
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
-        self._conn: Optional[sqlite3.Connection] = None
+        self._conn: sqlite3.Connection | None = None
         self._lock = threading.Lock()
 
         if not UnifiedStore._migration_checked:
@@ -115,7 +115,7 @@ class UnifiedStore:
     # ------------------------------------------------------------------ #
     # Session memory API
     # ------------------------------------------------------------------ #
-    def write_memory(self, key: str, value: Dict[str, Any]) -> None:
+    def write_memory(self, key: str, value: dict[str, Any]) -> None:
         with self._lock:
             conn = self._get_conn()
             conn.execute(
@@ -124,7 +124,7 @@ class UnifiedStore:
             )
             conn.commit()
 
-    def read_memory(self, key: str) -> Optional[Dict[str, Any]]:
+    def read_memory(self, key: str) -> dict[str, Any] | None:
         with self._lock:
             conn = self._get_conn()
             cursor = conn.execute("SELECT data FROM sessions WHERE key = ?", (key,))
@@ -136,7 +136,7 @@ class UnifiedStore:
         except json.JSONDecodeError:
             return None
 
-    def list_memories(self, prefix: str = "") -> List[str]:
+    def list_memories(self, prefix: str = "") -> list[str]:
         with self._lock:
             conn = self._get_conn()
             if prefix:
@@ -166,11 +166,17 @@ class UnifiedStore:
                 INSERT INTO symbols (name, kind, file_path, line, signature)
                 VALUES (?, ?, ?, ?, ?)
                 """,
-                (symbol.name, symbol.kind, symbol.file_path, symbol.line, symbol.signature),
+                (
+                    symbol.name,
+                    symbol.kind,
+                    symbol.file_path,
+                    symbol.line,
+                    symbol.signature,
+                ),
             )
             conn.commit()
 
-    def list_symbols(self, kind: Optional[str] = None) -> List[Dict[str, Any]]:
+    def list_symbols(self, kind: str | None = None) -> list[dict[str, Any]]:
         with self._lock:
             conn = self._get_conn()
             if kind:

@@ -16,6 +16,7 @@ def test_cli_imports():
     """Test that CLI module can be imported without errors."""
     try:
         from SuperClaude import __main__
+
         assert __main__ is not None
     except ImportError as e:
         pytest.fail(f"Failed to import CLI module: {e}")
@@ -24,6 +25,7 @@ def test_cli_imports():
 def test_create_parser():
     """Test that CLI parser can be created."""
     from SuperClaude.__main__ import create_parser
+
     parser, subparsers, global_parser = create_parser()
 
     assert parser is not None
@@ -35,18 +37,20 @@ def test_create_parser():
 def test_global_parser_flags():
     """Test that global parser has all expected flags."""
     from SuperClaude.__main__ import create_global_parser
+
     parser = create_global_parser()
 
     # Parse with all flags to ensure they exist
     test_args = [
         "--verbose",
         "--quiet",
-        "--install-dir", "/tmp/test",
+        "--install-dir",
+        "/tmp/test",
         "--dry-run",
         "--force",
         "--yes",
         "--no-update-check",
-        "--auto-update"
+        "--auto-update",
     ]
 
     # Should not raise an error
@@ -64,6 +68,7 @@ def test_global_parser_flags():
 def test_operation_modules():
     """Test that operation modules are defined correctly."""
     from SuperClaude.__main__ import get_operation_modules
+
     operations = get_operation_modules()
 
     assert "install" in operations
@@ -75,6 +80,7 @@ def test_operation_modules():
     for op, desc in operations.items():
         assert isinstance(desc, str)
         assert len(desc) > 0
+
 
 def _cli_env() -> dict:
     env = os.environ.copy()
@@ -134,16 +140,20 @@ def test_fallback_functions():
     """Test that fallback UI functions exist when imports fail."""
     # Test the fallback classes/functions defined in __main__.py
     from SuperClaude.__main__ import (
-        Colors, display_error, display_warning,
-        display_success, display_info, display_header
+        Colors,
+        display_error,
+        display_header,
+        display_info,
+        display_success,
+        display_warning,
     )
 
     # Test Colors class
-    assert hasattr(Colors, 'RED')
-    assert hasattr(Colors, 'YELLOW')
-    assert hasattr(Colors, 'GREEN')
-    assert hasattr(Colors, 'CYAN')
-    assert hasattr(Colors, 'RESET')
+    assert hasattr(Colors, "RED")
+    assert hasattr(Colors, "YELLOW")
+    assert hasattr(Colors, "GREEN")
+    assert hasattr(Colors, "CYAN")
+    assert hasattr(Colors, "RESET")
 
     # Test display functions work without errors
     display_error("test error")
@@ -156,13 +166,12 @@ def test_fallback_functions():
 def test_version_flag():
     """Test that --version flag works correctly."""
     from SuperClaude.__main__ import create_parser
-    from SuperClaude import __version__
 
     parser, _, _ = create_parser()
 
     # Test version flag
     with pytest.raises(SystemExit) as excinfo:
-        parser.parse_args(['--version'])
+        parser.parse_args(["--version"])
     assert excinfo.value.code == 0
 
 
@@ -174,22 +183,28 @@ def test_main_invokes_stub_operation(monkeypatch):
             self.calls = 0
 
         def register_parser(self, subparsers, global_parser):
-            parser = subparsers.add_parser('install', help='stub install', parents=[global_parser])
-            parser.add_argument('--flag', action='store_true', help='stub flag')
+            parser = subparsers.add_parser(
+                "install", help="stub install", parents=[global_parser]
+            )
+            parser.add_argument("--flag", action="store_true", help="stub flag")
 
         def run(self, args):
             self.calls += 1
-            assert args.operation == 'install'
+            assert args.operation == "install"
             assert args.flag is True
             return 99
 
     stub_module = StubModule()
 
-    monkeypatch.setattr(cli, 'get_operation_modules', lambda: {'install': 'Install SuperClaude'})
-    monkeypatch.setattr(cli, 'load_operation_module', lambda name: stub_module)
-    monkeypatch.setattr(cli, 'setup_global_environment', lambda args: None)
-    monkeypatch.setattr(cli, 'get_logger', lambda: None)
-    monkeypatch.setattr(sys, 'argv', ['SuperClaude', 'install', '--no-update-check', '--flag'])
+    monkeypatch.setattr(
+        cli, "get_operation_modules", lambda: {"install": "Install SuperClaude"}
+    )
+    monkeypatch.setattr(cli, "load_operation_module", lambda name: stub_module)
+    monkeypatch.setattr(cli, "setup_global_environment", lambda args: None)
+    monkeypatch.setattr(cli, "get_logger", lambda: None)
+    monkeypatch.setattr(
+        sys, "argv", ["SuperClaude", "install", "--no-update-check", "--flag"]
+    )
 
     exit_code = cli.main()
 

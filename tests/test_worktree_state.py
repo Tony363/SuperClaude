@@ -1,7 +1,6 @@
 import os
 import tempfile
 import unittest
-from pathlib import Path
 
 from SuperClaude.Core.unified_store import UnifiedStore
 from SuperClaude.WorktreeManager.state import WorktreeStateManager
@@ -51,7 +50,9 @@ class TestWorktreeStateManager(unittest.TestCase):
         self.assertIn("worktree_wt-demo", self.store.list_memories(prefix="worktree_"))
 
         self.manager.remove_state("wt-demo")
-        self.assertNotIn("worktree_wt-demo", self.store.list_memories(prefix="worktree_"))
+        self.assertNotIn(
+            "worktree_wt-demo", self.store.list_memories(prefix="worktree_")
+        )
 
     def test_duplicate_updates_overwrite_previous_state(self):
         self.manager.update_state("wt-demo", task_id="demo", status="active")

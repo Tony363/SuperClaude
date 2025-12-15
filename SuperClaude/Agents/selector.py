@@ -5,13 +5,11 @@ This module provides intelligent agent selection based on context,
 keywords, and task requirements.
 """
 
-import re
-from typing import Dict, List, Optional, Any, Tuple
 import logging
-from pathlib import Path
+import re
+from typing import Any, Dict, List, Optional, Tuple
 
 from .registry import AgentRegistry
-from .base import BaseAgent
 
 
 class AgentSelector:
@@ -46,7 +44,7 @@ class AgentSelector:
         self,
         context: Any,
         category_hint: Optional[str] = None,
-        exclude_agents: Optional[List[str]] = None
+        exclude_agents: Optional[List[str]] = None,
     ) -> List[Tuple[str, float]]:
         """
         Select agents for the given context, ordered by relevance.
@@ -90,9 +88,7 @@ class AgentSelector:
         if scores:
             best_agent = scores[0][0]
             best_score = scores[0][1]
-            self.logger.info(
-                f"Top agent: {best_agent} (confidence: {best_score:.2f})"
-            )
+            self.logger.info(f"Top agent: {best_agent} (confidence: {best_score:.2f})")
         else:
             self.logger.warning("No suitable agent found for context")
 
@@ -102,7 +98,7 @@ class AgentSelector:
         self,
         context: str,
         category_hint: Optional[str] = None,
-        exclude_agents: Optional[List[str]] = None
+        exclude_agents: Optional[List[str]] = None,
     ) -> Tuple[Optional[str], float]:
         """
         Find the best matching agent for context.
@@ -162,10 +158,7 @@ class AgentSelector:
         return best_agent, best_score
 
     def _calculate_agent_score(
-        self,
-        context: Any,
-        config: Dict[str, Any],
-        category_hint: Optional[str] = None
+        self, context: Any, config: Dict[str, Any], category_hint: Optional[str] = None
     ) -> float:
         """
         Calculate confidence score for an agent.
@@ -182,11 +175,11 @@ class AgentSelector:
         # Handle both string and dict context
         if isinstance(context, dict):
             context_str = (
-                context.get('task', '')
-                + ' '
-                + context.get('description', '')
-                + ' '
-                + ' '.join(context.get('files', []))
+                context.get("task", "")
+                + " "
+                + context.get("description", "")
+                + " "
+                + " ".join(context.get("files", []))
             )
         else:
             context_str = str(context)
@@ -194,44 +187,43 @@ class AgentSelector:
         complex_context = self._is_complex_context(context_str)
 
         # 1. Trigger keyword matching (40% weight)
-        trigger_score = self._score_triggers(context_lower, config.get('triggers', []))
+        trigger_score = self._score_triggers(context_lower, config.get("triggers", []))
         score += trigger_score * 0.4
 
         # 2. Category matching (20% weight)
         category_score = self._score_category(
-            context_lower, config.get('category', ''), category_hint
+            context_lower, config.get("category", ""), category_hint
         )
         score += category_score * 0.2
 
         # 3. Description relevance (15% weight)
         desc_score = self._score_description(
-            context_lower, config.get('description', '')
+            context_lower, config.get("description", "")
         )
         score += desc_score * 0.15
 
         # 4. Tool relevance (15% weight)
-        tool_score = self._score_tools(context_lower, config.get('tools', []))
+        tool_score = self._score_tools(context_lower, config.get("tools", []))
         score += tool_score * 0.15
 
         # 5. Focus area matching (10% weight)
         focus_score = self._score_focus_areas(
-            context_lower, config.get('focus_areas', {})
+            context_lower, config.get("focus_areas", {})
         )
         score += focus_score * 0.1
 
         # 6. Capability tier bias (±20%)
         tier_score = self._score_capability_tier(
-            config.get('capability_tier', 'wrapper'),
-            complex_context
+            config.get("capability_tier", "wrapper"), complex_context
         )
         score += tier_score
 
         # 7. Boost for core agents (5% bonus)
-        if config.get('is_core', False):
+        if config.get("is_core", False):
             score += 0.05
 
         # 8. Keyword-to-core-agent boost to ensure intuitive defaults
-        score += self._keyword_core_boost(config.get('name', ''), context_lower)
+        score += self._keyword_core_boost(config.get("name", ""), context_lower)
 
         return min(score, 1.0)
 
@@ -239,31 +231,31 @@ class AgentSelector:
         """Heuristic to detect complex, multi-domain requests."""
         lowered = context_str.lower()
         complexity_signals = [
-            'architecture',
-            'migration',
-            'fullstack',
-            'end-to-end',
-            'multi-step',
-            'integration',
-            'refactor',
-            'compliance',
-            'staging',
-            'rollout',
+            "architecture",
+            "migration",
+            "fullstack",
+            "end-to-end",
+            "multi-step",
+            "integration",
+            "refactor",
+            "compliance",
+            "staging",
+            "rollout",
         ]
         signal_hits = sum(1 for token in complexity_signals if token in lowered)
         return len(lowered) > 160 or signal_hits >= 2
 
     def _score_capability_tier(self, tier: str, complex_context: bool) -> float:
         """Bias the match score towards strategist-tier agents for complex work."""
-        tier_normalized = (tier or 'wrapper').lower()
+        tier_normalized = (tier or "wrapper").lower()
         base = 0.0
-        if tier_normalized == 'strategist':
+        if tier_normalized == "strategist":
             base = 0.12
-        elif tier_normalized in {'heuristic-wrapper', 'enhanced-wrapper'}:
+        elif tier_normalized in {"heuristic-wrapper", "enhanced-wrapper"}:
             base = 0.05
 
         if complex_context:
-            if tier_normalized == 'strategist':
+            if tier_normalized == "strategist":
                 base += 0.1
             else:
                 base -= 0.1
@@ -274,17 +266,29 @@ class AgentSelector:
         """Apply small heuristic boosts to ensure intuitive core agent matches."""
         boosts = 0.0
         try:
-            if agent_name == 'root-cause-analyst':
-                if any(k in context_lower for k in ['debug', 'bug', 'issue', 'error', 'problem', 'crash']):
+            if agent_name == "root-cause-analyst":
+                if any(
+                    k in context_lower
+                    for k in ["debug", "bug", "issue", "error", "problem", "crash"]
+                ):
                     boosts += 0.5
-            elif agent_name == 'refactoring-expert':
-                if any(k in context_lower for k in ['refactor', 'clean up', 'improve code', 'restructure']):
+            elif agent_name == "refactoring-expert":
+                if any(
+                    k in context_lower
+                    for k in ["refactor", "clean up", "improve code", "restructure"]
+                ):
                     boosts += 0.5
-            elif agent_name == 'technical-writer':
-                if any(k in context_lower for k in ['write documentation', 'docs', 'documentation', 'explain']):
+            elif agent_name == "technical-writer":
+                if any(
+                    k in context_lower
+                    for k in ["write documentation", "docs", "documentation", "explain"]
+                ):
                     boosts += 0.5
-            elif agent_name == 'performance-engineer':
-                if any(k in context_lower for k in ['performance', 'optimize', 'slow', 'speed up']):
+            elif agent_name == "performance-engineer":
+                if any(
+                    k in context_lower
+                    for k in ["performance", "optimize", "slow", "speed up"]
+                ):
                     boosts += 0.5
         except Exception:
             pass
@@ -306,7 +310,7 @@ class AgentSelector:
                 matches += 2
                 total_weight += 2
             # Word boundary match
-            elif re.search(r'\b' + re.escape(trigger_lower) + r'\b', context):
+            elif re.search(r"\b" + re.escape(trigger_lower) + r"\b", context):
                 matches += 1.5
                 total_weight += 1.5
             # Partial match
@@ -345,7 +349,7 @@ class AgentSelector:
         desc_lower = description.lower()
 
         # Extract key terms from description
-        key_terms = re.findall(r'\b[a-z]{4,}\b', desc_lower)
+        key_terms = re.findall(r"\b[a-z]{4,}\b", desc_lower)
 
         # Count matching terms
         matches = sum(1 for term in key_terms if term in context)
@@ -382,7 +386,9 @@ class AgentSelector:
 
             # Check area description keywords
             if desc_lower:
-                keywords = re.findall(r'\b[a-z]{4,}\b', desc_lower)[:5]  # Top 5 keywords
+                keywords = re.findall(r"\b[a-z]{4,}\b", desc_lower)[
+                    :5
+                ]  # Top 5 keywords
                 for keyword in keywords:
                     if keyword in context:
                         total_score += 0.1
@@ -393,14 +399,20 @@ class AgentSelector:
         """Check if context has terms related to category."""
         # Define related terms for common categories
         related_terms = {
-            'debugging': ['bug', 'error', 'issue', 'problem', 'fix', 'debug'],
-            'refactoring': ['refactor', 'improve', 'clean', 'optimize', 'restructure'],
-            'documentation': ['document', 'docs', 'readme', 'comment', 'explain'],
-            'testing': ['test', 'validate', 'verify', 'check', 'assert'],
-            'performance': ['speed', 'slow', 'optimize', 'performance', 'efficient'],
-            'security': ['secure', 'vulnerability', 'auth', 'permission', 'safety'],
-            'architecture': ['design', 'structure', 'pattern', 'architecture', 'system'],
-            'analysis': ['analyze', 'investigate', 'examine', 'review', 'assess']
+            "debugging": ["bug", "error", "issue", "problem", "fix", "debug"],
+            "refactoring": ["refactor", "improve", "clean", "optimize", "restructure"],
+            "documentation": ["document", "docs", "readme", "comment", "explain"],
+            "testing": ["test", "validate", "verify", "check", "assert"],
+            "performance": ["speed", "slow", "optimize", "performance", "efficient"],
+            "security": ["secure", "vulnerability", "auth", "permission", "safety"],
+            "architecture": [
+                "design",
+                "structure",
+                "pattern",
+                "architecture",
+                "system",
+            ],
+            "analysis": ["analyze", "investigate", "examine", "review", "assess"],
         }
 
         if category in related_terms:
@@ -434,9 +446,7 @@ class AgentSelector:
         sorted_agents = sorted(scores.items(), key=lambda x: x[1], reverse=True)
         return sorted_agents[:top_n]
 
-    def explain_selection(
-        self, context: str, agent_name: str
-    ) -> Dict[str, Any]:
+    def explain_selection(self, context: str, agent_name: str) -> Dict[str, Any]:
         """
         Explain why an agent was selected.
 
@@ -449,26 +459,33 @@ class AgentSelector:
         """
         config = self.registry.get_agent_config(agent_name)
         if not config:
-            return {'error': 'Agent not found'}
+            return {"error": "Agent not found"}
 
         context_lower = context.lower()
 
         explanation = {
-            'agent': agent_name,
-            'category': config.get('category', 'general'),
-            'total_score': self._calculate_agent_score(context, config),
-            'breakdown': {
-                'triggers': self._score_triggers(context_lower, config.get('triggers', [])),
-                'category': self._score_category(context_lower, config.get('category', '')),
-                'description': self._score_description(context_lower, config.get('description', '')),
-                'tools': self._score_tools(context_lower, config.get('tools', [])),
-                'focus_areas': self._score_focus_areas(context_lower, config.get('focus_areas', {})),
-                'core_bonus': 0.05 if config.get('is_core', False) else 0.0
+            "agent": agent_name,
+            "category": config.get("category", "general"),
+            "total_score": self._calculate_agent_score(context, config),
+            "breakdown": {
+                "triggers": self._score_triggers(
+                    context_lower, config.get("triggers", [])
+                ),
+                "category": self._score_category(
+                    context_lower, config.get("category", "")
+                ),
+                "description": self._score_description(
+                    context_lower, config.get("description", "")
+                ),
+                "tools": self._score_tools(context_lower, config.get("tools", [])),
+                "focus_areas": self._score_focus_areas(
+                    context_lower, config.get("focus_areas", {})
+                ),
+                "core_bonus": 0.05 if config.get("is_core", False) else 0.0,
             },
-            'matched_triggers': [
-                t for t in config.get('triggers', [])
-                if t.lower() in context_lower
-            ]
+            "matched_triggers": [
+                t for t in config.get("triggers", []) if t.lower() in context_lower
+            ],
         }
 
         return explanation

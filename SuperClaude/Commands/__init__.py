@@ -5,18 +5,18 @@ Provides automatic discovery, parsing, and execution of /sc: commands
 with full agent and MCP server integration.
 """
 
-from .registry import CommandRegistry, CommandMetadata
+from .executor import CommandContext, CommandExecutor, CommandResult
 from .parser import CommandParser, ParsedCommand
-from .executor import CommandExecutor, CommandContext, CommandResult
+from .registry import CommandMetadata, CommandRegistry
 
 __all__ = [
-    'CommandRegistry',
-    'CommandMetadata',
-    'CommandParser',
-    'ParsedCommand',
-    'CommandExecutor',
-    'CommandContext',
-    'CommandResult'
+    "CommandContext",
+    "CommandExecutor",
+    "CommandMetadata",
+    "CommandParser",
+    "CommandRegistry",
+    "CommandResult",
+    "ParsedCommand",
 ]
 
-__version__ = '1.0.0'
+__version__ = "1.0.0"

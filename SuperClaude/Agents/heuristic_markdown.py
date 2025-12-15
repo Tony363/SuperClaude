@@ -8,9 +8,9 @@ auto-generated extended personas provide more than a one-pass plan.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 import re
-from typing import Any, Dict, Iterable, List, Optional, Tuple
+from dataclasses import dataclass
+from typing import Any, Iterable
 
 from .generic import GenericMarkdownAgent
 
@@ -32,7 +32,7 @@ class HeuristicMarkdownAgent(GenericMarkdownAgent):
 
     MAX_PLAN_RETRIES = 2
 
-    def execute(self, context: Dict[str, Any]) -> Dict[str, Any]:
+    def execute(self, context: dict[str, Any]) -> dict[str, Any]:
         """
         Run the base markdown execution, then augment the result with
         lightweight heuristics to reduce plan-only fallbacks.
@@ -43,7 +43,9 @@ class HeuristicMarkdownAgent(GenericMarkdownAgent):
         # synthesised changes and detected operations.
         static_issues = self._run_static_checks(context, result)
         retry_hint = self._maybe_request_retry(context, result, static_issues)
-        follow_up = self._build_follow_up_actions(context, result, static_issues, retry_hint)
+        follow_up = self._build_follow_up_actions(
+            context, result, static_issues, retry_hint
+        )
 
         if static_issues:
             warnings = self._ensure_list(result, "warnings")
@@ -51,14 +53,17 @@ class HeuristicMarkdownAgent(GenericMarkdownAgent):
                 warning = f"{issue.path}: {issue.message}"
                 if warning not in warnings:
                     warnings.append(warning)
-            result.setdefault("static_validation", [
-                {
-                    "path": issue.path,
-                    "message": issue.message,
-                    "severity": issue.severity,
-                }
-                for issue in static_issues
-            ])
+            result.setdefault(
+                "static_validation",
+                [
+                    {
+                        "path": issue.path,
+                        "message": issue.message,
+                        "severity": issue.severity,
+                    }
+                    for issue in static_issues
+                ],
+            )
 
         if retry_hint:
             details = self._ensure_dict(result, "retry_guidance")
@@ -75,14 +80,12 @@ class HeuristicMarkdownAgent(GenericMarkdownAgent):
     # ------------------------------------------------------------------
 
     def _run_static_checks(
-        self,
-        context: Dict[str, Any],
-        result: Dict[str, Any]
-    ) -> List[_StaticIssue]:
+        self, context: dict[str, Any], result: dict[str, Any]
+    ) -> list[_StaticIssue]:
         """
         Perform lightweight static validation on proposed changes.
         """
-        issues: List[_StaticIssue] = []
+        issues: list[_StaticIssue] = []
         changes = self._collect_candidate_changes(context, result)
 
         for change in changes:
@@ -102,10 +105,10 @@ class HeuristicMarkdownAgent(GenericMarkdownAgent):
 
     def _maybe_request_retry(
         self,
-        context: Dict[str, Any],
-        result: Dict[str, Any],
-        static_issues: List[_StaticIssue]
-    ) -> Optional[str]:
+        context: dict[str, Any],
+        result: dict[str, Any],
+        static_issues: list[_StaticIssue],
+    ) -> str | None:
         """
         Decide whether the agent should ask the coordinator for a retry.
         """
@@ -136,21 +139,23 @@ class HeuristicMarkdownAgent(GenericMarkdownAgent):
 
     def _build_follow_up_actions(
         self,
-        context: Dict[str, Any],
-        result: Dict[str, Any],
-        static_issues: List[_StaticIssue],
-        retry_hint: Optional[str]
-    ) -> List[str]:
+        context: dict[str, Any],
+        result: dict[str, Any],
+        static_issues: list[_StaticIssue],
+        retry_hint: str | None,
+    ) -> list[str]:
         """
         Build structured follow-up actions for operators.
         """
-        follow_up: List[str] = []
+        follow_up: list[str] = []
         task = str(context.get("task", "")).strip()
         if retry_hint:
             follow_up.append(retry_hint)
 
         if static_issues:
-            follow_up.append("Resolve the static validation errors noted above before applying changes.")
+            follow_up.append(
+                "Resolve the static validation errors noted above before applying changes."
+            )
 
         if result.get("status") == "plan-only":
             follow_up.append(
@@ -159,7 +164,9 @@ class HeuristicMarkdownAgent(GenericMarkdownAgent):
             )
 
         if task and "test" not in task.lower():
-            follow_up.append("Add or update automated tests that exercise the proposed changes.")
+            follow_up.append(
+                "Add or update automated tests that exercise the proposed changes."
+            )
 
         return follow_up
 
@@ -167,9 +174,9 @@ class HeuristicMarkdownAgent(GenericMarkdownAgent):
     # Language-specific heuristics
     # ------------------------------------------------------------------
 
-    def _validate_python_snippet(self, path: str, content: str) -> List[_StaticIssue]:
+    def _validate_python_snippet(self, path: str, content: str) -> list[_StaticIssue]:
         """Basic Python syntax validation."""
-        issues: List[_StaticIssue] = []
+        issues: list[_StaticIssue] = []
         try:
             compile(content, path, "exec")
         except SyntaxError as exc:
@@ -177,13 +184,13 @@ class HeuristicMarkdownAgent(GenericMarkdownAgent):
             issues.append(_StaticIssue(path=path, message=msg, severity="error"))
         return issues
 
-    def _validate_ts_snippet(self, path: str, content: str) -> List[_StaticIssue]:
+    def _validate_ts_snippet(self, path: str, content: str) -> list[_StaticIssue]:
         """
         Simple TypeScript/JavaScript validation catching common mistakes like
         unmatched braces or missing exports.
         """
-        issues: List[_StaticIssue] = []
-        stack: List[str] = []
+        issues: list[_StaticIssue] = []
+        stack: list[str] = []
         pairs = {"{": "}", "(": ")", "[": "]"}
         opening = set(pairs.keys())
         closing = {v: k for k, v in pairs.items()}
@@ -193,42 +200,50 @@ class HeuristicMarkdownAgent(GenericMarkdownAgent):
                 stack.append(char)
             elif char in closing:
                 if not stack or stack[-1] != closing[char]:
-                    issues.append(_StaticIssue(
-                        path=path,
-                        message=f"Unmatched '{char}' detected near char {idx}",
-                        severity="error",
-                    ))
+                    issues.append(
+                        _StaticIssue(
+                            path=path,
+                            message=f"Unmatched '{char}' detected near char {idx}",
+                            severity="error",
+                        )
+                    )
                     break
                 stack.pop()
 
         if stack:
-            issues.append(_StaticIssue(
-                path=path,
-                message="Unclosed braces detected in generated snippet",
-                severity="error",
-            ))
+            issues.append(
+                _StaticIssue(
+                    path=path,
+                    message="Unclosed braces detected in generated snippet",
+                    severity="error",
+                )
+            )
 
         export_match = re.search(r"export\s+(class|function|const)\s+\w+", content)
         if "export" in content and not export_match:
-            issues.append(_StaticIssue(
-                path=path,
-                message="`export` keyword present but no exportable symbol detected.",
-            ))
+            issues.append(
+                _StaticIssue(
+                    path=path,
+                    message="`export` keyword present but no exportable symbol detected.",
+                )
+            )
 
         return issues
 
-    def _validate_markdown_snippet(self, path: str, content: str) -> List[_StaticIssue]:
+    def _validate_markdown_snippet(self, path: str, content: str) -> list[_StaticIssue]:
         """Ensure markdown headings progress sequentially."""
-        issues: List[_StaticIssue] = []
+        issues: list[_StaticIssue] = []
         last_level = 1
         for lineno, line in enumerate(content.splitlines(), start=1):
             if line.startswith("#"):
                 level = len(line.split(" ", 1)[0])
                 if level - last_level > 1:
-                    issues.append(_StaticIssue(
-                        path=path,
-                        message=f"Heading level jumps from H{last_level} to H{level} at line {lineno}",
-                    ))
+                    issues.append(
+                        _StaticIssue(
+                            path=path,
+                            message=f"Heading level jumps from H{last_level} to H{level} at line {lineno}",
+                        )
+                    )
                 last_level = level
         return issues
 
@@ -237,10 +252,8 @@ class HeuristicMarkdownAgent(GenericMarkdownAgent):
     # ------------------------------------------------------------------
 
     def _collect_candidate_changes(
-        self,
-        context: Dict[str, Any],
-        result: Dict[str, Any]
-    ) -> Iterable[Dict[str, Any]]:
+        self, context: dict[str, Any], result: dict[str, Any]
+    ) -> Iterable[dict[str, Any]]:
         """
         Determine candidate change dictionaries from context/result.
         """
@@ -249,21 +262,20 @@ class HeuristicMarkdownAgent(GenericMarkdownAgent):
         elif isinstance(context.get("proposed_changes"), list):
             yield from context["proposed_changes"]  # type: ignore[arg-type]
 
-    def _ensure_list(self, result: Dict[str, Any], key: str) -> List[Any]:
+    def _ensure_list(self, result: dict[str, Any], key: str) -> list[Any]:
         """Ensure ``result[key]`` is a list and return it."""
         value = result.get(key)
         if isinstance(value, list):
             return value
-        new_list: List[Any] = []
+        new_list: list[Any] = []
         result[key] = new_list
         return new_list
 
-    def _ensure_dict(self, result: Dict[str, Any], key: str) -> Dict[str, Any]:
+    def _ensure_dict(self, result: dict[str, Any], key: str) -> dict[str, Any]:
         """Ensure ``result[key]`` is a dict and return it."""
         value = result.get(key)
         if isinstance(value, dict):
             return value
-        new_dict: Dict[str, Any] = {}
+        new_dict: dict[str, Any] = {}
         result[key] = new_dict
         return new_dict
-

@@ -4,11 +4,11 @@ Command Parser for SuperClaude Framework.
 Parses and validates /sc: command strings with parameters and flags.
 """
 
-import re
-from typing import Dict, List, Any, Optional, Tuple
-from dataclasses import dataclass, field
-import shlex
 import logging
+import re
+import shlex
+from dataclasses import dataclass, field
+from typing import Any, Dict, List, Tuple
 
 logger = logging.getLogger(__name__)
 
@@ -16,6 +16,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class ParsedCommand:
     """Parsed command with extracted components."""
+
     name: str
     raw_string: str
     arguments: List[str] = field(default_factory=list)
@@ -36,19 +37,19 @@ class CommandParser:
     """
 
     # Command patterns
-    COMMAND_PATTERN = re.compile(r'/sc:([A-Za-z0-9_-]+)(?:\s+(.*))?')
-    FLAG_PATTERN = re.compile(r'--([A-Za-z0-9_-]+)(?:=([^\s]+))?')
-    SHORT_FLAG_PATTERN = re.compile(r'-(\w)(?:\s+([^\s]+))?')
+    COMMAND_PATTERN = re.compile(r"/sc:([A-Za-z0-9_-]+)(?:\s+(.*))?")
+    FLAG_PATTERN = re.compile(r"--([A-Za-z0-9_-]+)(?:=([^\s]+))?")
+    SHORT_FLAG_PATTERN = re.compile(r"-(\w)(?:\s+([^\s]+))?")
 
     # Parameter type validators
     TYPE_VALIDATORS = {
-        'string': lambda x: isinstance(x, str),
-        'int': lambda x: x.isdigit(),
-        'float': lambda x: re.match(r'^-?\d+\.?\d*$', x) is not None,
-        'bool': lambda x: x.lower() in ('true', 'false', '1', '0', 'yes', 'no'),
-        'flag': lambda x: True,  # Flags are always valid
-        'path': lambda x: True,  # Path validation done elsewhere
-        'choice': lambda x, choices: x in choices
+        "string": lambda x: isinstance(x, str),
+        "int": lambda x: x.isdigit(),
+        "float": lambda x: re.match(r"^-?\d+\.?\d*$", x) is not None,
+        "bool": lambda x: x.lower() in ("true", "false", "1", "0", "yes", "no"),
+        "flag": lambda x: True,  # Flags are always valid
+        "path": lambda x: True,  # Path validation done elsewhere
+        "choice": lambda x, choices: x in choices,
     }
 
     def __init__(self, registry=None):
@@ -60,13 +61,13 @@ class CommandParser:
         """
         self.registry = registry
         self.flag_aliases = {
-            'h': 'help',
-            'v': 'verbose',
-            'q': 'quiet',
-            's': 'safe',
-            't': 'test',
-            'f': 'force',
-            'd': 'debug'
+            "h": "help",
+            "v": "verbose",
+            "q": "quiet",
+            "s": "safe",
+            "t": "test",
+            "f": "force",
+            "d": "debug",
         }
 
     def parse(self, command_str: str) -> ParsedCommand:
@@ -98,7 +99,7 @@ class CommandParser:
             raw_string=command_str,
             arguments=arguments,
             flags=flags,
-            parameters=parameters
+            parameters=parameters,
         )
 
         # Validate against registry if available
@@ -107,7 +108,9 @@ class CommandParser:
 
         return parsed
 
-    def _parse_arguments(self, args_str: str) -> Tuple[List[str], Dict[str, bool], Dict[str, Any]]:
+    def _parse_arguments(
+        self, args_str: str
+    ) -> Tuple[List[str], Dict[str, bool], Dict[str, Any]]:
         """
         Parse arguments, flags, and parameters from argument string.
 
@@ -137,7 +140,7 @@ class CommandParser:
             token = tokens[i]
 
             # Long flag (--flag or --param=value)
-            if token.startswith('--'):
+            if token.startswith("--"):
                 flag_match = self.FLAG_PATTERN.match(token)
                 if flag_match:
                     flag_name = flag_match.group(1)
@@ -148,23 +151,23 @@ class CommandParser:
                         parameters[flag_name] = self._parse_value(flag_value)
                     else:
                         # Check if next token is a value
-                        if i + 1 < len(tokens) and not tokens[i + 1].startswith('-'):
+                        if i + 1 < len(tokens) and not tokens[i + 1].startswith("-"):
                             parameters[flag_name] = self._parse_value(tokens[i + 1])
                             i += 1
                         else:
                             # Boolean flag
                             flags[flag_name] = True
                             # Also expose underscore alias for hyphenated flags
-                            if '-' in flag_name:
-                                flags[flag_name.replace('-', '_')] = True
+                            if "-" in flag_name:
+                                flags[flag_name.replace("-", "_")] = True
 
             # Short flag (-f or -f value)
-            elif token.startswith('-') and len(token) == 2:
+            elif token.startswith("-") and len(token) == 2:
                 flag_char = token[1]
                 flag_name = self.flag_aliases.get(flag_char, flag_char)
 
                 # Check if next token is a value
-                if i + 1 < len(tokens) and not tokens[i + 1].startswith('-'):
+                if i + 1 < len(tokens) and not tokens[i + 1].startswith("-"):
                     parameters[flag_name] = self._parse_value(tokens[i + 1])
                     i += 1
                 else:
@@ -189,22 +192,22 @@ class CommandParser:
             Parsed value (string, int, float, bool, or list)
         """
         # Boolean values
-        if value.lower() in ('true', 'yes', '1'):
+        if value.lower() in ("true", "yes", "1"):
             return True
-        if value.lower() in ('false', 'no', '0'):
+        if value.lower() in ("false", "no", "0"):
             return False
 
         # Numeric values
         if value.isdigit():
             return int(value)
-        if re.match(r'^-?\d+$', value):
+        if re.match(r"^-?\d+$", value):
             return int(value)
-        if re.match(r'^-?\d+\.\d+$', value):
+        if re.match(r"^-?\d+\.\d+$", value):
             return float(value)
 
         # List values (comma-separated)
-        if ',' in value:
-            return [item.strip() for item in value.split(',')]
+        if "," in value:
+            return [item.strip() for item in value.split(",")]
 
         # Default to string
         return value
@@ -227,7 +230,9 @@ class CommandParser:
             suggestions = self.registry.find_command(parsed.name)
             if suggestions:
                 similar = ", ".join([name for name, _ in suggestions[:3]])
-                raise ValueError(f"Unknown command '{parsed.name}'. Did you mean: {similar}?")
+                raise ValueError(
+                    f"Unknown command '{parsed.name}'. Did you mean: {similar}?"
+                )
             raise ValueError(f"Unknown command '{parsed.name}'")
 
         # Add description from registry
@@ -237,7 +242,9 @@ class CommandParser:
         if command_meta.parameters:
             self._validate_parameters(parsed, command_meta.parameters)
 
-    def _validate_parameters(self, parsed: ParsedCommand, schema: Dict[str, Any]) -> None:
+    def _validate_parameters(
+        self, parsed: ParsedCommand, schema: Dict[str, Any]
+    ) -> None:
         """
         Validate parameters against schema.
 
@@ -249,8 +256,8 @@ class CommandParser:
             ValueError if validation fails
         """
         for param_name, param_def in schema.items():
-            param_type = param_def.get('type', 'string')
-            required = param_def.get('required', False)
+            param_type = param_def.get("type", "string")
+            required = param_def.get("required", False)
 
             # Check required parameters
             if required and param_name not in parsed.parameters:
@@ -262,7 +269,9 @@ class CommandParser:
                 if param_type in self.TYPE_VALIDATORS:
                     validator = self.TYPE_VALIDATORS[param_type]
                     if not validator(str(value)):
-                        raise ValueError(f"Parameter '--{param_name}' must be of type {param_type}")
+                        raise ValueError(
+                            f"Parameter '--{param_name}' must be of type {param_type}"
+                        )
 
     def extract_commands(self, text: str) -> List[str]:
         """
@@ -275,7 +284,7 @@ class CommandParser:
             List of command strings
         """
         # Find all /sc: commands in text
-        pattern = r'/sc:\w+(?:[^\n/]*(?:/(?!sc:)[^\n/]*)*)?'
+        pattern = r"/sc:\w+(?:[^\n/]*(?:/(?!sc:)[^\n/]*)*)?"
         matches = re.findall(pattern, text)
         return [match.strip() for match in matches]
 
@@ -305,7 +314,7 @@ class CommandParser:
             return []
 
         # Remove /sc: prefix if present
-        partial = partial.replace('/sc:', '').strip()
+        partial = partial.replace("/sc:", "").strip()
 
         # Find matching commands
         matches = self.registry.find_command(partial)

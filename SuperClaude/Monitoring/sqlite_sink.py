@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-import sqlite3
-from pathlib import Path
-from typing import Dict, Any, Optional
 import json
 import logging
+import sqlite3
+from pathlib import Path
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -15,7 +15,7 @@ class SQLiteMetricsSink:
     Writes append-only event rows into a lightweight local database.
     """
 
-    def __init__(self, db_path: Optional[Path] = None):
+    def __init__(self, db_path: Path | None = None):
         if db_path is None:
             base = Path.cwd() / ".superclaude_metrics"
             base.mkdir(parents=True, exist_ok=True)
@@ -40,14 +40,23 @@ class SQLiteMetricsSink:
             )
             conn.commit()
 
-    def write_event(self, event: Dict[str, Any]) -> None:
+    def write_event(self, event: dict[str, Any]) -> None:
         try:
             with sqlite3.connect(self.db_path) as conn:
                 c = conn.cursor()
-                ts = event.get('data', {}).get('timestamp') or event.get('data', {}).get('time') or event.get('data', {}).get('timestamp_ms') or ''
+                ts = (
+                    event.get("data", {}).get("timestamp")
+                    or event.get("data", {}).get("time")
+                    or event.get("data", {}).get("timestamp_ms")
+                    or ""
+                )
                 c.execute(
                     "INSERT INTO events (type, ts, data) VALUES (?,?,?)",
-                    (event.get('type', 'metric'), str(ts), json.dumps(event, ensure_ascii=False))
+                    (
+                        event.get("type", "metric"),
+                        str(ts),
+                        json.dumps(event, ensure_ascii=False),
+                    ),
                 )
                 conn.commit()
         except Exception:

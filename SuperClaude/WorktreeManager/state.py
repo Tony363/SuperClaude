@@ -6,10 +6,10 @@ Provides state persistence and tracking using the UnifiedStore backend.
 
 import json
 import logging
-from pathlib import Path
-from typing import Dict, Any, Optional, List
-from dataclasses import dataclass, asdict, field
+from dataclasses import asdict, dataclass, field
 from datetime import datetime
+from pathlib import Path
+from typing import Any, Dict, List, Optional
 
 from SuperClaude.Core.unified_store import UnifiedStore
 
@@ -19,6 +19,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class WorktreeState:
     """State information for a worktree."""
+
     worktree_name: str
     task_id: str
     branch: str
@@ -44,7 +45,9 @@ class WorktreeStateManager:
 
     STATE_FILE = ".worktrees/state.json"
 
-    def __init__(self, repo_path: Optional[str] = None, store: Optional[UnifiedStore] = None):
+    def __init__(
+        self, repo_path: Optional[str] = None, store: Optional[UnifiedStore] = None
+    ):
         """
         Initialize state manager.
 
@@ -65,9 +68,9 @@ class WorktreeStateManager:
         # Load from disk
         if self.state_file.exists():
             try:
-                with open(self.state_file, 'r') as f:
+                with open(self.state_file) as f:
                     data = json.load(f)
-                    for name, state_data in data.get('worktrees', {}).items():
+                    for name, state_data in data.get("worktrees", {}).items():
                         self.states[name] = WorktreeState(**state_data)
                 logger.info(f"Loaded {len(self.states)} worktree states")
             except Exception as e:
@@ -81,10 +84,12 @@ class WorktreeStateManager:
             memories = self.store.list_memories(prefix="worktree_")
             for memory_key in memories:
                 memory_data = self.store.read_memory(memory_key)
-                if memory_data and 'worktree_name' in memory_data:
+                if memory_data and "worktree_name" in memory_data:
                     state = WorktreeState(**memory_data)
                     self.states[state.worktree_name] = state
-                    logger.debug(f"Loaded worktree state from store: {state.worktree_name}")
+                    logger.debug(
+                        f"Loaded worktree state from store: {state.worktree_name}"
+                    )
         except Exception as e:  # pragma: no cover - defensive logging
             logger.warning(f"Failed to load worktree states from UnifiedStore: {e}")
 
@@ -92,15 +97,15 @@ class WorktreeStateManager:
         """Save state to disk and UnifiedStore."""
         # Prepare data
         data = {
-            'version': '1.0.0',
-            'updated_at': datetime.now().isoformat(),
-            'worktrees': {name: asdict(state) for name, state in self.states.items()}
+            "version": "1.0.0",
+            "updated_at": datetime.now().isoformat(),
+            "worktrees": {name: asdict(state) for name, state in self.states.items()},
         }
 
         # Save to disk
         try:
             self.state_file.parent.mkdir(parents=True, exist_ok=True)
-            with open(self.state_file, 'w') as f:
+            with open(self.state_file, "w") as f:
                 json.dump(data, f, indent=2)
             logger.debug(f"Saved {len(self.states)} worktree states to disk")
         except Exception as e:
@@ -119,9 +124,7 @@ class WorktreeStateManager:
         except Exception as e:  # pragma: no cover - defensive logging
             logger.warning(f"Failed to save worktree states to UnifiedStore: {e}")
 
-    def update_state(self,
-                     worktree_name: str,
-                     **kwargs) -> WorktreeState:
+    def update_state(self, worktree_name: str, **kwargs) -> WorktreeState:
         """
         Update or create worktree state.
 
@@ -142,14 +145,14 @@ class WorktreeStateManager:
             # Create new state
             state = WorktreeState(
                 worktree_name=worktree_name,
-                task_id=kwargs.get('task_id', ''),
-                branch=kwargs.get('branch', ''),
+                task_id=kwargs.get("task_id", ""),
+                branch=kwargs.get("branch", ""),
                 created_at=datetime.now().isoformat(),
                 last_updated=datetime.now().isoformat(),
-                status=kwargs.get('status', 'active'),
-                validation_status=kwargs.get('validation_status', {}),
-                merge_history=kwargs.get('merge_history', []),
-                metadata=kwargs.get('metadata', {})
+                status=kwargs.get("status", "active"),
+                validation_status=kwargs.get("validation_status", {}),
+                merge_history=kwargs.get("merge_history", []),
+                metadata=kwargs.get("metadata", {}),
             )
             self.states[worktree_name] = state
 
@@ -189,10 +192,9 @@ class WorktreeStateManager:
             self.save_state()
             logger.debug(f"Removed state for worktree: {worktree_name}")
 
-    def record_validation(self,
-                          worktree_name: str,
-                          passed: bool,
-                          issues: List[str]) -> None:
+    def record_validation(
+        self, worktree_name: str, passed: bool, issues: List[str]
+    ) -> None:
         """
         Record validation results for a worktree.
 
@@ -206,21 +208,19 @@ class WorktreeStateManager:
             state = self.update_state(worktree_name)
 
         state.validation_status = {
-            'passed': passed,
-            'issues': issues,
-            'checked_at': datetime.now().isoformat()
+            "passed": passed,
+            "issues": issues,
+            "checked_at": datetime.now().isoformat(),
         }
 
         if passed:
-            state.status = 'ready_to_merge'
+            state.status = "ready_to_merge"
 
         self.save_state()
 
-    def record_merge(self,
-                     worktree_name: str,
-                     target_branch: str,
-                     success: bool,
-                     message: str) -> None:
+    def record_merge(
+        self, worktree_name: str, target_branch: str, success: bool, message: str
+    ) -> None:
         """
         Record merge operation for a worktree.
 
@@ -235,16 +235,16 @@ class WorktreeStateManager:
             state = self.update_state(worktree_name)
 
         merge_record = {
-            'target_branch': target_branch,
-            'success': success,
-            'message': message,
-            'merged_at': datetime.now().isoformat()
+            "target_branch": target_branch,
+            "success": success,
+            "message": message,
+            "merged_at": datetime.now().isoformat(),
         }
 
         state.merge_history.append(merge_record)
 
         if success:
-            state.status = 'merged'
+            state.status = "merged"
 
         self.save_state()
 
@@ -262,11 +262,13 @@ class WorktreeStateManager:
 
     def get_active_worktrees(self) -> List[WorktreeState]:
         """Get all active worktrees."""
-        return [state for state in self.states.values() if state.status == 'active']
+        return [state for state in self.states.values() if state.status == "active"]
 
     def get_ready_to_merge(self) -> List[WorktreeState]:
         """Get worktrees ready to merge."""
-        return [state for state in self.states.values() if state.status == 'ready_to_merge']
+        return [
+            state for state in self.states.values() if state.status == "ready_to_merge"
+        ]
 
     def get_resource_usage(self) -> Dict[str, Any]:
         """
@@ -276,13 +278,13 @@ class WorktreeStateManager:
             Resource usage statistics
         """
         usage = {
-            'total_worktrees': len(self.states),
-            'active': 0,
-            'ready_to_merge': 0,
-            'merged': 0,
-            'disk_usage_mb': 0,
-            'oldest_worktree': None,
-            'newest_worktree': None
+            "total_worktrees": len(self.states),
+            "active": 0,
+            "ready_to_merge": 0,
+            "merged": 0,
+            "disk_usage_mb": 0,
+            "oldest_worktree": None,
+            "newest_worktree": None,
         }
 
         oldest_date = None
@@ -290,29 +292,31 @@ class WorktreeStateManager:
 
         for state in self.states.values():
             # Count by status
-            if state.status == 'active':
-                usage['active'] += 1
-            elif state.status == 'ready_to_merge':
-                usage['ready_to_merge'] += 1
-            elif state.status == 'merged':
-                usage['merged'] += 1
+            if state.status == "active":
+                usage["active"] += 1
+            elif state.status == "ready_to_merge":
+                usage["ready_to_merge"] += 1
+            elif state.status == "merged":
+                usage["merged"] += 1
 
             # Track oldest/newest
             created = datetime.fromisoformat(state.created_at)
             if not oldest_date or created < oldest_date:
                 oldest_date = created
-                usage['oldest_worktree'] = state.worktree_name
+                usage["oldest_worktree"] = state.worktree_name
 
             if not newest_date or created > newest_date:
                 newest_date = created
-                usage['newest_worktree'] = state.worktree_name
+                usage["newest_worktree"] = state.worktree_name
 
         # Calculate disk usage (approximate)
         worktree_dir = self.repo_path / ".worktrees"
         if worktree_dir.exists():
             try:
-                total_size = sum(f.stat().st_size for f in worktree_dir.rglob('*') if f.is_file())
-                usage['disk_usage_mb'] = total_size / (1024 * 1024)
+                total_size = sum(
+                    f.stat().st_size for f in worktree_dir.rglob("*") if f.is_file()
+                )
+                usage["disk_usage_mb"] = total_size / (1024 * 1024)
             except:
                 pass
 
@@ -333,7 +337,7 @@ class WorktreeStateManager:
 
         to_remove = []
         for name, state in self.states.items():
-            if state.status == 'merged':
+            if state.status == "merged":
                 last_updated = datetime.fromisoformat(state.last_updated)
                 age_days = (cutoff_date - last_updated).days
                 if age_days > days:
@@ -373,12 +377,14 @@ class WorktreeStateManager:
                 lines.append(f"  - Branch: {state.branch}")
                 lines.append(f"  - Created: {state.created_at}")
                 if state.validation_status:
-                    passed = state.validation_status.get('passed', False)
-                    lines.append(f"  - Validation: {'✅ Passed' if passed else '❌ Failed'}")
+                    passed = state.validation_status.get("passed", False)
+                    lines.append(
+                        f"  - Validation: {'✅ Passed' if passed else '❌ Failed'}"
+                    )
 
         # Add resource usage
         usage = self.get_resource_usage()
-        lines.append(f"\n## Resource Usage")
+        lines.append("\n## Resource Usage")
         lines.append(f"- Total Worktrees: {usage['total_worktrees']}")
         lines.append(f"- Disk Usage: {usage['disk_usage_mb']:.2f} MB")
 

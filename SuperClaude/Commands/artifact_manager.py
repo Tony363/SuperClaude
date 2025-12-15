@@ -12,13 +12,13 @@ import hashlib
 import json
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional
+from typing import Any, Iterable
 
 
 def _slugify(value: str) -> str:
     """Create a filesystem-safe slug from the provided value."""
-    sanitized = ''.join(ch if ch.isalnum() or ch in ('-', '_') else '-' for ch in value)
-    sanitized = '-'.join(part for part in sanitized.split('-') if part)
+    sanitized = "".join(ch if ch.isalnum() or ch in ("-", "_") else "-" for ch in value)
+    sanitized = "-".join(part for part in sanitized.split("-") if part)
     return sanitized.lower() or "artifact"
 
 
@@ -29,7 +29,7 @@ class ArtifactRecord:
     command: str
     path: Path
     description: str
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
 
 class CommandArtifactManager:
@@ -52,7 +52,7 @@ class CommandArtifactManager:
         command_dir.mkdir(parents=True, exist_ok=True)
         return command_dir
 
-    def _make_filename(self, command_name: str, payload: Dict[str, Any]) -> str:
+    def _make_filename(self, command_name: str, payload: dict[str, Any]) -> str:
         digest_source = json.dumps(payload, sort_keys=True, default=str).encode("utf-8")
         digest = hashlib.sha1(digest_source).hexdigest()[:12]
         return f"{_slugify(command_name)}-{digest}.md"
@@ -64,8 +64,8 @@ class CommandArtifactManager:
         *,
         operations: Iterable[str] = (),
         artifacts: Iterable[str] = (),
-        metadata: Optional[Dict[str, Any]] = None,
-    ) -> Optional[ArtifactRecord]:
+        metadata: dict[str, Any] | None = None,
+    ) -> ArtifactRecord | None:
         """
         Persist a markdown report describing command execution.
 
@@ -87,7 +87,7 @@ class CommandArtifactManager:
         filename = self._make_filename(command_name, payload)
         artifact_path = command_dir / filename
 
-        content_lines: List[str] = [
+        content_lines: list[str] = [
             f"# {command_name} Execution Summary",
             "",
             "## Summary",
@@ -113,7 +113,9 @@ class CommandArtifactManager:
                 content_lines.append(f"- **{key}**: {value}")
             content_lines.append("")
 
-        artifact_path.write_text("\n".join(content_lines).strip() + "\n", encoding="utf-8")
+        artifact_path.write_text(
+            "\n".join(content_lines).strip() + "\n", encoding="utf-8"
+        )
 
         return ArtifactRecord(
             command=command_name,

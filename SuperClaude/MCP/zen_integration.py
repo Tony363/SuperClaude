@@ -13,8 +13,8 @@ from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
-from ..ModelRouter.facade import ModelRouterFacade
 from ..ModelRouter.consensus import VoteType
+from ..ModelRouter.facade import ModelRouterFacade
 
 
 class ThinkingMode(Enum):
@@ -109,13 +109,22 @@ class ZenIntegration:
 
         votes: List[Dict[str, Any]] = []
         for entry in payload.get("votes", []):
-            votes.append({
-                "model": entry.get("model"),
-                "vote": entry.get("response"),
-                "confidence": entry.get("confidence"),
-                "weight": next((m.weight for m in (models or []) if m.name == entry.get("model")), 1.0),
-                "metadata": entry.get("metadata"),
-            })
+            votes.append(
+                {
+                    "model": entry.get("model"),
+                    "vote": entry.get("response"),
+                    "confidence": entry.get("confidence"),
+                    "weight": next(
+                        (
+                            m.weight
+                            for m in (models or [])
+                            if m.name == entry.get("model")
+                        ),
+                        1.0,
+                    ),
+                    "metadata": entry.get("metadata"),
+                }
+            )
 
         return ConsensusResult(
             consensus_reached=payload.get("consensus_reached", False),
@@ -142,7 +151,9 @@ class ZenIntegration:
         if not diff or not diff.strip():
             raise ValueError("diff payload required for zen-review")
 
-        prompt = self._build_review_prompt(diff, files or [], severity_filter, max_issues)
+        prompt = self._build_review_prompt(
+            diff, files or [], severity_filter, max_issues
+        )
         models = [ModelConfig(name=model, weight=1.0)]
         review_context = {
             "mode": "zen-review",
@@ -202,7 +213,9 @@ class ZenIntegration:
         return max(1, ordering.index(mode) + 1)
 
     @staticmethod
-    def _resolve_quorum(vote: ConsensusType, models: Optional[List[ModelConfig]]) -> int:
+    def _resolve_quorum(
+        vote: ConsensusType, models: Optional[List[ModelConfig]]
+    ) -> int:
         if vote != ConsensusType.quorum or not models:
             return 2
         return max(1, (len(models) // 2) + 1)
@@ -232,7 +245,11 @@ class ZenIntegration:
             "You are GPT-5 performing a production code review for Claude Code's agentic loop. "
             "Evaluate the diff below for logical, security, and quality issues. "
             "Report ONLY JSON matching this schema: " + schema + ". "
-            "Highlight up to " + str(max_issues) + " issues prioritising severity >= " + severity_text + ".\n"
+            "Highlight up to "
+            + str(max_issues)
+            + " issues prioritising severity >= "
+            + severity_text
+            + ".\n"
             f"Files: {file_text}\n"
             "Diff to review:\n" + diff.strip()
         )
@@ -254,7 +271,7 @@ class ZenIntegration:
                 "critical_issues": 0,
                 "warnings": 0,
                 "issues": [],
-                "recommendations": []
+                "recommendations": [],
             }
         return {
             "score": 0.0,
@@ -262,7 +279,7 @@ class ZenIntegration:
             "critical_issues": 0,
             "warnings": 0,
             "issues": [],
-            "recommendations": []
+            "recommendations": [],
         }
 
     @staticmethod
@@ -272,13 +289,17 @@ class ZenIntegration:
         for issue in issues:
             if not isinstance(issue, dict):
                 continue
-            normalized_issues.append({
-                "severity": str(issue.get("severity", "warning")),
-                "title": issue.get("title") or issue.get("summary") or "Unnamed",
-                "details": issue.get("details") or issue.get("description") or "",
-                "files": issue.get("files") or [],
-                "recommendation": issue.get("recommendation") or issue.get("fix") or ""
-            })
+            normalized_issues.append(
+                {
+                    "severity": str(issue.get("severity", "warning")),
+                    "title": issue.get("title") or issue.get("summary") or "Unnamed",
+                    "details": issue.get("details") or issue.get("description") or "",
+                    "files": issue.get("files") or [],
+                    "recommendation": issue.get("recommendation")
+                    or issue.get("fix")
+                    or "",
+                }
+            )
 
         normalized_dimensions: Dict[str, Dict[str, Any]] = {}
         raw_dimensions = data.get("dimensions") or {}

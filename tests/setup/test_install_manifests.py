@@ -21,7 +21,7 @@ def _write_metadata(install_dir: Path, component: str, files):
                 "files_count": len(files),
                 "installed": True,
             }
-        }
+        },
     }
     (install_dir / ".superclaude-metadata.json").write_text(
         json.dumps(metadata, indent=2),

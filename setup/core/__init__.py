@@ -1,9 +1,6 @@
 """Core modules for SuperClaude installation system"""
 
-from .validator import Validator
 from .registry import ComponentRegistry
+from .validator import Validator
 
-__all__ = [
-    'Validator',
-    'ComponentRegistry'
-]
+__all__ = ["ComponentRegistry", "Validator"]

@@ -5,16 +5,16 @@ Provides automated worktree lifecycle management for parallel feature
 development with progressive merge workflows.
 """
 
-from .manager import WorktreeManager, Worktree, WorktreeStatus, MergeTarget
-from .state import WorktreeStateManager, WorktreeState
+from .manager import MergeTarget, Worktree, WorktreeManager, WorktreeStatus
+from .state import WorktreeState, WorktreeStateManager
 
 __all__ = [
-    'WorktreeManager',
-    'Worktree',
-    'WorktreeStatus',
-    'MergeTarget',
-    'WorktreeStateManager',
-    'WorktreeState'
+    "MergeTarget",
+    "Worktree",
+    "WorktreeManager",
+    "WorktreeState",
+    "WorktreeStateManager",
+    "WorktreeStatus",
 ]
 
-__version__ = '1.0.0'
+__version__ = "1.0.0"
