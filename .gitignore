@@ -113,6 +113,12 @@ SuperClaude/Implementation/
 *.backup
 *.bak
 
+# Test fixtures (not needed in repo)
+.home/
+.fakehome/
+.tmp_cache/
+.tmp_logs/
+
 # Project specific
 # Legacy capitalized Tests folder was deprecated; keep actual test suites tracked.
 # (Removing prior ignore entry prevents accidental exclusion of tests/ quality gates.)
