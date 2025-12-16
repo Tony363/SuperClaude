@@ -924,7 +924,9 @@ class SecurityValidator:
                 except Exception as e:
                     # If overwrite fails, still try to delete
                     # Note: file content may be recoverable without secure overwrite
-                    _logger.debug(f"Secure overwrite failed for {path}, proceeding with deletion: {e}")
+                    _logger.debug(
+                        f"Secure overwrite failed for {path}, proceeding with deletion: {e}"
+                    )
 
                 path.unlink()
 

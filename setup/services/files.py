@@ -365,7 +365,9 @@ class FileService:
                 return list(directory.glob(pattern))
         except Exception as e:
             # File search failed; return empty list
-            logger.debug(f"Error finding files in {directory} with pattern {pattern}: {e}")
+            logger.debug(
+                f"Error finding files in {directory} with pattern {pattern}: {e}"
+            )
             return []
 
     def backup_file(
@@ -433,7 +435,9 @@ class FileService:
                     directory.rmdir()
             except Exception as e:
                 # Best-effort cleanup; continue even if deletion fails
-                logger.debug(f"Could not remove directory during cleanup {directory}: {e}")
+                logger.debug(
+                    f"Could not remove directory during cleanup {directory}: {e}"
+                )
 
         self.copied_files.clear()
         self.created_dirs.clear()

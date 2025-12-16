@@ -314,7 +314,9 @@ class ComponentRegistry:
                     components.append(name)
             except Exception as e:
                 # Skip components that fail metadata retrieval
-                self.logger.debug(f"Skipping component {name} due to metadata error: {e}")
+                self.logger.debug(
+                    f"Skipping component {name} due to metadata error: {e}"
+                )
                 continue
 
         return components
