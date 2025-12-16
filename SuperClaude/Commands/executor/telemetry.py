@@ -12,7 +12,7 @@ import tempfile
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional, Sequence, Set, Tuple
+from typing import Any, Dict, List, Optional, Sequence
 
 logger = logging.getLogger(__name__)
 
@@ -39,9 +39,7 @@ class TelemetryConfig:
         """Create config from environment defaults."""
         import os
 
-        metrics_dir = Path(
-            os.getenv("SUPERCLAUDE_METRICS_DIR", ".superclaude_metrics")
-        )
+        metrics_dir = Path(os.getenv("SUPERCLAUDE_METRICS_DIR", ".superclaude_metrics"))
         return cls(metrics_dir=metrics_dir, session_id=session_id)
 
 
@@ -230,9 +228,7 @@ def write_safe_apply_snapshot(
         if not raw_string:
             continue
 
-        rel_parts = [
-            part for part in Path(raw_string).parts if part not in ("", ".")
-        ]
+        rel_parts = [part for part in Path(raw_string).parts if part not in ("", ".")]
         if not rel_parts:
             continue
         if rel_parts[0] == ".." or any(part == ".." for part in rel_parts):
@@ -359,9 +355,7 @@ def summarize_rube_context(
     """Generate a short summary for Rube automation payloads."""
     if isinstance(output, dict):
         summary = (
-            output.get("summary")
-            or output.get("description")
-            or output.get("title")
+            output.get("summary") or output.get("description") or output.get("title")
         )
         if isinstance(summary, str) and summary.strip():
             return summary.strip()[:400]

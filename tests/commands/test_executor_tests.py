@@ -2,17 +2,11 @@
 
 from __future__ import annotations
 
-from pathlib import Path
-from typing import Any, Dict, List
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
-from SuperClaude.Commands import CommandExecutor, CommandParser, CommandRegistry
-from SuperClaude.Commands import CommandContext
 from SuperClaude.Commands.parser import ParsedCommand
-from SuperClaude.Commands.registry import CommandMetadata
-from SuperClaude.Modes.behavioral_manager import BehavioralMode
 
 
 class TestShouldRunTests:

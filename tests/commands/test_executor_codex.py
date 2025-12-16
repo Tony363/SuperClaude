@@ -2,19 +2,6 @@
 
 from __future__ import annotations
 
-from datetime import datetime
-from pathlib import Path
-from typing import Any, Dict
-from unittest.mock import AsyncMock, MagicMock, patch
-
-import pytest
-
-from SuperClaude.Commands import CommandExecutor, CommandParser, CommandRegistry
-from SuperClaude.Commands import CommandContext, CommandResult
-from SuperClaude.Commands.parser import ParsedCommand
-from SuperClaude.Commands.registry import CommandMetadata
-from SuperClaude.Modes.behavioral_manager import BehavioralMode
-
 
 class TestCodexSuggestionsExtraction:
     """Tests for extracting codex suggestions from agent outputs."""
@@ -25,9 +12,7 @@ class TestCodexSuggestionsExtraction:
             "codex-implementer": {
                 "codex_suggestions": {
                     "summary": "Add new endpoint",
-                    "changes": [
-                        {"path": "src/api.py", "content": "# new content"}
-                    ],
+                    "changes": [{"path": "src/api.py", "content": "# new content"}],
                 }
             }
         }
@@ -43,11 +28,7 @@ class TestCodexSuggestionsExtraction:
 
     def test_no_codex_suggestions(self, executor, sample_context):
         """Handles missing codex_suggestions gracefully."""
-        sample_context.agent_outputs = {
-            "codex-implementer": {
-                "other_field": "value"
-            }
-        }
+        sample_context.agent_outputs = {"codex-implementer": {"other_field": "value"}}
 
         codex_output = None
         codex_agent_output = sample_context.agent_outputs.get("codex-implementer")
@@ -90,11 +71,7 @@ class TestCodexCliMetadata:
 
     def test_cli_metadata_missing(self, executor, sample_context):
         """Handles missing codex_cli metadata."""
-        sample_context.agent_outputs = {
-            "codex-implementer": {
-                "codex_suggestions": {}
-            }
-        }
+        sample_context.agent_outputs = {"codex-implementer": {"codex_suggestions": {}}}
 
         codex_agent_output = sample_context.agent_outputs.get("codex-implementer")
         cli_meta = codex_agent_output.get("codex_cli")

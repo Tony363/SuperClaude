@@ -2,17 +2,7 @@
 
 from __future__ import annotations
 
-from pathlib import Path
-from typing import Any, Dict
-from unittest.mock import MagicMock, patch
-
-import pytest
-
-from SuperClaude.Commands import CommandExecutor, CommandParser, CommandRegistry
-from SuperClaude.Commands import CommandContext
 from SuperClaude.Commands.parser import ParsedCommand
-from SuperClaude.Commands.registry import CommandMetadata
-from SuperClaude.Modes.behavioral_manager import BehavioralMode
 
 
 class TestRenderDefaultEvidenceDocument:
@@ -93,9 +83,7 @@ class TestRenderDefaultEvidenceDocument:
 
     def test_render_evidence_includes_operations(self, executor, sample_context):
         """Evidence document includes agent operations."""
-        sample_context.results = {
-            "agent_operations": ["Op 1", "Op 2"]
-        }
+        sample_context.results = {"agent_operations": ["Op 1", "Op 2"]}
         agent_result = {"notes": [], "warnings": []}
 
         result = executor._render_default_evidence_document(

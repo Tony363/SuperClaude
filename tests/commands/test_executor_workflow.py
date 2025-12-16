@@ -2,16 +2,11 @@
 
 from __future__ import annotations
 
-from pathlib import Path
-from typing import Any, Dict
-from unittest.mock import MagicMock, patch, AsyncMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 
-from SuperClaude.Commands import CommandExecutor, CommandParser, CommandRegistry, CommandContext
 from SuperClaude.Commands.parser import ParsedCommand
-from SuperClaude.Commands.registry import CommandMetadata
-from SuperClaude.Modes.behavioral_manager import BehavioralMode
 
 
 class TestExecuteWorkflow:
@@ -31,7 +26,14 @@ class TestExecuteWorkflow:
 
         with patch.object(executor, "_generate_workflow_steps") as mock_gen:
             mock_gen.return_value = [
-                {"id": "S01", "phase": "Analysis", "title": "Analyze", "owner": "analyst", "dependencies": [], "deliverables": []}
+                {
+                    "id": "S01",
+                    "phase": "Analysis",
+                    "title": "Analyze",
+                    "owner": "analyst",
+                    "dependencies": [],
+                    "deliverables": [],
+                }
             ]
             with patch.object(executor, "_record_artifact", return_value=None):
                 result = await executor._execute_workflow(sample_context)
@@ -52,7 +54,16 @@ class TestExecuteWorkflow:
         )
 
         with patch.object(executor, "_generate_workflow_steps") as mock_gen:
-            mock_gen.return_value = [{"id": "S01", "phase": "Planning", "title": "Plan", "owner": "pm", "dependencies": [], "deliverables": []}]
+            mock_gen.return_value = [
+                {
+                    "id": "S01",
+                    "phase": "Planning",
+                    "title": "Plan",
+                    "owner": "pm",
+                    "dependencies": [],
+                    "deliverables": [],
+                }
+            ]
             with patch.object(executor, "_record_artifact", return_value=None):
                 result = await executor._execute_workflow(sample_context)
 
@@ -71,7 +82,16 @@ class TestExecuteWorkflow:
         )
 
         with patch.object(executor, "_generate_workflow_steps") as mock_gen:
-            mock_gen.return_value = [{"id": "S01", "phase": "Planning", "title": "Plan", "owner": "pm", "dependencies": [], "deliverables": []}]
+            mock_gen.return_value = [
+                {
+                    "id": "S01",
+                    "phase": "Planning",
+                    "title": "Plan",
+                    "owner": "pm",
+                    "dependencies": [],
+                    "deliverables": [],
+                }
+            ]
             with patch.object(executor, "_record_artifact", return_value=None):
                 result = await executor._execute_workflow(sample_context)
 
@@ -90,7 +110,16 @@ class TestExecuteWorkflow:
         )
 
         with patch.object(executor, "_generate_workflow_steps") as mock_gen:
-            mock_gen.return_value = [{"id": "S01", "phase": "Planning", "title": "Plan", "owner": "pm", "dependencies": [], "deliverables": []}]
+            mock_gen.return_value = [
+                {
+                    "id": "S01",
+                    "phase": "Planning",
+                    "title": "Plan",
+                    "owner": "pm",
+                    "dependencies": [],
+                    "deliverables": [],
+                }
+            ]
             with patch.object(executor, "_record_artifact", return_value=None):
                 result = await executor._execute_workflow(sample_context)
 
@@ -113,7 +142,16 @@ class TestExecuteWorkflow:
         )
 
         with patch.object(executor, "_generate_workflow_steps") as mock_gen:
-            mock_gen.return_value = [{"id": "S01", "phase": "Planning", "title": "Plan", "owner": "pm", "dependencies": [], "deliverables": []}]
+            mock_gen.return_value = [
+                {
+                    "id": "S01",
+                    "phase": "Planning",
+                    "title": "Plan",
+                    "owner": "pm",
+                    "dependencies": [],
+                    "deliverables": [],
+                }
+            ]
             with patch.object(executor, "_record_artifact", return_value=None):
                 result = await executor._execute_workflow(sample_context)
 
@@ -156,7 +194,16 @@ class TestExecuteWorkflow:
         )
 
         with patch.object(executor, "_generate_workflow_steps") as mock_gen:
-            mock_gen.return_value = [{"id": "S01", "phase": "Planning", "title": "Plan", "owner": "pm", "dependencies": [], "deliverables": []}]
+            mock_gen.return_value = [
+                {
+                    "id": "S01",
+                    "phase": "Planning",
+                    "title": "Plan",
+                    "owner": "pm",
+                    "dependencies": [],
+                    "deliverables": [],
+                }
+            ]
             with patch.object(executor, "_record_artifact", return_value=None):
                 result = await executor._execute_workflow(sample_context)
 
@@ -175,7 +222,16 @@ class TestExecuteWorkflow:
         )
 
         with patch.object(executor, "_generate_workflow_steps") as mock_gen:
-            mock_gen.return_value = [{"id": "S01", "phase": "Planning", "title": "Plan", "owner": "pm", "dependencies": [], "deliverables": []}]
+            mock_gen.return_value = [
+                {
+                    "id": "S01",
+                    "phase": "Planning",
+                    "title": "Plan",
+                    "owner": "pm",
+                    "dependencies": [],
+                    "deliverables": [],
+                }
+            ]
             with patch.object(executor, "_record_artifact", return_value=None):
                 result = await executor._execute_workflow(sample_context)
 
@@ -196,11 +252,25 @@ class TestExecuteWorkflow:
 
         with patch.object(executor, "_generate_workflow_steps") as mock_gen:
             mock_gen.return_value = [
-                {"id": "S01", "phase": "Analysis", "title": "Analyze", "owner": "analyst", "dependencies": [], "deliverables": []},
-                {"id": "S02", "phase": "Design", "title": "Design", "owner": "architect", "dependencies": ["S01"], "deliverables": []},
+                {
+                    "id": "S01",
+                    "phase": "Analysis",
+                    "title": "Analyze",
+                    "owner": "analyst",
+                    "dependencies": [],
+                    "deliverables": [],
+                },
+                {
+                    "id": "S02",
+                    "phase": "Design",
+                    "title": "Design",
+                    "owner": "architect",
+                    "dependencies": ["S01"],
+                    "deliverables": [],
+                },
             ]
             with patch.object(executor, "_record_artifact", return_value=None):
-                result = await executor._execute_workflow(sample_context)
+                await executor._execute_workflow(sample_context)
 
         assert len(sample_context.results.get("executed_operations", [])) == 2
 
@@ -268,9 +338,9 @@ class TestCodexResultProcessing:
             mock_pipeline.return_value = {"notes": [], "warnings": [], "operations": []}
             with patch.object(executor, "_derive_change_plan") as mock_derive:
                 mock_derive.return_value = []
-                with patch.object(executor, "_snapshot_repo_changes", return_value={}):
+                with patch.object(executor, "_snapshot_repo_changes", return_value={}):  # noqa: SIM117
                     with patch.object(executor, "_record_artifact", return_value=None):
-                        result = await executor._execute_implement(sample_context)
+                        await executor._execute_implement(sample_context)
 
         assert "codex_suggestions" in sample_context.results
 
@@ -305,9 +375,9 @@ class TestCodexResultProcessing:
             mock_pipeline.return_value = {"notes": [], "warnings": [], "operations": []}
             with patch.object(executor, "_derive_change_plan") as mock_derive:
                 mock_derive.return_value = []
-                with patch.object(executor, "_snapshot_repo_changes", return_value={}):
+                with patch.object(executor, "_snapshot_repo_changes", return_value={}):  # noqa: SIM117
                     with patch.object(executor, "_record_artifact", return_value=None):
-                        result = await executor._execute_implement(sample_context)
+                        await executor._execute_implement(sample_context)
 
         assert sample_context.results.get("fast_codex_cli") is True
 
@@ -338,7 +408,7 @@ class TestSummaryLineGeneration:
             }
             with patch.object(executor, "_derive_change_plan") as mock_derive:
                 mock_derive.return_value = []
-                with patch.object(executor, "_snapshot_repo_changes", return_value={}):
+                with patch.object(executor, "_snapshot_repo_changes", return_value={}):  # noqa: SIM117
                     with patch.object(executor, "_record_artifact", return_value=None):
                         result = await executor._execute_implement(sample_context)
 
@@ -367,7 +437,7 @@ class TestSummaryLineGeneration:
             }
             with patch.object(executor, "_derive_change_plan") as mock_derive:
                 mock_derive.return_value = []
-                with patch.object(executor, "_snapshot_repo_changes", return_value={}):
+                with patch.object(executor, "_snapshot_repo_changes", return_value={}):  # noqa: SIM117
                     with patch.object(executor, "_record_artifact", return_value=None):
                         result = await executor._execute_implement(sample_context)
 
@@ -396,7 +466,7 @@ class TestSummaryLineGeneration:
             }
             with patch.object(executor, "_derive_change_plan") as mock_derive:
                 mock_derive.return_value = []
-                with patch.object(executor, "_snapshot_repo_changes", return_value={}):
+                with patch.object(executor, "_snapshot_repo_changes", return_value={}):  # noqa: SIM117
                     with patch.object(executor, "_record_artifact", return_value=None):
                         result = await executor._execute_implement(sample_context)
 
@@ -460,7 +530,16 @@ class TestDefaultStrategyAndDepth:
         )
 
         with patch.object(executor, "_generate_workflow_steps") as mock_gen:
-            mock_gen.return_value = [{"id": "S01", "phase": "Planning", "title": "Plan", "owner": "pm", "dependencies": [], "deliverables": []}]
+            mock_gen.return_value = [
+                {
+                    "id": "S01",
+                    "phase": "Planning",
+                    "title": "Plan",
+                    "owner": "pm",
+                    "dependencies": [],
+                    "deliverables": [],
+                }
+            ]
             with patch.object(executor, "_record_artifact", return_value=None):
                 result = await executor._execute_workflow(sample_context)
 
@@ -479,7 +558,16 @@ class TestDefaultStrategyAndDepth:
         )
 
         with patch.object(executor, "_generate_workflow_steps") as mock_gen:
-            mock_gen.return_value = [{"id": "S01", "phase": "Planning", "title": "Plan", "owner": "pm", "dependencies": [], "deliverables": []}]
+            mock_gen.return_value = [
+                {
+                    "id": "S01",
+                    "phase": "Planning",
+                    "title": "Plan",
+                    "owner": "pm",
+                    "dependencies": [],
+                    "deliverables": [],
+                }
+            ]
             with patch.object(executor, "_record_artifact", return_value=None):
                 result = await executor._execute_workflow(sample_context)
 
@@ -498,7 +586,16 @@ class TestDefaultStrategyAndDepth:
         )
 
         with patch.object(executor, "_generate_workflow_steps") as mock_gen:
-            mock_gen.return_value = [{"id": "S01", "phase": "Planning", "title": "Plan", "owner": "pm", "dependencies": [], "deliverables": []}]
+            mock_gen.return_value = [
+                {
+                    "id": "S01",
+                    "phase": "Planning",
+                    "title": "Plan",
+                    "owner": "pm",
+                    "dependencies": [],
+                    "deliverables": [],
+                }
+            ]
             with patch.object(executor, "_record_artifact", return_value=None):
                 result = await executor._execute_workflow(sample_context)
 

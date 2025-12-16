@@ -2,18 +2,11 @@
 
 from __future__ import annotations
 
-from dataclasses import asdict
 from datetime import datetime
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-import pytest
-
-from SuperClaude.Commands import CommandExecutor, CommandParser, CommandRegistry
-from SuperClaude.Commands.parser import ParsedCommand
-from SuperClaude.Commands import CommandContext
-from SuperClaude.Modes.behavioral_manager import BehavioralMode
-from SuperClaude.Quality.quality_scorer import QualityAssessment, IterationResult
+from SuperClaude.Quality.quality_scorer import IterationResult, QualityAssessment
 
 
 def make_assessment(
@@ -294,14 +287,14 @@ class TestEvaluateQualityGate:
 class TestQualityLoopImprover:
     """Tests for _quality_loop_improver method."""
 
-    def test_quality_loop_improver_calls_remediation(
-        self, executor, sample_context
-    ):
+    def test_quality_loop_improver_calls_remediation(self, executor, sample_context):
         """_quality_loop_improver calls _run_quality_remediation_iteration."""
         loop_context = {"iteration": 0}
 
         with patch.object(
-            executor, "_run_quality_remediation_iteration", return_value={"improved": True}
+            executor,
+            "_run_quality_remediation_iteration",
+            return_value={"improved": True},
         ) as mock_method:
             result = executor._quality_loop_improver(
                 sample_context, {"original": True}, loop_context
@@ -310,9 +303,7 @@ class TestQualityLoopImprover:
             mock_method.assert_called_once()
             assert result == {"improved": True}
 
-    def test_quality_loop_improver_handles_exception(
-        self, executor, sample_context
-    ):
+    def test_quality_loop_improver_handles_exception(self, executor, sample_context):
         """_quality_loop_improver handles exception and returns current output."""
         loop_context = {"iteration": 0}
         current_output = {"original": True}
@@ -331,9 +322,7 @@ class TestQualityLoopImprover:
             assert "errors" in loop_context
             assert "remediation failed" in loop_context["errors"][0]
 
-    def test_quality_loop_improver_records_warnings(
-        self, executor, sample_context
-    ):
+    def test_quality_loop_improver_records_warnings(self, executor, sample_context):
         """_quality_loop_improver records warnings on exception."""
         loop_context = {"iteration": 0}
 
@@ -347,33 +336,38 @@ class TestQualityLoopImprover:
             )
 
             assert "quality_loop_warnings" in sample_context.results
-            assert "remediation error" in sample_context.results["quality_loop_warnings"][0]
+            assert (
+                "remediation error"
+                in sample_context.results["quality_loop_warnings"][0]
+            )
 
 
 class TestRunQualityRemediationIteration:
     """Tests for _run_quality_remediation_iteration method."""
 
-    def test_remediation_iteration_prepares_agents(
-        self, executor, sample_context
-    ):
+    def test_remediation_iteration_prepares_agents(self, executor, sample_context):
         """_run_quality_remediation_iteration prepares remediation agents."""
         loop_context = {"improvements_needed": ["fix tests"]}
         sample_context.command.parameters = {}
         sample_context.agents = []
 
-        with patch.object(executor, "_prepare_remediation_agents") as mock_prep:
+        with patch.object(executor, "_prepare_remediation_agents") as mock_prep:  # noqa: SIM117
             with patch.object(executor, "_run_agent_pipeline", return_value={}):
-                with patch.object(
-                    executor, "_derive_change_plan", return_value=[]
-                ):
+                with patch.object(executor, "_derive_change_plan", return_value=[]):
                     with patch.object(
-                        executor, "_apply_change_plan", return_value={"applied": [], "warnings": []}
+                        executor,
+                        "_apply_change_plan",
+                        return_value={"applied": [], "warnings": []},
                     ):
                         with patch.object(
-                            executor, "_run_requested_tests", return_value={"passed": True}
+                            executor,
+                            "_run_requested_tests",
+                            return_value={"passed": True},
                         ):
                             with patch.object(
-                                executor, "_summarize_test_results", return_value="tests ok"
+                                executor,
+                                "_summarize_test_results",
+                                return_value="tests ok",
                             ):
                                 executor._run_quality_remediation_iteration(
                                     sample_context, {}, loop_context, 0
@@ -383,27 +377,31 @@ class TestRunQualityRemediationIteration:
                                 call_args = mock_prep.call_args[0]
                                 assert "quality-engineer" in call_args[1]
 
-    def test_remediation_iteration_runs_agent_pipeline(
-        self, executor, sample_context
-    ):
+    def test_remediation_iteration_runs_agent_pipeline(self, executor, sample_context):
         """_run_quality_remediation_iteration runs agent pipeline."""
         loop_context = {"improvements_needed": []}
         sample_context.command.parameters = {}
         sample_context.agents = []
 
-        with patch.object(executor, "_prepare_remediation_agents"):
+        with patch.object(executor, "_prepare_remediation_agents"):  # noqa: SIM117
             with patch.object(
                 executor, "_run_agent_pipeline", return_value={}
             ) as mock_pipeline:
                 with patch.object(executor, "_derive_change_plan", return_value=[]):
                     with patch.object(
-                        executor, "_apply_change_plan", return_value={"applied": [], "warnings": []}
+                        executor,
+                        "_apply_change_plan",
+                        return_value={"applied": [], "warnings": []},
                     ):
                         with patch.object(
-                            executor, "_run_requested_tests", return_value={"passed": True}
+                            executor,
+                            "_run_requested_tests",
+                            return_value={"passed": True},
                         ):
                             with patch.object(
-                                executor, "_summarize_test_results", return_value="tests ok"
+                                executor,
+                                "_summarize_test_results",
+                                return_value="tests ok",
                             ):
                                 executor._run_quality_remediation_iteration(
                                     sample_context, {}, loop_context, 0
@@ -411,15 +409,13 @@ class TestRunQualityRemediationIteration:
 
                                 mock_pipeline.assert_called_once()
 
-    def test_remediation_iteration_records_status(
-        self, executor, sample_context
-    ):
+    def test_remediation_iteration_records_status(self, executor, sample_context):
         """_run_quality_remediation_iteration records iteration status."""
         loop_context = {"improvements_needed": ["improve coverage"]}
         sample_context.command.parameters = {}
         sample_context.agents = []
 
-        with patch.object(executor, "_prepare_remediation_agents"):
+        with patch.object(executor, "_prepare_remediation_agents"):  # noqa: SIM117
             with patch.object(executor, "_run_agent_pipeline", return_value={}):
                 with patch.object(executor, "_derive_change_plan", return_value=[]):
                     with patch.object(
@@ -433,7 +429,9 @@ class TestRunQualityRemediationIteration:
                             return_value={"passed": True, "summary": "ok"},
                         ):
                             with patch.object(
-                                executor, "_summarize_test_results", return_value="1 passed"
+                                executor,
+                                "_summarize_test_results",
+                                return_value="1 passed",
                             ):
                                 executor._run_quality_remediation_iteration(
                                     sample_context, {}, loop_context, 0
@@ -445,15 +443,13 @@ class TestRunQualityRemediationIteration:
                                 assert len(iterations) == 1
                                 assert iterations[0]["status"] == "improved"
 
-    def test_remediation_iteration_status_no_changes(
-        self, executor, sample_context
-    ):
+    def test_remediation_iteration_status_no_changes(self, executor, sample_context):
         """_run_quality_remediation_iteration sets no-changes status."""
         loop_context = {"improvements_needed": []}
         sample_context.command.parameters = {}
         sample_context.agents = []
 
-        with patch.object(executor, "_prepare_remediation_agents"):
+        with patch.object(executor, "_prepare_remediation_agents"):  # noqa: SIM117
             with patch.object(executor, "_run_agent_pipeline", return_value={}):
                 with patch.object(executor, "_derive_change_plan", return_value=[]):
                     with patch.object(

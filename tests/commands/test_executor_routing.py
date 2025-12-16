@@ -3,13 +3,15 @@
 from __future__ import annotations
 
 import asyncio
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from SuperClaude.Commands import CommandExecutor, CommandParser, CommandRegistry
+from SuperClaude.Commands import (
+    CommandContext,
+    CommandResult,
+)
 from SuperClaude.Commands.parser import ParsedCommand
-from SuperClaude.Commands import CommandContext, CommandResult
 
 
 class TestResolveThinkLevel:
@@ -269,9 +271,7 @@ class TestApplyExecutionFlags:
         assert hasattr(context, "think_level")
         assert context.think_level in [1, 2, 3]
 
-    def test_apply_execution_flags_sets_loop_enabled(
-        self, executor, sample_metadata
-    ):
+    def test_apply_execution_flags_sets_loop_enabled(self, executor, sample_metadata):
         """_apply_execution_flags sets loop_enabled on context."""
         parsed = ParsedCommand(
             name="implement",
@@ -331,7 +331,9 @@ class TestExecuteCommandLogic:
         context.agent_instances = {}
         context.agent_outputs = {}
 
-        with patch.object(executor, "_execute_implement", new_callable=AsyncMock) as mock:
+        with patch.object(
+            executor, "_execute_implement", new_callable=AsyncMock
+        ) as mock:
             mock.return_value = {"status": "success"}
             result = await executor._execute_command_logic(context)
 
@@ -358,14 +360,12 @@ class TestExecuteCommandLogic:
 
         with patch.object(executor, "_execute_analyze", new_callable=AsyncMock) as mock:
             mock.return_value = {"analysis": "complete"}
-            result = await executor._execute_command_logic(context)
+            await executor._execute_command_logic(context)
 
             mock.assert_called_once_with(context)
 
     @pytest.mark.asyncio
-    async def test_execute_command_logic_routes_test(
-        self, executor, sample_metadata
-    ):
+    async def test_execute_command_logic_routes_test(self, executor, sample_metadata):
         """_execute_command_logic routes to _execute_test."""
         parsed = ParsedCommand(
             name="test",
@@ -382,14 +382,12 @@ class TestExecuteCommandLogic:
 
         with patch.object(executor, "_execute_test", new_callable=AsyncMock) as mock:
             mock.return_value = {"tests": "passed"}
-            result = await executor._execute_command_logic(context)
+            await executor._execute_command_logic(context)
 
             mock.assert_called_once_with(context)
 
     @pytest.mark.asyncio
-    async def test_execute_command_logic_routes_build(
-        self, executor, sample_metadata
-    ):
+    async def test_execute_command_logic_routes_build(self, executor, sample_metadata):
         """_execute_command_logic routes to _execute_build."""
         parsed = ParsedCommand(
             name="build",
@@ -406,14 +404,12 @@ class TestExecuteCommandLogic:
 
         with patch.object(executor, "_execute_build", new_callable=AsyncMock) as mock:
             mock.return_value = {"build": "success"}
-            result = await executor._execute_command_logic(context)
+            await executor._execute_command_logic(context)
 
             mock.assert_called_once_with(context)
 
     @pytest.mark.asyncio
-    async def test_execute_command_logic_routes_git(
-        self, executor, sample_metadata
-    ):
+    async def test_execute_command_logic_routes_git(self, executor, sample_metadata):
         """_execute_command_logic routes to _execute_git."""
         parsed = ParsedCommand(
             name="git",
@@ -430,7 +426,7 @@ class TestExecuteCommandLogic:
 
         with patch.object(executor, "_execute_git", new_callable=AsyncMock) as mock:
             mock.return_value = {"git": "status"}
-            result = await executor._execute_command_logic(context)
+            await executor._execute_command_logic(context)
 
             mock.assert_called_once_with(context)
 
@@ -452,9 +448,11 @@ class TestExecuteCommandLogic:
         )
         context.results = {}
 
-        with patch.object(executor, "_execute_workflow", new_callable=AsyncMock) as mock:
+        with patch.object(
+            executor, "_execute_workflow", new_callable=AsyncMock
+        ) as mock:
             mock.return_value = {"workflow": "executed"}
-            result = await executor._execute_command_logic(context)
+            await executor._execute_command_logic(context)
 
             mock.assert_called_once_with(context)
 
@@ -478,7 +476,7 @@ class TestExecuteCommandLogic:
 
         with patch.object(executor, "_execute_generic", new_callable=AsyncMock) as mock:
             mock.return_value = {"generic": "output"}
-            result = await executor._execute_command_logic(context)
+            await executor._execute_command_logic(context)
 
             mock.assert_called_once_with(context)
 
@@ -509,14 +507,18 @@ class TestExecute:
             )
         )
 
-        with patch.object(executor, "_execute_command_logic", new_callable=AsyncMock) as mock_logic:
+        with patch.object(
+            executor, "_execute_command_logic", new_callable=AsyncMock
+        ) as mock_logic:
             mock_logic.return_value = {"status": "done"}
             with patch.object(executor, "_snapshot_repo_changes") as mock_snap:
                 mock_snap.return_value = {}
-                with patch.object(executor, "_ensure_consensus", new_callable=AsyncMock) as mock_cons:
+                with patch.object(
+                    executor, "_ensure_consensus", new_callable=AsyncMock
+                ) as mock_cons:
                     mock_cons.return_value = {"decision": "approve"}
 
-                    result = await executor.execute("/sc:testcmd arg1")
+                    await executor.execute("/sc:testcmd arg1")
 
                     # Logic was called
                     assert mock_logic.called
@@ -581,6 +583,7 @@ class TestExecuteParallel:
 
         async def mock_execute(cmd):
             import time
+
             start = time.time()
             await asyncio.sleep(0.01)  # Small delay
             execution_times.append((cmd, time.time() - start))
@@ -597,6 +600,7 @@ class TestExecuteParallel:
     @pytest.mark.asyncio
     async def test_execute_parallel_continues_on_failure(self, executor):
         """execute_parallel continues even when some commands fail."""
+
         async def mock_execute(cmd):
             if "fail" in cmd:
                 return CommandResult(success=False, command_name=cmd, output=None)

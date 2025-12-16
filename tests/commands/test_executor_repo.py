@@ -2,13 +2,9 @@
 
 from __future__ import annotations
 
-import os
 import subprocess
 from pathlib import Path
-from typing import Set
-from unittest.mock import MagicMock, patch
-
-import pytest
+from unittest.mock import patch
 
 from SuperClaude.Commands import CommandExecutor, CommandParser, CommandRegistry
 
@@ -92,7 +88,9 @@ class TestSnapshotRepoChanges:
         parser = CommandParser()
         executor = CommandExecutor(registry, parser, repo_root=temp_repo)
 
-        with patch("subprocess.run", side_effect=subprocess.SubprocessError("git failed")):
+        with patch(
+            "subprocess.run", side_effect=subprocess.SubprocessError("git failed")
+        ):
             result = executor._snapshot_repo_changes()
 
         assert result == set()
@@ -104,7 +102,7 @@ class TestDiffSnapshots:
     def test_diff_returns_empty_for_empty_after(self, executor):
         """Diff returns empty when after snapshot is empty."""
         before = {"M\tfile1.py", "A\tfile2.py"}
-        after: Set[str] = set()
+        after: set[str] = set()
 
         result = executor._diff_snapshots(before, after)
 
@@ -112,7 +110,7 @@ class TestDiffSnapshots:
 
     def test_diff_returns_all_for_empty_before(self, executor):
         """Diff returns all entries when before snapshot is empty."""
-        before: Set[str] = set()
+        before: set[str] = set()
         after = {"M\tfile1.py", "A\tfile2.py"}
 
         result = executor._diff_snapshots(before, after)
@@ -138,7 +136,7 @@ class TestDiffSnapshots:
 
     def test_diff_is_sorted(self, executor):
         """Diff returns sorted list."""
-        before: Set[str] = set()
+        before: set[str] = set()
         after = {"M\tzebra.py", "A\talpha.py", "D\tbeta.py"}
 
         result = executor._diff_snapshots(before, after)
@@ -220,7 +218,9 @@ class TestIsArtifactChange:
 
     def test_artifact_with_rename(self, executor):
         """Renamed file in Generated is detected."""
-        assert executor._is_artifact_change("R100\told.py\tSuperClaude/Generated/new.py")
+        assert executor._is_artifact_change(
+            "R100\told.py\tSuperClaude/Generated/new.py"
+        )
 
     def test_artifact_nested_generated(self, executor):
         """Nested Generated path is detected."""
@@ -650,7 +650,9 @@ class TestRunStaticValidation:
 
         result = executor._run_static_validation([valid_yaml])
 
-        yaml_errors = [r for r in result if "yaml" in r.lower() and "error" in r.lower()]
+        yaml_errors = [
+            r for r in result if "yaml" in r.lower() and "error" in r.lower()
+        ]
         assert len(yaml_errors) == 0
 
     def test_validate_invalid_yaml(self, executor, tmp_path):

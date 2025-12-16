@@ -2,16 +2,17 @@
 
 from __future__ import annotations
 
-import os
 import subprocess
-from dataclasses import field
-from pathlib import Path
-from typing import Any, Dict, List, Optional
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 
-from SuperClaude.Commands import CommandExecutor, CommandParser, CommandRegistry, CommandContext, CommandResult
+from SuperClaude.Commands import (
+    CommandContext,
+    CommandExecutor,
+    CommandParser,
+    CommandRegistry,
+)
 from SuperClaude.Commands.parser import ParsedCommand
 from SuperClaude.Commands.registry import CommandMetadata
 from SuperClaude.Modes.behavioral_manager import BehavioralMode

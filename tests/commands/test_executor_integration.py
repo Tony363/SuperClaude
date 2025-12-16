@@ -2,18 +2,12 @@
 
 from __future__ import annotations
 
-import asyncio
-from pathlib import Path
-from typing import Any, Dict, List
-from unittest.mock import AsyncMock, MagicMock, patch
-
 import pytest
 
-from SuperClaude.Commands import CommandExecutor, CommandParser, CommandRegistry
-from SuperClaude.Commands import CommandContext, CommandResult
-from SuperClaude.Commands.parser import ParsedCommand
+from SuperClaude.Commands import (
+    CommandResult,
+)
 from SuperClaude.Commands.registry import CommandMetadata
-from SuperClaude.Modes.behavioral_manager import BehavioralMode
 
 
 class TestExecuteEndToEnd:
@@ -155,9 +149,7 @@ class TestExecuteChain:
             )
         )
 
-        results = await executor_with_mocks.execute_chain(
-            ["/sc:step1", "/sc:step2"]
-        )
+        results = await executor_with_mocks.execute_chain(["/sc:step1", "/sc:step2"])
 
         assert isinstance(results, list)
         # May stop early if first command fails (default behavior)
@@ -171,9 +163,7 @@ class TestExecuteChain:
         assert results == []
 
     @pytest.mark.asyncio
-    async def test_execute_chain_stops_on_failure(
-        self, executor_with_mocks, registry
-    ):
+    async def test_execute_chain_stops_on_failure(self, executor_with_mocks, registry):
         """Execute chain stops on failure when configured."""
         registry.register_command(
             CommandMetadata(
@@ -191,9 +181,7 @@ class TestExecuteChain:
         )
 
         # Execute chain - will stop on first failure (default behavior)
-        results = await executor_with_mocks.execute_chain(
-            ["/sc:fail", "/sc:fail"]
-        )
+        results = await executor_with_mocks.execute_chain(["/sc:fail", "/sc:fail"])
 
         # Should return at least one result (may stop after first)
         assert isinstance(results, list)
@@ -237,9 +225,7 @@ class TestExecuteParallel:
             )
         )
 
-        results = await executor_with_mocks.execute_parallel(
-            ["/sc:task1", "/sc:task2"]
-        )
+        results = await executor_with_mocks.execute_parallel(["/sc:task1", "/sc:task2"])
 
         assert isinstance(results, list)
 

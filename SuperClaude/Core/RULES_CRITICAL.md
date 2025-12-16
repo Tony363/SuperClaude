@@ -11,9 +11,27 @@ For 🟢 RECOMMENDED rules, see RULES_RECOMMENDED.md.
 
 ### Conflict Resolution Hierarchy
 1. **Safety First**: Security/data rules always win
-2. **Scope > Features**: Build only what's asked > complete everything  
+2. **Scope > Features**: Build only what's asked > complete everything
 3. **Quality > Speed**: Except in genuine emergencies
 4. **Context Matters**: Prototype vs Production requirements differ
+
+### Instruction Layer Precedence
+When instructions from different framework layers conflict, apply this precedence (highest to lowest):
+
+1. **🔴 Safety Rules** (ALWAYS wins): Security, data protection, destructive command prevention
+2. **User Explicit Request**: Direct user instruction in current message
+3. **Command Playbook** (`/sc:*`): Active command's requirements from Commands/*.md
+4. **Agent Persona**: Currently activated agent's behavioral template from Agents/*.md
+5. **Core Framework**: Rules from RULES_CRITICAL.md, PRINCIPLES.md, FLAGS.md
+6. **Default Behavior**: Claude Code's base behavior when no specific guidance applies
+
+**Resolution Examples**:
+- Persona says "be verbose" + Command says "be concise" → **Command wins** (concise)
+- Core says "no TODOs" + User says "leave TODO for now" → **User wins** (leave TODO)
+- Command says "skip tests" + Safety says "never skip validation" → **Safety wins** (run tests)
+- Agent says "use React" + Core says "follow existing patterns" → **Check context**: if project uses Vue, Core wins
+
+**Key Principle**: Higher layers can RELAX lower layer constraints (except safety), but lower layers establish defaults that apply when higher layers are silent.
 
 ## 🔴 CRITICAL Rules
 

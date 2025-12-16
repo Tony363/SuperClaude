@@ -3,16 +3,11 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, Dict, Optional
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from SuperClaude.Commands import CommandExecutor, CommandParser, CommandRegistry
-from SuperClaude.Commands import CommandContext
-from SuperClaude.Commands.parser import ParsedCommand
 from SuperClaude.Commands.registry import CommandMetadata
-from SuperClaude.Modes.behavioral_manager import BehavioralMode
 
 
 class TestRequiresExecutionEvidence:
@@ -256,9 +251,7 @@ class TestEnsureConsensus:
         """Ensure consensus calls the consensus facade."""
         executor_with_mocks.consensus_facade = mock_consensus_facade
 
-        await executor_with_mocks._ensure_consensus(
-            sample_context, {"output": "test"}
-        )
+        await executor_with_mocks._ensure_consensus(sample_context, {"output": "test"})
 
         # Facade vote method should be called or configured
         assert mock_consensus_facade is not None

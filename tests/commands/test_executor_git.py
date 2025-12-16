@@ -2,18 +2,11 @@
 
 from __future__ import annotations
 
-from pathlib import Path
-from typing import Any, Dict
-from unittest.mock import MagicMock, patch
-import subprocess
+from unittest.mock import patch
 
 import pytest
 
-from SuperClaude.Commands import CommandExecutor, CommandParser, CommandRegistry
-from SuperClaude.Commands import CommandContext
 from SuperClaude.Commands.parser import ParsedCommand
-from SuperClaude.Commands.registry import CommandMetadata
-from SuperClaude.Modes.behavioral_manager import BehavioralMode
 
 
 @pytest.fixture
@@ -100,7 +93,9 @@ class TestGitStatusOperation:
         assert "main" in result["summary"]["branch"]
 
     @pytest.mark.asyncio
-    async def test_git_status_counts_untracked(self, executor, sample_context, git_repo):
+    async def test_git_status_counts_untracked(
+        self, executor, sample_context, git_repo
+    ):
         """Git status counts untracked files."""
         executor.repo_root = git_repo
         sample_context.command = ParsedCommand(
@@ -302,7 +297,9 @@ class TestGitCommitOperation:
         assert result["summary"].get("commit_message") == "test commit"
 
     @pytest.mark.asyncio
-    async def test_git_commit_dry_run_without_apply(self, executor, sample_context, git_repo):
+    async def test_git_commit_dry_run_without_apply(
+        self, executor, sample_context, git_repo
+    ):
         """Git commit uses --dry-run when apply flag not set."""
         executor.repo_root = git_repo
         sample_context.command = ParsedCommand(
@@ -328,7 +325,9 @@ class TestGitCommitOperation:
         assert "--dry-run" in call_args
 
     @pytest.mark.asyncio
-    async def test_git_commit_real_with_apply_flag(self, executor, sample_context, git_repo):
+    async def test_git_commit_real_with_apply_flag(
+        self, executor, sample_context, git_repo
+    ):
         """Git commit skips --dry-run when apply flag is set."""
         executor.repo_root = git_repo
         sample_context.command = ParsedCommand(
@@ -387,7 +386,9 @@ class TestGitWarnings:
     """Tests for git warning handling."""
 
     @pytest.mark.asyncio
-    async def test_git_records_warnings_on_error(self, executor, sample_context, git_repo):
+    async def test_git_records_warnings_on_error(
+        self, executor, sample_context, git_repo
+    ):
         """Git records warnings when command fails."""
         executor.repo_root = git_repo
         sample_context.command = ParsedCommand(
@@ -414,7 +415,9 @@ class TestGitWarnings:
         assert len(result["warnings"]) > 0
 
     @pytest.mark.asyncio
-    async def test_git_status_failed_on_warnings(self, executor, sample_context, git_repo):
+    async def test_git_status_failed_on_warnings(
+        self, executor, sample_context, git_repo
+    ):
         """Git status is 'git_failed' when warnings present."""
         executor.repo_root = git_repo
         sample_context.command = ParsedCommand(

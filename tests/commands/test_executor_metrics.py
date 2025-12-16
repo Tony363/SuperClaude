@@ -3,17 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from pathlib import Path
-from typing import Any, Dict, Optional
-from unittest.mock import MagicMock, patch
-
-import pytest
-
-from SuperClaude.Commands import CommandExecutor, CommandParser, CommandRegistry
-from SuperClaude.Commands import CommandContext
-from SuperClaude.Commands.parser import ParsedCommand
-from SuperClaude.Commands.registry import CommandMetadata
-from SuperClaude.Modes.behavioral_manager import BehavioralMode
+from unittest.mock import MagicMock
 
 
 class TestRecordRequiresEvidenceMetrics:
@@ -204,7 +194,7 @@ class TestRecordRequiresEvidenceMetrics:
                     "duration_s": 5.5,
                     "returncode": 0,
                 }
-            }
+            },
         }
 
         executor._record_requires_evidence_metrics(
@@ -271,7 +261,11 @@ class TestAttachPlanOnlyGuidance:
         executor._attach_plan_only_guidance(sample_context, output)
 
         # Should add guidance to output
-        assert "plan_only_guidance" in output or "guidance" in output or isinstance(output, dict)
+        assert (
+            "plan_only_guidance" in output
+            or "guidance" in output
+            or isinstance(output, dict)
+        )
 
     def test_attach_guidance_empty_change_plan(self, executor, sample_context):
         """Handles empty change plan."""

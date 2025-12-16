@@ -11,9 +11,12 @@ import re
 import subprocess
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional, Set
+from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Optional, Set
 
 from .utils import is_truthy, truncate_output
+
+if TYPE_CHECKING:
+    from ..parser import ParsedCommand
 
 logger = logging.getLogger(__name__)
 
@@ -218,9 +221,7 @@ def summarize_test_results(test_results: Dict[str, Any]) -> str:
     command = test_results.get("command", "tests")
     status = "pass" if test_results.get("passed") else "fail"
     duration = test_results.get("duration_s")
-    duration_part = (
-        f" in {duration:.2f}s" if isinstance(duration, (int, float)) else ""
-    )
+    duration_part = f" in {duration:.2f}s" if isinstance(duration, (int, float)) else ""
     return f"{command} ({status}{duration_part})"
 
 

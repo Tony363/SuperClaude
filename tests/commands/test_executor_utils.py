@@ -2,9 +2,6 @@
 
 from __future__ import annotations
 
-import pytest
-
-from SuperClaude.Commands import CommandExecutor, CommandParser, CommandRegistry
 from SuperClaude.Commands.parser import ParsedCommand
 
 

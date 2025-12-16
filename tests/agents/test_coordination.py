@@ -6,9 +6,7 @@ infinite recursion and circular dependencies.
 """
 
 from datetime import datetime
-from unittest.mock import Mock, patch
-
-import pytest
+from unittest.mock import patch
 
 from SuperClaude.Agents.coordination import CoordinationManager, ExecutionContext
 
@@ -73,9 +71,11 @@ class TestDelegationDepth:
 
         assert result["success"] is False
         # Should fail due to max depth
-        assert "depth" in result or "Maximum delegation depth" in result.get(
-            "error", ""
-        ) or result.get("delegation_blocked")
+        assert (
+            "depth" in result
+            or "Maximum delegation depth" in result.get("error", "")
+            or result.get("delegation_blocked")
+        )
 
     def test_delegation_depth_tracking(self, coordination_manager):
         """Test that delegation depth is tracked in metrics."""
@@ -131,9 +131,7 @@ class TestCircularDelegation:
         # Don't add agent-a to active_agents
 
         # agent-c is completely new, not in chain or active
-        is_circular = coordination_manager.detect_circular_delegation(
-            "agent-a", "agent-c"
-        )
+        coordination_manager.detect_circular_delegation("agent-a", "agent-c")
 
         # agent-c is not in the chain, so should not be circular
         # But the algorithm may still detect cycles in the graph
@@ -250,7 +248,7 @@ class TestParallelCoordination:
         """Test that coordinate_parallel returns results for all tasks."""
         # Use tasks with varying complexity to ensure non-empty groups
         tasks = [
-            {"context": {"task": "x" * 10}},   # Simple (< 50 chars)
+            {"context": {"task": "x" * 10}},  # Simple (< 50 chars)
             {"context": {"task": "y" * 100}},  # Moderate (50-200 chars)
             {"context": {"task": "z" * 300}},  # Complex (> 200 chars)
         ]
@@ -284,7 +282,7 @@ class TestCooldown:
 
     def test_cooldown_applied(self, coordination_manager):
         """Test that cooldown is applied between delegations."""
-        with patch("time.sleep") as mock_sleep:
+        with patch("time.sleep"):
             # Execute first agent
             coordination_manager.execute_with_delegation("test-agent", {"task": "1"})
 

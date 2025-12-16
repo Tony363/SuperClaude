@@ -2,16 +2,18 @@
 
 from __future__ import annotations
 
-import asyncio
 import os
-import subprocess
 from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock
 
 import pytest
 
-from SuperClaude.Commands import CommandExecutor, CommandParser, CommandRegistry
-from SuperClaude.Commands import CommandResult
+from SuperClaude.Commands import (
+    CommandExecutor,
+    CommandParser,
+    CommandRegistry,
+    CommandResult,
+)
 
 
 class TestCommandExecutorInit:

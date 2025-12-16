@@ -3,12 +3,7 @@
 from __future__ import annotations
 
 import ast
-import shutil
-from pathlib import Path
-from typing import List
-from unittest.mock import MagicMock, patch
-
-import pytest
+from unittest.mock import patch
 
 from SuperClaude.Commands import CommandExecutor, CommandParser, CommandRegistry
 
@@ -39,13 +34,15 @@ class TestPlanBuildPipeline:
 
         # Should have a Python build step if 'build' module is available
         descriptions = [step.get("description", "") for step in result]
-        has_python_build = any("python" in d.lower() for d in descriptions)
+        any("python" in d.lower() for d in descriptions)
         # May or may not have build module installed
         assert isinstance(result, list)
 
     def test_plan_detects_setup_py(self, command_workspace):
         """Pipeline detects setup.py."""
-        (command_workspace / "setup.py").write_text("from setuptools import setup\nsetup()\n")
+        (command_workspace / "setup.py").write_text(
+            "from setuptools import setup\nsetup()\n"
+        )
 
         registry = CommandRegistry()
         parser = CommandParser()

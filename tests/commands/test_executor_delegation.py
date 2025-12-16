@@ -2,17 +2,7 @@
 
 from __future__ import annotations
 
-from pathlib import Path
-from typing import Any, Dict, List
-from unittest.mock import AsyncMock, MagicMock, patch
-
-import pytest
-
-from SuperClaude.Commands import CommandExecutor, CommandParser, CommandRegistry
-from SuperClaude.Commands import CommandContext
 from SuperClaude.Commands.parser import ParsedCommand
-from SuperClaude.Commands.registry import CommandMetadata
-from SuperClaude.Modes.behavioral_manager import BehavioralMode
 
 
 class TestExtractDelegateTargets:
@@ -206,7 +196,11 @@ class TestBuildDelegationContext:
         context_dict = executor._build_delegation_context(sample_context)
 
         assert isinstance(context_dict, dict)
-        assert "task" in context_dict or "description" in context_dict or len(context_dict) > 0
+        assert (
+            "task" in context_dict
+            or "description" in context_dict
+            or len(context_dict) > 0
+        )
 
     def test_build_context_includes_task_text(self, executor, sample_context):
         """Delegation context includes task text."""

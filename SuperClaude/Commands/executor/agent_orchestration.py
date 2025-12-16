@@ -6,7 +6,6 @@ agent payload building, and result ingestion without instance dependencies.
 """
 
 import logging
-import re
 from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
 
 logger = logging.getLogger(__name__)
@@ -28,15 +27,40 @@ PERSONA_TO_AGENT: Dict[str, str] = {
 
 
 # Task domain signals for strategist selection
-FRONTEND_SIGNALS = frozenset([
-    "frontend", "ui", "react", "component", "next.js", "nextjs", "vue",
-    "angular", "css", "html", "browser", "dom", "client-side",
-])
+FRONTEND_SIGNALS = frozenset(
+    [
+        "frontend",
+        "ui",
+        "react",
+        "component",
+        "next.js",
+        "nextjs",
+        "vue",
+        "angular",
+        "css",
+        "html",
+        "browser",
+        "dom",
+        "client-side",
+    ]
+)
 
-BACKEND_SIGNALS = frozenset([
-    "backend", "api", "service", "endpoint", "database", "schema",
-    "server", "rest", "graphql", "orm", "sql", "nosql",
-])
+BACKEND_SIGNALS = frozenset(
+    [
+        "backend",
+        "api",
+        "service",
+        "endpoint",
+        "database",
+        "schema",
+        "server",
+        "rest",
+        "graphql",
+        "orm",
+        "sql",
+        "nosql",
+    ]
+)
 
 STRATEGIST_FALLBACK_ORDER = [
     "system-architect",
@@ -266,26 +290,18 @@ def build_delegation_context(
     Returns:
         Delegation context dictionary.
     """
-    languages = _extract_list_param(
-        parameters, ["language", "languages", "lang"]
-    )
-    domains = _extract_list_param(
-        parameters, ["domain", "domains"]
-    )
+    languages = _extract_list_param(parameters, ["language", "languages", "lang"])
+    domains = _extract_list_param(parameters, ["domain", "domains"])
 
     if category and category not in domains:
         domains.append(category)
 
-    keywords = _extract_list_param(
-        parameters, ["keywords", "tags"]
-    )
+    keywords = _extract_list_param(parameters, ["keywords", "tags"])
     # Extract keywords from task
     if task:
-        keywords.extend([
-            word.strip(",.").lower()
-            for word in task.split()
-            if len(word) > 3
-        ])
+        keywords.extend(
+            [word.strip(",.").lower() for word in task.split() if len(word) > 3]
+        )
 
     files = extract_files_from_parameters(parameters)
 

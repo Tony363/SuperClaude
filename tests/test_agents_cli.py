@@ -7,9 +7,8 @@ NOTE: This file tests SuperClaude/Agents/cli.py (agent system CLI),
 NOT SuperClaude/__main__.py (installer CLI) which is tested in test_cli.py.
 """
 
-import io
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
+from typing import Any, List
 from unittest.mock import Mock, patch
 
 import pytest
@@ -144,7 +143,7 @@ class TestCmdListAgents:
         cmd_list_agents(mock_extended_loader, category="01-core-development")
 
         mock_extended_loader.get_agents_by_category.assert_called_once()
-        captured = capsys.readouterr()
+        capsys.readouterr()
         # Output should contain agent info
 
     def test_cmd_list_agents_invalid_category(self, mock_extended_loader, capsys):
@@ -219,7 +218,7 @@ class TestCmdSelectAgent:
         cmd_select_agent(mock_extended_loader, context, top_n=5)
 
         mock_extended_loader.select_agent.assert_called_once()
-        captured = capsys.readouterr()
+        capsys.readouterr()
         # Should show suggestions
 
     def test_cmd_select_agent_no_matches(self, mock_extended_loader, capsys):
@@ -282,7 +281,7 @@ class TestCmdCategoryTree:
         cmd_category_tree(mock_extended_loader)
 
         mock_extended_loader.list_categories.assert_called()
-        captured = capsys.readouterr()
+        capsys.readouterr()
         # Tree output should be present
 
 
@@ -293,119 +292,111 @@ class TestMainFunction:
         """Test that running with no args shows help."""
         from SuperClaude.Agents.cli import main
 
-        with patch("sys.argv", ["cli"]):
-            with patch(
-                "SuperClaude.Agents.cli.ExtendedAgentLoader"
-            ) as mock_loader_class:
-                mock_loader_class.return_value = Mock()
-                main()
+        with patch("sys.argv", ["cli"]), patch(
+            "SuperClaude.Agents.cli.ExtendedAgentLoader"
+        ) as mock_loader_class:
+            mock_loader_class.return_value = Mock()
+            main()
 
-        captured = capsys.readouterr()
+        capsys.readouterr()
         # Should print help or usage info
 
     def test_main_list_command(self, mock_extended_loader, capsys):
         """Test main() with list command."""
         from SuperClaude.Agents.cli import main
 
-        with patch("sys.argv", ["cli", "list"]):
-            with patch(
-                "SuperClaude.Agents.cli.ExtendedAgentLoader",
-                return_value=mock_extended_loader,
-            ):
-                main()
+        with patch("sys.argv", ["cli", "list"]), patch(
+            "SuperClaude.Agents.cli.ExtendedAgentLoader",
+            return_value=mock_extended_loader,
+        ):
+            main()
 
-        captured = capsys.readouterr()
+        capsys.readouterr()
         # Should list agents
 
     def test_main_search_command(self, mock_extended_loader, capsys):
         """Test main() with search command."""
         from SuperClaude.Agents.cli import main
 
-        with patch("sys.argv", ["cli", "search", "python"]):
-            with patch(
-                "SuperClaude.Agents.cli.ExtendedAgentLoader",
-                return_value=mock_extended_loader,
-            ):
-                main()
+        with patch("sys.argv", ["cli", "search", "python"]), patch(
+            "SuperClaude.Agents.cli.ExtendedAgentLoader",
+            return_value=mock_extended_loader,
+        ):
+            main()
 
-        captured = capsys.readouterr()
+        capsys.readouterr()
         # Should show search results
 
     def test_main_categories_command(self, mock_extended_loader, capsys):
         """Test main() with categories command."""
         from SuperClaude.Agents.cli import main
 
-        with patch("sys.argv", ["cli", "categories"]):
-            with patch(
-                "SuperClaude.Agents.cli.ExtendedAgentLoader",
-                return_value=mock_extended_loader,
-            ):
-                main()
+        with patch("sys.argv", ["cli", "categories"]), patch(
+            "SuperClaude.Agents.cli.ExtendedAgentLoader",
+            return_value=mock_extended_loader,
+        ):
+            main()
 
-        captured = capsys.readouterr()
+        capsys.readouterr()
         # Should list categories
 
     def test_main_info_command(self, mock_extended_loader, capsys):
         """Test main() with info command."""
         from SuperClaude.Agents.cli import main
 
-        with patch("sys.argv", ["cli", "info", "test-agent-1"]):
-            with patch(
-                "SuperClaude.Agents.cli.ExtendedAgentLoader",
-                return_value=mock_extended_loader,
-            ):
-                main()
+        with patch("sys.argv", ["cli", "info", "test-agent-1"]), patch(
+            "SuperClaude.Agents.cli.ExtendedAgentLoader",
+            return_value=mock_extended_loader,
+        ):
+            main()
 
-        captured = capsys.readouterr()
+        capsys.readouterr()
         # Should show agent info
 
     def test_main_stats_command(self, mock_extended_loader, capsys):
         """Test main() with stats command."""
         from SuperClaude.Agents.cli import main
 
-        with patch("sys.argv", ["cli", "stats"]):
-            with patch(
-                "SuperClaude.Agents.cli.ExtendedAgentLoader",
-                return_value=mock_extended_loader,
-            ):
-                main()
+        with patch("sys.argv", ["cli", "stats"]), patch(
+            "SuperClaude.Agents.cli.ExtendedAgentLoader",
+            return_value=mock_extended_loader,
+        ):
+            main()
 
-        captured = capsys.readouterr()
+        capsys.readouterr()
         # Should show statistics
 
     def test_main_tree_command(self, mock_extended_loader, capsys):
         """Test main() with tree command."""
         from SuperClaude.Agents.cli import main
 
-        with patch("sys.argv", ["cli", "tree"]):
-            with patch(
-                "SuperClaude.Agents.cli.ExtendedAgentLoader",
-                return_value=mock_extended_loader,
-            ):
-                main()
+        with patch("sys.argv", ["cli", "tree"]), patch(
+            "SuperClaude.Agents.cli.ExtendedAgentLoader",
+            return_value=mock_extended_loader,
+        ):
+            main()
 
-        captured = capsys.readouterr()
+        capsys.readouterr()
         # Should show tree view
 
     def test_main_handles_exception(self, capsys):
         """Test that main() handles exceptions gracefully."""
         from SuperClaude.Agents.cli import main
 
-        with patch("sys.argv", ["cli", "list"]):
-            with patch(
-                "SuperClaude.Agents.cli.ExtendedAgentLoader"
-            ) as mock_loader_class:
-                mock_loader_class.return_value._agent_metadata = {}
-                mock_loader_class.return_value.get_agents_by_category.side_effect = (
-                    Exception("Test error")
-                )
-                # Should not raise, should handle gracefully
-                try:
-                    main()
-                except SystemExit:
-                    pass  # argparse may exit
+        with patch("sys.argv", ["cli", "list"]), patch(
+            "SuperClaude.Agents.cli.ExtendedAgentLoader"
+        ) as mock_loader_class:
+            mock_loader_class.return_value._agent_metadata = {}
+            mock_loader_class.return_value.get_agents_by_category.side_effect = (
+                Exception("Test error")
+            )
+            # Should not raise, should handle gracefully
+            try:
+                main()
+            except SystemExit:
+                pass  # argparse may exit
 
-        captured = capsys.readouterr()
+        capsys.readouterr()
         # Error handling output may be present
 
 
@@ -428,12 +419,11 @@ class TestSelectCommand:
                 "--languages",
                 "python",
             ],
+        ), patch(
+            "SuperClaude.Agents.cli.ExtendedAgentLoader",
+            return_value=mock_extended_loader,
         ):
-            with patch(
-                "SuperClaude.Agents.cli.ExtendedAgentLoader",
-                return_value=mock_extended_loader,
-            ):
-                main()
+            main()
 
-        captured = capsys.readouterr()
+        capsys.readouterr()
         # Should show selected agents

@@ -5,12 +5,6 @@ from __future__ import annotations
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-import pytest
-
-from SuperClaude.Commands import CommandExecutor, CommandParser, CommandRegistry
-from SuperClaude.Commands.parser import ParsedCommand
-from SuperClaude.Commands import CommandContext
-
 
 class TestDeriveChangePlan:
     """Tests for _derive_change_plan method."""
@@ -30,9 +24,7 @@ class TestDeriveChangePlan:
         """_derive_change_plan extracts from proposed_changes key."""
         sample_context.agent_outputs = {
             "implementer": {
-                "proposed_changes": [
-                    {"path": "src/file.py", "content": "# code"}
-                ]
+                "proposed_changes": [{"path": "src/file.py", "content": "# code"}]
             }
         }
 
@@ -59,16 +51,10 @@ class TestDeriveChangePlan:
         assert len(result) == 1
         assert result[0]["path"] == "tests/test.py"
 
-    def test_derive_change_plan_extracts_file_updates(
-        self, executor, sample_context
-    ):
+    def test_derive_change_plan_extracts_file_updates(self, executor, sample_context):
         """_derive_change_plan extracts from file_updates key."""
         sample_context.agent_outputs = {
-            "implementer": {
-                "file_updates": [
-                    {"path": "config.json", "content": "{}"}
-                ]
-            }
+            "implementer": {"file_updates": [{"path": "config.json", "content": "{}"}]}
         }
 
         result = executor._derive_change_plan(sample_context, {})
@@ -79,11 +65,7 @@ class TestDeriveChangePlan:
     def test_derive_change_plan_extracts_changes(self, executor, sample_context):
         """_derive_change_plan extracts from changes key."""
         sample_context.agent_outputs = {
-            "implementer": {
-                "changes": [
-                    {"path": "readme.md", "content": "# Title"}
-                ]
-            }
+            "implementer": {"changes": [{"path": "readme.md", "content": "# Title"}]}
         }
 
         result = executor._derive_change_plan(sample_context, {})
@@ -91,17 +73,13 @@ class TestDeriveChangePlan:
         assert len(result) == 1
         assert result[0]["path"] == "readme.md"
 
-    def test_derive_change_plan_merges_multiple_agents(
-        self, executor, sample_context
-    ):
+    def test_derive_change_plan_merges_multiple_agents(self, executor, sample_context):
         """_derive_change_plan merges changes from multiple agents."""
         sample_context.agent_outputs = {
             "implementer": {
                 "proposed_changes": [{"path": "file1.py", "content": "code1"}]
             },
-            "reviewer": {
-                "changes": [{"path": "file2.py", "content": "code2"}]
-            },
+            "reviewer": {"changes": [{"path": "file2.py", "content": "code2"}]},
         }
 
         result = executor._derive_change_plan(sample_context, {})
@@ -247,7 +225,7 @@ class TestApplyChangePlan:
         sample_context.command.flags = {"safe": True}
         change_plan = [{"path": "file.py", "content": "code"}]
 
-        with patch.object(executor, "_safe_apply_requested", return_value=True):
+        with patch.object(executor, "_safe_apply_requested", return_value=True):  # noqa: SIM117
             with patch.object(
                 executor,
                 "_write_safe_apply_snapshot",
@@ -258,9 +236,7 @@ class TestApplyChangePlan:
         assert result["applied"] == []
         assert "safe_apply_directory" in result
 
-    def test_apply_change_plan_uses_worktree_manager(
-        self, executor, sample_context
-    ):
+    def test_apply_change_plan_uses_worktree_manager(self, executor, sample_context):
         """_apply_change_plan uses worktree manager when available."""
         change_plan = [{"path": "file.py", "content": "code"}]
 
@@ -270,7 +246,7 @@ class TestApplyChangePlan:
             "warnings": [],
         }
 
-        with patch.object(executor, "_safe_apply_requested", return_value=False):
+        with patch.object(executor, "_safe_apply_requested", return_value=False):  # noqa: SIM117
             with patch.object(
                 executor, "_ensure_worktree_manager", return_value=mock_manager
             ):
@@ -283,7 +259,7 @@ class TestApplyChangePlan:
         """_apply_change_plan uses fallback when manager unavailable."""
         change_plan = [{"path": "file.py", "content": "code"}]
 
-        with patch.object(executor, "_safe_apply_requested", return_value=False):
+        with patch.object(executor, "_safe_apply_requested", return_value=False):  # noqa: SIM117
             with patch.object(executor, "_ensure_worktree_manager", return_value=None):
                 with patch.object(
                     executor,
@@ -299,7 +275,7 @@ class TestApplyChangePlan:
         """_apply_change_plan handles exceptions gracefully."""
         change_plan = [{"path": "file.py", "content": "code"}]
 
-        with patch.object(executor, "_safe_apply_requested", return_value=False):
+        with patch.object(executor, "_safe_apply_requested", return_value=False):  # noqa: SIM117
             with patch.object(
                 executor,
                 "_ensure_worktree_manager",

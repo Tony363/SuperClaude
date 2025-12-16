@@ -5,12 +5,8 @@ persistence for session memories and symbol metadata.
 """
 
 import concurrent.futures
-import json
-import threading
 from pathlib import Path
 from unittest.mock import patch
-
-import pytest
 
 from SuperClaude.Core.unified_store import SymbolInfo, UnifiedStore
 
@@ -286,7 +282,7 @@ class TestMigrationWarning:
         UnifiedStore._migration_checked = False
 
         # Check that warning was printed
-        captured = capsys.readouterr()
+        capsys.readouterr()
         # Note: The warning may or may not appear depending on exact timing
         # The important thing is no exception was raised
 
