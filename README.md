@@ -35,7 +35,7 @@ SuperClaude is a sophisticated AI orchestration framework that enhances Claude C
 - **100+ Specialized Agents**: From backend architects to security auditors
 - **Behavioral Modes**: Normal, Task Management, Token Efficiency, Orchestration
 - **Quality Validation**: Multi-stage pipelines with syntax, security, and performance checks
-- **MCP Server Integration**: Rube (web/app automation), Zen (consensus), LinkUp (web search)
+- **MCP Server Integration**: Rube (web/app automation), PAL (consensus), LinkUp (web search)
 
 ```mermaid
 graph TB
@@ -58,7 +58,7 @@ graph TB
 
         Executor --> MCP[MCP Integrations]
         MCP --> Rube[Rube MCP]
-        MCP --> Zen[Zen MCP]
+        MCP --> PAL[PAL MCP]
 
         Executor --> Quality[Quality Pipeline]
         Quality --> Validation[Validation Stages]
@@ -107,7 +107,7 @@ flowchart TB
         API_G[Google]
         API_X[xAI]
         MCP_R[Rube MCP]
-        MCP_Z[Zen MCP]
+        MCP_P[PAL MCP]
     end
 
     subgraph Storage["Storage & State"]
@@ -495,7 +495,7 @@ graph TB
         Executor[Command Executor]
 
         Executor --> RubeInt[Rube Integration]
-        Executor --> ZenInt[Zen Integration]
+        Executor --> PALInt[PAL Integration]
 
         subgraph "Rube MCP"
             RubeInt --> Tools[500+ App Tools]
@@ -506,8 +506,8 @@ graph TB
             Tools --> LinkUp[LinkUp Search]
         end
 
-        subgraph "Zen MCP"
-            ZenInt --> Consensus[Consensus Engine]
+        subgraph "PAL MCP"
+            PALInt --> Consensus[Consensus Engine]
             Consensus --> Review[Code Review]
             Review --> GPT5[GPT-5 Analysis]
         end
@@ -827,7 +827,7 @@ SuperClaude integrates with Claude Code via `CLAUDE.md` configuration files:
 
 # MCP Documentation
 @SuperClaude/Core/MCP_Rube.md
-@SuperClaude/Core/MCP_Zen.md
+@SuperClaude/Core/MCP_Pal.md
 ```
 
 ### Project-Level Configuration
@@ -1042,7 +1042,7 @@ SuperClaude/
 │   ├── MCP/
 │   │   ├── __init__.py        # Native MCP tools reference
 │   │   ├── MCP_Rube.md        # Rube MCP documentation
-│   │   ├── MCP_Zen.md         # PAL MCP documentation
+│   │   ├── MCP_Pal.md         # PAL MCP documentation
 │   │   └── MCP_LinkUp.md      # LinkUp search documentation
 │   │
 │   ├── ModelRouter/

@@ -76,7 +76,7 @@ class UpdateChecker:
             try:
                 with open(self.CACHE_FILE) as f:
                     data = json.load(f)
-            except (json.JSONDecodeError, OSError, IOError) as e:
+            except (json.JSONDecodeError, OSError) as e:
                 # Cache file unreadable; continue with empty data dict
                 if self.logger:
                     self.logger.debug(f"Cache file unreadable, using defaults: {e}")

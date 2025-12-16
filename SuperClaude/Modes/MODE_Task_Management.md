@@ -65,7 +65,7 @@
 
 | Task Type | Primary Tool | Memory Key |
 |-----------|-------------|------------|
-| Analysis | Zen MCP | "analysis_results" |
+| Analysis | PAL MCP | "analysis_results" |
 | Implementation | MultiEdit | "code_changes" |
 | UI Components | Repository docs | "ui_components" |
 | Testing | External Playwright/Cypress | "test_results" |

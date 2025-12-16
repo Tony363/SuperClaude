@@ -1,10 +1,10 @@
 #!/bin/bash
 
-# Zen MCP API Keys Setup Script
-# This script helps set up the necessary API keys for Zen MCP multi-model orchestration
+# PAL MCP API Keys Setup Script
+# This script helps set up the necessary API keys for PAL MCP multi-model orchestration
 
 echo "==================================="
-echo "  Zen MCP API Keys Setup"
+echo "  PAL MCP API Keys Setup"
 echo "==================================="
 echo ""
 
@@ -127,12 +127,12 @@ echo "📝 You may need to manually configure:"
 echo "   - ~/.claude/settings.json (if using Claude settings)"
 echo "   - ~/.config/Claude/claude_desktop_config.json (for MCP servers)"
 echo ""
-echo "⚠️  NOTE: Zen MCP Server integration is planned for future versions"
+echo "⚠️  NOTE: PAL MCP Server integration is planned for future versions"
 echo ""
 echo "These features are planned for future releases:"
-echo "  --zen          : Enable multi-model orchestration"
+echo "  --pal          : Enable multi-model orchestration"
 echo "  --consensus    : Get consensus from multiple models"
-echo "  --zen-review   : Production validation with multiple models"
+echo "  --pal-review   : Production validation with multiple models"
 echo "  --thinkdeep    : Deep multi-angle analysis"
 echo ""
 echo "Context-aware model routing:"
@@ -140,5 +140,5 @@ echo "  Standard ops (≤400K): GPT-5 → Claude Opus 4.1 → GPT-4.1"
 echo "  Long context (>400K): Gemini-2.5-pro → GPT-4.1 → GPT-5"
 echo ""
 echo "Long context examples:"
-echo "  'Analyze entire codebase --zen-review --extended-context'"
+echo "  'Analyze entire codebase --pal-review --extended-context'"
 echo "  'Review all files --thinkdeep --bulk-analysis src/ docs/'"

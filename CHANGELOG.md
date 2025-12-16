@@ -18,7 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   setup CLI against regressions when file lists change.
 
 ### Changed
-- Removed Context7, Magic, MorphLLM, Playwright, Serena, and Deepwiki MCP integrations; streamlined registry to Sequential and Zen.
+- Removed Context7, Magic, MorphLLM, Playwright, Serena, and Deepwiki MCP integrations; streamlined registry to Sequential and PAL.
 - Updated commands, modes, docs, and agents to reference UnifiedStore and remaining MCP servers.
 - Simplified installer components and MCP documentation to match current server lineup.
 - Core and Modes installer components now persist the selected profile, expanded file manifests,

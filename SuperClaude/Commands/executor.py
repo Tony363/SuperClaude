@@ -18,7 +18,6 @@ import shutil
 import subprocess
 import tempfile
 import textwrap
-import threading
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from pathlib import Path
@@ -40,8 +39,6 @@ from ..ModelRouter.facade import ModelRouterFacade
 from ..Modes.behavioral_manager import BehavioralMode, BehavioralModeManager
 from ..Quality.quality_scorer import (
     QualityAssessment,
-    QualityDimension,
-    QualityMetric,
     QualityScorer,
 )
 from .artifact_manager import CommandArtifactManager

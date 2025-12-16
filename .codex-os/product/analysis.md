@@ -23,7 +23,7 @@ repo_ref: main@d151479
 # 2. Product Context
 - Decisions log (2025-10-17, 2025-10-25, 2025-10-26) documents MCP consolidation, UnifiedStore adoption, and stricter `requires_evidence` handling, but no mission/roadmap docs exist locally.
 - Intended users are Claude Code operators who need verifiable diffs with offline guarantees; success metrics would center on executed vs plan-only rates, loop iterations required, and quality scores.
-- Constraints: offline mode by default, limited MCP roster (Sequential, Zen, Deepwiki), reliance on git/git tests for evidence, and absence of networked verification.
+- Constraints: offline mode by default, limited MCP roster (Sequential, PAL, Deepwiki), reliance on git/git tests for evidence, and absence of networked verification.
 
 # 3. Architecture Overview
 - **Entry:** `/sc:` commands parsed via registry metadata (`SuperClaude/Commands/registry.py`) and executed through `CommandExecutor`.

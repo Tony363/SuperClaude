@@ -27,7 +27,7 @@ Loads when specific MCP servers are used:
 
 @MCP_Rube.md            # Activated by: external automation workflows
 @MCP_LinkUp.md          # Activated by: LinkUp web intelligence workflows
-@MCP_Zen.md             # Activated by: consensus validation, model comparisons
+@MCP_Pal.md             # Activated by: consensus validation, model comparisons
 
 ### Extended Rules & Operations
 Additional guidelines and frameworks:
@@ -60,7 +60,7 @@ The framework intelligently loads components based on these triggers:
 ### MCP Server Usage
 - External automation → Loads MCP_Rube.md
 - LinkUp web intelligence → Loads MCP_LinkUp.md
-- Consensus validation → Loads MCP_Zen.md
+- Consensus validation → Loads MCP_Pal.md
 
 ### Quality & Optimization
 - Performance issues → Loads RULES_RECOMMENDED.md

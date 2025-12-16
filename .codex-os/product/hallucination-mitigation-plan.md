@@ -3,7 +3,7 @@
 ## 0. Context
 - Source analysis: `.codex-os/product/analysis.md` (2025-10-27).
 - Target outcomes: Reduce plan-only completions, ensure consensus uses real ensembles, surface hallucination regressions within CI/observability, and ground agent outputs with verifiable evidence.
-- Constraints: Offline-first runtime, limited MCP roster (Sequential, Zen, Deepwiki), rely on git evidence and local tests.
+- Constraints: Offline-first runtime, limited MCP roster (Sequential, PAL, Deepwiki), rely on git evidence and local tests.
 
 ## 1. Goals & Success Metrics
 - **G1 – Reliable consensus:** All `requires_evidence` commands succeed only after multi-model agreement.

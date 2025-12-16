@@ -3,7 +3,7 @@ name: implement
 description: "Feature and code implementation with intelligent persona activation, task orchestration, and MCP integration"
 category: workflow
 complexity: standard
-mcp-servers: [zen, rube]
+mcp-servers: [pal, rube]
 personas: [architect, frontend, backend, security, qa-specialist, project-manager, devops]
 requires_evidence: true
 aliases: [task, spawn]
@@ -81,11 +81,11 @@ flags:
 Key behaviors:
 - Context-based persona activation (architect, frontend, backend, security, qa)
 - Framework-specific implementation via curated repository guidance and playbooks
-- Consensus validation on risky changes via Zen MCP
+- Consensus validation on risky changes via PAL MCP
 - Evidence-driven reporting — never claim code exists without showing diff + tests
 
 ## Knowledge Inputs
-- **Zen MCP**: Consensus building for architectural and security-sensitive decisions
+- **PAL MCP**: Consensus building for architectural and security-sensitive decisions
 - **Rube MCP**: External automation (ticketing, notifications, CI hooks) aligned to task outputs
 - **Repository Standards**: Framework documentation, patterns, and best practices
 - **UnifiedStore**: Cross-session implementation state, learnings, and checkpoints
@@ -136,7 +136,7 @@ When activated, enables meta-system task orchestration:
 ```
 /sc:implement payment processing system --type feature --with-tests
 # Multi-persona coordination: architect, frontend, backend, security
-# Zen MCP validates complex implementation steps
+# PAL MCP validates complex implementation steps
 # Return diff + tests or explicitly note pending work
 ```
 

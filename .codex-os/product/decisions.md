@@ -12,7 +12,7 @@
 
 ## 2025-10-25 – MCP Simplification & UnifiedStore
 - **Context:** Maintaining six local MCP stubs created redundant documentation, extra configuration, and brittle command dependencies. Serena’s JSON persistence also diverged from the desired SQLite-backed storage.
-- **Decision:** Retire Context7, Magic, MorphLLM, Playwright, and Serena MCP integrations. Introduce the `UnifiedStore` SQLite backend with a migration helper, and update commands/modes/docs to rely on Sequential, Zen, and Deepwiki only.
+- **Decision:** Retire Context7, Magic, MorphLLM, Playwright, and Serena MCP integrations. Introduce the `UnifiedStore` SQLite backend with a migration helper, and update commands/modes/docs to rely on Sequential, PAL, and Deepwiki only.
 - **Consequences:** MCP registry, installer components, and command playbooks now reference a minimal, actively-supported toolset. Session persistence flows through UnifiedStore, and automated tests cover the new storage path (`tests/test_worktree_state.py`).
 
 ## 2025-10-25 – Auto-Stub Hygiene & Agent Telemetry

@@ -87,7 +87,7 @@ MCP Servers > Native Tools > Basic Tools
 | Task | Recommended Tool |
 |------|------------------|
 | Automation | Rube MCP |
-| Consensus Checks | Zen MCP |
+| Consensus Checks | PAL MCP |
 | Web Research | LinkUp via Rube |
 | Symbol Operations | UnifiedStore |
 | Documentation | Repository templates |

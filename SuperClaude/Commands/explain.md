@@ -3,7 +3,7 @@ name: explain
 description: "Provide clear explanations of code, concepts, and system behavior with educational clarity"
 category: workflow
 complexity: standard
-mcp-servers: [zen]
+mcp-servers: [pal]
 personas: [educator, architect, security]
 ---
 
@@ -30,12 +30,12 @@ personas: [educator, architect, security]
 Key behaviors:
 - Multi-persona coordination for domain expertise (educator, architect, security)
 - Framework-specific explanations sourced from curated repository standards
-- Consensus-backed clarification via Zen MCP when multiple perspectives required
+- Consensus-backed clarification via PAL MCP when multiple perspectives required
 - Adaptive explanation depth based on audience and complexity
 
 ## Knowledge Inputs
 - **Repository Standards**: Framework documentation and official pattern explanations
-- **Zen MCP**: Cross-perspective validation for nuanced topics
+- **PAL MCP**: Cross-perspective validation for nuanced topics
 - **Persona Coordination**: Educator (learning), Architect (systems), Security (practices)
 
 ## Tool Coordination

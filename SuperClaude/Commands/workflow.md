@@ -3,7 +3,7 @@ name: workflow
 description: "Generate structured implementation workflows from PRDs and feature requirements"
 category: orchestration
 complexity: advanced
-mcp-servers: [zen, rube]
+mcp-servers: [pal, rube]
 personas: [architect, analyzer, frontend, backend, security, devops, project-manager]
 ---
 
@@ -34,7 +34,7 @@ Key behaviors:
 - Cross-session workflow management with comprehensive dependency tracking
 
 ## Knowledge Inputs
-- **Zen MCP**: Consensus validation for high-risk implementation decisions
+- **PAL MCP**: Consensus validation for high-risk implementation decisions
 - **Repository Standards**: Framework-specific workflow patterns and implementation best practices
 - **Rube MCP**: Automate backlog updates, notifications, and downstream workflow triggers
 - **UnifiedStore**: Cross-session workflow persistence, memory management, and project context
@@ -64,7 +64,7 @@ Key behaviors:
 ```
 /sc:workflow "user authentication system" --strategy agile --parallel
 # Agile workflow generation with parallel task coordination
-# Repository patterns for framework workflows and Zen MCP for dependency planning
+# Repository patterns for framework workflows and PAL MCP for dependency planning
 ```
 
 ### Enterprise Implementation Planning

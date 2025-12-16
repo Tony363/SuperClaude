@@ -55,7 +55,7 @@ tasks:
     token_budget: 50000
     description: "Complex multi-step planning and strategy"
   
-  # Thinkdeep: Multi-angle analysis via Zen MCP
+  # Thinkdeep: Multi-angle analysis via PAL MCP
   thinkdeep:
     tier: deep
     preferred: gpt-5

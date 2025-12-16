@@ -3,7 +3,7 @@ name: brainstorm
 description: "Interactive requirements discovery through Socratic dialogue and systematic exploration"
 category: orchestration
 complexity: advanced
-mcp-servers: [zen]
+mcp-servers: [pal]
 personas: [architect, analyzer, frontend, backend, security, devops, project-manager]
 ---
 
@@ -38,7 +38,7 @@ Key behaviors:
 
 ## MCP Integration
 - **Repository Knowledge Base**: Framework-specific feasibility assessment and pattern analysis
-- **Zen MCP**: Consensus building for conflicting stakeholder priorities
+- **PAL MCP**: Consensus building for conflicting stakeholder priorities
 - **UnifiedStore**: Cross-session persistence, memory management, and project context enhancement
 
 ## Tool Coordination
@@ -59,14 +59,14 @@ Key behaviors:
 ```
 /sc:brainstorm "AI-powered project management tool" --strategy systematic --depth deep
 # Multi-persona analysis: architect (system design), analyzer (feasibility), project-manager (requirements)
-# Zen MCP provides structured exploration framework
+# PAL MCP provides structured exploration framework
 ```
 
 ### Agile Feature Exploration
 ```
 /sc:brainstorm "real-time collaboration features" --strategy agile --parallel
 # Parallel exploration paths with frontend, backend, and security personas
-# Repository pattern references with Zen MCP-driven analysis
+# Repository pattern references with PAL MCP-driven analysis
 ```
 
 ### Enterprise Solution Validation
