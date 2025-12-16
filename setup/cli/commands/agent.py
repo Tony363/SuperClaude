@@ -17,14 +17,6 @@ try:
 except ImportError:
     AGENT_AVAILABLE = False
 
-try:
-    from SuperClaude.APIClients.codex_cli import CodexCLIUnavailable
-except ImportError:  # pragma: no cover - fallback when package is unavailable
-
-    class CodexCLIUnavailable(RuntimeError):
-        """Fallback placeholder when Codex client is unavailable."""
-
-
 # Import UI utilities
 try:
     from setup.utils.ui import (
@@ -310,11 +302,6 @@ def run_agent(
 
         return 0 if result["success"] else 1
 
-    except CodexCLIUnavailable as exc:
-        display_error(f"Agent execution failed: {exc}")
-        _log_codex_cli_failure(exc)
-        logger.debug("Agent execution failed due to Codex CLI error", exc_info=exc)
-        return 1
     except Exception as exc:  # pragma: no cover - defensive logging path
         display_error(f"Agent execution failed: {exc}")
         _log_exception_trace()
@@ -353,40 +340,6 @@ def _probe_critical_paths() -> None:
                 probe_name.unlink(missing_ok=True)
             except OSError:
                 pass
-
-
-def _log_codex_cli_failure(exc: CodexCLIUnavailable) -> None:
-    """Surface structured diagnostics from Codex CLI failures."""
-
-    details = getattr(exc, "details", None)
-    if not details:
-        return
-
-    display_warning("Codex CLI diagnostics:")
-    command = details.get("command")
-    if command:
-        cmd_fmt = " ".join(shlex.quote(str(part)) for part in command)
-        print(f"  command : {cmd_fmt}")
-    if details.get("cwd"):
-        print(f"  workdir : {details['cwd']}")
-    if details.get("returncode") is not None:
-        print(f"  exit    : {details['returncode']}")
-
-    stdout = details.get("stdout") or ""
-    stderr = details.get("stderr") or ""
-    if stdout:
-        print("  stdout  :")
-        print(_indent_block(stdout))
-    if stderr and stderr != stdout:
-        print("  stderr  :")
-        print(_indent_block(stderr))
-
-    combined = f"{stdout}\n{stderr}".lower()
-    if "permission denied" in combined:
-        display_warning(
-            "Codex CLI reported permission issues. Ensure ~/.claude and ~/.cache are writable "
-            "or set SUPERCLAUDE_CODEX_CLI_LOG_DIR to an accessible path."
-        )
 
 
 def _log_exception_trace() -> None:

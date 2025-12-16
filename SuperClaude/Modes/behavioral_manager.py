@@ -2,8 +2,11 @@
 Behavioral Mode Manager for SuperClaude Framework
 
 Manages different behavioral modes that change how the framework
-operates, including brainstorming, introspection, task management,
-token efficiency, and orchestration modes.
+operates, including task management and token efficiency modes.
+
+Note: Brainstorming, Introspection, and Orchestration modes were
+deprecated and removed in the MCP simplification refactor (v6.0).
+Use NORMAL mode for general-purpose operations.
 """
 
 import json
@@ -19,11 +22,8 @@ class BehavioralMode(Enum):
     """Enumeration of available behavioral modes."""
 
     NORMAL = "normal"
-    BRAINSTORMING = "brainstorming"
-    INTROSPECTION = "introspection"
     TASK_MANAGEMENT = "task_management"
     TOKEN_EFFICIENCY = "token_efficiency"
-    ORCHESTRATION = "orchestration"
 
 
 @dataclass
@@ -57,8 +57,8 @@ class BehavioralModeManager:
     """
     Manages behavioral modes for the SuperClaude Framework.
 
-    Each mode changes how the system operates, from verbose brainstorming
-    to ultra-compressed token efficiency mode.
+    Each mode changes how the system operates, from verbose task
+    management to ultra-compressed token efficiency mode.
     """
 
     def __init__(self, config_path: Optional[str] = None):
@@ -94,7 +94,7 @@ class BehavioralModeManager:
     def _initialize_default_configurations(self):
         """Initialize default mode configurations."""
 
-        # Normal mode
+        # Normal mode - standard operational mode
         self.configurations[BehavioralMode.NORMAL] = ModeConfiguration(
             name="normal",
             description="Standard operational mode",
@@ -108,42 +108,7 @@ class BehavioralModeManager:
             output_format="standard",
         )
 
-        # Brainstorming mode
-        self.configurations[BehavioralMode.BRAINSTORMING] = ModeConfiguration(
-            name="brainstorming",
-            description="Collaborative discovery mindset",
-            triggers=["--brainstorm", "explore", "discover", "ideate"],
-            behaviors={
-                "verbosity": "high",
-                "question_asking": "socratic",
-                "exploration": "broad",
-                "output_style": "interactive",
-                "discovery_questions": True,
-                "assumption_challenging": True,
-                "idea_generation": "expansive",
-            },
-            output_format="conversational",
-            active_tools=["TodoWrite", "WebSearch"],
-        )
-
-        # Introspection mode
-        self.configurations[BehavioralMode.INTROSPECTION] = ModeConfiguration(
-            name="introspection",
-            description="Meta-cognitive analysis mindset",
-            triggers=["--introspect", "analyze reasoning", "self-reflect"],
-            behaviors={
-                "verbosity": "high",
-                "thinking_visibility": "transparent",
-                "decision_analysis": True,
-                "pattern_detection": True,
-                "self_correction": True,
-                "reasoning_markers": ["🤔", "🎯", "⚡", "📊", "💡"],
-            },
-            output_format="analytical",
-            metadata={"expose_thinking": True},
-        )
-
-        # Task Management mode
+        # Task Management mode - systematic task organization
         self.configurations[BehavioralMode.TASK_MANAGEMENT] = ModeConfiguration(
             name="task_management",
             description="Systematic task organization",
@@ -161,7 +126,7 @@ class BehavioralModeManager:
             metadata={"auto_todo": True},
         )
 
-        # Token Efficiency mode
+        # Token Efficiency mode - ultra-compressed communication
         self.configurations[BehavioralMode.TOKEN_EFFICIENCY] = ModeConfiguration(
             name="token_efficiency",
             description="Ultra-compressed communication",
@@ -185,24 +150,6 @@ class BehavioralModeManager:
             output_format="compressed",
             token_reduction_target=0.5,
             disabled_tools=["WebSearch"],  # Disable verbose tools
-        )
-
-        # Orchestration mode
-        self.configurations[BehavioralMode.ORCHESTRATION] = ModeConfiguration(
-            name="orchestration",
-            description="Intelligent tool selection and coordination",
-            triggers=["--orchestrate", "coordinate", "multi-tool"],
-            behaviors={
-                "verbosity": "strategic",
-                "tool_selection": "optimized",
-                "parallel_execution": True,
-                "resource_awareness": True,
-                "performance_focus": True,
-                "delegation": "automatic",
-            },
-            output_format="strategic",
-            active_tools=["Task", "MultiEdit", "Bash"],
-            metadata={"parallel_by_default": True},
         )
 
     def get_current_mode(self) -> BehavioralMode:
@@ -259,9 +206,6 @@ class BehavioralModeManager:
                     return mode
 
         # Check for specific patterns
-        if self._detect_brainstorming_pattern(text):
-            return BehavioralMode.BRAINSTORMING
-
         if self._detect_task_management_pattern(text):
             return BehavioralMode.TASK_MANAGEMENT
 
@@ -404,14 +348,8 @@ class BehavioralModeManager:
 
         if config.output_format == "compressed":
             return self._compress_output(output, config)
-        elif config.output_format == "conversational":
-            return self._conversational_output(output)
         elif config.output_format == "structured":
             return self._structured_output(output)
-        elif config.output_format == "analytical":
-            return self._analytical_output(output, config)
-        elif config.output_format == "strategic":
-            return self._strategic_output(output)
 
         return output
 
@@ -494,22 +432,6 @@ class BehavioralModeManager:
             self.logger.error(f"Failed to load configuration: {e}")
             return False
 
-    def _detect_brainstorming_pattern(self, text: str) -> bool:
-        """Detect if text suggests brainstorming mode."""
-        patterns = [
-            "what if",
-            "explore",
-            "brainstorm",
-            "ideas",
-            "possibilities",
-            "alternatives",
-            "creative",
-            "think about",
-            "consider",
-            "imagine",
-        ]
-        return any(pattern in text for pattern in patterns)
-
     def _detect_task_management_pattern(self, text: str) -> bool:
         """Detect if text suggests task management mode."""
         patterns = [
@@ -547,24 +469,8 @@ class BehavioralModeManager:
     ) -> Dict[str, Any]:
         """Apply mode-specific behavioral modifications."""
 
-        # Brainstorming mode modifications
-        if config.name == "brainstorming":
-            context["_questions"] = [
-                "What problem are we trying to solve?",
-                "What constraints do we have?",
-                "What alternatives have been considered?",
-                "What are the success criteria?",
-            ]
-            context["_exploration_depth"] = "broad"
-
-        # Introspection mode modifications
-        elif config.name == "introspection":
-            context["_expose_reasoning"] = True
-            context["_decision_tracking"] = True
-            context["_pattern_analysis"] = True
-
         # Task management modifications
-        elif config.name == "task_management":
+        if config.name == "task_management":
             context["_auto_organize"] = True
             context["_hierarchy_depth"] = 4
             context["_tracking_enabled"] = True
@@ -574,12 +480,6 @@ class BehavioralModeManager:
             context["_max_response_tokens"] = 500
             context["_use_abbreviations"] = True
             context["_skip_explanations"] = True
-
-        # Orchestration modifications
-        elif config.name == "orchestration":
-            context["_parallel_execution"] = True
-            context["_tool_optimization"] = True
-            context["_batch_operations"] = True
 
         return context
 
@@ -607,23 +507,6 @@ class BehavioralModeManager:
 
         return "\n".join(compressed_lines)
 
-    def _conversational_output(self, output: str) -> str:
-        """Format output for conversational brainstorming."""
-        lines = output.split("\n")
-        formatted = []
-
-        for line in lines:
-            if line.strip():
-                # Add conversational markers
-                if line.startswith("-"):
-                    line = "💭 " + line[1:].strip()
-                elif "?" in line:
-                    line = "🤔 " + line
-
-                formatted.append(line)
-
-        return "\n".join(formatted)
-
     def _structured_output(self, output: str) -> str:
         """Format output for structured task management."""
         # Add structure markers
@@ -642,49 +525,6 @@ class BehavioralModeManager:
                     line = f"🎯 {line}"
                 elif line.startswith("-"):
                     line = "  " * indent_level + "✓ " + line[1:].strip()
-
-                formatted.append(line)
-
-        return "\n".join(formatted)
-
-    def _analytical_output(self, output: str, config: ModeConfiguration) -> str:
-        """Format output for analytical introspection."""
-        # Add reasoning markers
-        config.behaviors.get("reasoning_markers", [])
-
-        lines = output.split("\n")
-        formatted = []
-
-        for line in lines:
-            if line.strip():
-                # Add appropriate markers
-                if "decision" in line.lower():
-                    line = "🎯 " + line
-                elif "pattern" in line.lower():
-                    line = "📊 " + line
-                elif "insight" in line.lower():
-                    line = "💡 " + line
-                elif "thinking" in line.lower() or "reasoning" in line.lower():
-                    line = "🤔 " + line
-
-                formatted.append(line)
-
-        return "\n".join(formatted)
-
-    def _strategic_output(self, output: str) -> str:
-        """Format output for strategic orchestration."""
-        lines = output.split("\n")
-        formatted = []
-
-        for line in lines:
-            if line.strip():
-                # Add strategic markers
-                if "parallel" in line.lower():
-                    line = "⚡ " + line
-                elif "optimize" in line.lower():
-                    line = "🎯 " + line
-                elif "coordinate" in line.lower():
-                    line = "🔄 " + line
 
                 formatted.append(line)
 
