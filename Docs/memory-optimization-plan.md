@@ -19,7 +19,7 @@ Each milestone will be checked off as the work lands.
 - **Core component** installs every Markdown file in `SuperClaude/Core/` (e.g., `RULES_*`, `OPERATIONS.md`, `AGENTS*.md`, `BUSINESS_*`). The heaviest contributors are `OPERATIONS.md`, `WORKFLOWS.md`, `AGENTS_EXTENDED.md`, and the business panel guides (>2 k tokens each).
 - **Agents component** copies all top-level persona `.md` files in `SuperClaude/Agents/`, including the extended catalogues and business assistants.
 - **Modes component** imports all `MODE_*.md` files even though most sessions only require `MODE_Normal.md` and `MODE_Task_Management.md`.
-- **MCP docs** default to installing `MCP_Zen.md`, `MCP_Rube.md`, and `MCP_LinkUp.md`. Their footprint is modest, but they still count toward the memory bundle.
+- **MCP docs** default to installing `MCP_Pal.md`, `MCP_Rube.md`, and `MCP_LinkUp.md`. Their footprint is modest, but they still count toward the memory bundle.
 
 ### Profile Definitions (current state)
 
