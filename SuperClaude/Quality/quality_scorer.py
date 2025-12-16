@@ -36,7 +36,7 @@ class QualityDimension(Enum):
     SCALABILITY = "scalability"
     TESTABILITY = "testability"
     USABILITY = "usability"
-    ZEN_REVIEW = "zen_review"
+    PAL_REVIEW = "pal_review"
 
 
 @dataclass
@@ -148,7 +148,7 @@ class QualityScorer:
             QualityDimension.SCALABILITY: 0.10,
             QualityDimension.TESTABILITY: 0.10,
             QualityDimension.USABILITY: 0.05,
-            QualityDimension.ZEN_REVIEW: 0.10,
+            QualityDimension.PAL_REVIEW: 0.10,
         }
 
         self._load_configuration()

@@ -43,8 +43,9 @@ class WorktreeManager:
         # Create repository and worktree directories if they don't exist
         try:
             self.repo_path.mkdir(parents=True, exist_ok=True)
-        except Exception:
-            pass
+        except Exception as e:
+            # Directory creation failed; may already exist or permission issue
+            logger.debug(f"Could not create repo_path directory: {e}")
         self.worktree_dir.mkdir(parents=True, exist_ok=True)
 
         # Load or initialize state

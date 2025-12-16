@@ -38,7 +38,7 @@
 - Enable quality-driven iteration (score < 70 = retry)
 
 **--tools [name]**
-- Enable specific MCP server: zen, rube, browser
+- Enable specific MCP server: pal, rube, browser
 - Use --no-mcp to disable all MCP servers
 
 ## Quality Control

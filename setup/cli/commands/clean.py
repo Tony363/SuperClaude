@@ -212,8 +212,9 @@ class CleanCommand:
                             capture_output=True,
                             check=False,
                         )
-                    except:
+                    except (subprocess.SubprocessError, OSError) as e:
                         # Fallback to direct removal if git command fails
+                        logger.debug(f"Git worktree remove failed, using fallback: {e}")
                         shutil.rmtree(wt, ignore_errors=True)
 
                 self.cleaned_items.append(

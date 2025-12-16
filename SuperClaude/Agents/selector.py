@@ -290,8 +290,9 @@ class AgentSelector:
                     for k in ["performance", "optimize", "slow", "speed up"]
                 ):
                     boosts += 0.5
-        except Exception:
-            pass
+        except Exception as e:
+            # Agent scoring calculation error; continue with default score
+            self.logger.debug(f"Error calculating agent boost for {agent_name}: {e}")
         return boosts
 
     def _score_triggers(self, context: str, triggers: List[str]) -> float:

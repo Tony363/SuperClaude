@@ -1,5 +1,8 @@
 """
-MCP Documentation component for SuperClaude MCP server documentation
+MCP Documentation component for SuperClaude.
+
+Installs documentation files that describe how to use native MCP tools
+(mcp__rube__*, mcp__pal__*) with SuperClaude.
 """
 
 from pathlib import Path
@@ -12,36 +15,33 @@ from ..services.claude_md import CLAUDEMdService
 
 
 class MCPDocsComponent(Component):
-    """MCP documentation component - installs docs for selected MCP servers"""
+    """MCP documentation component - installs docs for native MCP tools."""
 
     def __init__(self, install_dir: Optional[Path] = None):
-        """Initialize MCP docs component"""
-        # Initialize attributes before calling parent constructor
-        # because parent calls _discover_component_files() which needs these
+        """Initialize MCP docs component."""
         self.selected_servers: List[str] = []
 
-        # Map server names to documentation files
+        # Map documentation categories to files
         self.server_docs_map = {
-            "zen": "MCP_Zen.md",
+            "pal": "MCP_Pal.md",
             "rube": "MCP_Rube.md",
             "linkup": "MCP_LinkUp.md",
         }
-        self.default_doc_servers = ["zen", "rube", "linkup"]
+        self.default_doc_servers = ["pal", "rube", "linkup"]
 
         super().__init__(install_dir, Path(""))
 
     def get_metadata(self) -> Dict[str, str]:
-        """Get component metadata"""
+        """Get component metadata."""
         return {
             "name": "mcp_docs",
             "version": __version__,
-            "description": "MCP server documentation and usage guides",
+            "description": "Native MCP tools documentation and usage guides",
             "category": "documentation",
         }
 
     def set_selected_servers(self, selected_servers: List[str]) -> None:
-        """Set which MCP servers were selected for documentation installation"""
-        # Normalise and filter to the known documentation map while preserving order
+        """Set which documentation files to install."""
         seen = set()
         filtered: List[str] = []
         for server in selected_servers:
@@ -49,28 +49,10 @@ class MCPDocsComponent(Component):
             if server_key in self.server_docs_map and server_key not in seen:
                 filtered.append(server_key)
                 seen.add(server_key)
-            else:
-                if server_key not in self.server_docs_map:
-                    self.logger.debug(
-                        f"Skipping unknown MCP documentation target: {server}"
-                    )
         self.selected_servers = filtered
-        if self.selected_servers:
-            self.logger.debug(
-                f"MCP docs will be installed for: {self.selected_servers}"
-            )
-        else:
-            self.logger.debug(
-                "No valid MCP documentation targets resolved after filtering"
-            )
 
     def get_files_to_install(self) -> List[Tuple[Path, Path]]:
-        """
-        Return list of files to install based on selected MCP servers
-
-        Returns:
-            List of tuples (source_path, target_path)
-        """
+        """Return list of documentation files to install."""
         source_dir = self._get_source_dir()
         files = []
 
@@ -82,204 +64,92 @@ class MCPDocsComponent(Component):
                     target = self.install_dir / doc_file
                     if source.exists():
                         files.append((source, target))
-                        self.logger.debug(
-                            f"Will install documentation for {server_name}: {doc_file}"
-                        )
-                    else:
-                        self.logger.warning(
-                            f"Documentation file not found for {server_name}: {doc_file}"
-                        )
 
         return files
 
     def _discover_component_files(self) -> List[str]:
-        """
-        Override parent method to dynamically discover files based on selected servers
-        """
+        """Discover documentation files."""
         files = []
-        # Check if selected_servers is not empty
         if self.selected_servers:
             for server_name in self.selected_servers:
                 if server_name in self.server_docs_map:
                     files.append(self.server_docs_map[server_name])
         return files
 
-    def _install(self, config: Dict[str, Any]) -> bool:
-        """Install MCP documentation component"""
-        self.logger.info("Installing MCP server documentation...")
+    def _get_source_dir(self) -> Optional[Path]:
+        """Get source directory for documentation files."""
+        possible_paths = [
+            Path(__file__).parent.parent.parent / "SuperClaude" / "MCP",
+            Path.cwd() / "SuperClaude" / "MCP",
+        ]
+        for path in possible_paths:
+            if path.exists():
+                return path
+        return None
 
-        # Get selected servers from config
-        selected_servers = config.get("selected_mcp_servers", [])
-        if not selected_servers:
-            # Fall back to default bundle when the install runs in non-interactive mode
-            fallback = [
-                srv for srv in self.default_doc_servers if srv in self.server_docs_map
-            ]
-            self.logger.info(
-                f"No MCP servers selected - defaulting to documentation bundle: {', '.join(fallback)}"
-            )
-            selected_servers = fallback
+    def validate_prerequisites(
+        self, installSubPath: Optional[Path] = None
+    ) -> Tuple[bool, List[str]]:
+        """No prerequisites for documentation."""
+        return True, []
 
-        if "rube" in selected_servers and "linkup" not in selected_servers:
-            selected_servers = list(selected_servers) + ["linkup"]
-
-        self.set_selected_servers(selected_servers)
-        if not self.selected_servers:
-            self.logger.info(
-                "No MCP documentation targets resolved - skipping installation"
-            )
-            return True
-
-        # Update component files based on selection
-        self.component_files = self._discover_component_files()
-
-        # Validate installation
-        success, errors = self.validate_prerequisites()
-        if not success:
-            for error in errors:
-                self.logger.error(error)
-            return False
-
-        # Get files to install
-        files_to_install = self.get_files_to_install()
-
-        if not files_to_install:
-            self.logger.warning("No MCP documentation files found to install")
-            return True  # Not an error - just no docs to install
-
-        # Copy documentation files
-        success_count = 0
-        for source, target in files_to_install:
-            self.logger.debug(f"Copying {source.name} to {target}")
-
-            if self.file_manager.copy_file(source, target):
-                success_count += 1
-                self.logger.debug(f"Successfully copied {source.name}")
-            else:
-                self.logger.error(f"Failed to copy {source.name}")
-
-        if success_count != len(files_to_install):
-            self.logger.error(
-                f"Only {success_count}/{len(files_to_install)} documentation files copied successfully"
-            )
-            return False
-
-        self.logger.success(
-            f"MCP documentation installed successfully ({success_count} files for {len(selected_servers)} servers)"
-        )
-
-        return self._post_install()
-
-    def _post_install(self) -> bool:
-        """Post-installation tasks"""
-        try:
-            # Update metadata
-            metadata_mods = {
-                "components": {
-                    "mcp_docs": {
-                        "version": __version__,
-                        "installed": True,
-                        "files_count": len(self.component_files),
-                        "servers_documented": self.selected_servers,
-                    }
+    def get_metadata_modifications(self) -> Dict[str, Any]:
+        """Get metadata modifications."""
+        return {
+            "components": {
+                "mcp_docs": {
+                    "version": __version__,
+                    "installed": True,
+                    "docs_installed": self.selected_servers or self.default_doc_servers,
                 }
             }
-            self.settings_manager.update_metadata(metadata_mods)
-            self.logger.info("Updated metadata with MCP docs component registration")
+        }
 
-            # Update CLAUDE.md with MCP documentation imports
-            try:
-                manager = CLAUDEMdService(self.install_dir)
-                manager.add_imports(self.component_files, category="MCP Documentation")
-                self.logger.info("Updated CLAUDE.md with MCP documentation imports")
-            except Exception as e:
-                self.logger.warning(
-                    f"Failed to update CLAUDE.md with MCP documentation imports: {e}"
-                )
-                # Don't fail the whole installation for this
+    def install(self, **kwargs) -> bool:
+        """Install documentation files."""
+        if not self.selected_servers:
+            self.selected_servers = self.default_doc_servers
 
+        files = self.get_files_to_install()
+        if not files:
+            self.logger.info("No documentation files to install")
             return True
-        except Exception as e:
-            self.logger.error(f"Failed to update metadata: {e}")
-            return False
+
+        for source, target in files:
+            try:
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_text(source.read_text(encoding="utf-8"), encoding="utf-8")
+                self.logger.info(f"Installed: {target.name}")
+            except Exception as e:
+                self.logger.error(f"Failed to install {source.name}: {e}")
+                return False
+
+        # Update CLAUDE.md imports if service available
+        try:
+            service = CLAUDEMdService(self.install_dir)
+            for _, target in files:
+                service.add_import(f"@{target.name}")
+        except Exception:
+            pass
+
+        return True
 
     def uninstall(self) -> bool:
-        """Uninstall MCP documentation component"""
-        try:
-            self.logger.info("Uninstalling MCP documentation component...")
+        """Remove documentation files."""
+        for doc_file in self.server_docs_map.values():
+            target = self.install_dir / doc_file
+            if target.exists():
+                target.unlink()
+        return True
 
-            # Remove all MCP documentation files
-            removed_count = 0
-            source_dir = self._get_source_dir()
-
-            if source_dir and source_dir.exists():
-                # Remove all possible MCP doc files
-                for doc_file in self.server_docs_map.values():
-                    file_path = self.install_component_subdir / doc_file
-                    if self.file_manager.remove_file(file_path):
-                        removed_count += 1
-                        self.logger.debug(f"Removed {doc_file}")
-
-            # Remove mcp directory if empty
-            try:
-                if self.install_component_subdir.exists():
-                    remaining_files = list(self.install_component_subdir.iterdir())
-                    if not remaining_files:
-                        self.install_component_subdir.rmdir()
-                        self.logger.debug("Removed empty mcp directory")
-            except Exception as e:
-                self.logger.warning(f"Could not remove mcp directory: {e}")
-
-            # Update settings.json
-            try:
-                if self.settings_manager.is_component_installed("mcp_docs"):
-                    self.settings_manager.remove_component_registration("mcp_docs")
-                    self.logger.info("Removed MCP docs component from settings.json")
-            except Exception as e:
-                self.logger.warning(f"Could not update settings.json: {e}")
-
-            self.logger.success(
-                f"MCP documentation uninstalled ({removed_count} files removed)"
-            )
+    def validate_installation(self, installSubPath: Optional[Path] = None) -> bool:
+        """Verify documentation files exist."""
+        if not self.selected_servers:
             return True
-
-        except Exception as e:
-            self.logger.exception(
-                f"Unexpected error during MCP docs uninstallation: {e}"
-            )
-            return False
-
-    def get_dependencies(self) -> List[str]:
-        """Get dependencies"""
-        return ["core"]
-
-    def _get_source_dir(self) -> Optional[Path]:
-        """Get source directory for MCP documentation files"""
-        # Assume we're in SuperClaude/setup/components/mcp_docs.py
-        # and MCP docs are in SuperClaude/SuperClaude/MCP/
-        project_root = Path(__file__).parent.parent.parent
-        mcp_dir = project_root / "SuperClaude" / "MCP"
-
-        # Return None if directory doesn't exist to prevent warning
-        if not mcp_dir.exists():
-            return None
-
-        return mcp_dir
-
-    def get_size_estimate(self) -> int:
-        """Get estimated installation size"""
-        source_dir = self._get_source_dir()
-        total_size = 0
-
-        if source_dir and source_dir.exists() and self.selected_servers:
-            for server_name in self.selected_servers:
-                if server_name in self.server_docs_map:
-                    doc_file = self.server_docs_map[server_name]
-                    file_path = source_dir / doc_file
-                    if file_path.exists():
-                        total_size += file_path.stat().st_size
-
-        # Minimum size estimate
-        total_size = max(total_size, 10240)  # At least 10KB
-
-        return total_size
+        for server_name in self.selected_servers:
+            doc_file = self.server_docs_map.get(server_name)
+            if doc_file:
+                target = self.install_dir / doc_file
+                if not target.exists():
+                    return False
+        return True

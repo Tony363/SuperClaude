@@ -167,12 +167,14 @@ persona_triggers:
 
 ### MCP Server Coordination
 ```yaml
-zen_integration:
-  usage_patterns:
-    - "Consensus-backed Socratic reasoning progressions"
-    - "Complex discovery session orchestration"
-    - "Progressive question generation and adaptation"
-  
+native_mcp_tools:
+  pal_consensus:
+    tool: "mcp__pal__consensus"
+    usage_patterns:
+      - "Consensus-backed Socratic reasoning progressions"
+      - "Complex discovery session orchestration"
+      - "Progressive question generation and adaptation"
+
   benefits:
     - "Maintains logical flow of discovery process"
     - "Enables multi-perspective reasoning about user understanding"

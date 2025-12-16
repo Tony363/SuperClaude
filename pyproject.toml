@@ -185,7 +185,7 @@ ignore = [
     "RUF005", # List concatenation style (preference)
     "B007",   # Unused loop variable (use _ convention)
     "E741",   # Ambiguous variable name
-    "E722",   # Bare except (legacy code pattern)
+    # E722 (bare except) REMOVED - Issue #10: all bare excepts fixed
     "B904",   # Raise from (good practice, not critical)
     "B028",   # stacklevel in warnings (not critical)
     "B027",   # Empty method in abstract class

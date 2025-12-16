@@ -27,11 +27,15 @@ Architecture:
 - Comprehensive test coverage
 """
 
+import logging
 import os
 import re
 import urllib.parse
 from pathlib import Path
 from typing import List, Optional, Set, Tuple
+
+# Module-level logger for security-related debug messages
+_logger = logging.getLogger(__name__)
 
 
 class SecurityValidator:
@@ -866,9 +870,10 @@ class SecurityValidator:
             else:
                 security_logger.info(log_message)
 
-        except Exception:
+        except Exception as e:
             # Don't fail security validation if logging fails
-            pass
+            # Use module logger to capture why the security logger failed
+            _logger.debug(f"Security audit logging failed (non-fatal): {e}")
 
     @classmethod
     def create_secure_temp_dir(cls, prefix: str = "superclaude_") -> Path:
@@ -916,8 +921,10 @@ class SecurityValidator:
                         f.write(secrets.token_bytes(file_size))
                         f.flush()
                         os.fsync(f.fileno())
-                except Exception:
-                    pass  # If overwrite fails, still try to delete
+                except Exception as e:
+                    # If overwrite fails, still try to delete
+                    # Note: file content may be recoverable without secure overwrite
+                    _logger.debug(f"Secure overwrite failed for {path}, proceeding with deletion: {e}")
 
                 path.unlink()
 
@@ -929,5 +936,7 @@ class SecurityValidator:
 
             return True
 
-        except Exception:
+        except Exception as e:
+            # Secure deletion failed; return False so caller can handle appropriately
+            _logger.debug(f"Secure delete failed for {path}: {e}")
             return False

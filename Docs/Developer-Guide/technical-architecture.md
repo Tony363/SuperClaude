@@ -46,9 +46,9 @@ contributors can map features to code quickly.
 - `ModelRouterFacade` resolves provider clients (OpenAI, Anthropic, Google,
   X.AI). When credentials are missing it returns a structured error so callers
   can decide whether to retry or short-circuit.
-- `ZenIntegration` (MCP) now delegates to `ModelRouterFacade.run_consensus`,
-  re-packaging the payload into a simple dataclass. The integration therefore
-  shares the same provider availability rules as the core executor.
+- MCP functionality (consensus, code review, etc.) is now accessed via Claude
+  Code's native tools (`mcp__pal__*`, `mcp__rube__*`) instead of custom wrappers.
+  No Python integration code is needed.
 - Tests that need deterministic behaviour register in-memory executors directly
   on `ConsensusBuilder`.
 

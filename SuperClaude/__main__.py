@@ -493,8 +493,9 @@ def main() -> int:
             logger = get_logger()
             if logger:
                 logger.exception(f"Unhandled error: {e}")
-        except:
-            print(f"{Colors.RED}[ERROR] {e}{Colors.RESET}")
+        except Exception:
+            # Logger itself failed; fall back to stderr
+            print(f"{Colors.RED}[ERROR] {e}{Colors.RESET}", file=sys.stderr)
         return 1
 
 

@@ -12,14 +12,11 @@ current implementation, remaining risks, and optional follow-up experiments.
 - **Nice-to-have:** add a smoke test that runs the bootstrap flow inside the
   benchmark harness’s virtualenv job.
 
-## Rube MCP Live Mode (`SuperClaude/MCP/rube_integration.py`)
-- **Current state:** live HTTP calls include retry with backoff, structured
-  error propagation, and telemetry tags (`rube_mcp`). Dry-run remains available
-  via `SC_RUBE_MODE=dry-run`.
-- **What to monitor next:** record circuit-breaker metrics once we add provider
-  rate limits and expose a health summary in `.superclaude_metrics`.
-- **Nice-to-have:** ship contract fixtures for partner sandboxes so CI can run
-  smoke requests when credentials exist.
+## Rube MCP (Native Tools)
+- **Current state:** MCP functionality is now accessed via Claude Code's native
+  tools (`mcp__rube__*`). No custom HTTP wrapper is needed.
+- **What to monitor next:** usage patterns of native MCP tools in command flows.
+- **Nice-to-have:** add command-level telemetry for MCP tool invocations.
 
 ## Token Accounting (`SuperClaude/Monitoring/performance_monitor.py`)
 - **Current state:** every provider invocation updates cumulative counters and

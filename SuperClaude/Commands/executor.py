@@ -35,7 +35,6 @@ from ..Agents.loader import AgentLoader
 from ..Agents.registry import AgentRegistry
 from ..APIClients.codex_cli import CodexCLIClient, CodexCLIUnavailable
 from ..Core.worktree_manager import WorktreeManager
-from ..MCP import get_mcp_integration
 from ..ModelRouter.consensus import VoteType
 from ..ModelRouter.facade import ModelRouterFacade
 from ..Modes.behavioral_manager import BehavioralMode, BehavioralModeManager
@@ -87,8 +86,6 @@ class CommandContext:
     fast_codex_requested: bool = False
     fast_codex_active: bool = False
     fast_codex_blocked: List[str] = field(default_factory=list)
-    zen_review_enabled: bool = False
-    zen_review_model: str = "gpt-5"
 
 
 @dataclass
@@ -139,7 +136,6 @@ class CommandExecutor:
         self.registry = registry
         self.parser = parser
         self.execution_history: List[CommandResult] = []
-        self.active_mcp_servers: Dict[str, Any] = {}
         self.hooks: Dict[str, List[Callable]] = {
             "pre_execute": [],
             "post_execute": [],
@@ -240,8 +236,8 @@ class CommandExecutor:
             # Run pre-execution hooks
             await self._run_hooks("pre_execute", context)
 
-            # Activate required MCP servers
-            await self._activate_mcp_servers(context)
+            # Note: MCP servers are now accessed via native Claude Code tools
+            # (mcp__rube__*, mcp__pal__*) - no activation needed
 
             # Select and load required agents
             await self._load_agents(context)
@@ -269,8 +265,6 @@ class CommandExecutor:
                 if loop_result:
                     output = loop_result["output"]
                     loop_assessment = loop_result["assessment"]
-                await self._run_zen_reviews(context, output)
-
             consensus_required = metadata.requires_evidence or context.consensus_forced
             consensus_result = await self._ensure_consensus(
                 context,
@@ -630,7 +624,6 @@ class CommandExecutor:
                             )
                         if loop_assessment and not quality_assessment:
                             quality_assessment = loop_assessment
-                        await self._run_zen_reviews(context, output)
 
             context.errors = self._deduplicate(context.errors)
 
@@ -649,16 +642,8 @@ class CommandExecutor:
                 dict(context.results),
             )
 
-            # Dispatch any Rube automation once metrics have been recorded.
-            rube_operations = await self._dispatch_rube_actions(context, output)
-            if rube_operations:
-                executed_operations.extend(rube_operations)
-                if isinstance(output, dict):
-                    integrations = output.setdefault("integrations", {})
-                    existing_ops = self._ensure_list(integrations, "rube")
-                    for op in rube_operations:
-                        if op not in existing_ops:
-                            existing_ops.append(op)
+            # Note: Rube automation is now handled via native MCP tools
+            # (mcp__rube__*) - no internal dispatch needed
 
             # Run post-execution hooks
             await self._run_hooks("post_execute", context)
@@ -696,8 +681,9 @@ class CommandExecutor:
                 for hook in self.hooks["on_error"]:
                     try:
                         await hook(e, command_str)
-                    except:
-                        pass
+                    except Exception as hook_error:
+                        # Hook errors are non-fatal; continue processing other hooks
+                        logger.debug(f"Error hook failed: {hook_error}", exc_info=True)
 
             return CommandResult(
                 success=False,
@@ -706,108 +692,6 @@ class CommandExecutor:
                 errors=[str(e)],
                 execution_time=(datetime.now() - start_time).total_seconds(),
             )
-
-    async def _activate_mcp_servers(self, context: CommandContext) -> None:
-        """
-        Activate required MCP servers for command.
-
-        Args:
-            context: Command execution context
-        """
-        required_servers = context.metadata.mcp_servers or []
-
-        # Load MCP server config (best-effort)
-        mcp_config = {}
-        try:
-            # Resolve config path relative to package
-            base_dir = os.path.dirname(os.path.dirname(__file__))
-            cfg_path = os.path.join(base_dir, "Config", "mcp.yaml")
-            if os.path.exists(cfg_path):
-                if yaml is None:
-                    logger.warning("PyYAML missing; skipping MCP config load")
-                else:
-                    with open(cfg_path, encoding="utf-8") as f:
-                        mcp_config = yaml.safe_load(f) or {}
-        except Exception as e:
-            logger.warning(f"Failed to load MCP config: {e}")
-
-        server_configs = (
-            (mcp_config.get("servers") or {}) if isinstance(mcp_config, dict) else {}
-        )
-
-        def _record_warning(message: str) -> None:
-            warnings_list = context.results.setdefault("warnings", [])
-            if message not in warnings_list:
-                warnings_list.append(message)
-
-        for server_name in required_servers:
-            if server_name in self.active_mcp_servers:
-                context.mcp_servers.append(server_name)
-                continue
-
-            try:
-                cfg = (
-                    server_configs.get(server_name, {})
-                    if isinstance(server_configs, dict)
-                    else {}
-                )
-                if not isinstance(cfg, dict):
-                    cfg = {}
-
-                enabled_flag = cfg.get("enabled", True)
-                if not self._is_truthy(enabled_flag):
-                    logger.info(
-                        f"Skipping MCP server '{server_name}' because it is disabled in configuration."
-                    )
-                    _record_warning(f"MCP server '{server_name}' disabled")
-                    continue
-
-                requires_network = bool(cfg.get("requires_network", False))
-                network_mode = os.getenv("SC_NETWORK_MODE", "offline").strip().lower()
-                network_allowed = network_mode in {"online", "mixed", "rube", "auto"}
-
-                if requires_network and not network_allowed:
-                    logger.info(
-                        "Skipping MCP server '%s' because network mode '%s' disallows outbound access.",
-                        server_name,
-                        network_mode or "offline",
-                    )
-                    _record_warning(
-                        f"MCP server '{server_name}' unavailable (network mode)"
-                    )
-                    continue
-
-                # Instantiate the integration. Prefer passing config if accepted.
-                try:
-                    instance = get_mcp_integration(server_name, config=cfg)
-                except TypeError:
-                    instance = get_mcp_integration(server_name)
-
-                # Attempt basic initialization hooks if present
-                init = getattr(instance, "initialize", None)
-                init_session = getattr(instance, "initialize_session", None)
-                if callable(init):
-                    maybe = init()
-                    if hasattr(maybe, "__await__"):
-                        await maybe
-                if callable(init_session):
-                    maybe = (
-                        init_session()
-                    )  # often async for UnifiedStore-backed sessions
-                    if hasattr(maybe, "__await__"):
-                        await maybe
-
-                self.active_mcp_servers[server_name] = {
-                    "status": "active",
-                    "activated_at": datetime.now(),
-                    "instance": instance,
-                    "config": cfg,
-                }
-                context.mcp_servers.append(server_name)
-                logger.info(f"Activated MCP server: {server_name}")
-            except Exception as e:
-                # Don't fail the command for unknown/non-critical MCP servers; log and continue
-                logger.warning(f"Skipping MCP server '{server_name}': {e}")
 
     async def _load_agents(self, context: CommandContext) -> None:
         """
@@ -1171,121 +1055,15 @@ class CommandExecutor:
         }
 
         if linkup_requested:
-            linkup_result = await self._execute_linkup_queries(
-                context, scenario_hint=test_type
-            )
-            output["linkup"] = linkup_result
-            status = linkup_result.get("status")
-            if status == "linkup_failed":
-                output["status"] = "tests_failed"
-            else:
-                output["status"] = "tests_with_linkup"
+            # LinkUp searches are now done via native MCP tools (mcp__rube__RUBE_SEARCH_TOOLS)
+            # Commands should use those tools directly in prompts/documentation
+            output["linkup"] = {
+                "status": "use_native_mcp",
+                "message": "Use mcp__rube__RUBE_SEARCH_TOOLS for web searches",
+            }
+            output["status"] = "tests_started"
 
         return output
-
-    async def _execute_linkup_queries(
-        self, context: CommandContext, scenario_hint: str
-    ) -> Dict[str, Any]:
-        entry = self.active_mcp_servers.get("rube")
-        if not entry:
-            message = "LinkUp search requires the Rube MCP server to be active."
-            context.errors.append(message)
-            return {"status": "linkup_failed", "error": message}
-
-        rube = entry.get("instance")
-        if rube is None:
-            message = "Rube MCP instance missing from activation registry."
-            context.errors.append(message)
-            return {"status": "linkup_failed", "error": message}
-
-        queries = self._extract_linkup_queries(context)
-        if not queries:
-            message = (
-                "LinkUp web search requires at least one query. "
-                "Provide --linkup-query/--query or positional input."
-            )
-            context.errors.append(message)
-            return {"status": "linkup_failed", "error": message}
-
-        # Use RubeIntegration's built-in linkup_batch_search
-        responses = await rube.linkup_batch_search(queries)
-
-        aggregated: List[Dict[str, Any]] = []
-        failures: List[Dict[str, Any]] = []
-
-        for idx, result in enumerate(responses):
-            query_text = queries[idx]
-            if isinstance(result, dict) and result.get("status") == "failed":
-                error_message = str(result.get("error", "LinkUp request failed"))
-                failures.append({"query": query_text, "error": error_message})
-                aggregated.append(
-                    {"query": query_text, "status": "failed", "error": error_message}
-                )
-                context.errors.append(f"LinkUp query failed: {error_message}")
-                continue
-
-            aggregated.append(
-                {"query": query_text, "status": "completed", "response": result}
-            )
-
-        successes = sum(1 for item in aggregated if item.get("status") == "completed")
-        status = "linkup_completed"
-        if successes == 0:
-            status = "linkup_failed"
-        elif failures:
-            status = "linkup_partial"
-
-        exec_ops = context.results.setdefault("executed_operations", [])
-        label = "linkup:search"
-        if label not in exec_ops:
-            exec_ops.append(label)
-
-        context.results.setdefault("linkup_queries", []).extend(aggregated)
-        if failures:
-            context.results.setdefault("linkup_failures", []).extend(failures)
-
-        return {
-            "status": status,
-            "scenario": scenario_hint.lower(),
-            "queries": aggregated,
-            "failures": failures,
-        }
-
-    def _extract_linkup_queries(self, context: CommandContext) -> List[str]:
-        candidates: List[str] = []
-        params = context.command.parameters or {}
-
-        def _append(value: Any) -> None:
-            if value is None:
-                return
-            if isinstance(value, (list, tuple, set)):
-                for item in value:
-                    _append(item)
-                return
-            text = str(value).strip()
-            if text:
-                candidates.append(text)
-
-        for key in ("linkup_query", "linkup_queries", "query", "queries"):
-            _append(params.get(key))
-
-        # Backward compatibility: treat --url as a query string.
-        _append(params.get("url"))
-
-        for argument in context.command.arguments:
-            if isinstance(argument, str) and argument.startswith(
-                ("http://", "https://")
-            ):
-                candidates.append(argument.strip())
-
-        seen: Set[str] = set()
-        ordered: List[str] = []
-        for item in candidates:
-            if item not in seen:
-                seen.add(item)
-                ordered.append(item)
-
-        return ordered
 
     async def _execute_build(self, context: CommandContext) -> Dict[str, Any]:
         """Execute build command."""
@@ -2469,8 +2247,6 @@ class CommandExecutor:
                 entry = f"loop iteration {iteration_index + 1}: apply {path}"
                 if entry not in applied_list:
                     applied_list.append(entry)
-            self._record_loop_review_target(context, applied_files, iteration_index)
-
         tests = self._run_requested_tests(context.command)
         tests_summary = self._summarize_test_results(tests)
 
@@ -2529,255 +2305,6 @@ class CommandExecutor:
             }
             improved_output.setdefault("quality_loop", []).append(loop_payload)
         return improved_output
-
-    def _record_loop_review_target(
-        self, context: CommandContext, applied_files: List[str], iteration_index: int
-    ) -> None:
-        """Capture diffs for later Zen reviews when loop iterations make changes."""
-        if not context.zen_review_enabled or not applied_files:
-            return
-
-        diff_blob = self._collect_file_diffs(applied_files)
-        if not diff_blob:
-            return
-
-        targets = context.results.setdefault("zen_review_targets", [])
-        targets.append(
-            {
-                "iteration": iteration_index + 1,
-                "files": sorted(set(applied_files)),
-                "diff": diff_blob,
-                "captured_at": datetime.now().isoformat(),
-            }
-        )
-
-    def _collect_file_diffs(self, applied_files: Sequence[str]) -> str:
-        """Generate unified diffs for the provided repository-relative paths."""
-        repo_root = Path(self.repo_root or Path.cwd())
-        seen: Set[str] = set()
-        diff_chunks: List[str] = []
-
-        for rel_path in applied_files:
-            if not rel_path:
-                continue
-            normalized = str(rel_path).strip()
-            if not normalized or normalized in seen:
-                continue
-            seen.add(normalized)
-
-            file_path = (repo_root / normalized).resolve()
-            try:
-                file_path.relative_to(repo_root)
-            except ValueError:
-                continue
-            if not file_path.exists():
-                continue
-
-            if self._is_tracked_file(normalized):
-                command = ["git", "diff", "--no-color", "--unified=3", "--", normalized]
-            else:
-                command = [
-                    "git",
-                    "diff",
-                    "--no-color",
-                    "--unified=3",
-                    "--no-index",
-                    "/dev/null",
-                    str(file_path),
-                ]
-
-            result = self._run_command(command, cwd=repo_root)
-            diff_text = (result.get("stdout") or "").strip()
-            if diff_text:
-                diff_chunks.append(f"### {normalized}\n{diff_text}")
-
-        return "\n\n".join(diff_chunks)
-
-    def _is_tracked_file(self, rel_path: str) -> bool:
-        """Return True if the given path is tracked by git."""
-        repo_root = Path(self.repo_root or Path.cwd())
-        result = self._run_command(
-            ["git", "ls-files", "--error-unmatch", rel_path], cwd=repo_root
-        )
-        return result.get("exit_code") == 0
-
-    def _enable_primary_zen_quality(
-        self, context: CommandContext
-    ) -> Optional[Callable[[], None]]:
-        """Promote GPT-backed evaluation to the primary quality scorer path."""
-        zen_instance = self._get_active_mcp_instance("zen")
-        if not zen_instance:
-            return None
-
-        def _primary_evaluator(
-            _: Any, eval_context: Dict[str, Any], iteration: int
-        ) -> Optional[Dict[str, Any]]:
-            diff_blob = self._collect_full_repo_diff()
-            if not diff_blob.strip():
-                return None
-
-            files = eval_context.get("changed_files") or self._list_changed_files()
-            metadata = {
-                "reason": "quality-loop-primary",
-                "loop_requested": context.results.get("loop_requested", False),
-                "iteration": iteration,
-                "think_level": context.think_level,
-            }
-
-            try:
-                review_payload = self._invoke_zen_review_sync(
-                    zen_instance,
-                    diff_blob,
-                    files=files,
-                    metadata=metadata,
-                    model=context.zen_review_model or "gpt-5",
-                )
-            except Exception as exc:
-                context.results.setdefault("zen_review_errors", []).append(str(exc))
-                return None
-
-            metrics = self._convert_zen_payload_to_metrics(review_payload)
-            if not metrics:
-                return None
-
-            improvements = (
-                review_payload.get("improvements")
-                or review_payload.get("recommendations")
-                or []
-            )
-            meta = {"zen_review": review_payload}
-            return {
-                "metrics": metrics,
-                "improvements": improvements,
-                "metadata": meta,
-            }
-
-        self.quality_scorer.set_primary_evaluator(_primary_evaluator)
-
-        def _cleanup():
-            if self.quality_scorer.primary_evaluator is _primary_evaluator:
-                self.quality_scorer.clear_primary_evaluator()
-
-        return _cleanup
-
-    def _collect_full_repo_diff(self) -> str:
-        repo_root = Path(self.repo_root or Path.cwd())
-        result = self._run_command(["git", "diff", "--no-color"], cwd=repo_root)
-        return (result.get("stdout") or "").strip()
-
-    def _list_changed_files(self) -> List[str]:
-        repo_root = Path(self.repo_root or Path.cwd())
-        result = self._run_command(["git", "status", "--short"], cwd=repo_root)
-        files: List[str] = []
-        stdout = result.get("stdout") or ""
-        for line in stdout.splitlines():
-            line = line.strip()
-            if not line:
-                continue
-            parts = line.split(maxsplit=1)
-            if len(parts) == 2:
-                files.append(parts[1].strip())
-        return files
-
-    def _convert_zen_payload_to_metrics(
-        self, payload: Dict[str, Any]
-    ) -> List[QualityMetric]:
-        metrics: List[QualityMetric] = []
-        dimensions = payload.get("dimensions") or {}
-        summary = payload.get("summary") or "Zen review summary unavailable."
-        overall_score = float(payload.get("score", 0.0))
-
-        if isinstance(dimensions, dict) and dimensions:
-            for name, data in dimensions.items():
-                try:
-                    dimension = QualityDimension(name)
-                except ValueError:
-                    continue
-                if not isinstance(data, dict):
-                    continue
-                score = float(data.get("score", overall_score))
-                issues = data.get("issues") or payload.get("issues") or []
-                suggestions = (
-                    data.get("suggestions") or payload.get("recommendations") or []
-                )
-                weight = self.quality_scorer.default_weights.get(dimension, 0.1)
-                metrics.append(
-                    QualityMetric(
-                        dimension=dimension,
-                        score=max(0.0, min(100.0, score)),
-                        weight=weight,
-                        details=summary,
-                        issues=issues[:6] if isinstance(issues, list) else [],
-                        suggestions=suggestions[:6]
-                        if isinstance(suggestions, list)
-                        else [],
-                    )
-                )
-
-        if not metrics:
-            issues = []
-            for issue in payload.get("issues") or []:
-                if isinstance(issue, dict):
-                    issues.append(issue.get("title") or issue.get("details") or "")
-                else:
-                    issues.append(str(issue))
-            suggestions = payload.get("recommendations") or []
-            weight = self.quality_scorer.default_weights.get(
-                QualityDimension.ZEN_REVIEW, 0.1
-            )
-            metrics.append(
-                QualityMetric(
-                    dimension=QualityDimension.ZEN_REVIEW,
-                    score=max(0.0, min(100.0, overall_score)),
-                    weight=weight,
-                    details=summary,
-                    issues=[text for text in issues if text][:6],
-                    suggestions=suggestions[:6]
-                    if isinstance(suggestions, list)
-                    else [],
-                )
-            )
-
-        return metrics
-
-    def _invoke_zen_review_sync(
-        self,
-        zen_instance: Any,
-        diff_blob: str,
-        *,
-        files: Sequence[str],
-        metadata: Dict[str, Any],
-        model: str,
-    ) -> Dict[str, Any]:
-        async def _call_review():
-            return await zen_instance.review_code(
-                diff_blob, files=list(files), metadata=metadata, model=model
-            )
-
-        return self._run_async_function(_call_review)
-
-    def _run_async_function(self, async_callable: Callable[[], Any]) -> Any:
-        """Execute an async callable from synchronous code using a dedicated event loop."""
-        result: Dict[str, Any] = {}
-        error: Dict[str, Exception] = {}
-
-        def _runner():
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            try:
-                result["value"] = loop.run_until_complete(async_callable())
-            except Exception as exc:
-                error["exc"] = exc
-            finally:
-                loop.close()
-
-        thread = threading.Thread(target=_runner, daemon=True)
-        thread.start()
-        thread.join()
-
-        if error:
-            raise error["exc"]
-        return result.get("value", {})
 
     def _prepare_remediation_agents(
         self, context: CommandContext, agents: Iterable[str]
@@ -3687,10 +3214,6 @@ class CommandExecutor:
         ) -> Any:
             return self._quality_loop_improver(context, current_output, loop_context)
 
-        zen_cleanup = None
-        if context.zen_review_enabled:
-            zen_cleanup = self._enable_primary_zen_quality(context)
-
         try:
             improved_output, final_assessment, iteration_history = (
                 self.quality_scorer.agentic_loop(
@@ -3705,9 +3228,6 @@ class CommandExecutor:
             logger.warning(f"Agentic loop execution failed: {exc}")
             context.results["loop_error"] = str(exc)
             return None
-        finally:
-            if zen_cleanup:
-                zen_cleanup()
 
         context.results["loop_iterations_executed"] = len(iteration_history)
         context.results["loop_assessment"] = self._serialize_assessment(
@@ -3731,93 +3251,6 @@ class CommandExecutor:
         )
 
         return {"output": improved_output, "assessment": final_assessment}
-
-    async def _run_zen_reviews(self, context: CommandContext, output: Any) -> None:
-        """Execute deferred Zen MCP reviews for loop iterations."""
-        if not context.zen_review_enabled:
-            return
-
-        targets = context.results.pop("zen_review_targets", []) or []
-        if not targets:
-            return
-
-        zen_instance = self._get_active_mcp_instance("zen")
-        if not zen_instance:
-            context.results.setdefault("warnings", []).append(
-                "Zen MCP unavailable; loop review skipped."
-            )
-            return
-
-        review_method = getattr(zen_instance, "review_code", None)
-        if not callable(review_method):
-            context.results.setdefault("warnings", []).append(
-                "Zen MCP missing review_code capability; skipping zen-review."
-            )
-            return
-
-        reviews: List[Dict[str, Any]] = []
-        for target in targets:
-            diff_blob = target.get("diff")
-            if not diff_blob:
-                continue
-            try:
-                review_payload = await self._execute_zen_review(
-                    review_method,
-                    context,
-                    diff_blob,
-                    files=target.get("files") or [],
-                    iteration=target.get("iteration"),
-                )
-            except Exception as exc:
-                logger.warning(f"Zen review failed: {exc}")
-                context.results.setdefault("zen_review_errors", []).append(str(exc))
-                continue
-
-            reviews.append(
-                {
-                    "iteration": target.get("iteration"),
-                    "files": target.get("files") or [],
-                    "result": review_payload,
-                }
-            )
-
-        if reviews:
-            context.results.setdefault("zen_reviews", []).extend(reviews)
-            if isinstance(output, dict):
-                output["zen_reviews"] = context.results["zen_reviews"]
-
-    async def _execute_zen_review(
-        self,
-        review_method: Callable[..., Any],
-        context: CommandContext,
-        diff_blob: str,
-        *,
-        files: List[str],
-        iteration: Optional[int],
-    ) -> Dict[str, Any]:
-        """Invoke the zen review coroutine and normalize its response."""
-        metadata = {
-            "command": context.command.raw_string,
-            "iteration": iteration,
-            "loop_requested": context.results.get("loop_requested", False),
-        }
-
-        result = await review_method(
-            diff_blob,
-            files=files,
-            model=context.zen_review_model or "gpt-5",
-            metadata=metadata,
-        )
-
-        if isinstance(result, dict):
-            return result
-        return {"summary": str(result), "model": context.zen_review_model or "gpt-5"}
-
-    def _get_active_mcp_instance(self, name: str) -> Optional[Any]:
-        entry = self.active_mcp_servers.get(name)
-        if not entry:
-            return None
-        return entry.get("instance")
 
     def _evaluate_quality_gate(
         self,
@@ -4286,89 +3719,12 @@ class CommandExecutor:
     async def _dispatch_rube_actions(
         self, context: CommandContext, output: Any
     ) -> List[str]:
-        """Send orchestration data to Rube MCP when available."""
-        if "rube" not in context.mcp_servers:
-            return []
+        """Legacy method - Rube actions are now handled via native MCP tools.
 
-        rube_entry = self.active_mcp_servers.get("rube")
-        if not rube_entry:
-            return []
-
-        instance = rube_entry.get("instance")
-        if instance is None or not hasattr(instance, "invoke"):
-            return []
-
-        request = self._build_rube_request(context, output)
-        if not request:
-            return []
-
-        tool = request["tool"]
-        payload = request["payload"]
-
-        try:
-            response = await instance.invoke(tool, payload)
-            context.results["rube_response"] = response
-            status = (
-                response.get("status", "ok") if isinstance(response, dict) else "ok"
-            )
-
-            if self.monitor:
-                base = "commands.rube"
-                tags = {"command": context.command.name, "status": status}
-                self.monitor and self.monitor.record_metric(
-                    f"{base}.invocations", 1, MetricType.COUNTER, tags
-                )
-                metric = f"{base}.dry_run" if status == "dry-run" else f"{base}.success"
-                self.monitor and self.monitor.record_metric(
-                    metric, 1, MetricType.COUNTER, tags
-                )
-
-            return [f"rube:{tool}:{status}"]
-        except Exception as exc:  # pragma: no cover - network behaviour
-            message = f"Rube automation failed: {exc}"
-            logger.warning(message)
-            context.errors.append(message)
-            if self.monitor:
-                tags = {"command": context.command.name}
-                self.monitor and self.monitor.record_metric(
-                    "commands.rube.failure", 1, MetricType.COUNTER, tags
-                )
-            return [f"rube:{tool}:error"]
-
-    def _build_rube_request(
-        self, context: CommandContext, output: Any
-    ) -> Optional[Dict[str, Any]]:
-        """Construct a payload describing the action for Rube MCP."""
-        command_name = context.command.name
-        tool_map = {
-            "task": "workflow.dispatch",
-            "workflow": "workflow.dispatch",
-            "spawn": "workflow.dispatch",
-            "improve": "automation.log",
-            "implement": "automation.log",
-        }
-
-        tool = tool_map.get(command_name)
-        if not tool:
-            return None
-
-        payload: Dict[str, Any] = {
-            "command": command_name,
-            "session_id": context.session_id,
-            "summary": self._summarize_rube_context(command_name, output, context),
-            "metadata": {
-                "status": context.results.get("status", context.command.name),
-                "requires_evidence": context.metadata.requires_evidence,
-                "errors": list(context.errors),
-            },
-        }
-
-        if context.command.arguments:
-            payload["arguments"] = list(context.command.arguments)
-        if context.command.parameters:
-            payload["parameters"] = dict(context.command.parameters)
-
-        return {"tool": tool, "payload": payload}
+        Use mcp__rube__RUBE_MULTI_EXECUTE_TOOL directly for workflow automation.
+        """
+        # No longer dispatches to internal wrapper - use native MCP tools
+        return []
 
     def _summarize_rube_context(
         self,
@@ -4809,17 +4165,14 @@ class CommandExecutor:
                     "min_improvement"
                 ]
 
-        zen_review = self._resolve_zen_review_request(parsed, loop_info["enabled"])
-        context.zen_review_enabled = zen_review["enabled"]
-        context.zen_review_model = zen_review["model"]
-        context.results["zen_review_enabled"] = context.zen_review_enabled
-        if zen_review["model"]:
-            context.results["zen_review_model"] = zen_review["model"]
-        if context.zen_review_enabled:
-            servers = list(context.metadata.mcp_servers or [])
-            if "zen" not in servers:
-                servers.append("zen")
-            context.metadata.mcp_servers = servers
+        # PAL review via Python executor is no longer supported - use native MCP tools
+        pal_review = self._resolve_pal_review_request(parsed, loop_info["enabled"])
+        if pal_review["enabled"]:
+            context.results.setdefault("warnings", []).append(
+                "PAL review via --pal-review flag is not available in the Python executor. "
+                "Use native MCP tools directly: mcp__pal__codereview, mcp__pal__consensus"
+            )
+        context.results["pal_review_enabled"] = False
 
         context.consensus_forced = self._flag_present(parsed, "consensus")
         context.results["consensus_forced"] = context.consensus_forced
@@ -4880,14 +4233,14 @@ class CommandExecutor:
             "min_improvement": min_improvement,
         }
 
-    def _resolve_zen_review_request(
+    def _resolve_pal_review_request(
         self, parsed: ParsedCommand, loop_requested: bool
     ) -> Dict[str, Any]:
-        """Resolve whether zen-review should run and which model to use."""
-        enabled = loop_requested or self._flag_present(parsed, "zen-review")
+        """Resolve whether pal-review should run and which model to use."""
+        enabled = loop_requested or self._flag_present(parsed, "pal-review")
         model = None
 
-        model_keys = ["zen-model", "zen_model", "zen-review-model", "zen_model_name"]
+        model_keys = ["pal-model", "pal_model", "pal-review-model", "pal_model_name"]
         for key in model_keys:
             if key in parsed.parameters:
                 model = str(parsed.parameters[key]).strip() or None

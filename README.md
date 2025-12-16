@@ -438,7 +438,7 @@ classDiagram
         +behavior_mode: str
         +think_level: int
         +loop_enabled: bool
-        +zen_review_enabled: bool
+        +pal_review_enabled: bool
     }
 
     class CommandResult {
@@ -514,60 +514,48 @@ graph TB
     end
 ```
 
-#### Rube MCP
+#### Rube MCP (Native)
 
-Rube MCP connects 500+ apps for seamless cross-app automation.
+Rube MCP connects 500+ apps for seamless cross-app automation via Claude Code's native tools.
 
-```python
-from SuperClaude.MCP.rube_integration import RubeIntegration
-
-# Initialize Rube
-rube = RubeIntegration({
-    "endpoint": "https://rube.app/mcp",
-    "api_key": os.getenv("SC_RUBE_API_KEY"),
-    "enabled": True
-})
-
-# Web search via LinkUp
-result = await rube.linkup_search(
-    query="latest React 19 features",
-    depth="deep",
-    output_type="sourcedAnswer"
-)
-
-# Batch searches
-results = await rube.linkup_batch_search(
-    queries=["Python 3.13 features", "TypeScript 5.6 changes"],
-    max_concurrent=4
-)
+```
+# Web search via LinkUp - use mcp__rube__RUBE_MULTI_EXECUTE_TOOL
+Use mcp__rube__RUBE_MULTI_EXECUTE_TOOL with:
+  tools: [{
+    "tool_slug": "LINKUP_SEARCH",
+    "arguments": {
+      "query": "latest React 19 features",
+      "depth": "deep",
+      "output_type": "sourcedAnswer"
+    }
+  }]
+  session_id: "<from RUBE_SEARCH_TOOLS>"
+  memory: {}
 ```
 
-#### Zen MCP
+#### PAL MCP (Native) - Formerly "Zen"
 
-Zen MCP provides local consensus orchestration and code review.
+PAL MCP provides consensus orchestration and code review via Claude Code's native tools.
 
-```python
-from SuperClaude.MCP.zen_integration import ZenIntegration, ConsensusType
+```
+# Code review - use mcp__pal__codereview
+Use mcp__pal__codereview with:
+  step: "Review authentication module for security issues"
+  step_number: 1
+  total_steps: 2
+  next_step_required: true
+  findings: "Initial security scan..."
+  relevant_files: ["/path/to/auth.py"]
+  model: "gpt-5.2"
 
-# Initialize Zen
-zen = ZenIntegration()
-await zen.initialize_session()
-
-# Run consensus
-result = await zen.consensus(
-    prompt="Evaluate this architectural decision",
-    models=[ModelConfig("gpt-5"), ModelConfig("claude-opus-4.5")],
-    vote=ConsensusType.weighted,
-    thinking=ThinkingMode.high
-)
-
-# Code review
-review = await zen.review_code(
-    diff=git_diff_content,
-    files=["src/auth.py", "src/api.py"],
-    model="gpt-5",
-    max_issues=10
-)
+# Multi-model consensus - use mcp__pal__consensus
+Use mcp__pal__consensus with:
+  step: "Evaluate: Should we use REST or GraphQL?"
+  step_number: 1
+  total_steps: 3
+  next_step_required: true
+  findings: "Analyzing tradeoffs..."
+  models: [{"model": "gpt-5.2", "stance": "for"}, {"model": "gemini-3-pro", "stance": "against"}]
 ```
 
 ---
@@ -929,7 +917,7 @@ pie title Agent Distribution
 | `--think` | 1-5 | Thinking depth level |
 | `--loop` | iterations | Enable quality iteration |
 | `--consensus` | majority/unanimous | Consensus strategy |
-| `--zen-review` | true/false | Enable GPT-5 code review |
+| `--pal-review` | true/false | Enable GPT-5 code review |
 
 ### Quality Flags
 
@@ -1052,8 +1040,10 @@ SuperClaude/
 │   │   └── AGENTS.md           # Agent guidelines
 │   │
 │   ├── MCP/
-│   │   ├── rube_integration.py # Rube MCP client
-│   │   └── zen_integration.py  # Zen consensus
+│   │   ├── __init__.py        # Native MCP tools reference
+│   │   ├── MCP_Rube.md        # Rube MCP documentation
+│   │   ├── MCP_Zen.md         # PAL MCP documentation
+│   │   └── MCP_LinkUp.md      # LinkUp search documentation
 │   │
 │   ├── ModelRouter/
 │   │   ├── router.py           # Request routing

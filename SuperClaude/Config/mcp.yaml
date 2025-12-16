@@ -1,65 +1,40 @@
-# SuperClaude Framework MCP Server Configuration
-# Version: 6.0.0-alpha
+# SuperClaude Framework MCP Configuration
+# Version: 6.0.0
+#
+# NOTE: MCP servers are now accessed via Claude Code's native tool system.
+# This file is kept for reference only - no custom wrapper configuration needed.
+#
+# Native MCP Tools Available:
+#
+# Rube MCP (mcp__rube__*):
+#   - RUBE_SEARCH_TOOLS: Discover available tools and integrations
+#   - RUBE_MULTI_EXECUTE_TOOL: Execute tools in parallel
+#   - RUBE_CREATE_PLAN: Create execution plans for workflows
+#   - RUBE_MANAGE_CONNECTIONS: Manage app connections
+#   - RUBE_REMOTE_WORKBENCH: Execute Python in remote sandbox
+#   - RUBE_REMOTE_BASH_TOOL: Execute bash in remote sandbox
+#
+# PAL MCP (mcp__pal__*):
+#   - chat: General chat and collaborative thinking
+#   - thinkdeep: Multi-stage investigation and reasoning
+#   - planner: Interactive sequential planning
+#   - consensus: Multi-model consensus building
+#   - codereview: Systematic code review
+#   - precommit: Git change validation
+#   - debug: Systematic debugging
+#
+# Usage:
+#   These tools are invoked directly via Claude Code's native tool calls.
+#   No Python wrapper code or configuration is needed.
+#
+# Example:
+#   "Use mcp__rube__RUBE_SEARCH_TOOLS to find available integrations"
+#   "Use mcp__pal__codereview for code review tasks"
 
+# Legacy server references (for documentation only)
 servers:
-  zen:
-    enabled: true
-    name: Multi-Model Orchestrator
-    triggers:
-      - --zen
-      - --consensus
-      - --thinkdeep
-      - --zen-review
-    capabilities:
-      - multi-model-consensus
-      - deep-thinking
-      - code-review
-      - validation
-    priority: high
+  pal:
+    note: "Use mcp__pal__consensus, mcp__pal__codereview, mcp__pal__thinkdeep"
 
   rube:
-    enabled: true
-    name: Rube Automation Hub
-    triggers:
-      - --rube
-      - --external
-    capabilities:
-      - automation-proxy
-      - cross-app-integration
-      - oauth-broker
-    priority: low
-    requires_network: true
-    endpoint: https://rube.app/mcp
-    timeout_seconds: 60
-    linkup:
-      default_depth: deep
-      default_output_type: sourcedAnswer
-      max_concurrent: 4
-      throttle_seconds: 0.0
-
-# Integration Configuration
-integration:
-  auto_enable:
-    complexity_threshold: 0.7
-    multi_domain: true
-    performance_mode: false
-
-  orchestration:
-    concurrent_servers: 3
-    timeout: 300
-    retry_limit: 2
-
-  coordination:
-    zen_validation: true          # Zen validates critical operations
-
-# Performance Configuration
-performance:
-  batch_operations: true
-  parallel_execution: true
-  cache_results: true
-  stream_responses: true
-
-  limits:
-    max_concurrent: 5
-    memory_limit: 2GB
-    token_budget: 100000
+    note: "Use mcp__rube__RUBE_SEARCH_TOOLS, mcp__rube__RUBE_MULTI_EXECUTE_TOOL"

@@ -2,12 +2,15 @@
 System validation for SuperClaude installation requirements
 """
 
+import logging
 import re
 import shutil
 import subprocess
 import sys
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
+
+logger = logging.getLogger(__name__)
 
 # Handle packaging import - if not available, use a simple version comparison
 try:
@@ -543,7 +546,8 @@ class Validator:
                 "free_gb": stat_result.free / (1024**3),
                 "used_gb": (stat_result.total - stat_result.free) / (1024**3),
             }
-        except Exception:
+        except Exception as e:
+            logger.debug(f"Could not determine disk space: {e}")
             info["disk_space"] = {"error": "Could not determine disk space"}
 
         return info
@@ -571,7 +575,9 @@ class Validator:
             config_manager = ConfigService(DATA_DIR)
             requirements = config_manager.load_requirements()
             return requirements.get("installation_commands", {})
-        except Exception:
+        except Exception as e:
+            # Config loading failed; return empty commands dict
+            logger.debug(f"Could not load installation commands: {e}")
             return {}
 
     def get_installation_help(
@@ -696,7 +702,9 @@ class Validator:
                     if result.returncode == 0:
                         tool_found = True
                         break
-                except Exception:
+                except Exception as e:
+                    # Tool check failed; try next alternative
+                    logger.debug(f"Tool check failed for {tool}: {e}")
                     continue
 
             if not tool_found:

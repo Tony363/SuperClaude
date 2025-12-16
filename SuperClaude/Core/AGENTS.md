@@ -3,62 +3,10 @@
 ## Core Concept
 Task agents are specialized sub-agents for complex operations. Use `--delegate` for automatic selection from ALL 131 agents (core + extended) or specify directly with `Task(agent-name)`.
 
-## ⚠️ Critical Instructions
-
-### Intelligence Maximization Rules
-- Use parallel tool calls whenever possible to gather context quickly.
-- Check dependencies first so you understand available libraries before coding.
-- Follow existing patterns exactly to match established style and conventions.
-- Consider edge cases, including error handling, null checks, and race conditions.
-- Write testable code that can be exercised with unit tests.
-- Never ship quick fixes or overengineering—prefer clean, maintainable solutions.
-
-### Command Safety Rules
-- Never run destructive or bulk-reset commands (`git checkout -- <path>`, `git reset --hard`, `git clean -fdx`, `rm -rf`, etc.) unless the user explicitly requests it for that path.
-- Never use `git checkout`, `git restore`, or similar commands to revert tracked files unless explicitly directed for that file.
-- Always consult `.claude/settings.json` before executing shell commands to honor any `denyList` or `askList` guardrails.
-- Treat uncertainties as denials—ask the user if unsure whether a command is safe.
-- Prefer targeted edits (e.g., `sed -n`, `apply_patch`) instead of repo-wide operations.
-- Log potentially mutating commands in your reasoning so the safety rationale is clear.
-
-### Current Context
-- Current time: October 2025.
-- Claude lacks real-time clock access; rely on explicit dates when relevant.
-
-### Web Search Instructions (Critical)
-- Built-in web search is disabled; use LinkUp via Rube MCP for all searches.
-- Default to `depth: "deep"` and `output_type: "sourcedAnswer"`.
-- Be proactive—look up library versions, API docs, security updates, error messages, and external service status when needed.
-
-```json
-// mcp__rube__RUBE_MULTI_EXECUTE_TOOL
-{
-  "tools": [{
-    "tool_slug": "LINKUP_SEARCH",
-    "arguments": {
-      "query": "your search query here",
-      "depth": "deep",
-      "output_type": "sourcedAnswer"
-    }
-  }],
-  "session_id": "WEB-SESSION-001",
-  "memory": {},
-  "sync_response_to_workbench": false,
-  "thought": "Searching for [topic]",
-  "current_step": "SEARCHING",
-  "current_step_metric": {"completed": 0, "total": 1, "unit": "searches"},
-  "next_step": "COMPLETE"
-}
-```
-
-> Remember: your training data is static. LinkUp provides current information—use it liberally when details may have changed.
-
-## 🚀 NEW: Unified Agent Registry
-All agents now searchable through single registry with intelligent selection:
+## Unified Agent Registry
 - **131 Total Agents**: 15 core + 116 extended specialists
-- **Smart Selection**: `--delegate` now searches ALL agents based on context
-- **Discovery Features**: Use `--suggest-agents` to see relevant specialists
-- **Registry Location**: `agent_registry.yaml` with metadata for all agents
+- **Smart Selection**: `--delegate` searches ALL agents based on context
+- **Registry Location**: `agent_registry.yaml`
 
 ## Quality-Driven Execution
 Every Task output gets a quality score (0-100):
@@ -66,43 +14,99 @@ Every Task output gets a quality score (0-100):
 - **70-89**: Acceptable → Review notes
 - **<70**: Needs improvement → Auto-iterate with specialist suggestion
 
+---
+
 ## Agent Discovery & Selection
 
-### New Discovery Flags
-- `--suggest-agents`: Show top 5 relevant agents for current context
-- `--agent-search [keyword]`: Find agents by capability
-- `--delegate-extended`: Prefer extended agents over core
-- `--why`: Explain why an agent was selected
+### Discovery Flags
+| Flag | Purpose |
+|------|---------|
+| `--delegate` | Auto-select best agent from all 131 |
+| `--suggest-agents` | Show top 5 relevant agents for context |
+| `--agent-search [keyword]` | Search agents by capability |
+| `--delegate-extended` | Prefer specialists over generalists |
+| `--why` | Explain agent selection reasoning |
+| `--stick-to-core` | Use only core agents |
 
 ### Automatic Context Detection
-The framework now detects context and suggests appropriate specialists:
-- **File Extensions**: `.rs` → rust-engineer, `.sol` → blockchain-developer
-- **Imports**: `tensorflow` → ml-engineer, `react` → react-specialist
-- **Keywords**: "kubernetes" → kubernetes-specialist, "payment" → fintech-engineer
-- **Quality Escalation**: Core agent scores <70 → suggests specialist
+| Context | Auto-Selected Agent |
+|---------|-------------------|
+| `.rs` file | rust-engineer |
+| `.tsx` with React imports | react-specialist |
+| `Dockerfile` present | devops-architect |
+| `.sol` smart contract | blockchain-developer |
+| ML notebook `.ipynb` | ml-engineer |
+| `terraform.tf` files | terraform-engineer |
+| API performance issues | performance-engineer |
+| Security vulnerabilities | security-auditor |
 
-## Agent Quick Reference
+---
 
-### Most Used Core Agents (Priority 1)
-- **general-purpose**: Unknown scope, exploration
-- **root-cause-analyst**: Debugging, error investigation
-- **refactoring-expert**: Code improvements, cleanup
-- **quality-engineer**: Test coverage, quality metrics
-- **technical-writer**: Documentation generation
-- **frontend-architect**: UI/UX, React, Vue, Angular
-- **backend-architect**: APIs, servers, databases
-- **security-engineer**: Vulnerability assessment
-- **performance-engineer**: Optimization, bottlenecks
-- **python-expert**: Python ecosystem mastery
+## Core Agents (15)
 
-### Popular Extended Specialists (Priority 2)
-- **typescript-pro**: Advanced TypeScript patterns
-- **rust-engineer**: Systems programming
-- **kubernetes-specialist**: K8s orchestration
-- **ml-engineer**: Machine learning models
-- **blockchain-developer**: Web3 and smart contracts
-- **react-specialist**: Modern React patterns
-- **terraform-engineer**: Infrastructure as Code
+### Most Used (Priority 1)
+| Agent | Use For |
+|-------|---------|
+| **general-purpose** | Unknown scope, exploration |
+| **root-cause-analyst** | Debugging, error investigation |
+| **refactoring-expert** | Code improvements, cleanup |
+| **quality-engineer** | Test coverage, quality metrics |
+| **technical-writer** | Documentation generation |
+| **frontend-architect** | UI/UX, React, Vue, Angular |
+| **backend-architect** | APIs, servers, databases |
+| **security-engineer** | Vulnerability assessment |
+| **performance-engineer** | Optimization, bottlenecks |
+| **python-expert** | Python ecosystem mastery |
+
+### Additional Core Agents
+- **system-architect** - System design, scalability
+- **requirements-analyst** - Feature analysis, PRD breakdown
+- **socratic-mentor** - Teaching through questions
+- **learning-guide** - Tutorials, educational content
+- **devops-architect** - Infrastructure, CI/CD
+
+---
+
+## Extended Agent Library (116)
+
+### Categories Overview
+
+| Category | Count | Focus |
+|----------|-------|-------|
+| **01-core-development** | 14 | APIs, mobile, microservices, UI/UX |
+| **02-language-specialists** | 26 | TypeScript, Rust, Go, React, Vue, Angular |
+| **03-infrastructure** | 12 | K8s, Terraform, Cloud, SRE, DevOps |
+| **04-quality-security** | 12 | Security audit, QA, performance, accessibility |
+| **05-data-ai** | 12 | ML, LLM, data pipelines, databases |
+| **06-developer-experience** | 10 | Build tools, CLI, refactoring, legacy code |
+| **07-specialized-domains** | 11 | Blockchain, gaming, IoT, fintech |
+| **08-business-product** | 10 | Product management, UX research, docs |
+| **09-meta-orchestration** | 8 | Multi-agent coordination, workflows |
+| **10-research-analysis** | 6 | Market research, competitive analysis |
+
+### Top 20 Extended Agents
+1. **typescript-pro** - Advanced TypeScript patterns
+2. **python-pro** - Python ecosystem expert
+3. **react-specialist** - Modern React patterns
+4. **kubernetes-specialist** - K8s orchestration
+5. **rust-engineer** - Systems programming
+6. **golang-pro** - Go concurrency
+7. **ml-engineer** - Machine learning
+8. **cloud-architect** - Multi-cloud design
+9. **security-auditor** - Security assessment
+10. **nextjs-developer** - Full-stack Next.js
+11. **vue-expert** - Vue 3 expertise
+12. **terraform-engineer** - IaC expert
+13. **blockchain-developer** - Web3 development
+14. **qa-expert** - Test automation
+15. **devops-engineer** - CI/CD pipelines
+16. **database-optimizer** - Query optimization
+17. **api-designer** - REST/GraphQL APIs
+18. **mobile-developer** - Cross-platform mobile
+19. **microservices-architect** - Distributed systems
+20. **technical-writer** - Documentation expert
+
+---
 
 ## Usage Examples
 
@@ -120,45 +124,27 @@ The framework now detects context and suggests appropriate specialists:
 
 ### Direct Agent Invocation
 ```bash
-# Core agent (simplified path)
+# Core agent
 Task(refactoring-expert)
 
 # Extended agent (auto-resolved from registry)
-Task(rust-engineer)  # No need for full path!
-Task(kubernetes-specialist)  # Framework finds it
+Task(rust-engineer)           # No need for full path!
+Task(kubernetes-specialist)   # Framework finds it
 
 # Or use full path if preferred
 Task(Extended/02-language-specialists/rust-engineer)
 ```
 
-### Context-Aware Selection
-```bash
-# Working on Rust file
-# Framework auto-suggests: rust-engineer
-
-# Editing Kubernetes manifests
-# Framework auto-suggests: kubernetes-specialist, terraform-engineer
-
-# Machine learning project
-# Framework auto-suggests: ml-engineer, data-engineer, python-pro
+### Quality-Based Escalation
+```
+Initial: Task(general-purpose)
+Quality: 65/100
+Auto-suggest: "Try rust-engineer for Rust expertise"
+Retry: Task(rust-engineer)
+Quality: 92/100 ✅
 ```
 
-## Extended Agent Categories
-
-The 116 extended agents are organized into specialized domains:
-
-- **01-core-development**: APIs, mobile, microservices, UI/UX
-- **02-language-specialists**: TypeScript, Rust, Go, React, Vue, Angular
-- **03-infrastructure**: K8s, Terraform, Cloud, SRE, DevOps
-- **04-quality-security**: Security audit, QA, performance, accessibility
-- **05-data-ai**: ML, LLM, data pipelines, databases
-- **06-developer-experience**: Build tools, CLI, refactoring, legacy code
-- **07-specialized-domains**: Blockchain, gaming, IoT, fintech
-- **08-business-product**: Product management, UX research, documentation
-- **09-meta-orchestration**: Multi-agent coordination, workflows
-- **10-research-analysis**: Market research, competitive analysis
-
-See **AGENTS_EXTENDED.md** for complete category details and **agent_registry.yaml** for full metadata.
+---
 
 ## Context Package
 Every delegation includes:
@@ -173,23 +159,10 @@ context:
 ## Iteration Pattern
 ```
 1. Delegate → Task(agent, context)
-2. Evaluate → score = quality(output)  
+2. Evaluate → score = quality(output)
 3. Iterate → if score < 70: retry with feedback
 4. Accept → when score ≥ 70
 ```
-
-## Best Practices
-
-### DO
-- ✅ Always evaluate quality scores
-- ✅ Preserve context across iterations
-- ✅ Use specialist agents over general-purpose
-- ✅ Let quality drive iterations
-
-### DON'T
-- ❌ Accept low-quality outputs
-- ❌ Lose context between delegations
-- ❌ Exceed iteration limits without permission
 
 ## Integration with Flags
 
@@ -200,19 +173,15 @@ context:
 | `--think [1-3]` | Analysis depth |
 | `--safe-mode` | Conservative execution |
 
-## Example Workflow
+## Best Practices
 
-```bash
-# Complex debugging
---think 2 --delegate
-→ Uses root-cause-analyst
-→ Quality: 65/100
-→ Auto-iterates with feedback
-→ Quality: 88/100 ✅
+### DO
+- Use `--delegate` for automatic selection
+- Evaluate quality scores on every output
+- Preserve context across iterations
+- Use specialist agents over general-purpose when domain-specific
 
-# Refactoring with safety
---delegate --safe-mode --loop 5
-→ Uses refactoring-expert
-→ Maximum validation
-→ Up to 5 iterations
-```
+### DON'T
+- Accept outputs with score < 70
+- Lose context between delegations
+- Exceed iteration limits without permission

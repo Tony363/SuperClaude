@@ -1,64 +1,83 @@
-"""SuperClaude Framework MCP Server Integrations."""
+"""SuperClaude Framework MCP Server Reference.
+
+This module documents the native MCP tools available through Claude Code.
+SuperClaude no longer uses custom HTTP wrappers - all MCP functionality
+is accessed through Claude Code's native tool invocation.
+
+Native MCP Tools Available:
+---------------------------
+
+Rube MCP (mcp__rube__*):
+    - RUBE_SEARCH_TOOLS: Discover available tools and integrations
+    - RUBE_MULTI_EXECUTE_TOOL: Execute tools in parallel
+    - RUBE_CREATE_PLAN: Create execution plans for workflows
+    - RUBE_MANAGE_CONNECTIONS: Manage app connections
+    - RUBE_REMOTE_WORKBENCH: Execute Python in remote sandbox
+    - RUBE_REMOTE_BASH_TOOL: Execute bash in remote sandbox
+    - RUBE_FIND_RECIPE: Find recipes by natural language
+    - RUBE_EXECUTE_RECIPE: Execute saved recipes
+    - RUBE_MANAGE_RECIPE_SCHEDULE: Manage scheduled recipe runs
+
+PAL MCP (mcp__pal__*):
+    - chat: General chat and collaborative thinking
+    - thinkdeep: Multi-stage investigation and reasoning
+    - planner: Interactive sequential planning
+    - consensus: Multi-model consensus building
+    - codereview: Systematic code review
+    - precommit: Git change validation
+    - debug: Systematic debugging and root cause analysis
+    - challenge: Critical thinking and analysis
+    - apilookup: Current API/SDK documentation lookup
+    - listmodels: List available AI models
+    - clink: Link to external AI CLIs (Gemini, Codex, etc.)
+
+Usage:
+------
+These tools are invoked directly by Claude Code's tool system.
+No Python wrapper code is needed - just call the tools directly
+in your prompts or command implementations.
+
+Example in documentation/prompts:
+    "Use mcp__rube__RUBE_SEARCH_TOOLS to find available integrations"
+    "Use mcp__pal__codereview for code review tasks"
+"""
 
 from __future__ import annotations
 
-from typing import Any, Dict, Mapping, Type
+__version__ = "6.0.0"
 
-from .rube_integration import RubeIntegration, RubeInvocationError
-
-__version__ = "6.0.0-alpha"
-
-__all__ = [
-    "RubeIntegration",
-    "RubeInvocationError",
-    "get_mcp_integration",
-    "integration_import_errors",
+# Native MCP tool namespaces (for documentation/reference only)
+RUBE_TOOLS = [
+    "RUBE_SEARCH_TOOLS",
+    "RUBE_MULTI_EXECUTE_TOOL",
+    "RUBE_CREATE_PLAN",
+    "RUBE_MANAGE_CONNECTIONS",
+    "RUBE_REMOTE_WORKBENCH",
+    "RUBE_REMOTE_BASH_TOOL",
+    "RUBE_FIND_RECIPE",
+    "RUBE_EXECUTE_RECIPE",
+    "RUBE_GET_RECIPE_DETAILS",
+    "RUBE_GET_TOOL_SCHEMAS",
+    "RUBE_MANAGE_RECIPE_SCHEDULE",
+    "RUBE_CREATE_UPDATE_RECIPE",
 ]
 
-_IMPORT_ERRORS: dict[str, ModuleNotFoundError] = {}
+PAL_TOOLS = [
+    "chat",
+    "thinkdeep",
+    "planner",
+    "consensus",
+    "codereview",
+    "precommit",
+    "debug",
+    "challenge",
+    "apilookup",
+    "listmodels",
+    "version",
+    "clink",
+]
 
-try:  # Optional dependency: PyYAML via ModelRouter
-    from .zen_integration import (  # type: ignore[unused-import]
-        ConsensusResult,
-        ConsensusType,
-        ModelConfig,
-        ThinkingMode,
-        ZenIntegration,
-    )
-except ModuleNotFoundError as exc:  # pragma: no cover - depends on local extras
-    if exc.name == "yaml":
-        _IMPORT_ERRORS["zen"] = exc
-    else:
-        raise
-else:
-    __all__.extend(
-        [
-            "ConsensusResult",
-            "ConsensusType",
-            "ModelConfig",
-            "ThinkingMode",
-            "ZenIntegration",
-        ]
-    )
-
-MCP_SERVERS: dict[str, type[Any]] = {
-    "rube": RubeIntegration,
-}
-
-if "zen" not in _IMPORT_ERRORS:
-    MCP_SERVERS["zen"] = ZenIntegration
-
-
-def integration_import_errors() -> Mapping[str, ModuleNotFoundError]:
-    """Return a mapping of server name → import error (if any)."""
-
-    return dict(_IMPORT_ERRORS)
-
-
-def get_mcp_integration(server_name: str, **kwargs):
-    """Factory to create an MCP integration instance by server name."""
-    cls = MCP_SERVERS.get(server_name)
-    if not cls:
-        available = ", ".join(sorted(MCP_SERVERS.keys()))
-        raise ValueError(f"Unknown MCP server: {server_name}. Available: {available}")
-    return cls(**kwargs)
+__all__ = [
+    "RUBE_TOOLS",
+    "PAL_TOOLS",
+]
