@@ -112,8 +112,7 @@ def assess_stub_requirement(
     if status == "plan-only":
         return (
             "followup",
-            default_reason
-            or "Plan-only response provided without concrete changes.",
+            default_reason or "Plan-only response provided without concrete changes.",
         )
 
     return (
@@ -203,9 +202,7 @@ def build_generic_stub_change(
     slug_val = slugify(command_name)
     session_fragment = (session_id or "session")[:8]
     file_name = f"{slug_val}-{session_fragment}.md"
-    rel_path = (
-        Path("SuperClaude") / "Implementation" / "Auto" / "generic" / file_name
-    )
+    rel_path = Path("SuperClaude") / "Implementation" / "Auto" / "generic" / file_name
 
     lines = [
         f"# Generic Change Plan — /sc:{command_name}",
@@ -319,9 +316,7 @@ def build_auto_stub_entry(
         return None
 
     file_name = f"{slug}-{session_fragment}{label_suffix}.{extension}"
-    rel_path = (
-        Path("SuperClaude") / "Implementation" / "Auto" / category / file_name
-    )
+    rel_path = Path("SuperClaude") / "Implementation" / "Auto" / category / file_name
 
     content = render_auto_stub_content(
         command_name,
@@ -356,11 +351,7 @@ def render_auto_stub_content(
     """Render auto-generated stub content."""
     title = " ".join(command_arguments) or command_name
     timestamp = datetime.now().isoformat()
-    operations = (
-        agent_result.get("operations")
-        or results.get("agent_operations")
-        or []
-    )
+    operations = agent_result.get("operations") or results.get("agent_operations") or []
     notes = agent_result.get("notes") or results.get("agent_notes") or []
 
     if not operations:
@@ -440,13 +431,9 @@ def render_auto_stub_content(
     if extension in {"ts", "tsx", "js"}:
         plan_literal = json.dumps(deduped_operations, indent=2)
         notes_literal_ts = json.dumps(deduped_notes, indent=2)
-        import_block = (
-            """import fs from 'node:fs';\nimport path from 'node:path';"""
-        )
+        import_block = """import fs from 'node:fs';\nimport path from 'node:path';"""
         if extension == "js":
-            export_signature = (
-                f"export async function {function_name}()"
-            )
+            export_signature = f"export async function {function_name}()"
         else:
             export_signature = f"export async function {function_name}(): Promise<Record<string, unknown>>"
 

@@ -10,7 +10,7 @@ import pytest
 from SuperClaude.Agents.extended_loader import ExtendedAgentLoader
 from SuperClaude.Agents.registry import AgentRegistry
 from SuperClaude.Agents.selector import AgentSelector
-from SuperClaude.Commands.executor import CommandExecutor
+from SuperClaude.Commands import CommandExecutor
 from SuperClaude.Commands.parser import CommandParser
 from SuperClaude.Commands.registry import CommandRegistry
 

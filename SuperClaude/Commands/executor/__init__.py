@@ -31,16 +31,6 @@ from .agent_orchestration import (
     select_strategist_candidate,
 )
 from .ast_analysis import PythonSemanticAnalyzer, _PythonSemanticAnalyzer
-from .consensus import (
-    VoteType as ConsensusVoteType,
-    build_consensus_prompt,
-    consensus_failed_message,
-    extract_consensus_metadata,
-    format_consensus_result,
-    load_consensus_policies,
-    normalize_vote_type,
-    resolve_consensus_policy,
-)
 from .change_management import (
     apply_changes_fallback,
     assess_stub_requirement,
@@ -55,15 +45,17 @@ from .change_management import (
     render_auto_stub_content,
     render_default_evidence_document,
 )
-from .quality import (
-    aggregate_dimension_scores,
-    build_quality_context,
-    calculate_pass_rate,
-    derive_quality_status,
-    extract_quality_improvements,
-    format_quality_summary,
-    serialize_assessment,
-    validate_quality_threshold,
+from .consensus import (
+    VoteType as ConsensusVoteType,
+)
+from .consensus import (
+    build_consensus_prompt,
+    consensus_failed_message,
+    extract_consensus_metadata,
+    format_consensus_result,
+    load_consensus_policies,
+    normalize_vote_type,
+    resolve_consensus_policy,
 )
 from .git_operations import (
     clean_build_artifacts,
@@ -83,6 +75,16 @@ from .git_operations import (
     run_command,
     select_feature_owner,
     snapshot_repo_changes,
+)
+from .quality import (
+    aggregate_dimension_scores,
+    build_quality_context,
+    calculate_pass_rate,
+    derive_quality_status,
+    extract_quality_improvements,
+    format_quality_summary,
+    serialize_assessment,
+    validate_quality_threshold,
 )
 from .telemetry import (
     MetricType,

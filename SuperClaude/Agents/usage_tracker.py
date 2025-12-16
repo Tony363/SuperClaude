@@ -187,7 +187,13 @@ def write_markdown_report(
         lines.append(f"| {agent} | {count} |")
 
     if snapshot:
-        lines.extend(["\n## Detailed Usage\n", "| Agent | Loads | Executions | Plan-Only | Last Used |", "|-------|-------|------------|-----------|-----------|"])
+        lines.extend(
+            [
+                "\n## Detailed Usage\n",
+                "| Agent | Loads | Executions | Plan-Only | Last Used |",
+                "|-------|-------|------------|-----------|-----------|",
+            ]
+        )
         for agent, stats in sorted(snapshot.items()):
             last_used = stats["last_used"] or "never"
             if last_used != "never":

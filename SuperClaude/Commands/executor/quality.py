@@ -91,9 +91,7 @@ def extract_quality_improvements(
     return []
 
 
-def calculate_pass_rate(
-    passed: int, failed: int, errored: int = 0
-) -> float:
+def calculate_pass_rate(passed: int, failed: int, errored: int = 0) -> float:
     """Calculate the pass rate from test counts.
 
     Args:

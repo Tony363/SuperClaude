@@ -469,24 +469,18 @@ def extract_feature_list(source_text: str) -> List[str]:
 def select_feature_owner(description: str) -> str:
     """Choose an agent owner for a workflow item based on keywords."""
     text = description.lower()
-    if any(
-        keyword in text for keyword in ("frontend", "ui", "ux", "react", "view")
-    ):
+    if any(keyword in text for keyword in ("frontend", "ui", "ux", "react", "view")):
         return "frontend-architect"
-    if any(
-        keyword in text for keyword in ("backend", "api", "service", "database")
-    ):
+    if any(keyword in text for keyword in ("backend", "api", "service", "database")):
         return "backend-architect"
     if any(
-        keyword in text
-        for keyword in ("security", "auth", "permission", "compliance")
+        keyword in text for keyword in ("security", "auth", "permission", "compliance")
     ):
         return "security-engineer"
     if any(keyword in text for keyword in ("testing", "qa", "quality")):
         return "quality-engineer"
     if any(
-        keyword in text
-        for keyword in ("deployment", "infrastructure", "devops", "ci")
+        keyword in text for keyword in ("deployment", "infrastructure", "devops", "ci")
     ):
         return "devops-architect"
     return "general-purpose"
