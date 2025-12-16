@@ -184,7 +184,7 @@ class AgentRegistry:
             "socratic-mentor": "socratic_mentor",
             "learning-guide": "learning_guide",
             "fullstack-developer": "fullstack_developer",
-            "codex-implementer": "codex_implementer",
+            # NOTE: codex-implementer removed - module deleted in MCP simplification refactor
         }
 
         loaded = 0

@@ -29,6 +29,27 @@ and the artefacts they generate.
   guardrails.
 - `--delegate <agent>`: Pin execution to a specific agent.
 - `--loop`: Allow iterative agent hand-offs until success criteria are met.
+- `--pal-review`: Request PAL code review after changes are applied.
+
+## PAL Review Integration
+
+When the `--pal-review` flag is used, the executor signals that a code review
+should be performed. The review is handled by Claude invoking the native MCP
+tool `mcp__pal__codereview` after the Python executor completes.
+
+**Workflow:**
+1. Command executes with `--pal-review` flag
+2. Executor applies changes and sets `pal_review_signal` in results
+3. Claude reads the signal and invokes `mcp__pal__codereview`
+4. Review feedback is incorporated before task completion
+
+**Example:**
+```
+/sc:implement refactor auth module --pal-review
+```
+
+This pattern enables the full Plan→Act→Review→Refine loop while respecting
+the architecture where MCP tools are invoked at the conversation level.
 
 See the individual command modules under `SuperClaude/Commands/` for extended
 options and YAML front matter describing required context.

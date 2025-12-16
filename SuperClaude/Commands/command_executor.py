@@ -32,7 +32,21 @@ from ..Agents import usage_tracker as agent_usage_tracker
 from ..Agents.extended_loader import AgentCategory, ExtendedAgentLoader
 from ..Agents.loader import AgentLoader
 from ..Agents.registry import AgentRegistry
-from ..APIClients.codex_cli import CodexCLIClient, CodexCLIUnavailable
+# Codex CLI integration removed - provide stubs for backwards compatibility
+class CodexCLIUnavailable(RuntimeError):
+    """Raised when Codex CLI is not available."""
+
+
+class CodexCLIClient:
+    """Stub for removed Codex CLI integration."""
+
+    @staticmethod
+    def is_available() -> bool:
+        return False
+
+    @staticmethod
+    def resolve_binary() -> str:
+        return ""
 from ..Core.worktree_manager import WorktreeManager
 from ..ModelRouter.consensus import VoteType
 from ..ModelRouter.facade import ModelRouterFacade
@@ -44,6 +58,41 @@ from ..Quality.quality_scorer import (
 from .artifact_manager import CommandArtifactManager
 from .parser import CommandParser, ParsedCommand
 from .registry import CommandMetadata, CommandRegistry
+
+# Import decomposed executor modules
+from .executor import (
+    PythonSemanticAnalyzer as _PythonSemanticAnalyzer,
+    clamp_int,
+    coerce_float,
+    collect_diff_stats,
+    deduplicate,
+    detect_repo_root,
+    diff_snapshots,
+    ensure_list,
+    extract_changed_paths,
+    extract_feature_list,
+    extract_heading_titles,
+    extract_output_evidence,
+    format_change_entry,
+    generate_commit_message,
+    git_has_modifications,
+    is_artifact_change,
+    is_truthy,
+    normalize_evidence_value,
+    normalize_repo_root,
+    parse_pytest_output,
+    partition_change_entries,
+    relative_to_repo_path,
+    run_command,
+    run_requested_tests,
+    select_feature_owner,
+    should_run_tests,
+    slugify,
+    snapshot_repo_changes,
+    summarize_test_results,
+    to_list,
+    truncate_output,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -768,7 +817,7 @@ class CommandExecutor:
             "python": "python-expert",
             "refactoring": "refactoring-expert",
             "documentation": "technical-writer",
-            "codex-implementer": "codex-implementer",
+            # NOTE: codex-implementer removed - module deleted in MCP simplification refactor
         }
         return persona_to_agent.get(persona)
 
@@ -4162,14 +4211,24 @@ class CommandExecutor:
                     "min_improvement"
                 ]
 
-        # PAL review via Python executor is no longer supported - use native MCP tools
+        # PAL review - signal to Claude to invoke MCP tools after execution
         pal_review = self._resolve_pal_review_request(parsed, loop_info["enabled"])
         if pal_review["enabled"]:
-            context.results.setdefault("warnings", []).append(
-                "PAL review via --pal-review flag is not available in the Python executor. "
-                "Use native MCP tools directly: mcp__pal__codereview, mcp__pal__consensus"
-            )
-        context.results["pal_review_enabled"] = False
+            # Signal pattern: Tell Claude to invoke MCP review tools
+            context.results["pal_review_requested"] = True
+            context.results["pal_review_model"] = pal_review["model"]
+            context.results["pal_review_signal"] = {
+                "action_required": True,
+                "tool": "mcp__pal__codereview",
+                "instruction": (
+                    "PAL review was requested via --pal-review flag. "
+                    "Please invoke mcp__pal__codereview on the changed files "
+                    "before marking this task complete."
+                ),
+                "model": pal_review["model"],
+            }
+        else:
+            context.results["pal_review_requested"] = False
 
         context.consensus_forced = self._flag_present(parsed, "consensus")
         context.results["consensus_forced"] = context.consensus_forced
@@ -4443,17 +4502,20 @@ class CommandExecutor:
         )
 
         if not CodexCLIClient.is_available():
-            binary = CodexCLIClient.resolve_binary()
+            # Codex CLI integration removed - graceful fallback to standard mode
+            self.logger.warning(
+                "--fast-codex requested but Codex CLI not available, "
+                "falling back to standard mode"
+            )
+            context.fast_codex_blocked.append("cli-unavailable")
+            context.fast_codex_active = False
             self._record_fast_codex_event(
                 context,
                 "cli-missing",
-                f"Codex CLI '{binary}' is not available on PATH.",
-                {"binary": binary},
+                "Codex CLI not available; falling back to standard mode.",
+                {"fallback": "standard"},
             )
-            raise CodexCLIUnavailable(
-                "Codex CLI is required for --fast-codex. Install the 'codex' CLI or "
-                "set SUPERCLAUDE_CODEX_CLI to its path."
-            )
+            return
 
         context.fast_codex_active = True
         context.active_personas = ["codex-implementer"]
