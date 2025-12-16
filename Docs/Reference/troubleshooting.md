@@ -14,7 +14,7 @@ Follow these steps when commands do not behave as expected.
 ## MCP Problems
 
 - Run `python -m SuperClaude.MCP --list` to view enabled servers or
-  `python -m SuperClaude.MCP --describe zen` for details on a specific adapter.
+  `python -m SuperClaude.MCP --describe pal` for details on a specific adapter.
 - Set `SC_NETWORK_MODE=debug` to capture detailed HTTP traces.
 - For Rube automation, confirm `SC_RUBE_API_KEY` is present or switch to dry-run
   mode.

@@ -58,7 +58,7 @@
 - **Performance**: performance-engineer
 
 ### MCP Servers (use with --mcp)
-- **Consensus & Analysis**: zen
+- **Consensus & Analysis**: pal
 - **Automation (opt-in)**: rube
 - **LinkUp Web Search**: linkup
 - **Persistence**: UnifiedStore (built-in, no --mcp flag)

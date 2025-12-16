@@ -185,7 +185,7 @@ business_panel_config:
   expert_voice_preservation: 0.85
   
   # Integration
-  mcp_zen_validation: true
+  mcp_pal_validation: true
   persona_coordination: true
 ```
 

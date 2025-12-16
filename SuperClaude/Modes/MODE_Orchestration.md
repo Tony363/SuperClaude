@@ -29,7 +29,7 @@
 | Task Type | Best Tool | Alternative |
 |-----------|-----------|-------------|
 | UI components | Repository docs | Manual coding |
-| Deep analysis | Zen MCP | Native reasoning |
+| Deep analysis | PAL MCP | Native reasoning |
 | Symbol operations | UnifiedStore | Manual search |
 | Pattern edits | MultiEdit | Individual edits |
 | Documentation | Repository docs | Web search |

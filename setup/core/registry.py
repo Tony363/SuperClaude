@@ -185,7 +185,9 @@ class ComponentRegistry:
         if instance:
             try:
                 return instance.get_metadata()
-            except Exception:
+            except Exception as e:
+                # Metadata retrieval failed; return None to indicate unavailable
+                self.logger.debug(f"Could not get metadata for {component_name}: {e}")
                 return None
         return None
 
@@ -310,7 +312,11 @@ class ComponentRegistry:
                 metadata = instance.get_metadata()
                 if metadata.get("category") == category:
                     components.append(name)
-            except Exception:
+            except Exception as e:
+                # Skip components that fail metadata retrieval
+                self.logger.debug(
+                    f"Skipping component {name} due to metadata error: {e}"
+                )
                 continue
 
         return components
@@ -399,7 +405,9 @@ class ComponentRegistry:
                 if category not in categories:
                     categories[category] = []
                 categories[category].append(name)
-            except Exception:
+            except Exception as e:
+                # Categorization failed; place in unknown category
+                self.logger.debug(f"Could not categorize component {name}: {e}")
                 if "unknown" not in categories:
                     categories["unknown"] = []
                 categories["unknown"].append(name)

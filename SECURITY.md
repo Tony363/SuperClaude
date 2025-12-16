@@ -278,7 +278,7 @@ For organizations requiring extended security support:
 
 **Individual Server Security:**
 
-**Zen**: Consensus orchestration with deterministic validation paths
+**PAL**: Consensus orchestration with deterministic validation paths
 **Rube**: Automation hub with scoped OAuth delegation and dry-run defaults
 **Browser**: Local Chromium bridge with sandboxed automation and credential gating
 **UnifiedStore**: Session persistence with secure local storage and access controls

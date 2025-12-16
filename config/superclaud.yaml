@@ -111,7 +111,7 @@ mcp_servers:
   retry_attempts: 3
 
   servers:
-    zen:
+    pal:
       enabled: true
       models:
         - gpt-5

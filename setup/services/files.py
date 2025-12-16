@@ -4,10 +4,13 @@ Cross-platform file management for SuperClaude installation system
 
 import fnmatch
 import hashlib
+import logging
 import shutil
 import stat
 from pathlib import Path
 from typing import Any, Dict, List, Optional
+
+logger = logging.getLogger(__name__)
 
 
 class FileService:
@@ -292,7 +295,9 @@ class FileService:
 
             return hasher.hexdigest()
 
-        except Exception:
+        except Exception as e:
+            # Hash calculation failed; return None to indicate failure
+            logger.debug(f"Failed to calculate hash for {file_path}: {e}")
             return None
 
     def verify_file_integrity(
@@ -330,8 +335,9 @@ class FileService:
             for file_path in directory.rglob("*"):
                 if file_path.is_file():
                     total_size += file_path.stat().st_size
-        except Exception:
-            pass  # Skip files we can't access
+        except Exception as e:
+            # Skip files we can't access (permission errors, etc.)
+            logger.debug(f"Error calculating directory size for {directory}: {e}")
 
         return total_size
 
@@ -357,7 +363,11 @@ class FileService:
                 return list(directory.rglob(pattern))
             else:
                 return list(directory.glob(pattern))
-        except Exception:
+        except Exception as e:
+            # File search failed; return empty list
+            logger.debug(
+                f"Error finding files in {directory} with pattern {pattern}: {e}"
+            )
             return []
 
     def backup_file(
@@ -398,7 +408,9 @@ class FileService:
 
             stat_result = shutil.disk_usage(path)
             return stat_result.free
-        except Exception:
+        except Exception as e:
+            # Disk usage check failed; return 0 as safe default
+            logger.debug(f"Could not determine free space at {path}: {e}")
             return 0
 
     def cleanup_tracked_files(self) -> None:
@@ -412,16 +424,20 @@ class FileService:
             try:
                 if file_path.exists():
                     file_path.unlink()
-            except Exception:
-                pass
+            except Exception as e:
+                # Best-effort cleanup; continue even if deletion fails
+                logger.debug(f"Could not remove file during cleanup {file_path}: {e}")
 
         # Remove directories (in reverse order of creation)
         for directory in reversed(self.created_dirs):
             try:
                 if directory.exists() and not any(directory.iterdir()):
                     directory.rmdir()
-            except Exception:
-                pass
+            except Exception as e:
+                # Best-effort cleanup; continue even if deletion fails
+                logger.debug(
+                    f"Could not remove directory during cleanup {directory}: {e}"
+                )
 
         self.copied_files.clear()
         self.created_dirs.clear()

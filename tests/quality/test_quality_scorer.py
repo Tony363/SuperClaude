@@ -72,16 +72,16 @@ def test_primary_evaluator_short_circuits_default_metrics():
 
     def _primary(_, __, iteration):
         assert iteration == 0
-        metric = QualityMetric(QualityDimension.ZEN_REVIEW, 97, 1.0, "zen review")
+        metric = QualityMetric(QualityDimension.PAL_REVIEW, 97, 1.0, "pal review")
         return {
             "metrics": [metric],
             "improvements": ["tighten tests"],
-            "metadata": {"zen": True},
+            "metadata": {"pal": True},
         }
 
     scorer.set_primary_evaluator(_primary)
     assessment = scorer.evaluate({}, {}, iteration=0)
-    assert assessment.metrics[0].dimension == QualityDimension.ZEN_REVIEW
+    assert assessment.metrics[0].dimension == QualityDimension.PAL_REVIEW
     assert assessment.improvements_needed == ["tighten tests"]
-    assert assessment.metadata.get("zen") is True
+    assert assessment.metadata.get("pal") is True
     scorer.clear_primary_evaluator()

@@ -1,10 +1,10 @@
 #!/bin/bash
 
-# Zen MCP Integration Test Script
-# Tests the configuration and integration of Zen MCP with SuperClaude Framework
+# PAL MCP Integration Test Script
+# Tests the configuration and integration of PAL MCP with SuperClaude Framework
 
 echo "======================================="
-echo "  Zen MCP Integration Test"
+echo "  PAL MCP Integration Test"
 echo "======================================="
 echo ""
 
@@ -46,9 +46,9 @@ check_file_content() {
 echo "1. Configuration Files"
 echo "----------------------"
 test_condition "~/.claude/settings.json exists" "[ -f ~/.claude/settings.json ]"
-test_condition "settings.json has zen config" "check_file_content ~/.claude/settings.json 'ZEN_MCP'"
+test_condition "settings.json has pal config" "check_file_content ~/.claude/settings.json 'PAL_MCP'"
 test_condition "Claude Desktop config exists" "[ -f ~/.config/Claude/claude_desktop_config.json ]"
-test_condition "Desktop config has zen-mcp" "check_file_content ~/.config/Claude/claude_desktop_config.json 'zen-mcp'"
+test_condition "Desktop config has pal-mcp" "check_file_content ~/.config/Claude/claude_desktop_config.json 'pal-mcp'"
 echo ""
 
 echo "2. API Keys"
@@ -85,19 +85,19 @@ else
 fi
 echo ""
 
-echo "3. Zen MCP Server Installation"
+echo "3. PAL MCP Server Installation"
 echo "-------------------------------"
-test_condition "zen-mcp-server directory exists" "[ -d ~/.zen-mcp-server ]"
-test_condition "zen server.py exists" "[ -f ~/.zen-mcp-server/server.py ]"
-test_condition "zen virtual environment exists" "[ -d ~/.zen-mcp-server/.zen_venv ]"
+test_condition "pal-mcp-server directory exists" "[ -d ~/.pal-mcp-server ]"
+test_condition "pal server.py exists" "[ -f ~/.pal-mcp-server/server.py ]"
+test_condition "pal virtual environment exists" "[ -d ~/.pal-mcp-server/.pal_venv ]"
 echo ""
 
 echo "4. SuperClaude Framework Integration"
 echo "-------------------------------------"
 test_condition "FLAGS.md exists" "[ -f ~/.claude/FLAGS.md ]"
-test_condition "FLAGS.md contains --zen flag" "check_file_content ~/.claude/FLAGS.md 'zen'"
+test_condition "FLAGS.md contains --pal flag" "check_file_content ~/.claude/FLAGS.md 'pal'"
 test_condition "FLAGS.md contains --consensus" "check_file_content ~/.claude/FLAGS.md 'consensus'"
-test_condition "FLAGS.md contains --zen-review" "check_file_content ~/.claude/FLAGS.md 'zen-review'"
+test_condition "FLAGS.md contains --pal-review" "check_file_content ~/.claude/FLAGS.md 'pal-review'"
 echo ""
 
 echo "5. Environment Validation"
@@ -114,12 +114,12 @@ echo -e "Tests Failed: ${RED}$tests_failed${NC}"
 echo ""
 
 if [ $tests_failed -eq 0 ]; then
-    echo -e "${GREEN}🎉 All required tests passed! Zen MCP is properly configured.${NC}"
+    echo -e "${GREEN}🎉 All required tests passed! PAL MCP is properly configured.${NC}"
     echo ""
     echo "You can now use these SuperClaude features:"
-    echo "  • Multi-model orchestration with --zen"
+    echo "  • Multi-model orchestration with --pal"
     echo "  • Consensus decisions with --consensus"
-    echo "  • Production validation with --zen-review"
+    echo "  • Production validation with --pal-review"
     echo "  • Deep analysis with --thinkdeep"
     echo ""
     echo "Context-aware model routing enabled:"
@@ -127,13 +127,13 @@ if [ $tests_failed -eq 0 ]; then
     echo "  • Long context (>400K): Gemini-2.5-pro → GPT-4.1 → GPT-5"
     echo ""
     echo "Long context examples:"
-    echo "  • --zen-review --extended-context (bulk codebase analysis)"
+    echo "  • --pal-review --extended-context (bulk codebase analysis)"
     echo "  • --thinkdeep --bulk-analysis src/ docs/ (multi-file processing)"
 else
     echo -e "${RED}⚠️  Some tests failed. Please review the configuration.${NC}"
     echo ""
     echo "To fix issues:"
-    echo "  1. Run: ./scripts/setup_zen_api_keys.sh"
+    echo "  1. Run: ./scripts/setup_pal_api_keys.sh"
     echo "  2. Restart Claude Desktop"
     echo "  3. Check the configuration files manually"
 fi

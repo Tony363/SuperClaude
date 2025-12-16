@@ -3,7 +3,7 @@ name: estimate
 description: "Provide development estimates for tasks, features, or projects with intelligent analysis"
 category: special
 complexity: standard
-mcp-servers: [zen]
+mcp-servers: [pal]
 personas: [architect, performance, project-manager]
 ---
 
@@ -29,13 +29,13 @@ personas: [architect, performance, project-manager]
 
 Key behaviors:
 - Multi-persona coordination (architect, performance, project-manager) based on estimation scope
-- Zen MCP integration for consensus-backed analysis and complexity assessment
+- PAL MCP integration for consensus-backed analysis and complexity assessment
 - Repository pattern library for framework-specific benchmarks and estimation templates
 - Intelligent breakdown analysis with confidence intervals and risk factors
 
 ## Knowledge Inputs
 - **Repository Standards**: Framework-specific estimation patterns and historical benchmark data
-- **Zen MCP**: Calibration of estimates through multi-perspective validation
+- **PAL MCP**: Calibration of estimates through multi-perspective validation
 - **Persona Coordination**: Architect (design complexity), Performance (optimization effort), Project Manager (timeline)
 
 ## Tool Coordination

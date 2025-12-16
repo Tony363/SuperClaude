@@ -3,7 +3,7 @@
 ## 0. Context
 - Suggestion: extend `/sc:implement` with a streamlined `--fast-codex` flag that keeps the existing command executor but runs a simplified persona and validation path.
 - Motivation: reduce friction for routine edits while preserving guardrails such as evidence capture, MCP activation, and telemetry hooks.
-- Constraints: offline-first operation, limited MCP roster (Zen + sequential stubs), `requires_evidence` guardrail must remain intact, and docs/tests must stay aligned with `.codex-os` standards.
+- Constraints: offline-first operation, limited MCP roster (PAL + sequential stubs), `requires_evidence` guardrail must remain intact, and docs/tests must stay aligned with `.codex-os` standards.
 - Assumptions: command metadata remains YAML front matter, executor logic is centralized in `SuperClaude/Commands/executor.py`, and consensus policies live in `SuperClaude/Config/consensus_policies.yaml`.
 
 ## 1. Goals & Success Metrics

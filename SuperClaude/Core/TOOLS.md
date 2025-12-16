@@ -65,7 +65,7 @@ Located in `Agents/Extended/` - organized by category for specialized needs:
 Specialized tools for enhanced capabilities.
 
 ### Core Development
-- **Zen**: Multi-model consensus and validation  
+- **PAL**: Multi-model consensus and validation
   - Use for: Design reviews, risk assessments, cross-model agreement
 - **Rube**: External automation and system orchestration  
   - Use for: Ticketing, notifications, CI/CD hooks
@@ -114,7 +114,7 @@ Quality dimensions: Correctness (40%), Completeness (30%), Code Quality (20%), P
 Unknown scope? → Task(general-purpose)
 Debugging? → Task(root-cause-analyst)
 Need automation? → Rube
-Need consensus? → Zen
+Need consensus? → PAL
 Bulk edits? → MultiEdit
 Complex reasoning? → Sequential
 Need web research? → LinkUp search via Rube

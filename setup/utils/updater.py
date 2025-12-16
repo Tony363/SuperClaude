@@ -76,8 +76,10 @@ class UpdateChecker:
             try:
                 with open(self.CACHE_FILE) as f:
                     data = json.load(f)
-            except:
-                pass
+            except (json.JSONDecodeError, OSError) as e:
+                # Cache file unreadable; continue with empty data dict
+                if self.logger:
+                    self.logger.debug(f"Cache file unreadable, using defaults: {e}")
 
         data["last_check"] = time.time()
 
@@ -149,8 +151,10 @@ class UpdateChecker:
             )
             if "SuperClaude" in result.stdout or "superclaude" in result.stdout:
                 return "pipx"
-        except:
-            pass
+        except (subprocess.SubprocessError, FileNotFoundError, OSError) as e:
+            # pipx not available; fall through to check pip
+            if self.logger:
+                self.logger.debug(f"pipx not available: {e}")
 
         # Check if pip installation exists
         try:
@@ -165,8 +169,10 @@ class UpdateChecker:
                 if "--user" in result.stdout or Path.home() in Path(result.stdout):
                     return "pip-user"
                 return "pip"
-        except:
-            pass
+        except (subprocess.SubprocessError, FileNotFoundError, OSError) as e:
+            # pip check failed; return unknown installation method
+            if self.logger:
+                self.logger.debug(f"pip check failed: {e}")
 
         return "unknown"
 

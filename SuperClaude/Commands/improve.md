@@ -3,7 +3,7 @@ name: improve
 description: "Apply systematic improvements to code quality, performance, maintainability, and cleanup"
 category: workflow
 complexity: standard
-mcp-servers: [zen, rube]
+mcp-servers: [pal, rube]
 personas: [architect, performance, quality, security]
 aliases: [cleanup]
 flags:
@@ -59,12 +59,12 @@ flags:
 Key behaviors:
 - Multi-persona coordination (architect, performance, quality, security) based on improvement type
 - Framework-specific optimization via curated repository standards and best practices
-- Consensus validation via Zen MCP for complex multi-component improvements
+- Consensus validation via PAL MCP for complex multi-component improvements
 - Safe refactoring with comprehensive validation and rollback capabilities
 
 ## Knowledge Inputs
 - **Repository Standards**: Framework-specific best practices and optimization patterns
-- **Zen MCP**: Consensus-backed validation for high-impact changes
+- **PAL MCP**: Consensus-backed validation for high-impact changes
 - **Rube MCP**: Coordinate code-quality follow-ups (tickets, release announcements, alerts)
 - **Persona Coordination**: Architect (structure), Performance (speed), Quality (maintainability), Security (safety)
 

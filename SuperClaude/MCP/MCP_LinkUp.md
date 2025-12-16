@@ -1,70 +1,79 @@
-# LinkUp Web Intelligence (via Rube MCP)
+# LinkUp Web Search (via Rube MCP)
 
-LinkUp extends the existing Rube MCP integration with deep web search
-capabilities. It issues `LINKUP_SEARCH` requests over the active Rube session
-and returns sourced answers, citations, and URLs that SuperClaude commands can
-surface as evidence.
+LinkUp provides deep web search capabilities with sourced answers, citations, and URLs through the native Rube MCP tools.
+
+## How to Use
+
+LinkUp searches are executed via `mcp__rube__RUBE_MULTI_EXECUTE_TOOL`:
+
+```
+Use mcp__rube__RUBE_MULTI_EXECUTE_TOOL with:
+  tools: [{
+    "tool_slug": "LINKUP_SEARCH",
+    "arguments": {
+      "query": "your search query here",
+      "depth": "deep",
+      "output_type": "sourcedAnswer"
+    }
+  }]
+  session_id: "<from RUBE_SEARCH_TOOLS>"
+  memory: {}
+  sync_response_to_workbench: false
+  thought: "Searching for [topic]"
+  current_step: "SEARCHING"
+  next_step: "COMPLETE"
+```
+
+## Parameters
+
+| Parameter | Values | Description |
+|-----------|--------|-------------|
+| `query` | string | The search query |
+| `depth` | `"deep"`, `"standard"` | Search thoroughness (use "deep" for comprehensive results) |
+| `output_type` | `"sourcedAnswer"`, `"searchResults"`, `"structured"` | Response format |
 
 ## Capabilities
 
-- **Deep search with citations** – combine summarised answers, source lists, and
-  follow-up links suitable for change plans.
-- **Configurable depth/output** – adjust `depth`, `output_type`, and throttle
-  controls without modifying code.
-- **Batch-friendly** – run multiple LinkUp queries per command using the shared
-  Rube session (respecting concurrency and throttling limits).
+- **Deep search with citations** - summarized answers with source lists and follow-up links
+- **Multiple queries** - batch multiple searches in a single tool call
+- **Sourced answers** - responses include citations and URLs for verification
 
-## Prerequisites
+## Example Usage
 
-1. Provision Rube MCP access (see `MCP_Rube.md`) and set `SC_RUBE_API_KEY`.
-2. Ensure `SC_NETWORK_MODE` permits outbound requests (`online`, `mixed`,
-   `rube`, or `auto`).
-3. Optional: export `SC_RUBE_MODE=dry-run` to inspect payloads without sending
-   live traffic (responses echo the payload for debugging).
-
-## Configuration (`SuperClaude/Config/mcp.yaml`)
-
-```yaml
-servers:
-  rube:
-    linkup:
-      default_depth: deep
-      default_output_type: sourcedAnswer
-      max_concurrent: 4
-      throttle_seconds: 0.0
+### Simple Search
+```
+Use mcp__rube__RUBE_MULTI_EXECUTE_TOOL with:
+  tools: [{
+    "tool_slug": "LINKUP_SEARCH",
+    "arguments": {
+      "query": "pytest asyncio best practices 2025",
+      "depth": "deep",
+      "output_type": "sourcedAnswer"
+    }
+  }]
 ```
 
-- `default_depth` / `default_output_type` are applied when commands do not
-  override `depth` or `output_type`.
-- `max_concurrent` limits the number of in-flight LinkUp calls (tune for rate
-  limits).
-- `throttle_seconds` enforces a minimum delay between calls when providers ask
-  for pacing.
-- Add any persistent payload keys under `payload_defaults` (e.g., domain
-  filters) to avoid repeating them in command parameters.
-
-## CLI Usage
-
+### Batch Searches
 ```
-/sc:test --linkup --query "pytest asyncio best practices"
+Use mcp__rube__RUBE_MULTI_EXECUTE_TOOL with:
+  tools: [
+    {"tool_slug": "LINKUP_SEARCH", "arguments": {"query": "React 19 new features", "depth": "deep", "output_type": "sourcedAnswer"}},
+    {"tool_slug": "LINKUP_SEARCH", "arguments": {"query": "TypeScript 5.4 changes", "depth": "deep", "output_type": "sourcedAnswer"}}
+  ]
 ```
 
-- `--linkup` (or the legacy `--browser`) toggles LinkUp for `/sc:test`.
-- Provide one or more queries via `--query`, `--linkup-query`, or `--linkup-queries`.
-- Results are stored under `context.results['linkup_queries']` with per-query
-  status, citation data, and any surfaced warnings.
+## When to Use
 
-## Dry-Run Behaviour
+Use LinkUp for:
+- Current library/framework versions and documentation
+- Latest API syntax and best practices
+- Recent security updates and vulnerabilities
+- Error messages and deprecation warnings
+- External service status and configuration
 
-When `SC_RUBE_MODE=dry-run`, LinkUp logs payloads and returns structured
-placeholders. Commands still receive deterministic responses but no outbound
-traffic occurs—ideal for CI environments lacking network access.
+## Notes
 
-## Troubleshooting
-
-- **Missing Rube server** – ensure `/sc:test` metadata lists `rube` in its MCP
-  servers and that `_activate_mcp_servers` successfully initialised Rube.
-- **Empty queries** – commands emit `linkup_failed` when no query is supplied;
-  pass `--query` or positional `https://…` targets.
-- **Rate limits** – increase `throttle_seconds` or reduce `max_concurrent` if
-  providers return HTTP `429` responses.
+- LinkUp is accessed through the Rube MCP server's LINKUP_SEARCH tool
+- No separate configuration needed - uses the same Rube MCP connection
+- Session IDs from RUBE_SEARCH_TOOLS should be reused for context preservation
+- Results include citations - include source links in responses

@@ -106,7 +106,7 @@ directory (command artefacts, metrics JSONL, etc.). Inspecting those artefacts i
 the fastest way to understand failures because they reflect the actual executor
 output.
 
-- When API keys are available, `--zen-review` (GPT-5) now becomes the primary
-  `QualityScorer` evaluator during `--loop`. Tests that stub zen responses should
-  assert on `QualityDimension.ZEN_REVIEW` metrics or the GPT-provided
+- When API keys are available, `--pal-review` (GPT-5) now becomes the primary
+  `QualityScorer` evaluator during `--loop`. Tests that stub pal responses should
+  assert on `QualityDimension.PAL_REVIEW` metrics or the GPT-provided
   `improvements` list as part of their expectations.

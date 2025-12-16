@@ -11,13 +11,13 @@ have been removed.
 - The CLI honours `SC_NETWORK_MODE`. Set it to `offline` to skip network calls,
   `online` for full access, or `debug` to log request payloads.
 - Server-specific environment variables:
-  - `SC_ZEN_OFFLINE=1` to force Zen into offline mode (requires manual executor
+  - `SC_PAL_OFFLINE=1` to force PAL into offline mode (requires manual executor
     registration).
   - `SC_RUBE_API_KEY` for Rube automation calls and LinkUp web searches.
 
-## 2. Zen Integration (Consensus)
+## 2. PAL Integration (Consensus)
 
-- The Zen adapter now uses `ModelRouterFacade.run_consensus`, which means it
+- The PAL adapter now uses `ModelRouterFacade.run_consensus`, which means it
   requires the same provider executors as the rest of the framework.
 - When no executors are available the integration raises `RuntimeError` and the
   command fails fast—there is no heuristic fallback.
