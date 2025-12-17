@@ -39,6 +39,48 @@ def reset_agent_usage() -> None:
     usage_tracker.reset_usage_stats(for_tests=True)
 
 
+@pytest.fixture(autouse=True)
+def reset_working_directory() -> None:
+    """Ensure working directory is reset after each test.
+
+    Some tests use monkeypatch.chdir() to change directories, but if a test
+    fails or if multiple fixtures interact, the working directory may not
+    be properly restored. This fixture ensures we always return to the
+    original directory.
+    """
+    original_cwd = os.getcwd()
+    yield
+    if os.getcwd() != original_cwd:
+        os.chdir(original_cwd)
+
+
+@pytest.fixture(autouse=True)
+def reset_superclaude_env_vars() -> None:
+    """Reset SuperClaude environment variables between tests.
+
+    CommandExecutor uses setdefault() to set SUPERCLAUDE_REPO_ROOT and
+    SUPERCLAUDE_METRICS_DIR, which means values persist across tests.
+    This can cause cross-test pollution when different tests use
+    different repo_root values.
+    """
+    # Store original values
+    original_repo_root = os.environ.get("SUPERCLAUDE_REPO_ROOT")
+    original_metrics_dir = os.environ.get("SUPERCLAUDE_METRICS_DIR")
+
+    yield
+
+    # Restore original values (or remove if not set originally)
+    if original_repo_root is None:
+        os.environ.pop("SUPERCLAUDE_REPO_ROOT", None)
+    else:
+        os.environ["SUPERCLAUDE_REPO_ROOT"] = original_repo_root
+
+    if original_metrics_dir is None:
+        os.environ.pop("SUPERCLAUDE_METRICS_DIR", None)
+    else:
+        os.environ["SUPERCLAUDE_METRICS_DIR"] = original_metrics_dir
+
+
 @pytest.fixture(scope="session")
 def fixture_root() -> Path:
     """Return the path containing test fixtures."""

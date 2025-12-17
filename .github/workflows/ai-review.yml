@@ -1,5 +1,5 @@
 # SuperClaude AI Code Review Pipeline
-# Uses Claude Code Action with PAL MCP for enhanced code review
+# Uses Claude Code Action with PAL MCP Consensus Code Review
 # NON-BLOCKING: Advisory comments only, does not prevent merge
 
 name: AI Code Review
@@ -13,7 +13,7 @@ on:
 
 jobs:
   ai-review:
-    name: Claude Code Review
+    name: PAL MCP Consensus Code Review
     runs-on: ubuntu-latest
     # Skip for dependabot PRs to avoid API costs
     if: github.actor != 'dependabot[bot]'
@@ -41,21 +41,21 @@ jobs:
           DIFF_STATS=$(git diff --stat origin/${{ github.base_ref }}...HEAD | tail -1)
           echo "diff_stats=$DIFF_STATS" >> $GITHUB_OUTPUT
 
-          # Get list of changed Python files
-          PYTHON_FILES=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | grep '\.py$' | head -20 | tr '\n' ' ')
+          # Get list of changed Python files (absolute paths)
+          PYTHON_FILES=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | grep '\.py$' | head -20 | sed "s|^|$(pwd)/|" | tr '\n' ',' | sed 's/,$//')
           echo "python_files=$PYTHON_FILES" >> $GITHUB_OUTPUT
 
           # Check if tests were modified
           TESTS_MODIFIED=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | grep -c '^tests/' || echo "0")
           echo "tests_modified=$TESTS_MODIFIED" >> $GITHUB_OUTPUT
 
-      - name: Run Claude Code Review with PAL MCP
+      - name: Run PAL MCP Consensus Code Review
         uses: anthropics/claude-code-action@v1
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
-          timeout_minutes: 10
+          timeout_minutes: 15
           prompt: |
-            # SuperClaude PR Code Review
+            # SuperClaude PR Code Review - PAL MCP Consensus
 
             **Repository**: ${{ github.repository }}
             **PR Number**: ${{ github.event.pull_request.number }}
@@ -68,74 +68,75 @@ jobs:
             ## Instructions
 
             You are reviewing a pull request for SuperClaude, an AI-enhanced development
-            framework for Claude Code. Please perform a thorough code review.
+            framework for Claude Code. Use PAL MCP's consensus code review to get
+            multi-model perspectives on the changes.
 
-            ### Review Focus Areas
+            ### Step 1: Get the PR diff
+            First, use `gh pr diff ${{ github.event.pull_request.number }}` to examine the changes.
 
-            1. **Code Quality**
-               - Python best practices and PEP 8 compliance
-               - Type hints usage and consistency
-               - Clear naming and documentation
-               - DRY principle adherence
+            ### Step 2: Run PAL MCP Consensus Code Review
+            Use the `mcp__pal__codereview` tool to perform a comprehensive code review.
 
-            2. **Security** (Critical for MCP/AI framework)
-               - Input validation and sanitization
-               - Secret handling (no hardcoded credentials)
-               - Safe subprocess usage
-               - API key protection
+            Configure the review with:
+            - `review_type`: "full" (covers quality, security, performance, architecture)
+            - `relevant_files`: List the changed Python files from the diff
+            - Focus areas: security (critical for MCP/AI framework), code quality, testing
 
-            3. **Architecture**
-               - Consistency with existing patterns in SuperClaude/
-               - Proper separation of concerns
-               - MCP integration patterns
+            The codereview tool will:
+            1. Analyze the code systematically
+            2. Identify issues by severity (critical, high, medium, low)
+            3. Provide expert validation of findings
 
-            4. **Testing**
-               - Test coverage for new functionality
-               - Edge case handling
-               - Mock usage for external dependencies
-
-            5. **Performance**
-               - Async/await best practices
-               - Resource cleanup
-               - Caching considerations
-
-            ### Review Output
-
-            Use `gh pr diff` to examine the changes, then post a structured review
-            using `gh pr comment` with the following format:
+            ### Step 3: Post Results
+            After the consensus review completes, post the results using `gh pr comment`
+            with this format:
 
             ```markdown
-            ## AI Code Review Summary
+            ## 🤖 PAL MCP Consensus Code Review
 
             ### Overview
-            [Brief summary of changes]
+            [Brief summary of changes reviewed]
 
-            ### Critical Issues
-            [List any blocking issues that should be addressed before merge]
+            ### 🔴 Critical Issues
+            [Any blocking issues - must fix before merge]
 
-            ### Suggestions
-            [Non-blocking improvements that would enhance code quality]
+            ### 🟠 High Priority
+            [Important issues that should be addressed]
 
-            ### Positive Observations
-            [Good patterns and practices observed in the PR]
+            ### 🟡 Medium Priority
+            [Improvements recommended]
 
-            ### Test Coverage
-            [Assessment of test coverage for changes]
+            ### 🟢 Positive Observations
+            [Good patterns and practices observed]
+
+            ### 📊 Review Summary
+            | Category | Rating |
+            |----------|--------|
+            | Security | ⭐⭐⭐⭐☆ |
+            | Code Quality | ⭐⭐⭐⭐☆ |
+            | Architecture | ⭐⭐⭐⭐☆ |
+            | Testing | ⭐⭐⭐☆☆ |
 
             ---
-            *This review was generated by Claude Code with PAL MCP tools.*
+            *This review was generated by PAL MCP Consensus Code Review.*
+            *Multiple AI models were consulted to validate findings.*
             *Review is advisory - please use human judgment for final decisions.*
             ```
 
           claude_args: >-
             --allowed-tools
-            "Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh pr list:*),Bash(gh issue view:*),Bash(gh issue list:*),Bash(gh search:*)"
+            "Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*),mcp__pal__codereview,mcp__pal__consensus"
 
       - name: Review complete
         if: always()
         run: |
-          echo "## AI Review Status" >> $GITHUB_STEP_SUMMARY
+          echo "## 🤖 PAL MCP Consensus Code Review Status" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "AI code review has been posted to the PR." >> $GITHUB_STEP_SUMMARY
+          echo "Multi-model consensus code review has been posted to the PR." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Features:**" >> $GITHUB_STEP_SUMMARY
+          echo "- Full review covering security, quality, performance, architecture" >> $GITHUB_STEP_SUMMARY
+          echo "- Issues categorized by severity (critical/high/medium/low)" >> $GITHUB_STEP_SUMMARY
+          echo "- Expert model validation of findings" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Note**: This review is advisory only and does not block merging." >> $GITHUB_STEP_SUMMARY
