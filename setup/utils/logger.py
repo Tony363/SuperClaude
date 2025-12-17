@@ -7,7 +7,7 @@ import sys
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any
 
 from .ui import Colors
 
@@ -28,7 +28,7 @@ class Logger:
     def __init__(
         self,
         name: str = "superclaude",
-        log_dir: Optional[Path] = None,
+        log_dir: Path | None = None,
         console_level: LogLevel = LogLevel.INFO,
         file_level: LogLevel = LogLevel.DEBUG,
     ):
@@ -58,7 +58,7 @@ class Logger:
         self._setup_console_handler()
         self._setup_file_handler()
 
-        self.log_counts: Dict[str, int] = {
+        self.log_counts: dict[str, int] = {
             "debug": 0,
             "info": 0,
             "warning": 0,
@@ -213,14 +213,14 @@ class Logger:
         self.logger.error(message, exc_info=exc_info, **kwargs)
         self.log_counts["error"] += 1
 
-    def log_system_info(self, info: Dict[str, Any]) -> None:
+    def log_system_info(self, info: dict[str, Any]) -> None:
         """Log system information"""
         self.section("System Information")
         for key, value in info.items():
             self.info(f"{key}: {value}")
 
     def log_operation_start(
-        self, operation: str, details: Optional[Dict[str, Any]] = None
+        self, operation: str, details: dict[str, Any] | None = None
     ) -> None:
         """Log start of operation"""
         self.section(f"Starting: {operation}")
@@ -233,7 +233,7 @@ class Logger:
         operation: str,
         success: bool,
         duration: float,
-        details: Optional[Dict[str, Any]] = None,
+        details: dict[str, Any] | None = None,
     ) -> None:
         """Log end of operation"""
         status = "SUCCESS" if success else "FAILED"
@@ -245,7 +245,7 @@ class Logger:
             for key, value in details.items():
                 self.info(f"{key}: {value}")
 
-    def get_statistics(self) -> Dict[str, Any]:
+    def get_statistics(self) -> dict[str, Any]:
         """Get logging statistics"""
         runtime = datetime.now() - self.session_start
 
@@ -300,7 +300,7 @@ class Logger:
 
 
 # Global logger instance
-_global_logger: Optional[Logger] = None
+_global_logger: Logger | None = None
 
 
 def get_logger(name: str = "superclaude") -> Logger:
@@ -315,7 +315,7 @@ def get_logger(name: str = "superclaude") -> Logger:
 
 def setup_logging(
     name: str = "superclaude",
-    log_dir: Optional[Path] = None,
+    log_dir: Path | None = None,
     console_level: LogLevel = LogLevel.INFO,
     file_level: LogLevel = LogLevel.DEBUG,
 ) -> Logger:

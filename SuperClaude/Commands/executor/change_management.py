@@ -10,7 +10,7 @@ import logging
 import textwrap
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 from .utils import deduplicate, slugify
 
@@ -18,10 +18,10 @@ logger = logging.getLogger(__name__)
 
 
 def derive_change_plan(
-    agent_outputs: Dict[str, Any],
-) -> List[Dict[str, Any]]:
+    agent_outputs: dict[str, Any],
+) -> list[dict[str, Any]]:
     """Build a change plan from agent outputs."""
-    plan: List[Dict[str, Any]] = []
+    plan: list[dict[str, Any]] = []
 
     for agent_output in agent_outputs.values():
         for key in (
@@ -35,9 +35,9 @@ def derive_change_plan(
     return plan
 
 
-def extract_agent_change_specs(candidate: Any) -> List[Dict[str, Any]]:
+def extract_agent_change_specs(candidate: Any) -> list[dict[str, Any]]:
     """Normalise agent-proposed change structures into change descriptors."""
-    proposals: List[Dict[str, Any]] = []
+    proposals: list[dict[str, Any]] = []
     if candidate is None:
         return proposals
 
@@ -67,7 +67,7 @@ def extract_agent_change_specs(candidate: Any) -> List[Dict[str, Any]]:
     return proposals
 
 
-def normalize_change_descriptor(descriptor: Dict[str, Any]) -> Dict[str, Any]:
+def normalize_change_descriptor(descriptor: dict[str, Any]) -> dict[str, Any]:
     """Ensure change descriptors retain metadata flags like auto_stub."""
     return {
         "path": str(descriptor.get("path")),
@@ -77,12 +77,12 @@ def normalize_change_descriptor(descriptor: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def assess_stub_requirement(
-    applied_changes: List[str],
-    agent_result: Dict[str, Any],
+    applied_changes: list[str],
+    agent_result: dict[str, Any],
     requires_evidence: bool,
     *,
-    default_reason: Optional[str] = None,
-) -> Tuple[str, Optional[str]]:
+    default_reason: str | None = None,
+) -> tuple[str, str | None]:
     """
     Decide whether to emit an auto-generated stub or queue a follow-up action.
 
@@ -124,13 +124,13 @@ def assess_stub_requirement(
 def build_default_evidence_entry(
     session_id: str,
     command_name: str,
-    agent_result: Dict[str, Any],
-    results: Dict[str, Any],
+    agent_result: dict[str, Any],
+    results: dict[str, Any],
     *,
     slug: str,
     session_fragment: str,
     label_suffix: str,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Build the default evidence markdown entry."""
     rel_path = (
         Path("SuperClaude")
@@ -152,13 +152,13 @@ def build_default_evidence_entry(
 def render_default_evidence_document(
     session_id: str,
     command_name: str,
-    agent_result: Dict[str, Any],
-    results: Dict[str, Any],
+    agent_result: dict[str, Any],
+    results: dict[str, Any],
 ) -> str:
     """Render a fallback implementation evidence markdown document."""
     title = command_name
     timestamp = datetime.now().isoformat()
-    lines: List[str] = [
+    lines: list[str] = [
         f"# Implementation Evidence — {title}",
         "",
         f"- session: {session_id}",
@@ -196,7 +196,7 @@ def build_generic_stub_change(
     command_name: str,
     session_id: str,
     summary: str,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Create a minimal stub change plan so generic commands leave evidence."""
     timestamp = datetime.now().isoformat()
     slug_val = slugify(command_name)
@@ -228,9 +228,9 @@ def build_generic_stub_change(
 
 
 def infer_auto_stub_extension(
-    command_arguments: List[str],
-    parameters: Dict[str, Any],
-    agent_result: Dict[str, Any],
+    command_arguments: list[str],
+    parameters: dict[str, Any],
+    agent_result: dict[str, Any],
 ) -> str:
     """Infer the file extension for auto-generated stubs."""
     language_hint = str(parameters.get("language") or "").lower()
@@ -299,16 +299,16 @@ def infer_auto_stub_category(command_name: str) -> str:
 
 def build_auto_stub_entry(
     command_name: str,
-    command_arguments: List[str],
+    command_arguments: list[str],
     session_id: str,
-    parameters: Dict[str, Any],
-    agent_result: Dict[str, Any],
-    results: Dict[str, Any],
+    parameters: dict[str, Any],
+    agent_result: dict[str, Any],
+    results: dict[str, Any],
     *,
     slug: str,
     session_fragment: str,
     label_suffix: str,
-) -> Optional[Dict[str, Any]]:
+) -> dict[str, Any] | None:
     """Build an auto-generated stub entry."""
     extension = infer_auto_stub_extension(command_arguments, parameters, agent_result)
     category = infer_auto_stub_category(command_name)
@@ -339,10 +339,10 @@ def build_auto_stub_entry(
 
 def render_auto_stub_content(
     command_name: str,
-    command_arguments: List[str],
+    command_arguments: list[str],
     session_id: str,
-    agent_result: Dict[str, Any],
-    results: Dict[str, Any],
+    agent_result: dict[str, Any],
+    results: dict[str, Any],
     *,
     extension: str,
     slug: str,
@@ -503,13 +503,13 @@ def render_auto_stub_content(
 
 
 def apply_changes_fallback(
-    changes: List[Dict[str, Any]],
-    repo_root: Optional[Path] = None,
-) -> Dict[str, Any]:
+    changes: list[dict[str, Any]],
+    repo_root: Path | None = None,
+) -> dict[str, Any]:
     """Apply changes directly to the repository when the manager is unavailable."""
     base_path = Path(repo_root or Path.cwd())
-    applied: List[str] = []
-    warnings: List[str] = []
+    applied: list[str] = []
+    warnings: list[str] = []
 
     for change in changes:
         rel_path = change.get("path")

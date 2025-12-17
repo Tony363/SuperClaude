@@ -8,7 +8,7 @@ NOT SuperClaude/__main__.py (installer CLI) which is tested in test_cli.py.
 """
 
 from dataclasses import dataclass, field
-from typing import Any, List
+from typing import Any
 from unittest.mock import Mock, patch
 
 import pytest
@@ -21,7 +21,7 @@ class MockAgentMatch:
     agent_id: str
     total_score: float
     confidence: str
-    matched_criteria: List[str] = field(default_factory=list)
+    matched_criteria: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -32,12 +32,12 @@ class MockAgentMetadata:
     name: str
     category: Any = None
     priority: int = 1
-    domains: List[str] = field(default_factory=list)
-    languages: List[str] = field(default_factory=list)
-    keywords: List[str] = field(default_factory=list)
+    domains: list[str] = field(default_factory=list)
+    languages: list[str] = field(default_factory=list)
+    keywords: list[str] = field(default_factory=list)
     description: str = ""
-    file_patterns: List[str] = field(default_factory=list)
-    imports: List[str] = field(default_factory=list)
+    file_patterns: list[str] = field(default_factory=list)
+    imports: list[str] = field(default_factory=list)
     is_loaded: bool = False
     load_count: int = 0
     last_accessed: float = 0.0
@@ -292,9 +292,10 @@ class TestMainFunction:
         """Test that running with no args shows help."""
         from SuperClaude.Agents.cli import main
 
-        with patch("sys.argv", ["cli"]), patch(
-            "SuperClaude.Agents.cli.ExtendedAgentLoader"
-        ) as mock_loader_class:
+        with (
+            patch("sys.argv", ["cli"]),
+            patch("SuperClaude.Agents.cli.ExtendedAgentLoader") as mock_loader_class,
+        ):
             mock_loader_class.return_value = Mock()
             main()
 
@@ -305,9 +306,12 @@ class TestMainFunction:
         """Test main() with list command."""
         from SuperClaude.Agents.cli import main
 
-        with patch("sys.argv", ["cli", "list"]), patch(
-            "SuperClaude.Agents.cli.ExtendedAgentLoader",
-            return_value=mock_extended_loader,
+        with (
+            patch("sys.argv", ["cli", "list"]),
+            patch(
+                "SuperClaude.Agents.cli.ExtendedAgentLoader",
+                return_value=mock_extended_loader,
+            ),
         ):
             main()
 
@@ -318,9 +322,12 @@ class TestMainFunction:
         """Test main() with search command."""
         from SuperClaude.Agents.cli import main
 
-        with patch("sys.argv", ["cli", "search", "python"]), patch(
-            "SuperClaude.Agents.cli.ExtendedAgentLoader",
-            return_value=mock_extended_loader,
+        with (
+            patch("sys.argv", ["cli", "search", "python"]),
+            patch(
+                "SuperClaude.Agents.cli.ExtendedAgentLoader",
+                return_value=mock_extended_loader,
+            ),
         ):
             main()
 
@@ -331,9 +338,12 @@ class TestMainFunction:
         """Test main() with categories command."""
         from SuperClaude.Agents.cli import main
 
-        with patch("sys.argv", ["cli", "categories"]), patch(
-            "SuperClaude.Agents.cli.ExtendedAgentLoader",
-            return_value=mock_extended_loader,
+        with (
+            patch("sys.argv", ["cli", "categories"]),
+            patch(
+                "SuperClaude.Agents.cli.ExtendedAgentLoader",
+                return_value=mock_extended_loader,
+            ),
         ):
             main()
 
@@ -344,9 +354,12 @@ class TestMainFunction:
         """Test main() with info command."""
         from SuperClaude.Agents.cli import main
 
-        with patch("sys.argv", ["cli", "info", "test-agent-1"]), patch(
-            "SuperClaude.Agents.cli.ExtendedAgentLoader",
-            return_value=mock_extended_loader,
+        with (
+            patch("sys.argv", ["cli", "info", "test-agent-1"]),
+            patch(
+                "SuperClaude.Agents.cli.ExtendedAgentLoader",
+                return_value=mock_extended_loader,
+            ),
         ):
             main()
 
@@ -357,9 +370,12 @@ class TestMainFunction:
         """Test main() with stats command."""
         from SuperClaude.Agents.cli import main
 
-        with patch("sys.argv", ["cli", "stats"]), patch(
-            "SuperClaude.Agents.cli.ExtendedAgentLoader",
-            return_value=mock_extended_loader,
+        with (
+            patch("sys.argv", ["cli", "stats"]),
+            patch(
+                "SuperClaude.Agents.cli.ExtendedAgentLoader",
+                return_value=mock_extended_loader,
+            ),
         ):
             main()
 
@@ -370,9 +386,12 @@ class TestMainFunction:
         """Test main() with tree command."""
         from SuperClaude.Agents.cli import main
 
-        with patch("sys.argv", ["cli", "tree"]), patch(
-            "SuperClaude.Agents.cli.ExtendedAgentLoader",
-            return_value=mock_extended_loader,
+        with (
+            patch("sys.argv", ["cli", "tree"]),
+            patch(
+                "SuperClaude.Agents.cli.ExtendedAgentLoader",
+                return_value=mock_extended_loader,
+            ),
         ):
             main()
 
@@ -383,9 +402,10 @@ class TestMainFunction:
         """Test that main() handles exceptions gracefully."""
         from SuperClaude.Agents.cli import main
 
-        with patch("sys.argv", ["cli", "list"]), patch(
-            "SuperClaude.Agents.cli.ExtendedAgentLoader"
-        ) as mock_loader_class:
+        with (
+            patch("sys.argv", ["cli", "list"]),
+            patch("SuperClaude.Agents.cli.ExtendedAgentLoader") as mock_loader_class,
+        ):
             mock_loader_class.return_value._agent_metadata = {}
             mock_loader_class.return_value.get_agents_by_category.side_effect = (
                 Exception("Test error")
@@ -407,21 +427,24 @@ class TestSelectCommand:
         """Test main() with select command and arguments."""
         from SuperClaude.Agents.cli import main
 
-        with patch(
-            "sys.argv",
-            [
-                "cli",
-                "select",
-                "--task",
-                "write tests",
-                "--files",
-                "test.py",
-                "--languages",
-                "python",
-            ],
-        ), patch(
-            "SuperClaude.Agents.cli.ExtendedAgentLoader",
-            return_value=mock_extended_loader,
+        with (
+            patch(
+                "sys.argv",
+                [
+                    "cli",
+                    "select",
+                    "--task",
+                    "write tests",
+                    "--files",
+                    "test.py",
+                    "--languages",
+                    "python",
+                ],
+            ),
+            patch(
+                "SuperClaude.Agents.cli.ExtendedAgentLoader",
+                return_value=mock_extended_loader,
+            ),
         ):
             main()
 

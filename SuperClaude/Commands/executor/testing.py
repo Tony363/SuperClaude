@@ -9,9 +9,10 @@ import logging
 import os
 import re
 import subprocess
+from collections.abc import Iterable
 from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Optional, Set
+from typing import TYPE_CHECKING, Any
 
 from .utils import is_truthy, truncate_output
 
@@ -37,12 +38,12 @@ def should_run_tests(parsed: "ParsedCommand") -> bool:
 
 def run_requested_tests(
     parsed: "ParsedCommand",
-    repo_root: Optional[Path] = None,
-) -> Dict[str, Any]:
+    repo_root: Path | None = None,
+) -> dict[str, Any]:
     """Execute project tests and capture results."""
-    pytest_args: List[str] = ["-q"]
-    markers: List[str] = []
-    targets: List[str] = []
+    pytest_args: list[str] = ["-q"]
+    markers: list[str] = []
+    targets: list[str] = []
 
     parameters = parsed.parameters
     flags = parsed.flags
@@ -118,8 +119,8 @@ def run_requested_tests(
     if isinstance(target_param, str) and target_param.strip():
         targets.append(target_param.strip())
 
-    unique_markers: List[str] = []
-    seen_markers: Set[str] = set()
+    unique_markers: list[str] = []
+    seen_markers: set[str] = set()
     for marker in markers:
         normalized = marker.strip()
         if not normalized:
@@ -128,7 +129,7 @@ def run_requested_tests(
             seen_markers.add(normalized)
             unique_markers.append(normalized)
 
-    command: List[str] = ["pytest", *pytest_args]
+    command: list[str] = ["pytest", *pytest_args]
     if unique_markers:
         marker_expression = " or ".join(unique_markers)
         command.extend(["-m", marker_expression])
@@ -216,7 +217,7 @@ def run_requested_tests(
     return output
 
 
-def summarize_test_results(test_results: Dict[str, Any]) -> str:
+def summarize_test_results(test_results: dict[str, Any]) -> str:
     """Create a concise summary string for executed tests."""
     command = test_results.get("command", "tests")
     status = "pass" if test_results.get("passed") else "fail"
@@ -225,11 +226,11 @@ def summarize_test_results(test_results: Dict[str, Any]) -> str:
     return f"{command} ({status}{duration_part})"
 
 
-def parse_pytest_output(stdout: str, stderr: str) -> Dict[str, Any]:
+def parse_pytest_output(stdout: str, stderr: str) -> dict[str, Any]:
     """Extract structured metrics from pytest stdout/stderr."""
     combined = "\n".join(part for part in (stdout, stderr) if part)
 
-    metrics: Dict[str, Any] = {
+    metrics: dict[str, Any] = {
         "tests_passed": 0,
         "tests_failed": 0,
         "tests_errored": 0,

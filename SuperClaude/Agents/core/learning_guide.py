@@ -7,7 +7,7 @@ understanding for different learning styles.
 """
 
 from textwrap import indent
-from typing import Any, Dict, List, Tuple
+from typing import Any
 
 from ..base import BaseAgent
 
@@ -18,7 +18,7 @@ class LearningGuide(BaseAgent):
     progressive explanations and guided practice.
     """
 
-    def __init__(self, config: Dict[str, Any]):
+    def __init__(self, config: dict[str, Any]):
         """
         Initialize the learning guide agent with sensible defaults.
 
@@ -37,9 +37,9 @@ class LearningGuide(BaseAgent):
 
         super().__init__(config)
 
-        self.learning_levels: Dict[str, Dict[str, Any]] = {}
-        self.explanation_styles: Dict[str, str] = {}
-        self.practice_templates: Dict[str, List[str]] = {}
+        self.learning_levels: dict[str, dict[str, Any]] = {}
+        self.explanation_styles: dict[str, str] = {}
+        self.practice_templates: dict[str, list[str]] = {}
 
     def _setup(self):
         """Configure learning strategies and practice templates."""
@@ -95,7 +95,7 @@ class LearningGuide(BaseAgent):
             ],
         }
 
-    def execute(self, context: Dict[str, Any]) -> Dict[str, Any]:
+    def execute(self, context: dict[str, Any]) -> dict[str, Any]:
         """
         Build a progressive learning package for the requested concept.
 
@@ -174,7 +174,7 @@ class LearningGuide(BaseAgent):
 
         return result
 
-    def validate(self, context: Dict[str, Any]) -> bool:
+    def validate(self, context: dict[str, Any]) -> bool:
         """
         Determine if this agent is an appropriate match for the context.
         """
@@ -194,7 +194,7 @@ class LearningGuide(BaseAgent):
         ]
         return any(keyword in task for keyword in keywords)
 
-    def _assess_skill_level(self, context: Dict[str, Any]) -> Tuple[str, List[str]]:
+    def _assess_skill_level(self, context: dict[str, Any]) -> tuple[str, list[str]]:
         """
         Infer skill level from context hints.
         """
@@ -204,7 +204,7 @@ class LearningGuide(BaseAgent):
             if normalized in self.learning_levels:
                 return normalized, ["explicit request"]
 
-        indicators: List[str] = []
+        indicators: list[str] = []
         task = (context.get("task") or "").lower()
 
         if any(
@@ -223,7 +223,7 @@ class LearningGuide(BaseAgent):
 
         return "intermediate", indicators or ["default level"]
 
-    def _extract_key_concepts(self, topic: str, context: Dict[str, Any]) -> List[str]:
+    def _extract_key_concepts(self, topic: str, context: dict[str, Any]) -> list[str]:
         """
         Identify sub-concepts to cover in the learning path.
         """
@@ -238,12 +238,12 @@ class LearningGuide(BaseAgent):
         return [topic]
 
     def _build_explanation(
-        self, topic: str, concepts: List[str], level: str, context: Dict[str, Any]
-    ) -> Dict[str, str]:
+        self, topic: str, concepts: list[str], level: str, context: dict[str, Any]
+    ) -> dict[str, str]:
         """
         Create layered explanation notes keyed by explanation style.
         """
-        notes: Dict[str, str] = {}
+        notes: dict[str, str] = {}
         audience = context.get("audience", "engineer")
 
         concept_summary = (
@@ -278,15 +278,15 @@ class LearningGuide(BaseAgent):
         return notes
 
     def _create_examples(
-        self, topic: str, context: Dict[str, Any], level: str
-    ) -> List[Dict[str, Any]]:
+        self, topic: str, context: dict[str, Any], level: str
+    ) -> list[dict[str, Any]]:
         """
         Generate example scaffolds tailored to the learner level.
         """
         code = context.get("code") or context.get("snippet")
         language = context.get("language", "python")
 
-        examples: List[Dict[str, Any]] = []
+        examples: list[dict[str, Any]] = []
         if code:
             examples.append(
                 {
@@ -325,8 +325,8 @@ class LearningGuide(BaseAgent):
         return examples
 
     def _design_practice(
-        self, topic: str, level: str, context: Dict[str, Any]
-    ) -> List[str]:
+        self, topic: str, level: str, context: dict[str, Any]
+    ) -> list[str]:
         """
         Provide practice prompts that reinforce the concept.
         """
@@ -344,8 +344,8 @@ class LearningGuide(BaseAgent):
         return prompts
 
     def _recommend_resources(
-        self, topic: str, level: str, context: Dict[str, Any]
-    ) -> List[str]:
+        self, topic: str, level: str, context: dict[str, Any]
+    ) -> list[str]:
         """
         Suggest follow-up resources if hints are supplied.
         """
@@ -376,15 +376,15 @@ class LearningGuide(BaseAgent):
         self,
         topic: str,
         skill_level: str,
-        explanation: Dict[str, str],
-        examples: List[Dict[str, Any]],
-        practice: List[str],
-        resources: List[str],
+        explanation: dict[str, str],
+        examples: list[dict[str, Any]],
+        practice: list[str],
+        resources: list[str],
     ) -> str:
         """
         Assemble the final markdown package for delivery.
         """
-        sections: List[str] = []
+        sections: list[str] = []
 
         sections.append(f"# Learning Guide: {topic.title()}")
         sections.append(f"**Skill Level**: {skill_level.title()}")
@@ -400,7 +400,7 @@ class LearningGuide(BaseAgent):
         sections.append(explanation["mechanics"])
 
         sections.append("## Worked Examples")
-        example_lines: List[str] = []
+        example_lines: list[str] = []
         for item in examples:
             example_lines.append(f"- **{item['title']}** – {item['explanation']}")
             if item["code"]:

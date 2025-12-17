@@ -32,7 +32,6 @@ import os
 import re
 import urllib.parse
 from pathlib import Path
-from typing import List, Optional, Set, Tuple
 
 # Module-level logger for security-related debug messages
 _logger = logging.getLogger(__name__)
@@ -131,8 +130,8 @@ class SecurityValidator:
 
     @classmethod
     def validate_path(
-        cls, path: Path, base_dir: Optional[Path] = None
-    ) -> Tuple[bool, str]:
+        cls, path: Path, base_dir: Path | None = None
+    ) -> tuple[bool, str]:
         """
         Validate path for security issues with enhanced cross-platform support
 
@@ -269,7 +268,7 @@ class SecurityValidator:
             return False, f"Path validation error: {e}"
 
     @classmethod
-    def validate_file_extension(cls, path: Path) -> Tuple[bool, str]:
+    def validate_file_extension(cls, path: Path) -> tuple[bool, str]:
         """
         Validate file extension is allowed
 
@@ -381,7 +380,7 @@ class SecurityValidator:
         return sanitized
 
     @classmethod
-    def validate_url(cls, url: str) -> Tuple[bool, str]:
+    def validate_url(cls, url: str) -> tuple[bool, str]:
         """
         Validate URL for security issues
 
@@ -423,8 +422,8 @@ class SecurityValidator:
 
     @classmethod
     def check_permissions(
-        cls, path: Path, required_permissions: Set[str]
-    ) -> Tuple[bool, List[str]]:
+        cls, path: Path, required_permissions: set[str]
+    ) -> tuple[bool, list[str]]:
         """
         Check file/directory permissions
 
@@ -465,7 +464,7 @@ class SecurityValidator:
             return False, missing
 
     @classmethod
-    def validate_installation_target(cls, target_dir: Path) -> Tuple[bool, List[str]]:
+    def validate_installation_target(cls, target_dir: Path) -> tuple[bool, list[str]]:
         """
         Validate installation target directory with enhanced Windows compatibility
 
@@ -661,10 +660,10 @@ class SecurityValidator:
     @classmethod
     def validate_component_files(
         cls,
-        file_list: List[Tuple[Path, Path]],
+        file_list: list[tuple[Path, Path]],
         base_source_dir: Path,
         base_target_dir: Path,
-    ) -> Tuple[bool, List[str]]:
+    ) -> tuple[bool, list[str]]:
         """
         Validate list of files for component installation
 

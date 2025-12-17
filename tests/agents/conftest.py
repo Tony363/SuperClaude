@@ -1,7 +1,7 @@
 """Shared fixtures for SuperClaude Agents module tests."""
 
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
+from typing import Any
 from unittest.mock import Mock
 
 import pytest
@@ -15,12 +15,12 @@ class MockAgentMetadata:
     name: str
     category: Any = None
     priority: int = 1
-    domains: List[str] = field(default_factory=list)
-    languages: List[str] = field(default_factory=list)
-    keywords: List[str] = field(default_factory=list)
+    domains: list[str] = field(default_factory=list)
+    languages: list[str] = field(default_factory=list)
+    keywords: list[str] = field(default_factory=list)
     description: str = ""
-    file_patterns: List[str] = field(default_factory=list)
-    imports: List[str] = field(default_factory=list)
+    file_patterns: list[str] = field(default_factory=list)
+    imports: list[str] = field(default_factory=list)
     is_loaded: bool = False
     load_count: int = 0
     last_accessed: float = 0.0
@@ -92,7 +92,7 @@ def mock_loader_factory():
         callable: A factory function that creates configured mock loaders.
     """
 
-    def create_loader(agent_map: Optional[Dict[str, Mock]] = None):
+    def create_loader(agent_map: dict[str, Mock] | None = None):
         loader = Mock()
         if agent_map:
 

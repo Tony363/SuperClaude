@@ -10,8 +10,6 @@ Tests the critical safety features that prevent infinite token-burning loops:
 
 from __future__ import annotations
 
-import pytest
-
 from SuperClaude.Quality.quality_scorer import (
     IterationResult,
     IterationTermination,
@@ -97,7 +95,7 @@ class TestOscillationDetection:
                 history = oscillating_scores[:window_size]
                 if window_size >= scorer.OSCILLATION_WINDOW:
                     # Should detect oscillation pattern
-                    result = scorer._detect_oscillation(history)
+                    _ = scorer._detect_oscillation(history)
                     # May or may not detect depending on exact pattern
                     # The key is it doesn't crash
 
@@ -159,7 +157,7 @@ class TestStagnationDetection:
         # Should not detect stagnation (variance > threshold)
         # Need at least OSCILLATION_WINDOW scores
         if len(above_threshold) >= scorer.OSCILLATION_WINDOW:
-            result = scorer._detect_stagnation(above_threshold)
+            _ = scorer._detect_stagnation(above_threshold)
             # May or may not detect depending on exact values
 
 

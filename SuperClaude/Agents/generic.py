@@ -10,7 +10,7 @@ import re
 import textwrap
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
 
 from .base import BaseAgent
 
@@ -24,7 +24,7 @@ class GenericMarkdownAgent(BaseAgent):
     a specific Python implementation.
     """
 
-    def __init__(self, config: Dict[str, Any]):
+    def __init__(self, config: dict[str, Any]):
         """
         Initialize generic agent with markdown configuration.
 
@@ -42,7 +42,7 @@ class GenericMarkdownAgent(BaseAgent):
         self.will_do = boundaries.get("will", [])
         self.will_not_do = boundaries.get("will_not", [])
 
-    def execute(self, context: Dict[str, Any]) -> Dict[str, Any]:
+    def execute(self, context: dict[str, Any]) -> dict[str, Any]:
         """
         Execute the agent based on markdown configuration.
 
@@ -130,7 +130,7 @@ class GenericMarkdownAgent(BaseAgent):
 
         return result
 
-    def validate(self, context: Dict[str, Any]) -> bool:
+    def validate(self, context: dict[str, Any]) -> bool:
         """
         Validate if this agent can handle the context.
 
@@ -162,7 +162,7 @@ class GenericMarkdownAgent(BaseAgent):
         # Accept if confidence is above calibrated threshold
         return confidence >= 0.5
 
-    def _build_execution_plan(self, task: str, parameters: Dict[str, Any]) -> List[str]:
+    def _build_execution_plan(self, task: str, parameters: dict[str, Any]) -> list[str]:
         """
         Build execution plan based on key actions.
 
@@ -224,7 +224,7 @@ class GenericMarkdownAgent(BaseAgent):
         # Default to including the action for generic execution
         return len(self.key_actions) <= 3  # Include all if few actions
 
-    def _format_action(self, action: str, task: str, parameters: Dict[str, Any]) -> str:
+    def _format_action(self, action: str, task: str, parameters: dict[str, Any]) -> str:
         """
         Format action with context.
 
@@ -251,7 +251,7 @@ class GenericMarkdownAgent(BaseAgent):
         return formatted
 
     def _generate_output(
-        self, task: str, planned_actions: List[str], executed_operations: List[str]
+        self, task: str, planned_actions: list[str], executed_operations: list[str]
     ) -> str:
         """
         Generate output summarizing both the plan and executed work.
@@ -264,7 +264,7 @@ class GenericMarkdownAgent(BaseAgent):
         Returns:
             Output string
         """
-        output_lines: List[str] = []
+        output_lines: list[str] = []
 
         output_lines.append(f"# {self.name.replace('-', ' ').title()} Summary")
         output_lines.append("")
@@ -301,7 +301,7 @@ class GenericMarkdownAgent(BaseAgent):
 
         return "\n".join(output_lines)
 
-    def _generate_plan_output(self, task: str, planned_actions: List[str]) -> str:
+    def _generate_plan_output(self, task: str, planned_actions: list[str]) -> str:
         """
         Generate plan-only output when no execution evidence is present.
 
@@ -312,7 +312,7 @@ class GenericMarkdownAgent(BaseAgent):
         Returns:
             Output string
         """
-        output_lines: List[str] = []
+        output_lines: list[str] = []
 
         output_lines.append(f"# {self.name.replace('-', ' ').title()} Plan")
         output_lines.append("")
@@ -342,7 +342,7 @@ class GenericMarkdownAgent(BaseAgent):
 
         return "\n".join(output_lines)
 
-    def _extract_executed_operations(self, context: Dict[str, Any]) -> List[str]:
+    def _extract_executed_operations(self, context: dict[str, Any]) -> list[str]:
         """
         Extract concrete operations from execution context.
 
@@ -352,7 +352,7 @@ class GenericMarkdownAgent(BaseAgent):
         Returns:
             List of executed operation descriptions
         """
-        executed: List[str] = []
+        executed: list[str] = []
         candidate_keys = [
             "executed_operations",
             "applied_changes",
@@ -410,16 +410,16 @@ class GenericMarkdownAgent(BaseAgent):
 
     def _synthesise_change_plan(
         self,
-        context: Dict[str, Any],
+        context: dict[str, Any],
         task: str,
-        planned_actions: List[str],
-        executed_operations: List[str],
-    ) -> List[Dict[str, Any]]:
+        planned_actions: list[str],
+        executed_operations: list[str],
+    ) -> list[dict[str, Any]]:
         """
         Best-effort synthesis of a concrete change plan so downstream components
         apply tangible repo edits instead of plan-only guidance.
         """
-        change_entries: List[Dict[str, Any]] = []
+        change_entries: list[dict[str, Any]] = []
 
         provided_changes = context.get("proposed_changes") or context.get("changes")
         if isinstance(provided_changes, list):
@@ -440,7 +440,7 @@ class GenericMarkdownAgent(BaseAgent):
 
         return change_entries
 
-    def _infer_extension(self, context: Dict[str, Any], task: str) -> str:
+    def _infer_extension(self, context: dict[str, Any], task: str) -> str:
         """Infer file extension for generated stub."""
         parameters = context.get("parameters", {}) or {}
         framework = str(parameters.get("framework") or "").lower()
@@ -495,7 +495,7 @@ class GenericMarkdownAgent(BaseAgent):
     def _render_stub_content(
         self,
         task: str,
-        planned_actions: List[str],
+        planned_actions: list[str],
         extension: str,
     ) -> str:
         """Render language-appropriate stub content describing the plan."""
@@ -568,7 +568,7 @@ class GenericMarkdownAgent(BaseAgent):
         self,
         task: str,
         agent_name: str,
-        plan_steps: List[str],
+        plan_steps: list[str],
         timestamp: str,
         category_label: str,
     ) -> str:
@@ -621,7 +621,7 @@ class GenericMarkdownAgent(BaseAgent):
         extension: str,
         task: str,
         agent_name: str,
-        plan_steps: List[str],
+        plan_steps: list[str],
         timestamp: str,
         category_label: str,
     ) -> str:

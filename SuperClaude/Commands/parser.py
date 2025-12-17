@@ -8,7 +8,7 @@ import logging
 import re
 import shlex
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Tuple
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -19,9 +19,9 @@ class ParsedCommand:
 
     name: str
     raw_string: str
-    arguments: List[str] = field(default_factory=list)
-    flags: Dict[str, bool] = field(default_factory=dict)
-    parameters: Dict[str, Any] = field(default_factory=dict)
+    arguments: list[str] = field(default_factory=list)
+    flags: dict[str, bool] = field(default_factory=dict)
+    parameters: dict[str, Any] = field(default_factory=dict)
     description: str = ""
 
 
@@ -110,7 +110,7 @@ class CommandParser:
 
     def _parse_arguments(
         self, args_str: str
-    ) -> Tuple[List[str], Dict[str, bool], Dict[str, Any]]:
+    ) -> tuple[list[str], dict[str, bool], dict[str, Any]]:
         """
         Parse arguments, flags, and parameters from argument string.
 
@@ -243,7 +243,7 @@ class CommandParser:
             self._validate_parameters(parsed, command_meta.parameters)
 
     def _validate_parameters(
-        self, parsed: ParsedCommand, schema: Dict[str, Any]
+        self, parsed: ParsedCommand, schema: dict[str, Any]
     ) -> None:
         """
         Validate parameters against schema.
@@ -273,7 +273,7 @@ class CommandParser:
                             f"Parameter '--{param_name}' must be of type {param_type}"
                         )
 
-    def extract_commands(self, text: str) -> List[str]:
+    def extract_commands(self, text: str) -> list[str]:
         """
         Extract all /sc: commands from a text.
 
@@ -300,7 +300,7 @@ class CommandParser:
         """
         return bool(self.COMMAND_PATTERN.search(text))
 
-    def suggest_command(self, partial: str) -> List[Tuple[str, str]]:
+    def suggest_command(self, partial: str) -> list[tuple[str, str]]:
         """
         Suggest commands based on partial input.
 

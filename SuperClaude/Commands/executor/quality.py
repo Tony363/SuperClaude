@@ -8,12 +8,12 @@ validation, and result formatting.
 import logging
 from dataclasses import asdict
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
 
-def serialize_assessment(assessment: Any) -> Dict[str, Any]:
+def serialize_assessment(assessment: Any) -> dict[str, Any]:
     """Convert a QualityAssessment dataclass into JSON-serializable dict.
 
     Args:
@@ -41,7 +41,7 @@ def format_quality_summary(
     overall_score: float,
     threshold: float,
     passed: bool,
-    metrics: Optional[List[Dict[str, Any]]] = None,
+    metrics: list[dict[str, Any]] | None = None,
 ) -> str:
     """Format a quality assessment into a human-readable summary.
 
@@ -72,7 +72,7 @@ def format_quality_summary(
 
 def extract_quality_improvements(
     assessment: Any,
-) -> List[str]:
+) -> list[str]:
     """Extract the improvements_needed list from an assessment.
 
     Args:
@@ -110,9 +110,9 @@ def calculate_pass_rate(passed: int, failed: int, errored: int = 0) -> float:
 
 def derive_quality_status(
     has_changes: bool,
-    assessment_passed: Optional[bool],
-    consensus_reached: Optional[bool],
-    static_issues: Optional[List[str]] = None,
+    assessment_passed: bool | None,
+    consensus_reached: bool | None,
+    static_issues: list[str] | None = None,
 ) -> str:
     """Derive the overall quality status from multiple signals.
 
@@ -144,7 +144,7 @@ def validate_quality_threshold(
     score: float,
     threshold: float,
     strict: bool = False,
-) -> Tuple[bool, str]:
+) -> tuple[bool, str]:
     """Validate whether a score meets the threshold.
 
     Args:
@@ -171,8 +171,8 @@ def validate_quality_threshold(
 
 
 def aggregate_dimension_scores(
-    metrics: List[Dict[str, Any]],
-    weights: Optional[Dict[str, float]] = None,
+    metrics: list[dict[str, Any]],
+    weights: dict[str, float] | None = None,
 ) -> float:
     """Aggregate dimension scores into an overall score.
 
@@ -207,9 +207,9 @@ def aggregate_dimension_scores(
 
 def build_quality_context(
     status: str,
-    changed_files: List[str],
-    results: Optional[Dict[str, Any]] = None,
-) -> Dict[str, Any]:
+    changed_files: list[str],
+    results: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     """Build an evaluation context dictionary for quality scoring.
 
     Args:

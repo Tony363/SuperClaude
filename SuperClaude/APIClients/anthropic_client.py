@@ -8,10 +8,11 @@ import asyncio
 import json
 import logging
 import os
+from collections.abc import AsyncIterator, Mapping
 from dataclasses import dataclass, field, replace
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any, AsyncIterator, Dict, List, Mapping, Optional, Tuple
+from typing import Any
 
 from .http_utils import HTTPClientError, post_json
 
@@ -52,7 +53,7 @@ class AnthropicConfig:
     api_key: str
     endpoint: str = "https://api.anthropic.com/v1"
     api_version: str = "2023-06-01"
-    beta_headers: List[str] = field(
+    beta_headers: list[str] = field(
         default_factory=lambda: [
             h.strip()
             for h in os.getenv("ANTHROPIC_BETA", "clear_thinking_20251015").split(",")
@@ -78,16 +79,16 @@ class ClaudeRequest:
     """Request for Claude completion."""
 
     model: str
-    messages: List[Dict[str, str]]
+    messages: list[dict[str, str]]
     max_tokens: int = 4096
     temperature: float = 0.7
     top_p: float = 1.0
-    top_k: Optional[int] = None
+    top_k: int | None = None
     stream: bool = False
-    system: Optional[str] = None
-    stop_sequences: Optional[List[str]] = None
-    metadata: Dict[str, Any] = field(default_factory=dict)
-    thinking: Optional[Dict[str, Any]] = None
+    system: str | None = None
+    stop_sequences: list[str] | None = None
+    metadata: dict[str, Any] = field(default_factory=dict)
+    thinking: dict[str, Any] | None = None
 
 
 @dataclass
@@ -99,8 +100,8 @@ class ClaudeResponse:
     content: str
     role: str = "assistant"
     stop_reason: str = "end_turn"
-    usage: Dict[str, int] = field(default_factory=dict)
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    usage: dict[str, int] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
 
 class AnthropicClient:
@@ -134,7 +135,7 @@ class AnthropicClient:
     }
 
     def __init__(
-        self, config: Optional[AnthropicConfig] = None, api_key: Optional[str] = None
+        self, config: AnthropicConfig | None = None, api_key: str | None = None
     ):
         """Initialize Anthropic client."""
         if not config:
@@ -218,7 +219,7 @@ class AnthropicClient:
                 raise
 
         content_blocks = data.get("content") or []
-        text_parts: List[str] = []
+        text_parts: list[str] = []
         for block in content_blocks:
             if isinstance(block, dict) and block.get("type") == "text":
                 text_parts.append(block.get("text", ""))
@@ -315,7 +316,7 @@ class AnthropicClient:
 
         return await self.complete(request)
 
-    def _chunk_stream_text(self, content: str, *, chunk_size: int = 128) -> List[str]:
+    def _chunk_stream_text(self, content: str, *, chunk_size: int = 128) -> list[str]:
         """Split Claude content into deterministic chunks for streaming."""
         if not content:
             return [""]
@@ -324,7 +325,7 @@ class AnthropicClient:
 
     async def validate_response(
         self, original_prompt: str, response: str, validation_criteria: str
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Validate a response using Claude.
 
@@ -363,7 +364,7 @@ Provide:
         parsed["raw_response"] = result.content
         return parsed
 
-    def estimate_cost(self, request: ClaudeRequest) -> Dict[str, float]:
+    def estimate_cost(self, request: ClaudeRequest) -> dict[str, float]:
         """
         Estimate cost for a request.
 
@@ -401,7 +402,7 @@ Provide:
             "estimated_tokens": input_tokens + output_tokens,
         }
 
-    def get_model_info(self, model: str) -> Optional[Dict[str, Any]]:
+    def get_model_info(self, model: str) -> dict[str, Any] | None:
         """Get model configuration info."""
         # Check both short and full names
         if model in self.MODEL_CONFIGS:
@@ -413,16 +414,16 @@ Provide:
 
         return None
 
-    def _parse_validation_response(self, text: str) -> Dict[str, Any]:
+    def _parse_validation_response(self, text: str) -> dict[str, Any]:
         """Parse validation output from Claude into structured data."""
         import re
 
         lines = [line.strip() for line in text.splitlines() if line.strip()]
-        verdict: Optional[bool] = None
-        confidence: Optional[float] = None
-        issues: List[str] = []
-        suggestions: List[str] = []
-        collector: Optional[List[str]] = None
+        verdict: bool | None = None
+        confidence: float | None = None
+        issues: list[str] = []
+        suggestions: list[str] = []
+        collector: list[str] | None = None
 
         for line in lines:
             normalized = line.lower()
@@ -465,7 +466,7 @@ Provide:
             "suggestions": suggestions,
         }
 
-    def _default_thinking_payload(self) -> Dict[str, Any]:
+    def _default_thinking_payload(self) -> dict[str, Any]:
         """Create the default thinking configuration."""
 
         return {
@@ -476,7 +477,7 @@ Provide:
     def _error_requires_thinking(self, error: HTTPClientError) -> bool:
         """Check whether an Anthropic error demands thinking to be enabled."""
 
-        fragments: List[str] = []
+        fragments: list[str] = []
         if error.payload:
             detail = error.payload.get("error")
             if isinstance(detail, Mapping):
@@ -495,7 +496,7 @@ Provide:
         )
 
     def _should_retry_with_thinking(
-        self, error: HTTPClientError, payload: Dict[str, Any]
+        self, error: HTTPClientError, payload: dict[str, Any]
     ) -> bool:
         """Determine if we should retry a request after enabling thinking."""
 
@@ -503,7 +504,7 @@ Provide:
             return False
         return self._error_requires_thinking(error)
 
-    def _build_payload(self, request: ClaudeRequest) -> Dict[str, Any]:
+    def _build_payload(self, request: ClaudeRequest) -> dict[str, Any]:
         """Build API request payload."""
         payload = {
             "model": request.model,
@@ -541,8 +542,8 @@ class RateLimiter:
         """Initialize rate limiter."""
         self.rpm_limit = rpm_limit
         self.tpm_limit = tpm_limit
-        self.request_times: List[datetime] = []
-        self.token_counts: List[Tuple[datetime, int]] = []
+        self.request_times: list[datetime] = []
+        self.token_counts: list[tuple[datetime, int]] = []
 
     async def acquire(self, request: ClaudeRequest):
         """Wait if necessary to respect rate limits."""
@@ -584,13 +585,13 @@ class TokenCounter:
         self.total_output_tokens = 0
         self.request_count = 0
 
-    def add(self, usage: Dict[str, int]):
+    def add(self, usage: dict[str, int]):
         """Add usage from a response."""
         self.total_input_tokens += usage.get("input_tokens", 0)
         self.total_output_tokens += usage.get("output_tokens", 0)
         self.request_count += 1
 
-    def get_summary(self) -> Dict[str, Any]:
+    def get_summary(self) -> dict[str, Any]:
         """Get usage summary."""
         total = self.total_input_tokens + self.total_output_tokens
         return {
@@ -605,7 +606,7 @@ class TokenCounter:
 
 
 # Convenience functions
-async def create_anthropic_client(api_key: Optional[str] = None) -> AnthropicClient:
+async def create_anthropic_client(api_key: str | None = None) -> AnthropicClient:
     """Create and initialize Anthropic client."""
     config = AnthropicConfig(api_key=api_key) if api_key else None
     return AnthropicClient(config)

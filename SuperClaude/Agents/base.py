@@ -9,7 +9,7 @@ abstract methods.
 import json
 import logging
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List
+from typing import Any
 
 
 class BaseAgent(ABC):
@@ -21,7 +21,7 @@ class BaseAgent(ABC):
     that define their behavior, tools, and focus areas.
     """
 
-    def __init__(self, config: Dict[str, Any]):
+    def __init__(self, config: dict[str, Any]):
         """
         Initialize the base agent with configuration.
 
@@ -53,7 +53,7 @@ class BaseAgent(ABC):
         self._execution_count = 0
 
     @abstractmethod
-    def execute(self, context: Dict[str, Any]) -> Dict[str, Any]:
+    def execute(self, context: dict[str, Any]) -> dict[str, Any]:
         """
         Execute the agent's main logic.
 
@@ -68,7 +68,7 @@ class BaseAgent(ABC):
         pass
 
     @abstractmethod
-    def validate(self, context: Dict[str, Any]) -> bool:
+    def validate(self, context: dict[str, Any]) -> bool:
         """
         Validate if this agent can handle the given context.
 
@@ -80,7 +80,7 @@ class BaseAgent(ABC):
         """
         pass
 
-    def get_capabilities(self) -> List[str]:
+    def get_capabilities(self) -> list[str]:
         """
         Return list of agent capabilities.
 
@@ -99,7 +99,7 @@ class BaseAgent(ABC):
 
         return capabilities
 
-    def get_trigger_keywords(self) -> List[str]:
+    def get_trigger_keywords(self) -> list[str]:
         """
         Return list of keywords that trigger this agent.
 
@@ -108,7 +108,7 @@ class BaseAgent(ABC):
         """
         return self.triggers
 
-    def get_metadata(self) -> Dict[str, Any]:
+    def get_metadata(self) -> dict[str, Any]:
         """
         Return agent metadata.
 
@@ -190,7 +190,7 @@ class BaseAgent(ABC):
         # Cap at 1.0
         return min(score, 1.0)
 
-    def log_execution(self, context: Dict[str, Any], result: Dict[str, Any]):
+    def log_execution(self, context: dict[str, Any], result: dict[str, Any]):
         """
         Log agent execution for debugging and monitoring.
 

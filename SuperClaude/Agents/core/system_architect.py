@@ -5,7 +5,7 @@ This agent specializes in designing scalable system architectures,
 evaluating design patterns, and making architectural decisions.
 """
 
-from typing import Any, Dict, List
+from typing import Any
 
 from ..base import BaseAgent
 
@@ -18,7 +18,7 @@ class SystemArchitect(BaseAgent):
     and scalability assessments for software projects.
     """
 
-    def __init__(self, config: Dict[str, Any]):
+    def __init__(self, config: dict[str, Any]):
         """
         Initialize the system architect.
 
@@ -40,7 +40,7 @@ class SystemArchitect(BaseAgent):
         self.principles = self._initialize_principles()
         self.quality_attributes = self._initialize_quality_attributes()
 
-    def execute(self, context: Dict[str, Any]) -> Dict[str, Any]:
+    def execute(self, context: dict[str, Any]) -> dict[str, Any]:
         """
         Execute architectural analysis and design tasks.
 
@@ -134,7 +134,7 @@ class SystemArchitect(BaseAgent):
 
         return result
 
-    def validate(self, context: Dict[str, Any]) -> bool:
+    def validate(self, context: dict[str, Any]) -> bool:
         """
         Check if this agent can handle the context.
 
@@ -165,7 +165,7 @@ class SystemArchitect(BaseAgent):
         task_lower = task.lower()
         return any(keyword in task_lower for keyword in arch_keywords)
 
-    def _initialize_patterns(self) -> Dict[str, Dict[str, Any]]:
+    def _initialize_patterns(self) -> dict[str, dict[str, Any]]:
         """
         Initialize architectural patterns.
 
@@ -214,7 +214,7 @@ class SystemArchitect(BaseAgent):
             },
         }
 
-    def _initialize_principles(self) -> List[Dict[str, Any]]:
+    def _initialize_principles(self) -> list[dict[str, Any]]:
         """
         Initialize architectural principles.
 
@@ -249,7 +249,7 @@ class SystemArchitect(BaseAgent):
             },
         ]
 
-    def _initialize_quality_attributes(self) -> Dict[str, Dict[str, Any]]:
+    def _initialize_quality_attributes(self) -> dict[str, dict[str, Any]]:
         """
         Initialize quality attributes for evaluation.
 
@@ -290,8 +290,8 @@ class SystemArchitect(BaseAgent):
         }
 
     def _analyze_current_architecture(
-        self, files: List[str], code: str
-    ) -> Dict[str, Any]:
+        self, files: list[str], code: str
+    ) -> dict[str, Any]:
         """
         Analyze the current system architecture.
 
@@ -340,7 +340,7 @@ class SystemArchitect(BaseAgent):
 
         return architecture
 
-    def _extract_components_from_files(self, files: List[str]) -> List[Dict[str, Any]]:
+    def _extract_components_from_files(self, files: list[str]) -> list[dict[str, Any]]:
         """
         Extract components from file structure.
 
@@ -378,7 +378,7 @@ class SystemArchitect(BaseAgent):
 
         return components
 
-    def _detect_layers(self, files: List[str]) -> List[str]:
+    def _detect_layers(self, files: list[str]) -> list[str]:
         """
         Detect architectural layers from files.
 
@@ -406,8 +406,8 @@ class SystemArchitect(BaseAgent):
         return layers
 
     def _identify_patterns(
-        self, architecture: Dict[str, Any], code: str
-    ) -> List[Dict[str, Any]]:
+        self, architecture: dict[str, Any], code: str
+    ) -> list[dict[str, Any]]:
         """
         Identify architectural patterns.
 
@@ -453,8 +453,8 @@ class SystemArchitect(BaseAgent):
         return patterns
 
     def _evaluate_quality_attributes(
-        self, architecture: Dict[str, Any], patterns: List[Dict[str, Any]]
-    ) -> Dict[str, float]:
+        self, architecture: dict[str, Any], patterns: list[dict[str, Any]]
+    ) -> dict[str, float]:
         """
         Evaluate quality attributes.
 
@@ -493,8 +493,8 @@ class SystemArchitect(BaseAgent):
         return scores
 
     def _generate_design_decisions(
-        self, task: str, architecture: Dict[str, Any], quality_scores: Dict[str, float]
-    ) -> List[Dict[str, Any]]:
+        self, task: str, architecture: dict[str, Any], quality_scores: dict[str, float]
+    ) -> list[dict[str, Any]]:
         """
         Generate design decisions.
 
@@ -545,11 +545,11 @@ class SystemArchitect(BaseAgent):
 
     def _create_recommendations(
         self,
-        architecture: Dict[str, Any],
-        patterns: List[Dict[str, Any]],
-        quality_scores: Dict[str, float],
-        decisions: List[Dict[str, Any]],
-    ) -> List[Dict[str, Any]]:
+        architecture: dict[str, Any],
+        patterns: list[dict[str, Any]],
+        quality_scores: dict[str, float],
+        decisions: list[dict[str, Any]],
+    ) -> list[dict[str, Any]]:
         """
         Create architectural recommendations.
 
@@ -618,11 +618,11 @@ class SystemArchitect(BaseAgent):
     def _generate_architecture_report(
         self,
         task: str,
-        architecture: Dict[str, Any],
-        patterns: List[Dict[str, Any]],
-        quality_scores: Dict[str, float],
-        decisions: List[Dict[str, Any]],
-        recommendations: List[Dict[str, Any]],
+        architecture: dict[str, Any],
+        patterns: list[dict[str, Any]],
+        quality_scores: dict[str, float],
+        decisions: list[dict[str, Any]],
+        recommendations: list[dict[str, Any]],
     ) -> str:
         """
         Generate comprehensive architecture report.

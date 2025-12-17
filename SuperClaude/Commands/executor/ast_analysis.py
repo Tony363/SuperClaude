@@ -9,7 +9,6 @@ import ast
 import builtins
 import importlib.util
 from pathlib import Path
-from typing import List, Optional, Set
 
 
 class PythonSemanticAnalyzer(ast.NodeVisitor):
@@ -26,16 +25,16 @@ class PythonSemanticAnalyzer(ast.NodeVisitor):
         "__annotations__",
     }
 
-    def __init__(self, file_path: Path, repo_root: Optional[Path]):
+    def __init__(self, file_path: Path, repo_root: Path | None):
         self.file_path = Path(file_path)
         self.repo_root = Path(repo_root) if repo_root else self.file_path.parent
-        self.scopes: List[Set[str]] = [set(self._BUILTINS)]
-        self.missing_imports: List[str] = []
-        self.unresolved_names: Set[str] = set()
-        self.imported_symbols: Set[str] = set()
+        self.scopes: list[set[str]] = [set(self._BUILTINS)]
+        self.missing_imports: list[str] = []
+        self.unresolved_names: set[str] = set()
+        self.imported_symbols: set[str] = set()
         self.module_name = self._derive_module_name()
 
-    def _derive_module_name(self) -> Optional[str]:
+    def _derive_module_name(self) -> str | None:
         try:
             relative = self.file_path.relative_to(self.repo_root)
         except ValueError:
@@ -165,7 +164,7 @@ class PythonSemanticAnalyzer(ast.NodeVisitor):
         self._visit_comprehension(node.generators, node.key, node.value)
 
     def _visit_comprehension(
-        self, generators: List[ast.comprehension], *exprs: ast.AST
+        self, generators: list[ast.comprehension], *exprs: ast.AST
     ) -> None:
         self._push_scope()
         for comp in generators:
@@ -219,7 +218,7 @@ class PythonSemanticAnalyzer(ast.NodeVisitor):
         if spec is None:
             self.missing_imports.append(f"missing import '{candidate}'")
 
-    def _resolve_module_name(self, module: str, level: int) -> Optional[str]:
+    def _resolve_module_name(self, module: str, level: int) -> str | None:
         if level == 0:
             return module
 
@@ -244,8 +243,8 @@ class PythonSemanticAnalyzer(ast.NodeVisitor):
             return True
         return False
 
-    def report(self) -> List[str]:
-        issues: List[str] = []
+    def report(self) -> list[str]:
+        issues: list[str] = []
         issues.extend(self.missing_imports)
         unresolved = sorted(
             self.unresolved_names - self._BUILTINS - set(self.imported_symbols)

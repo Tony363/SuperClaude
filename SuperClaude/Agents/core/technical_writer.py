@@ -6,7 +6,7 @@ for code, APIs, and technical systems.
 """
 
 import re
-from typing import Any, Dict, List
+from typing import Any
 
 from ..base import BaseAgent
 from ..heuristic_markdown import HeuristicMarkdownAgent
@@ -20,7 +20,7 @@ class TechnicalDocumentationAgent(BaseAgent):
     contexts including code, APIs, architecture, and user guides.
     """
 
-    def __init__(self, config: Dict[str, Any]):
+    def __init__(self, config: dict[str, Any]):
         """
         Initialize the technical writer.
 
@@ -41,7 +41,7 @@ class TechnicalDocumentationAgent(BaseAgent):
         self.doc_templates = self._initialize_templates()
         self.doc_sections = self._initialize_sections()
 
-    def execute(self, context: Dict[str, Any]) -> Dict[str, Any]:
+    def execute(self, context: dict[str, Any]) -> dict[str, Any]:
         """
         Execute documentation creation.
 
@@ -132,7 +132,7 @@ class TechnicalWriter(HeuristicMarkdownAgent):
         "comment",
     }
 
-    def __init__(self, config: Dict[str, Any]):
+    def __init__(self, config: dict[str, Any]):
         defaults = {
             "name": "technical-writer",
             "description": "Create clear technical documentation",
@@ -145,7 +145,7 @@ class TechnicalWriter(HeuristicMarkdownAgent):
         self.doc_agent = TechnicalDocumentationAgent(dict(merged))
         self.doc_agent.logger = self.logger
 
-    def validate(self, context: Dict[str, Any]) -> bool:
+    def validate(self, context: dict[str, Any]) -> bool:
         task = str(context.get("task", "")).lower()
         if any(keyword in task for keyword in self.DOC_KEYWORDS):
             return True
@@ -154,7 +154,7 @@ class TechnicalWriter(HeuristicMarkdownAgent):
             return True
         return super().validate(context) or self.doc_agent.validate(context)
 
-    def execute(self, context: Dict[str, Any]) -> Dict[str, Any]:
+    def execute(self, context: dict[str, Any]) -> dict[str, Any]:
         result = super().execute(context)
 
         doc_result = self.doc_agent.execute(context)
@@ -200,7 +200,7 @@ class TechnicalWriter(HeuristicMarkdownAgent):
 
         return result
 
-    def validate(self, context: Dict[str, Any]) -> bool:
+    def validate(self, context: dict[str, Any]) -> bool:
         """
         Check if this agent can handle the context.
 
@@ -230,7 +230,7 @@ class TechnicalWriter(HeuristicMarkdownAgent):
         task_lower = task.lower()
         return any(keyword in task_lower for keyword in doc_keywords)
 
-    def _initialize_templates(self) -> Dict[str, str]:
+    def _initialize_templates(self) -> dict[str, str]:
         """
         Initialize documentation templates.
 
@@ -342,7 +342,7 @@ class TechnicalWriter(HeuristicMarkdownAgent):
 """,
         }
 
-    def _initialize_sections(self) -> Dict[str, List[str]]:
+    def _initialize_sections(self) -> dict[str, list[str]]:
         """
         Initialize documentation sections by type.
 
@@ -442,7 +442,7 @@ class TechnicalWriter(HeuristicMarkdownAgent):
 
     def _analyze_subject(
         self, task: str, subject: str, code: str, doc_type: str
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Analyze the subject matter for documentation.
 
@@ -507,7 +507,7 @@ class TechnicalWriter(HeuristicMarkdownAgent):
         # Return first few meaningful words as topic
         return " ".join(meaningful_words[:5])
 
-    def _extract_concepts(self, task: str, subject: str, code: str) -> List[str]:
+    def _extract_concepts(self, task: str, subject: str, code: str) -> list[str]:
         """
         Extract key concepts to document.
 
@@ -558,8 +558,8 @@ class TechnicalWriter(HeuristicMarkdownAgent):
         return list(set(concepts))[:10]  # Return unique concepts, max 10
 
     def _plan_structure(
-        self, doc_type: str, analysis: Dict[str, Any]
-    ) -> List[Dict[str, Any]]:
+        self, doc_type: str, analysis: dict[str, Any]
+    ) -> list[dict[str, Any]]:
         """
         Plan documentation structure.
 
@@ -659,8 +659,8 @@ class TechnicalWriter(HeuristicMarkdownAgent):
         return priority_map.get(section, 5)
 
     def _generate_sections(
-        self, structure: List[Dict[str, Any]], analysis: Dict[str, Any], doc_type: str
-    ) -> List[Dict[str, Any]]:
+        self, structure: list[dict[str, Any]], analysis: dict[str, Any], doc_type: str
+    ) -> list[dict[str, Any]]:
         """
         Generate documentation sections.
 
@@ -686,7 +686,7 @@ class TechnicalWriter(HeuristicMarkdownAgent):
         return sections
 
     def _generate_section_content(
-        self, section: Dict[str, Any], analysis: Dict[str, Any], doc_type: str
+        self, section: dict[str, Any], analysis: dict[str, Any], doc_type: str
     ) -> str:
         """
         Generate content for a specific section.
@@ -738,10 +738,10 @@ class TechnicalWriter(HeuristicMarkdownAgent):
 
     def _assemble_documentation(
         self,
-        sections: List[Dict[str, Any]],
+        sections: list[dict[str, Any]],
         doc_type: str,
         task: str,
-        analysis: Dict[str, Any],
+        analysis: dict[str, Any],
     ) -> str:
         """
         Assemble final documentation.

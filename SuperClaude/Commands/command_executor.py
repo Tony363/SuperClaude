@@ -17,10 +17,11 @@ import shutil
 import subprocess
 import tempfile
 import textwrap
+from collections.abc import Callable, Iterable, Sequence
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Set, Tuple
+from typing import Any
 
 try:  # Optional dependency used for config parsing
     import yaml
@@ -83,28 +84,28 @@ class CommandContext:
 
     command: ParsedCommand
     metadata: CommandMetadata
-    mcp_servers: List[str] = field(default_factory=list)
-    agents: List[str] = field(default_factory=list)
-    agent_instances: Dict[str, Any] = field(default_factory=dict)
-    agent_outputs: Dict[str, Any] = field(default_factory=dict)
+    mcp_servers: list[str] = field(default_factory=list)
+    agents: list[str] = field(default_factory=list)
+    agent_instances: dict[str, Any] = field(default_factory=dict)
+    agent_outputs: dict[str, Any] = field(default_factory=dict)
     start_time: datetime = field(default_factory=datetime.now)
-    results: Dict[str, Any] = field(default_factory=dict)
-    errors: List[str] = field(default_factory=list)
+    results: dict[str, Any] = field(default_factory=dict)
+    errors: list[str] = field(default_factory=list)
     session_id: str = ""
     behavior_mode: str = BehavioralMode.NORMAL.value
-    consensus_summary: Optional[Dict[str, Any]] = None
-    artifact_records: List[Dict[str, Any]] = field(default_factory=list)
+    consensus_summary: dict[str, Any] | None = None
+    artifact_records: list[dict[str, Any]] = field(default_factory=list)
     think_level: int = 2
     loop_enabled: bool = False
-    loop_iterations: Optional[int] = None
-    loop_min_improvement: Optional[float] = None
+    loop_iterations: int | None = None
+    loop_min_improvement: float | None = None
     consensus_forced: bool = False
-    delegated_agents: List[str] = field(default_factory=list)
-    delegation_strategy: Optional[str] = None
-    active_personas: List[str] = field(default_factory=list)
+    delegated_agents: list[str] = field(default_factory=list)
+    delegation_strategy: str | None = None
+    active_personas: list[str] = field(default_factory=list)
     fast_codex_requested: bool = False
     fast_codex_active: bool = False
-    fast_codex_blocked: List[str] = field(default_factory=list)
+    fast_codex_blocked: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -114,14 +115,14 @@ class CommandResult:
     success: bool
     command_name: str
     output: Any
-    errors: List[str] = field(default_factory=list)
+    errors: list[str] = field(default_factory=list)
     execution_time: float = 0.0
-    mcp_servers_used: List[str] = field(default_factory=list)
-    agents_used: List[str] = field(default_factory=list)
-    executed_operations: List[str] = field(default_factory=list)
-    applied_changes: List[str] = field(default_factory=list)
-    artifacts: List[str] = field(default_factory=list)
-    consensus: Optional[Dict[str, Any]] = None
+    mcp_servers_used: list[str] = field(default_factory=list)
+    agents_used: list[str] = field(default_factory=list)
+    executed_operations: list[str] = field(default_factory=list)
+    applied_changes: list[str] = field(default_factory=list)
+    artifacts: list[str] = field(default_factory=list)
+    consensus: dict[str, Any] | None = None
     behavior_mode: str = BehavioralMode.NORMAL.value
     status: str = "plan-only"
 
@@ -142,7 +143,7 @@ class CommandExecutor:
         self,
         registry: CommandRegistry,
         parser: CommandParser,
-        repo_root: Optional[Path] = None,
+        repo_root: Path | None = None,
     ):
         """
         Initialize command executor.
@@ -154,8 +155,8 @@ class CommandExecutor:
         """
         self.registry = registry
         self.parser = parser
-        self.execution_history: List[CommandResult] = []
-        self.hooks: Dict[str, List[Callable]] = {
+        self.execution_history: list[CommandResult] = []
+        self.hooks: dict[str, list[Callable]] = {
             "pre_execute": [],
             "post_execute": [],
             "on_error": [],
@@ -278,7 +279,7 @@ class CommandExecutor:
             # Execute command logic
             output = await self._execute_command_logic(context)
 
-            loop_assessment: Optional[QualityAssessment] = None
+            loop_assessment: QualityAssessment | None = None
             if context.loop_enabled:
                 loop_result = self._maybe_run_quality_loop(context, output)
                 if loop_result:
@@ -363,8 +364,8 @@ class CommandExecutor:
             ]
             diff_stats = self._collect_diff_stats()
 
-            executed_operations: List[str] = []
-            applied_changes: List[str] = []
+            executed_operations: list[str] = []
+            applied_changes: list[str] = []
 
             if isinstance(output, dict):
                 executed_operations.extend(
@@ -466,9 +467,9 @@ class CommandExecutor:
             context.results["status"] = derived_status
 
             requires_evidence = self._requires_execution_evidence(context.metadata)
-            quality_assessment: Optional[QualityAssessment] = None
-            static_issues: List[str] = []
-            changed_paths: List[Path] = []
+            quality_assessment: QualityAssessment | None = None
+            static_issues: list[str] = []
+            changed_paths: list[Path] = []
             context.results["requires_evidence"] = requires_evidence
             context.results["missing_evidence"] = (
                 derived_status == "plan-only" if requires_evidence else False
@@ -769,7 +770,7 @@ class CommandExecutor:
                     logger.error(message)
                     context.errors.append(message)
 
-    def _map_persona_to_agent(self, persona: str) -> Optional[str]:
+    def _map_persona_to_agent(self, persona: str) -> str | None:
         """
         Map persona name to agent name.
 
@@ -823,7 +824,7 @@ class CommandExecutor:
             # Generic execution for other commands
             return await self._execute_generic(context)
 
-    async def _execute_implement(self, context: CommandContext) -> Dict[str, Any]:
+    async def _execute_implement(self, context: CommandContext) -> dict[str, Any]:
         """Execute implementation command."""
         agent_result = self._run_agent_pipeline(context)
 
@@ -1046,7 +1047,7 @@ class CommandExecutor:
 
         return output
 
-    async def _execute_analyze(self, context: CommandContext) -> Dict[str, Any]:
+    async def _execute_analyze(self, context: CommandContext) -> dict[str, Any]:
         """Execute analysis command."""
         return {
             "status": "analysis_started",
@@ -1055,7 +1056,7 @@ class CommandExecutor:
             "mode": context.behavior_mode,
         }
 
-    async def _execute_test(self, context: CommandContext) -> Dict[str, Any]:
+    async def _execute_test(self, context: CommandContext) -> dict[str, Any]:
         """Execute test command."""
         coverage = context.command.parameters.get("coverage", True)
         test_type = str(context.command.parameters.get("type", "all") or "all").lower()
@@ -1066,7 +1067,7 @@ class CommandExecutor:
             or self._is_truthy(context.command.parameters.get("browser"))
         )
 
-        output: Dict[str, Any] = {
+        output: dict[str, Any] = {
             "status": "tests_started",
             "coverage": coverage,
             "type": test_type,
@@ -1084,7 +1085,7 @@ class CommandExecutor:
 
         return output
 
-    async def _execute_build(self, context: CommandContext) -> Dict[str, Any]:
+    async def _execute_build(self, context: CommandContext) -> dict[str, Any]:
         """Execute build command."""
         repo_root = Path(self.repo_root or Path.cwd())
         params = context.command.parameters
@@ -1104,8 +1105,8 @@ class CommandExecutor:
             context.command, "clean"
         ) or self._is_truthy(params.get("clean"))
 
-        operations: List[str] = []
-        warnings: List[str] = []
+        operations: list[str] = []
+        warnings: list[str] = []
         cleaned = []
 
         if clean_requested:
@@ -1121,8 +1122,8 @@ class CommandExecutor:
                 warnings.extend(clean_errors)
 
         pipeline = self._plan_build_pipeline(build_type, target, optimize)
-        build_logs: List[Dict[str, Any]] = []
-        step_errors: List[str] = []
+        build_logs: list[dict[str, Any]] = []
+        step_errors: list[str] = []
 
         for step in pipeline:
             result = self._run_command(step["command"], cwd=step.get("cwd"))
@@ -1208,7 +1209,7 @@ class CommandExecutor:
             warning_list.extend(warnings)
             context.results["build_warnings"] = self._deduplicate(warning_list)
 
-        output: Dict[str, Any] = {
+        output: dict[str, Any] = {
             "status": status,
             "build_type": build_type,
             "target": target,
@@ -1223,7 +1224,7 @@ class CommandExecutor:
             output["warnings"] = warnings
         return output
 
-    async def _execute_git(self, context: CommandContext) -> Dict[str, Any]:
+    async def _execute_git(self, context: CommandContext) -> dict[str, Any]:
         """Execute git command."""
         repo_root = Path(self.repo_root or Path.cwd())
         if not (repo_root / ".git").exists():
@@ -1254,11 +1255,11 @@ class CommandExecutor:
             "message"
         ) or context.command.parameters.get("msg")
 
-        operations: List[str] = []
-        logs: List[Dict[str, Any]] = []
-        warnings: List[str] = []
+        operations: list[str] = []
+        logs: list[dict[str, Any]] = []
+        warnings: list[str] = []
 
-        def _record(result: Dict[str, Any], description: str) -> None:
+        def _record(result: dict[str, Any], description: str) -> None:
             logs.append(
                 {
                     "description": description,
@@ -1275,7 +1276,7 @@ class CommandExecutor:
                 stderr = result.get("stderr") or result.get("error")
                 warnings.append(f"{description}: {stderr}")
 
-        status_summary: Dict[str, Any] = {}
+        status_summary: dict[str, Any] = {}
 
         if operation == "status":
             status_result = self._run_command(
@@ -1392,7 +1393,7 @@ class CommandExecutor:
         )
 
         status = "git_completed" if not warnings else "git_failed"
-        output: Dict[str, Any] = {
+        output: dict[str, Any] = {
             "status": status,
             "operation": operation,
             "logs": logs,
@@ -1405,7 +1406,7 @@ class CommandExecutor:
             output["warnings"] = warnings
         return output
 
-    async def _execute_workflow(self, context: CommandContext) -> Dict[str, Any]:
+    async def _execute_workflow(self, context: CommandContext) -> dict[str, Any]:
         """Execute workflow command."""
         repo_root = Path(self.repo_root or Path.cwd())
         raw_argument = " ".join(context.command.arguments).strip()
@@ -1417,7 +1418,7 @@ class CommandExecutor:
             params.get("parallel")
         )
 
-        source_path: Optional[Path] = None
+        source_path: Path | None = None
         source_text = ""
         if raw_argument:
             candidate = (repo_root / raw_argument).resolve()
@@ -1499,7 +1500,7 @@ class CommandExecutor:
             },
         )
 
-        output: Dict[str, Any] = {
+        output: dict[str, Any] = {
             "status": "workflow_generated",
             "strategy": strategy,
             "depth": depth,
@@ -1515,7 +1516,7 @@ class CommandExecutor:
             output["source_path"] = str(source_path.relative_to(repo_root))
         return output
 
-    def _ensure_worktree_manager(self) -> Optional[WorktreeManager]:
+    def _ensure_worktree_manager(self) -> WorktreeManager | None:
         """Ensure a worktree manager instance is available."""
         if getattr(self, "worktree_manager", None) is None:
             try:
@@ -1530,12 +1531,12 @@ class CommandExecutor:
     def _derive_change_plan(
         self,
         context: CommandContext,
-        agent_result: Dict[str, Any],
+        agent_result: dict[str, Any],
         *,
-        label: Optional[str] = None,
-    ) -> List[Dict[str, Any]]:
+        label: str | None = None,
+    ) -> list[dict[str, Any]]:
         """Build a change plan from agent output or fall back to a default."""
-        plan: List[Dict[str, Any]] = []
+        plan: list[dict[str, Any]] = []
 
         for agent_output in context.agent_outputs.values():
             for key in (
@@ -1548,9 +1549,9 @@ class CommandExecutor:
 
         return plan
 
-    def _extract_agent_change_specs(self, candidate: Any) -> List[Dict[str, Any]]:
+    def _extract_agent_change_specs(self, candidate: Any) -> list[dict[str, Any]]:
         """Normalise agent-proposed change structures into change descriptors."""
-        proposals: List[Dict[str, Any]] = []
+        proposals: list[dict[str, Any]] = []
         if candidate is None:
             return proposals
 
@@ -1580,8 +1581,8 @@ class CommandExecutor:
         return proposals
 
     def _normalize_change_descriptor(
-        self, descriptor: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        self, descriptor: dict[str, Any]
+    ) -> dict[str, Any]:
         """Ensure change descriptors retain metadata flags like auto_stub."""
         return {
             "path": str(descriptor.get("path")),
@@ -1592,10 +1593,10 @@ class CommandExecutor:
     def _assess_stub_requirement(
         self,
         context: CommandContext,
-        agent_result: Dict[str, Any],
+        agent_result: dict[str, Any],
         *,
-        default_reason: Optional[str] = None,
-    ) -> Tuple[str, Optional[str]]:
+        default_reason: str | None = None,
+    ) -> tuple[str, str | None]:
         """
         Decide whether to emit an auto-generated stub or queue a follow-up action.
 
@@ -1641,8 +1642,8 @@ class CommandExecutor:
         reason: str,
         *,
         source: str,
-        metadata: Optional[Dict[str, Any]] = None,
-    ) -> Dict[str, Any]:
+        metadata: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
         """Queue a follow-up item for manual resolution."""
         entry = {
             "type": "followup",
@@ -1680,17 +1681,17 @@ class CommandExecutor:
     def _build_default_change_plan(
         self,
         context: CommandContext,
-        agent_result: Dict[str, Any],
+        agent_result: dict[str, Any],
         *,
-        label: Optional[str] = None,
-    ) -> List[Dict[str, Any]]:
+        label: str | None = None,
+    ) -> list[dict[str, Any]]:
         """Produce deterministic fallback artifacts when no agent plan exists."""
         slug_source = " ".join(context.command.arguments) or context.command.name
         slug = self._slugify(slug_source)[:48]
         session_fragment = context.session_id.replace("-", "")[:8]
         label_suffix = f"-{self._slugify(label)}" if label else ""
 
-        plan: List[Dict[str, Any]] = []
+        plan: list[dict[str, Any]] = []
 
         action, reason = self._assess_stub_requirement(
             context,
@@ -1731,12 +1732,12 @@ class CommandExecutor:
     def _build_default_evidence_entry(
         self,
         context: CommandContext,
-        agent_result: Dict[str, Any],
+        agent_result: dict[str, Any],
         *,
         slug: str,
         session_fragment: str,
         label_suffix: str,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         rel_path = (
             Path("SuperClaude")
             / "Implementation"
@@ -1753,7 +1754,7 @@ class CommandExecutor:
 
     def _build_generic_stub_change(
         self, context: CommandContext, summary: str
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Create a minimal stub change plan so generic commands leave evidence."""
         timestamp = datetime.now().isoformat()
         command_name = context.command.name or "generic"
@@ -1787,12 +1788,12 @@ class CommandExecutor:
         }
 
     def _render_default_evidence_document(
-        self, context: CommandContext, agent_result: Dict[str, Any]
+        self, context: CommandContext, agent_result: dict[str, Any]
     ) -> str:
         """Render a fallback implementation evidence markdown document."""
         title = " ".join(context.command.arguments) or context.command.name
         timestamp = datetime.now().isoformat()
-        lines: List[str] = [
+        lines: list[str] = [
             f"# Implementation Evidence — {title}",
             "",
             f"- session: {context.session_id}",
@@ -1828,12 +1829,12 @@ class CommandExecutor:
     def _build_auto_stub_entry(
         self,
         context: CommandContext,
-        agent_result: Dict[str, Any],
+        agent_result: dict[str, Any],
         *,
         slug: str,
         session_fragment: str,
         label_suffix: str,
-    ) -> Optional[Dict[str, Any]]:
+    ) -> dict[str, Any] | None:
         extension = self._infer_auto_stub_extension(context, agent_result)
         category = self._infer_auto_stub_category(context)
         if not extension:
@@ -1860,7 +1861,7 @@ class CommandExecutor:
         }
 
     def _infer_auto_stub_extension(
-        self, context: CommandContext, agent_result: Dict[str, Any]
+        self, context: CommandContext, agent_result: dict[str, Any]
     ) -> str:
         parameters = context.command.parameters
         language_hint = str(parameters.get("language") or "").lower()
@@ -1928,7 +1929,7 @@ class CommandExecutor:
     def _render_auto_stub_content(
         self,
         context: CommandContext,
-        agent_result: Dict[str, Any],
+        agent_result: dict[str, Any],
         *,
         extension: str,
         slug: str,
@@ -2095,8 +2096,8 @@ class CommandExecutor:
         return body + "\n"
 
     def _apply_change_plan(
-        self, context: CommandContext, change_plan: List[Dict[str, Any]]
-    ) -> Dict[str, Any]:
+        self, context: CommandContext, change_plan: list[dict[str, Any]]
+    ) -> dict[str, Any]:
         """Apply the change plan using the worktree manager or a fallback writer."""
         if not change_plan:
             return {
@@ -2110,7 +2111,7 @@ class CommandExecutor:
         if safe_apply_requested:
             snapshot = self._write_safe_apply_snapshot(context, change_plan)
             warning = "Safe-apply requested; changes saved to scratch directory without modifying the repository."
-            result: Dict[str, Any] = {
+            result: dict[str, Any] = {
                 "applied": [],
                 "warnings": [warning],
                 "base_path": str(self.repo_root or Path.cwd()),
@@ -2143,11 +2144,11 @@ class CommandExecutor:
             result["base_path"] = str(self.repo_root or Path.cwd())
         return result
 
-    def _apply_changes_fallback(self, changes: List[Dict[str, Any]]) -> Dict[str, Any]:
+    def _apply_changes_fallback(self, changes: list[dict[str, Any]]) -> dict[str, Any]:
         """Apply changes directly to the repository when the manager is unavailable."""
         base_path = Path(self.repo_root or Path.cwd())
-        applied: List[str] = []
-        warnings: List[str] = []
+        applied: list[str] = []
+        warnings: list[str] = []
 
         for change in changes:
             rel_path = change.get("path")
@@ -2198,7 +2199,7 @@ class CommandExecutor:
         return sanitized or "implementation"
 
     def _quality_loop_improver(
-        self, context: CommandContext, current_output: Any, loop_context: Dict[str, Any]
+        self, context: CommandContext, current_output: Any, loop_context: dict[str, Any]
     ) -> Any:
         """Remediation improver used by the quality loop."""
         iteration_index = int(loop_context.get("iteration", 0))
@@ -2217,7 +2218,7 @@ class CommandExecutor:
         self,
         context: CommandContext,
         current_output: Any,
-        loop_context: Dict[str, Any],
+        loop_context: dict[str, Any],
         iteration_index: int,
     ) -> Any:
         """Perform a single remediation iteration for the quality loop."""
@@ -2345,7 +2346,7 @@ class CommandExecutor:
                 if agent_name not in context.agents:
                     context.agents.append(agent_name)
 
-    async def _execute_generic(self, context: CommandContext) -> Dict[str, Any]:
+    async def _execute_generic(self, context: CommandContext) -> dict[str, Any]:
         """Execute fallback logic for commands without bespoke handlers."""
         command = context.command
         argument_text = " ".join(command.arguments) if command.arguments else "none"
@@ -2389,10 +2390,10 @@ class CommandExecutor:
             default_reason=fallback_reason,
         )
 
-        change_plan_entries: List[Dict[str, Any]] = []
-        applied_files: List[str] = []
-        change_warnings: List[str] = []
-        followup_record: Optional[Dict[str, Any]] = None
+        change_plan_entries: list[dict[str, Any]] = []
+        applied_files: list[str] = []
+        change_warnings: list[str] = []
+        followup_record: dict[str, Any] | None = None
 
         if decision == "stub":
             change_entry = self._build_generic_stub_change(context, summary)
@@ -2438,7 +2439,7 @@ class CommandExecutor:
 
         status = "executed" if applied_files else "plan-only"
 
-        output: Dict[str, Any] = {
+        output: dict[str, Any] = {
             "status": status,
             "command": command.name,
             "parameters": command.parameters,
@@ -2465,9 +2466,9 @@ class CommandExecutor:
         parallel: bool,
         sections: Sequence[str],
         features: Sequence[str],
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Generate structured workflow steps."""
-        steps: List[Dict[str, Any]] = []
+        steps: list[dict[str, Any]] = []
         step_counter = 0
 
         def add_step(
@@ -2475,9 +2476,9 @@ class CommandExecutor:
             title: str,
             owner: str,
             *,
-            dependencies: Optional[Sequence[str]] = None,
-            deliverables: Optional[Sequence[str]] = None,
-            notes: Optional[str] = None,
+            dependencies: Sequence[str] | None = None,
+            deliverables: Sequence[str] | None = None,
+            notes: str | None = None,
             parallelizable: bool = False,
         ) -> str:
             nonlocal step_counter
@@ -2539,7 +2540,7 @@ class CommandExecutor:
         )
 
         implementation_dependencies = [design_id, planning_id]
-        feature_steps: List[str] = []
+        feature_steps: list[str] = []
 
         feature_items = features or ["Core feature implementation"]
         for item in feature_items:
@@ -2623,7 +2624,7 @@ class CommandExecutor:
 
         return steps
 
-    def _normalize_repo_root(self, repo_root: Optional[Path]) -> Optional[Path]:
+    def _normalize_repo_root(self, repo_root: Path | None) -> Path | None:
         """Normalize desired repo root, falling back to detected git root."""
         env_root = os.environ.get("SUPERCLAUDE_REPO_ROOT")
         if repo_root is None and env_root:
@@ -2637,7 +2638,7 @@ class CommandExecutor:
 
         return self._detect_repo_root()
 
-    def _detect_repo_root(self) -> Optional[Path]:
+    def _detect_repo_root(self) -> Path | None:
         """Locate the git repository root, if available."""
         try:
             current = Path.cwd().resolve()
@@ -2649,12 +2650,12 @@ class CommandExecutor:
                 return candidate
         return None
 
-    def _snapshot_repo_changes(self) -> Set[str]:
+    def _snapshot_repo_changes(self) -> set[str]:
         """Capture current git worktree changes for comparison."""
         if not self.repo_root or not (self.repo_root / ".git").exists():
             return set()
 
-        snapshot: Set[str] = set()
+        snapshot: set[str] = set()
         commands = [
             ["git", "diff", "--name-status"],
             ["git", "diff", "--name-status", "--cached"],
@@ -2695,7 +2696,7 @@ class CommandExecutor:
 
         return snapshot
 
-    def _diff_snapshots(self, before: Set[str], after: Set[str]) -> List[str]:
+    def _diff_snapshots(self, before: set[str], after: set[str]) -> list[str]:
         """Return new repo changes detected between snapshots."""
         if not after:
             return []
@@ -2705,10 +2706,10 @@ class CommandExecutor:
 
     def _partition_change_entries(
         self, entries: Iterable[str]
-    ) -> Tuple[List[str], List[str]]:
+    ) -> tuple[list[str], list[str]]:
         """Separate artifact-only changes from potential evidence."""
-        artifact_entries: List[str] = []
-        evidence_entries: List[str] = []
+        artifact_entries: list[str] = []
+        evidence_entries: list[str] = []
 
         for entry in entries:
             if self._is_artifact_change(entry):
@@ -2766,10 +2767,10 @@ class CommandExecutor:
         self,
         command: Sequence[str],
         *,
-        cwd: Optional[Path] = None,
-        env: Optional[Dict[str, Any]] = None,
-        timeout: Optional[int] = None,
-    ) -> Dict[str, Any]:
+        cwd: Path | None = None,
+        env: dict[str, Any] | None = None,
+        timeout: int | None = None,
+    ) -> dict[str, Any]:
         """
         Execute a system command and capture its output.
 
@@ -2837,12 +2838,12 @@ class CommandExecutor:
                 "error": str(exc),
             }
 
-    def _collect_diff_stats(self) -> List[str]:
+    def _collect_diff_stats(self) -> list[str]:
         """Collect diff statistics for working and staged changes."""
         if not self.repo_root or not (self.repo_root / ".git").exists():
             return []
 
-        stats: List[str] = []
+        stats: list[str] = []
         commands = [
             ("working", ["git", "diff", "--stat"]),
             ("staged", ["git", "diff", "--stat", "--cached"]),
@@ -2863,10 +2864,10 @@ class CommandExecutor:
 
         return stats
 
-    def _clean_build_artifacts(self, repo_root: Path) -> Tuple[List[str], List[str]]:
+    def _clean_build_artifacts(self, repo_root: Path) -> tuple[list[str], list[str]]:
         """Remove common build artifacts when a clean build is requested."""
-        removed: List[str] = []
-        errors: List[str] = []
+        removed: list[str] = []
+        errors: list[str] = []
         targets = [
             "build",
             "dist",
@@ -2925,11 +2926,11 @@ class CommandExecutor:
         return True
 
     def _plan_build_pipeline(
-        self, build_type: str, target: Optional[str], optimize: bool
-    ) -> List[Dict[str, Any]]:
+        self, build_type: str, target: str | None, optimize: bool
+    ) -> list[dict[str, Any]]:
         """Determine the build steps required for the current repository."""
         repo_root = Path(self.repo_root or Path.cwd())
-        pipeline: List[Dict[str, Any]] = []
+        pipeline: list[dict[str, Any]] = []
 
         has_pyproject = (repo_root / "pyproject.toml").exists()
         has_setup = (repo_root / "setup.py").exists()
@@ -2943,7 +2944,7 @@ class CommandExecutor:
                     "cwd": repo_root,
                 }
             )
-            build_cmd: List[str] = ["npm", "run", "build"]
+            build_cmd: list[str] = ["npm", "run", "build"]
             if build_type and build_type not in {"production", "prod"}:
                 build_cmd.extend(["--", f"--mode={build_type}"])
             elif optimize:
@@ -2991,13 +2992,13 @@ class CommandExecutor:
         return pipeline
 
     def _extract_changed_paths(
-        self, repo_entries: List[str], applied_changes: List[str]
-    ) -> List[Path]:
+        self, repo_entries: list[str], applied_changes: list[str]
+    ) -> list[Path]:
         """Derive candidate file paths that were reported as changed."""
         if not self.repo_root:
             return []
 
-        candidates: List[str] = []
+        candidates: list[str] = []
 
         for entry in repo_entries:
             parts = entry.split("\t")
@@ -3021,8 +3022,8 @@ class CommandExecutor:
             ):
                 candidates.append(tokens[-1])
 
-        seen: Set[str] = set()
-        paths: List[Path] = []
+        seen: set[str] = set()
+        paths: list[Path] = []
         for candidate in candidates:
             candidate = candidate.strip()
             if not candidate or candidate.startswith("diff"):
@@ -3040,9 +3041,9 @@ class CommandExecutor:
 
         return paths
 
-    def _run_static_validation(self, paths: List[Path]) -> List[str]:
+    def _run_static_validation(self, paths: list[Path]) -> list[str]:
         """Run lightweight static validation on reported file changes."""
-        issues: List[str] = []
+        issues: list[str] = []
         if not paths:
             return issues
 
@@ -3086,7 +3087,7 @@ class CommandExecutor:
 
         return issues
 
-    def _python_semantic_issues(self, path: Path, rel_path: str) -> List[str]:
+    def _python_semantic_issues(self, path: Path, rel_path: str) -> list[str]:
         """Run lightweight semantic checks for Python files."""
         try:
             source = path.read_text(encoding="utf-8")
@@ -3110,7 +3111,7 @@ class CommandExecutor:
         if not stdout.strip():
             return "chore: update workspace"
 
-        scopes: Set[str] = set()
+        scopes: set[str] = set()
         doc_only = True
         test_only = True
 
@@ -3141,9 +3142,9 @@ class CommandExecutor:
 
         return f"{prefix}: update {scope_text}"
 
-    def _extract_heading_titles(self, source_text: str) -> List[str]:
+    def _extract_heading_titles(self, source_text: str) -> list[str]:
         """Extract top-level headings from a document."""
-        titles: List[str] = []
+        titles: list[str] = []
         for line in source_text.splitlines():
             stripped = line.strip()
             if not stripped.startswith("#"):
@@ -3156,9 +3157,9 @@ class CommandExecutor:
                 titles.append(title)
         return titles[:12]
 
-    def _extract_feature_list(self, source_text: str) -> List[str]:
+    def _extract_feature_list(self, source_text: str) -> list[str]:
         """Extract feature-like bullet items from a document."""
-        features: List[str] = []
+        features: list[str] = []
         for line in source_text.splitlines():
             stripped = line.strip()
             if not stripped or stripped.startswith("#"):
@@ -3203,7 +3204,7 @@ class CommandExecutor:
         except ValueError:
             return str(path)
 
-    def _serialize_assessment(self, assessment: QualityAssessment) -> Dict[str, Any]:
+    def _serialize_assessment(self, assessment: QualityAssessment) -> dict[str, Any]:
         """Convert QualityAssessment dataclass into JSON-serializable dict."""
         data = asdict(assessment)
         data["timestamp"] = assessment.timestamp.isoformat()
@@ -3218,7 +3219,7 @@ class CommandExecutor:
 
     def _maybe_run_quality_loop(
         self, context: CommandContext, output: Any
-    ) -> Optional[Dict[str, Any]]:
+    ) -> dict[str, Any] | None:
         """Execute the quality scorer's agentic loop when requested."""
         if context.results.get("loop_assessment"):
             return None
@@ -3229,7 +3230,7 @@ class CommandExecutor:
         evaluation_context = dict(context.results)
 
         def _remediation_improver(
-            current_output: Any, loop_context: Dict[str, Any]
+            current_output: Any, loop_context: dict[str, Any]
         ) -> Any:
             return self._quality_loop_improver(context, current_output, loop_context)
 
@@ -3252,7 +3253,7 @@ class CommandExecutor:
         context.results["loop_assessment"] = self._serialize_assessment(
             final_assessment
         )
-        iteration_dicts: List[Dict[str, Any]] = []
+        iteration_dicts: list[dict[str, Any]] = []
         remediation_records = context.results.get("quality_loop_iterations", [])
         for idx, item in enumerate(iteration_history):
             data = asdict(item)
@@ -3275,10 +3276,10 @@ class CommandExecutor:
         self,
         context: CommandContext,
         output: Any,
-        changed_paths: List[Path],
+        changed_paths: list[Path],
         status: str,
-        precomputed: Optional[QualityAssessment] = None,
-    ) -> Optional[QualityAssessment]:
+        precomputed: QualityAssessment | None = None,
+    ) -> QualityAssessment | None:
         """Run quality scoring against the command result."""
         evaluation_context = dict(context.results)
         evaluation_context["status"] = status
@@ -3332,10 +3333,10 @@ class CommandExecutor:
         requires_evidence: bool,
         derived_status: str,
         success: bool,
-        assessment: Optional[QualityAssessment],
-        static_issues: List[str],
-        consensus: Optional[Dict[str, Any]],
-        context_snapshot: Optional[Dict[str, Any]] = None,
+        assessment: QualityAssessment | None,
+        static_issues: list[str],
+        consensus: dict[str, Any] | None,
+        context_snapshot: dict[str, Any] | None = None,
     ) -> None:
         """Send telemetry for requires-evidence command outcomes."""
         if not requires_evidence or not self.monitor:
@@ -3506,12 +3507,12 @@ class CommandExecutor:
         )
 
     def _attach_plan_only_guidance(
-        self, context: CommandContext, output: Optional[Dict[str, Any]]
+        self, context: CommandContext, output: dict[str, Any] | None
     ) -> None:
-        guidance: List[str] = []
+        guidance: list[str] = []
 
         change_plan = context.results.get("change_plan") or []
-        suggested_paths: List[str] = []
+        suggested_paths: list[str] = []
         for entry in change_plan:
             path = entry.get("path") if isinstance(entry, dict) else None
             if not path:
@@ -3588,15 +3589,15 @@ class CommandExecutor:
         return False
 
     def _write_safe_apply_snapshot(
-        self, context: CommandContext, stubs: Sequence[Dict[str, Any]]
-    ) -> Optional[Dict[str, Any]]:
+        self, context: CommandContext, stubs: Sequence[dict[str, Any]]
+    ) -> dict[str, Any] | None:
         metrics_dir = Path(tempfile.gettempdir()) / "superclaude_metrics"
         base_dir = metrics_dir / "safe_apply" / context.session_id
         base_dir.mkdir(parents=True, exist_ok=True)
         timestamp = datetime.utcnow().strftime("%Y%m%d%H%M%S")
         snapshot_dir = base_dir / timestamp
 
-        saved_files: List[str] = []
+        saved_files: list[str] = []
         created_any = False
 
         for entry in stubs:
@@ -3672,7 +3673,7 @@ class CommandExecutor:
         if derived_status != "plan-only":
             return
 
-        event: Dict[str, Any] = {
+        event: dict[str, Any] = {
             "command": parsed.name,
             "arguments": list(parsed.arguments),
             "flags": sorted(parsed.flags.keys()),
@@ -3687,7 +3688,7 @@ class CommandExecutor:
 
         change_plan = context.results.get("change_plan") or []
         if change_plan:
-            summary: List[Dict[str, Any]] = []
+            summary: list[dict[str, Any]] = []
             for entry in change_plan[:10]:
                 if not isinstance(entry, dict):
                     continue
@@ -3737,7 +3738,7 @@ class CommandExecutor:
 
     async def _dispatch_rube_actions(
         self, context: CommandContext, output: Any
-    ) -> List[str]:
+    ) -> list[str]:
         """Legacy method - Rube actions are now handled via native MCP tools.
 
         Use mcp__rube__RUBE_MULTI_EXECUTE_TOOL directly for workflow automation.
@@ -3769,9 +3770,9 @@ class CommandExecutor:
 
         return f"{command_name} executed with status {context.results.get('status', 'unknown')}"
 
-    def _normalize_evidence_value(self, value: Any) -> List[str]:
+    def _normalize_evidence_value(self, value: Any) -> list[str]:
         """Normalize evidence values into a flat list of strings."""
-        items: List[str] = []
+        items: list[str] = []
         if value is None:
             return items
 
@@ -3795,16 +3796,16 @@ class CommandExecutor:
             items.append(text)
         return items
 
-    def _extract_output_evidence(self, output: Dict[str, Any], key: str) -> List[str]:
+    def _extract_output_evidence(self, output: dict[str, Any], key: str) -> list[str]:
         """Extract evidence from an output dictionary for a specific key."""
         if key not in output:
             return []
         return self._normalize_evidence_value(output.get(key))
 
-    def _deduplicate(self, items: List[str]) -> List[str]:
+    def _deduplicate(self, items: list[str]) -> list[str]:
         """Remove duplicate evidence entries preserving order."""
-        seen: Set[str] = set()
-        deduped: List[str] = []
+        seen: set[str] = set()
+        deduped: list[str] = []
         for item in items:
             normalized = item.strip()
             if not normalized or normalized in seen:
@@ -3813,7 +3814,7 @@ class CommandExecutor:
             deduped.append(normalized)
         return deduped
 
-    def _ensure_list(self, container: Dict[str, Any], key: str) -> List[str]:
+    def _ensure_list(self, container: dict[str, Any], key: str) -> list[str]:
         """Ensure a dictionary value is a list, normalizing if necessary."""
         value = container.get(key)
         if isinstance(value, list):
@@ -3824,7 +3825,7 @@ class CommandExecutor:
         container[key] = [str(value)]
         return container[key]
 
-    def _requires_execution_evidence(self, metadata: Optional[CommandMetadata]) -> bool:
+    def _requires_execution_evidence(self, metadata: CommandMetadata | None) -> bool:
         """Determine if a command requires execution evidence to claim success."""
         if not metadata:
             return False
@@ -3856,11 +3857,11 @@ class CommandExecutor:
         # Always run when invoking the dedicated test command.
         return parsed.name == "test"
 
-    def _run_requested_tests(self, parsed: ParsedCommand) -> Dict[str, Any]:
+    def _run_requested_tests(self, parsed: ParsedCommand) -> dict[str, Any]:
         """Execute project tests and capture results."""
-        pytest_args: List[str] = ["-q"]
-        markers: List[str] = []
-        targets: List[str] = []
+        pytest_args: list[str] = ["-q"]
+        markers: list[str] = []
+        targets: list[str] = []
 
         parameters = parsed.parameters
         flags = parsed.flags
@@ -3936,8 +3937,8 @@ class CommandExecutor:
         if isinstance(target_param, str) and target_param.strip():
             targets.append(target_param.strip())
 
-        unique_markers: List[str] = []
-        seen_markers: Set[str] = set()
+        unique_markers: list[str] = []
+        seen_markers: set[str] = set()
         for marker in markers:
             normalized = marker.strip()
             if not normalized:
@@ -3946,7 +3947,7 @@ class CommandExecutor:
                 seen_markers.add(normalized)
                 unique_markers.append(normalized)
 
-        command: List[str] = ["pytest", *pytest_args]
+        command: list[str] = ["pytest", *pytest_args]
         if unique_markers:
             marker_expression = " or ".join(unique_markers)
             command.extend(["-m", marker_expression])
@@ -4032,7 +4033,7 @@ class CommandExecutor:
 
         return output
 
-    def _summarize_test_results(self, test_results: Dict[str, Any]) -> str:
+    def _summarize_test_results(self, test_results: dict[str, Any]) -> str:
         """Create a concise summary string for executed tests."""
         command = test_results.get("command", "tests")
         status = "pass" if test_results.get("passed") else "fail"
@@ -4042,11 +4043,11 @@ class CommandExecutor:
         )
         return f"{command} ({status}{duration_part})"
 
-    def _parse_pytest_output(self, stdout: str, stderr: str) -> Dict[str, Any]:
+    def _parse_pytest_output(self, stdout: str, stderr: str) -> dict[str, Any]:
         """Extract structured metrics from pytest stdout/stderr."""
         combined = "\n".join(part for part in (stdout, stderr) if part)
 
-        metrics: Dict[str, Any] = {
+        metrics: dict[str, Any] = {
             "tests_passed": 0,
             "tests_failed": 0,
             "tests_errored": 0,
@@ -4132,7 +4133,7 @@ class CommandExecutor:
                 except Exception as e:
                     logger.error(f"Hook execution failed: {e}")
 
-    def _prepare_mode(self, parsed: ParsedCommand) -> Dict[str, Any]:
+    def _prepare_mode(self, parsed: ParsedCommand) -> dict[str, Any]:
         """Determine and apply the behavioral mode for a command."""
         detection_context = {
             "command": parsed.name,
@@ -4209,7 +4210,7 @@ class CommandExecutor:
         self._apply_auto_delegation(context)
         self._apply_fast_codex_mode(context)
 
-    def _resolve_think_level(self, parsed: ParsedCommand) -> Dict[str, Any]:
+    def _resolve_think_level(self, parsed: ParsedCommand) -> dict[str, Any]:
         """Resolve requested think level (1-3) from command flags/parameters."""
         default_level = 2
         requested = self._flag_present(parsed, "think")
@@ -4231,7 +4232,7 @@ class CommandExecutor:
 
         return {"level": level, "requested": requested or value is not None}
 
-    def _resolve_loop_request(self, parsed: ParsedCommand) -> Dict[str, Any]:
+    def _resolve_loop_request(self, parsed: ParsedCommand) -> dict[str, Any]:
         """Determine whether agentic loop is requested and capture limits."""
         enabled = self._flag_present(parsed, "loop")
         iterations = None
@@ -4264,7 +4265,7 @@ class CommandExecutor:
 
     def _resolve_pal_review_request(
         self, parsed: ParsedCommand, loop_requested: bool
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Resolve whether pal-review should run and which model to use."""
         enabled = loop_requested or self._flag_present(parsed, "pal-review")
         model = None
@@ -4442,7 +4443,7 @@ class CommandExecutor:
             fast_state.pop("blocked", None)
             return
 
-        block_reasons: List[str] = []
+        block_reasons: list[str] = []
         if context.consensus_forced:
             block_reasons.append("consensus-required")
         if self._flag_present(parsed, "safe") or self._flag_present(parsed, "security"):
@@ -4513,7 +4514,7 @@ class CommandExecutor:
         context: CommandContext,
         phase: str,
         message: str,
-        details: Optional[Dict[str, Any]] = None,
+        details: dict[str, Any] | None = None,
     ) -> None:
         """Append a structured fast-codex event for TUI/telemetry surfaces."""
 
@@ -4536,7 +4537,7 @@ class CommandExecutor:
             fast_state["events"] = log
 
     @staticmethod
-    def _truncate_fast_codex_stream(payload: Optional[str], limit: int = 600) -> str:
+    def _truncate_fast_codex_stream(payload: str | None, limit: int = 600) -> str:
         """Return a concise preview of Codex CLI stdout/stderr for display."""
 
         if not payload:
@@ -4548,7 +4549,7 @@ class CommandExecutor:
         tail = snippet[-limit // 2 :].lstrip()
         return f"{head} … {tail}"
 
-    def _build_delegation_context(self, context: CommandContext) -> Dict[str, Any]:
+    def _build_delegation_context(self, context: CommandContext) -> dict[str, Any]:
         """Construct context payload for delegate selection."""
         parsed = context.command
         task_text = " ".join(parsed.arguments).strip() or parsed.raw_string
@@ -4584,9 +4585,9 @@ class CommandExecutor:
             "mode": context.behavior_mode,
         }
 
-    def _extract_files_from_parameters(self, parameters: Dict[str, Any]) -> List[str]:
+    def _extract_files_from_parameters(self, parameters: dict[str, Any]) -> list[str]:
         """Extract file or path hints from command parameters."""
-        files: List[str] = []
+        files: list[str] = []
         keys = [
             "file",
             "files",
@@ -4602,9 +4603,9 @@ class CommandExecutor:
                 files.extend(self._to_list(parameters[key]))
         return self._deduplicate([f for f in files if f])
 
-    def _extract_delegate_targets(self, parsed: ParsedCommand) -> List[str]:
+    def _extract_delegate_targets(self, parsed: ParsedCommand) -> list[str]:
         """Extract explicit delegate targets provided by the user."""
-        values: List[str] = []
+        values: list[str] = []
         keys = [
             "delegate",
             "delegate_to",
@@ -4647,7 +4648,7 @@ class CommandExecutor:
                     return True
         return False
 
-    def _coerce_float(self, value: Any, default: Optional[float]) -> Optional[float]:
+    def _coerce_float(self, value: Any, default: float | None) -> float | None:
         """Best-effort float coercion."""
         try:
             if isinstance(value, bool):
@@ -4667,7 +4668,7 @@ class CommandExecutor:
             return default
         return max(minimum, min(maximum, intval))
 
-    def _to_list(self, value: Any) -> List[str]:
+    def _to_list(self, value: Any) -> list[str]:
         """Normalize value into a list of strings."""
         if value is None:
             return []
@@ -4691,7 +4692,7 @@ class CommandExecutor:
             return False
         return metadata.category != AgentCategory.CORE_DEVELOPMENT
 
-    def _run_agent_pipeline(self, context: CommandContext) -> Dict[str, List[str]]:
+    def _run_agent_pipeline(self, context: CommandContext) -> dict[str, list[str]]:
         """Execute loaded agents and aggregate their outputs."""
         if not context.agent_instances:
             return {"operations": [], "notes": [], "warnings": []}
@@ -4700,9 +4701,9 @@ class CommandExecutor:
         if not task_description:
             task_description = context.command.raw_string
 
-        aggregated_operations: List[str] = []
-        aggregated_notes: List[str] = []
-        aggregated_warnings: List[str] = []
+        aggregated_operations: list[str] = []
+        aggregated_notes: list[str] = []
+        aggregated_warnings: list[str] = []
 
         agent_payload = {
             "task": task_description,
@@ -4795,10 +4796,10 @@ class CommandExecutor:
         self,
         context: CommandContext,
         agent_name: str,
-        result: Dict[str, Any],
-        operations: List[str],
-        notes: List[str],
-        warnings: List[str],
+        result: dict[str, Any],
+        operations: list[str],
+        notes: list[str],
+        warnings: list[str],
     ) -> str:
         """Normalize an agent's raw result into aggregated collections."""
         actions = self._normalize_evidence_value(result.get("actions_taken"))
@@ -4840,10 +4841,10 @@ class CommandExecutor:
     def _maybe_escalate_with_strategist(
         self,
         context: CommandContext,
-        payload: Dict[str, Any],
-        operations: List[str],
-        notes: List[str],
-        warnings: List[str],
+        payload: dict[str, Any],
+        operations: list[str],
+        notes: list[str],
+        warnings: list[str],
     ) -> None:
         """Attempt to load and execute a strategist-tier fallback agent."""
         if context.results.get("escalation_performed"):
@@ -4917,14 +4918,14 @@ class CommandExecutor:
 
     def _select_strategist_candidate(
         self, task: str, registry: AgentRegistry, exclude: Iterable[str]
-    ) -> Optional[str]:
+    ) -> str | None:
         """
         Choose a strategist-tier agent for escalation based on the task context.
         """
         lowered = (task or "").lower()
         exclude_set = set(exclude)
 
-        fallback_order: List[str] = []
+        fallback_order: list[str] = []
         frontend_signals = ["frontend", "ui", "react", "component", "next.js", "nextjs"]
         backend_signals = [
             "backend",
@@ -4970,8 +4971,8 @@ class CommandExecutor:
         self,
         context: CommandContext,
         parsed: ParsedCommand,
-        test_results: Dict[str, Any],
-    ) -> Optional[str]:
+        test_results: dict[str, Any],
+    ) -> str | None:
         """Persist a test outcome artifact and return its relative path."""
         if not test_results:
             return None
@@ -5009,7 +5010,7 @@ class CommandExecutor:
 
     def _record_quality_artifact(
         self, context: CommandContext, assessment: QualityAssessment
-    ) -> Optional[str]:
+    ) -> str | None:
         """Persist a quality assessment artifact summarising scores."""
         metrics_lines = [
             f"Overall: {assessment.overall_score:.1f} (threshold {assessment.threshold:.1f})",
@@ -5051,8 +5052,8 @@ class CommandExecutor:
         command_name: str,
         summary: str,
         operations: Iterable[str],
-        metadata: Optional[Dict[str, Any]] = None,
-    ) -> Optional[str]:
+        metadata: dict[str, Any] | None = None,
+    ) -> str | None:
         """Persist an artifact and register it with the context."""
         record = self.artifact_manager.record_summary(
             command_name, summary, operations=operations, metadata=metadata or {}
@@ -5111,9 +5112,9 @@ class CommandExecutor:
         output: Any,
         *,
         enforce: bool = False,
-        think_level: Optional[int] = None,
+        think_level: int | None = None,
         task_type: str = "consensus",
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Run consensus builder and attach the result to the context."""
         prompt = self._build_consensus_prompt(context, output)
         policy = self._resolve_consensus_policy(
@@ -5166,7 +5167,7 @@ class CommandExecutor:
 
         return result
 
-    def _load_consensus_policies(self) -> Dict[str, Any]:
+    def _load_consensus_policies(self) -> dict[str, Any]:
         """Load consensus policies from configuration."""
         base_dir = Path(__file__).resolve().parent.parent
         cfg_path = base_dir / "Config" / "consensus_policies.yaml"
@@ -5203,7 +5204,7 @@ class CommandExecutor:
             "quorum_size": int(defaults.get("quorum_size", 2) or 2),
         }
 
-        command_maps: Dict[str, Dict[str, Any]] = {}
+        command_maps: dict[str, dict[str, Any]] = {}
         for name, cfg in commands.items():
             if not isinstance(cfg, dict):
                 continue
@@ -5219,7 +5220,7 @@ class CommandExecutor:
             "commands": command_maps,
         }
 
-    def _resolve_consensus_policy(self, command_name: Optional[str]) -> Dict[str, Any]:
+    def _resolve_consensus_policy(self, command_name: str | None) -> dict[str, Any]:
         """Resolve consensus policy for a command name."""
         defaults = self.consensus_policies.get("defaults", {})
         commands = self.consensus_policies.get("commands", {})
@@ -5248,7 +5249,7 @@ class CommandExecutor:
         timestamp = datetime.now().isoformat()
         return hashlib.md5(timestamp.encode()).hexdigest()[:12]
 
-    def get_history(self, limit: int = 10) -> List[CommandResult]:
+    def get_history(self, limit: int = 10) -> list[CommandResult]:
         """
         Get command execution history.
 
@@ -5264,7 +5265,7 @@ class CommandExecutor:
         """Clear command execution history."""
         self.execution_history.clear()
 
-    async def execute_chain(self, commands: List[str]) -> List[CommandResult]:
+    async def execute_chain(self, commands: list[str]) -> list[CommandResult]:
         """
         Execute a chain of commands sequentially.
 
@@ -5274,11 +5275,11 @@ class CommandExecutor:
         Returns:
             List of CommandResult objects
         """
-        results: List[CommandResult] = []
+        results: list[CommandResult] = []
         skip_next_test = False
 
         for command_str in commands:
-            command_name: Optional[str] = None
+            command_name: str | None = None
             try:
                 command_name = self.parser.parse(command_str).name
             except Exception:
@@ -5306,7 +5307,7 @@ class CommandExecutor:
 
         return results
 
-    async def execute_parallel(self, commands: List[str]) -> List[CommandResult]:
+    async def execute_parallel(self, commands: list[str]) -> list[CommandResult]:
         """
         Execute multiple commands in parallel.
 

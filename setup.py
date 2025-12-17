@@ -5,7 +5,6 @@ Install with: pip install -e .
 """
 
 from pathlib import Path
-from typing import List
 
 from setuptools import find_packages, setup
 
@@ -14,7 +13,7 @@ this_directory = Path(__file__).parent
 long_description = (this_directory / "README.md").read_text(encoding="utf-8")
 
 
-def collect_package_files() -> List[str]:
+def collect_package_files() -> list[str]:
     """Collect non-Python data files that need to ship with the package."""
     base_dir = this_directory / "SuperClaude"
     patterns = [

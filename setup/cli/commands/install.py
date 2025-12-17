@@ -7,7 +7,6 @@ import argparse
 import sys
 import time
 from pathlib import Path
-from typing import Dict, List, Optional
 
 from ... import DATA_DIR, PROJECT_ROOT
 from ...core.installer import Installer
@@ -88,7 +87,7 @@ Examples:
 
 
 def validate_system_requirements(
-    validator: Validator, component_names: List[str]
+    validator: Validator, component_names: list[str]
 ) -> bool:
     """Validate system requirements"""
     logger = get_logger()
@@ -129,7 +128,7 @@ def validate_system_requirements(
 
 def get_components_to_install(
     args: argparse.Namespace, registry: ComponentRegistry, config_manager: ConfigService
-) -> Optional[List[str]]:
+) -> list[str] | None:
     """Determine which components to install"""
     get_logger()
 
@@ -144,8 +143,8 @@ def get_components_to_install(
 
 
 def collect_api_keys_for_servers(
-    selected_servers: List[str], mcp_instance
-) -> Dict[str, str]:
+    selected_servers: list[str], mcp_instance
+) -> dict[str, str]:
     """
     Collect API keys for servers that require them
 
@@ -186,7 +185,7 @@ def collect_api_keys_for_servers(
     return collected_keys
 
 
-def select_mcp_servers(registry: ComponentRegistry) -> List[str]:
+def select_mcp_servers(registry: ComponentRegistry) -> list[str]:
     """Stage 1: MCP Server Selection with API Key Collection"""
     logger = get_logger()
 
@@ -200,7 +199,7 @@ def select_mcp_servers(registry: ComponentRegistry) -> List[str]:
         # Determine which servers should be offered interactively
         mcp_servers = mcp_instance.mcp_servers
         selection_preference = getattr(mcp_instance, "selection_servers", None)
-        ordered_keys: List[str] = []
+        ordered_keys: list[str] = []
         if selection_preference:
             for key in selection_preference:
                 if key in mcp_servers and key not in ordered_keys:
@@ -295,8 +294,8 @@ def select_mcp_servers(registry: ComponentRegistry) -> List[str]:
 def select_framework_components(
     registry: ComponentRegistry,
     config_manager: ConfigService,
-    selected_mcp_servers: List[str],
-) -> List[str]:
+    selected_mcp_servers: list[str],
+) -> list[str]:
     """Stage 2: Framework Component Selection"""
     logger = get_logger()
 
@@ -381,7 +380,7 @@ def select_framework_components(
 
 def interactive_component_selection(
     registry: ComponentRegistry, config_manager: ConfigService
-) -> Optional[List[str]]:
+) -> list[str] | None:
     """Two-stage interactive component selection"""
     logger = get_logger()
 
@@ -414,7 +413,7 @@ def interactive_component_selection(
 
 
 def display_installation_plan(
-    components: List[str], registry: ComponentRegistry, install_dir: Path
+    components: list[str], registry: ComponentRegistry, install_dir: Path
 ) -> None:
     """Display installation plan"""
     logger = get_logger()
@@ -521,7 +520,7 @@ def run_system_diagnostics(validator: Validator) -> None:
 
 
 def perform_installation(
-    components: List[str],
+    components: list[str],
     args: argparse.Namespace,
     config_manager: ConfigService = None,
 ) -> bool:

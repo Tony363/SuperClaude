@@ -10,7 +10,6 @@ import shutil
 import subprocess
 import sys
 from pathlib import Path
-from typing import List, Tuple
 
 # Project root
 PROJECT_ROOT = Path(__file__).parent.parent
@@ -18,7 +17,7 @@ DIST_DIR = PROJECT_ROOT / "dist"
 BUILD_DIR = PROJECT_ROOT / "build"
 
 
-def run_command(cmd: List[str], description: str) -> Tuple[bool, str]:
+def run_command(cmd: list[str], description: str) -> tuple[bool, str]:
     """Run a command and return success status and output"""
     print(f"🔄 {description}...")
     try:

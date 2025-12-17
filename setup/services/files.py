@@ -8,7 +8,7 @@ import logging
 import shutil
 import stat
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -24,8 +24,8 @@ class FileService:
             dry_run: If True, only simulate file operations
         """
         self.dry_run = dry_run
-        self.copied_files: List[Path] = []
-        self.created_dirs: List[Path] = []
+        self.copied_files: list[Path] = []
+        self.created_dirs: list[Path] = []
 
     def copy_file(
         self, source: Path, target: Path, preserve_permissions: bool = True
@@ -69,7 +69,7 @@ class FileService:
             return False
 
     def copy_directory(
-        self, source: Path, target: Path, ignore_patterns: Optional[List[str]] = None
+        self, source: Path, target: Path, ignore_patterns: list[str] | None = None
     ) -> bool:
         """
         Recursively copy directory with gitignore-style patterns
@@ -98,7 +98,7 @@ class FileService:
 
         try:
             # Create ignore function
-            def ignore_func(directory: str, contents: List[str]) -> List[str]:
+            def ignore_func(directory: str, contents: list[str]) -> list[str]:
                 ignored = []
                 for item in contents:
                     item_path = Path(directory) / item
@@ -269,9 +269,7 @@ class FileService:
             print(f"Error making {file_path} executable: {e}")
             return False
 
-    def get_file_hash(
-        self, file_path: Path, algorithm: str = "sha256"
-    ) -> Optional[str]:
+    def get_file_hash(self, file_path: Path, algorithm: str = "sha256") -> str | None:
         """
         Calculate file hash
 
@@ -343,7 +341,7 @@ class FileService:
 
     def find_files(
         self, directory: Path, pattern: str = "*", recursive: bool = True
-    ) -> List[Path]:
+    ) -> list[Path]:
         """
         Find files matching pattern
 
@@ -372,7 +370,7 @@ class FileService:
 
     def backup_file(
         self, file_path: Path, backup_suffix: str = ".backup"
-    ) -> Optional[Path]:
+    ) -> Path | None:
         """
         Create backup copy of file
 
@@ -442,7 +440,7 @@ class FileService:
         self.copied_files.clear()
         self.created_dirs.clear()
 
-    def get_operation_summary(self) -> Dict[str, Any]:
+    def get_operation_summary(self) -> dict[str, Any]:
         """
         Get summary of file operations performed
 

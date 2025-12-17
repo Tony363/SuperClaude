@@ -8,7 +8,7 @@ import shutil
 import subprocess
 import sys
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -59,11 +59,11 @@ class Validator:
 
     def __init__(self):
         """Initialize validator"""
-        self.validation_cache: Dict[str, Any] = {}
+        self.validation_cache: dict[str, Any] = {}
 
     def check_python(
-        self, min_version: str = "3.8", max_version: Optional[str] = None
-    ) -> Tuple[bool, str]:
+        self, min_version: str = "3.8", max_version: str | None = None
+    ) -> tuple[bool, str]:
         """
         Check Python version requirements
 
@@ -113,8 +113,8 @@ class Validator:
             return result
 
     def check_node(
-        self, min_version: str = "16.0", max_version: Optional[str] = None
-    ) -> Tuple[bool, str]:
+        self, min_version: str = "16.0", max_version: str | None = None
+    ) -> tuple[bool, str]:
         """
         Check Node.js version requirements
 
@@ -191,7 +191,7 @@ class Validator:
             self.validation_cache[cache_key] = result_tuple
             return result_tuple
 
-    def check_claude_cli(self, min_version: Optional[str] = None) -> Tuple[bool, str]:
+    def check_claude_cli(self, min_version: str | None = None) -> tuple[bool, str]:
         """
         Check Claude CLI installation and version
 
@@ -262,8 +262,8 @@ class Validator:
             return result_tuple
 
     def check_external_tool(
-        self, tool_name: str, command: str, min_version: Optional[str] = None
-    ) -> Tuple[bool, str]:
+        self, tool_name: str, command: str, min_version: str | None = None
+    ) -> tuple[bool, str]:
         """
         Check external tool availability and version
 
@@ -337,7 +337,7 @@ class Validator:
             self.validation_cache[cache_key] = result_tuple
             return result_tuple
 
-    def check_disk_space(self, path: Path, required_mb: int = 500) -> Tuple[bool, str]:
+    def check_disk_space(self, path: Path, required_mb: int = 500) -> tuple[bool, str]:
         """
         Check available disk space
 
@@ -376,7 +376,7 @@ class Validator:
             self.validation_cache[cache_key] = result
             return result
 
-    def check_write_permissions(self, path: Path) -> Tuple[bool, str]:
+    def check_write_permissions(self, path: Path) -> tuple[bool, str]:
         """
         Check write permissions for path
 
@@ -410,8 +410,8 @@ class Validator:
             return result
 
     def validate_requirements(
-        self, requirements: Dict[str, Any]
-    ) -> Tuple[bool, List[str]]:
+        self, requirements: dict[str, Any]
+    ) -> tuple[bool, list[str]]:
         """
         Validate all system requirements
 
@@ -465,8 +465,8 @@ class Validator:
         return len(errors) == 0, errors
 
     def validate_component_requirements(
-        self, component_names: List[str], all_requirements: Dict[str, Any]
-    ) -> Tuple[bool, List[str]]:
+        self, component_names: list[str], all_requirements: dict[str, Any]
+    ) -> tuple[bool, list[str]]:
         """
         Validate requirements for specific components
 
@@ -512,7 +512,7 @@ class Validator:
         # Validate consolidated requirements
         return self.validate_requirements(base_requirements)
 
-    def get_system_info(self) -> Dict[str, Any]:
+    def get_system_info(self) -> dict[str, Any]:
         """
         Get comprehensive system information
 
@@ -561,7 +561,7 @@ class Validator:
         """
         return sys.platform
 
-    def load_installation_commands(self) -> Dict[str, Any]:
+    def load_installation_commands(self) -> dict[str, Any]:
         """
         Load installation commands from requirements configuration
 
@@ -580,9 +580,7 @@ class Validator:
             logger.debug(f"Could not load installation commands: {e}")
             return {}
 
-    def get_installation_help(
-        self, tool_name: str, platform: Optional[str] = None
-    ) -> str:
+    def get_installation_help(self, tool_name: str, platform: str | None = None) -> str:
         """
         Get installation help for a specific tool
 
@@ -615,7 +613,7 @@ class Validator:
 
         return f"No installation instructions available for {tool_name} on {platform}"
 
-    def diagnose_system(self) -> Dict[str, Any]:
+    def diagnose_system(self) -> dict[str, Any]:
         """
         Perform comprehensive system diagnostics
 
@@ -675,7 +673,7 @@ class Validator:
 
         return diagnostics
 
-    def _diagnose_path_issues(self, diagnostics: Dict[str, Any]) -> None:
+    def _diagnose_path_issues(self, diagnostics: dict[str, Any]) -> None:
         """Add PATH-related diagnostics"""
         path_issues = []
 

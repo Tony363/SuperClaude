@@ -9,7 +9,7 @@ import logging
 import os
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 try:  # Optional dependency for YAML config handling
     import yaml
@@ -26,8 +26,8 @@ class ModelConfig:
     name: str
     provider: str
     api_key_env: str
-    endpoint: Optional[str] = None
-    version: Optional[str] = None
+    endpoint: str | None = None
+    version: str | None = None
     temperature_default: float = 0.7
     max_tokens_default: int = 4096
     rate_limit_rpm: int = 60  # Requests per minute
@@ -36,7 +36,7 @@ class ModelConfig:
     supports_functions: bool = True
     timeout_seconds: int = 300
     retry_attempts: int = 3
-    extra_params: Dict[str, Any] = field(default_factory=dict)
+    extra_params: dict[str, Any] = field(default_factory=dict)
 
 
 class ModelManager:
@@ -141,14 +141,14 @@ class ModelManager:
         ),
     }
 
-    def __init__(self, config_path: Optional[str] = None):
+    def __init__(self, config_path: str | None = None):
         """
         Initialize model manager.
 
         Args:
             config_path: Path to configuration file
         """
-        self.configs: Dict[str, ModelConfig] = {}
+        self.configs: dict[str, ModelConfig] = {}
         self.config_path = config_path
 
         # Load default configurations
@@ -233,7 +233,7 @@ class ModelManager:
         if "environment" in data:
             self._apply_environment_overrides(data["environment"])
 
-    def _apply_environment_overrides(self, env_config: Dict[str, Any]) -> None:
+    def _apply_environment_overrides(self, env_config: dict[str, Any]) -> None:
         """Apply environment-based configuration overrides."""
         current_env = os.getenv("SUPERCLAUD_ENV", "development")
 
@@ -246,7 +246,7 @@ class ModelManager:
                         if hasattr(config, key):
                             setattr(config, key, value)
 
-    def get_config(self, model_name: str) -> Optional[ModelConfig]:
+    def get_config(self, model_name: str) -> ModelConfig | None:
         """
         Get configuration for a model.
 
@@ -274,7 +274,7 @@ class ModelManager:
 
         return bool(os.getenv(config.api_key_env))
 
-    def get_available_models(self) -> List[str]:
+    def get_available_models(self) -> list[str]:
         """
         Get list of models with available API keys.
 
@@ -287,7 +287,7 @@ class ModelManager:
                 available.append(model_name)
         return available
 
-    def get_provider_models(self, provider: str) -> List[str]:
+    def get_provider_models(self, provider: str) -> list[str]:
         """
         Get all models from a specific provider.
 
@@ -321,7 +321,7 @@ class ModelManager:
             else:
                 config.extra_params[key] = value
 
-    def save_config(self, path: Optional[str] = None) -> None:
+    def save_config(self, path: str | None = None) -> None:
         """
         Save current configuration to file.
 
@@ -351,7 +351,7 @@ class ModelManager:
 
         logger.info(f"Configuration saved to {save_path}")
 
-    def validate_configs(self) -> Dict[str, List[str]]:
+    def validate_configs(self) -> dict[str, list[str]]:
         """
         Validate all configurations.
 
@@ -387,7 +387,7 @@ class ModelManager:
 
         return issues
 
-    def export_manifest(self) -> Dict[str, Any]:
+    def export_manifest(self) -> dict[str, Any]:
         """
         Export configuration manifest.
 

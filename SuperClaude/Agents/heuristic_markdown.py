@@ -9,8 +9,9 @@ auto-generated extended personas provide more than a one-pass plan.
 from __future__ import annotations
 
 import re
+from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import Any, Iterable
+from typing import Any
 
 from .generic import GenericMarkdownAgent
 

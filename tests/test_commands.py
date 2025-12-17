@@ -77,7 +77,9 @@ def test_executor_accepts_explicit_repo_root(tmp_path, monkeypatch):
 # - test_fast_codex_requires_cli
 
 
-@pytest.mark.skip(reason="business-panel command not implemented - command was removed from registry")
+@pytest.mark.skip(
+    reason="business-panel command not implemented - command was removed from registry"
+)
 @pytest.mark.integration
 def test_business_panel_produces_artifact(executor):
     """Test skipped: business-panel command does not exist in CommandRegistry.

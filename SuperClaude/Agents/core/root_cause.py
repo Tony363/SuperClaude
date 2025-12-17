@@ -6,7 +6,7 @@ finding the underlying causes of issues through evidence-based analysis.
 """
 
 import re
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from ..base import BaseAgent
 
@@ -19,7 +19,7 @@ class RootCauseAnalyst(BaseAgent):
     root causes of issues, bugs, and system failures.
     """
 
-    def __init__(self, config: Dict[str, Any]):
+    def __init__(self, config: dict[str, Any]):
         """
         Initialize the root cause analyst.
 
@@ -41,7 +41,7 @@ class RootCauseAnalyst(BaseAgent):
         self.hypotheses = []
         self.evidence = []
 
-    def execute(self, context: Dict[str, Any]) -> Dict[str, Any]:
+    def execute(self, context: dict[str, Any]) -> dict[str, Any]:
         """
         Execute root cause analysis.
 
@@ -124,7 +124,7 @@ class RootCauseAnalyst(BaseAgent):
 
         return result
 
-    def validate(self, context: Dict[str, Any]) -> bool:
+    def validate(self, context: dict[str, Any]) -> bool:
         """
         Check if this agent can handle the context.
 
@@ -169,8 +169,8 @@ class RootCauseAnalyst(BaseAgent):
         self.logger.debug(f"Investigation started: {issue}")
 
     def _gather_evidence(
-        self, issue: str, context: Dict[str, Any]
-    ) -> List[Dict[str, Any]]:
+        self, issue: str, context: dict[str, Any]
+    ) -> list[dict[str, Any]]:
         """
         Gather evidence related to the issue.
 
@@ -222,7 +222,7 @@ class RootCauseAnalyst(BaseAgent):
         self.evidence = evidence
         return evidence
 
-    def _extract_symptoms(self, issue: str) -> List[str]:
+    def _extract_symptoms(self, issue: str) -> list[str]:
         """
         Extract symptoms from issue description.
 
@@ -249,7 +249,7 @@ class RootCauseAnalyst(BaseAgent):
 
         return symptoms[:5]  # Limit to top 5 symptoms
 
-    def _find_error_patterns(self, issue: str) -> List[str]:
+    def _find_error_patterns(self, issue: str) -> list[str]:
         """
         Find error patterns in issue description.
 
@@ -282,7 +282,7 @@ class RootCauseAnalyst(BaseAgent):
 
         return patterns
 
-    def _form_hypotheses(self, evidence: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def _form_hypotheses(self, evidence: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """
         Form hypotheses based on evidence.
 
@@ -337,8 +337,8 @@ class RootCauseAnalyst(BaseAgent):
         return hypotheses
 
     def _test_hypotheses(
-        self, hypotheses: List[Dict[str, Any]], evidence: List[Dict[str, Any]]
-    ) -> List[Dict[str, Any]]:
+        self, hypotheses: list[dict[str, Any]], evidence: list[dict[str, Any]]
+    ) -> list[dict[str, Any]]:
         """
         Test hypotheses against evidence.
 
@@ -368,7 +368,7 @@ class RootCauseAnalyst(BaseAgent):
         tested.sort(key=lambda h: h["confidence"], reverse=True)
         return tested
 
-    def _identify_root_cause(self, hypotheses: List[Dict[str, Any]]) -> Optional[str]:
+    def _identify_root_cause(self, hypotheses: list[dict[str, Any]]) -> str | None:
         """
         Identify most likely root cause.
 
@@ -391,7 +391,7 @@ class RootCauseAnalyst(BaseAgent):
         return None
 
     def _calculate_confidence(
-        self, root_cause: Optional[str], hypotheses: List[Dict[str, Any]]
+        self, root_cause: str | None, hypotheses: list[dict[str, Any]]
     ) -> float:
         """
         Calculate overall confidence in findings.
@@ -416,9 +416,9 @@ class RootCauseAnalyst(BaseAgent):
     def _generate_investigation_report(
         self,
         issue: str,
-        evidence: List[Dict[str, Any]],
-        hypotheses: List[Dict[str, Any]],
-        root_cause: Optional[str],
+        evidence: list[dict[str, Any]],
+        hypotheses: list[dict[str, Any]],
+        root_cause: str | None,
     ) -> str:
         """
         Generate investigation report.

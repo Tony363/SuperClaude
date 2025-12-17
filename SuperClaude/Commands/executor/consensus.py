@@ -8,7 +8,7 @@ and resolving policies, and formatting consensus results.
 import logging
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -24,10 +24,10 @@ class VoteType(Enum):
 def build_consensus_prompt(
     command_name: str,
     behavior_mode: str,
-    flags: Dict[str, Any],
-    arguments: List[str],
+    flags: dict[str, Any],
+    arguments: list[str],
     output: Any,
-    results: Optional[Dict[str, Any]] = None,
+    results: dict[str, Any] | None = None,
 ) -> str:
     """Construct a deterministic prompt for consensus evaluation.
 
@@ -93,9 +93,9 @@ def normalize_vote_type(value: Any) -> VoteType:
 
 
 def load_consensus_policies(
-    config_path: Optional[Path] = None,
+    config_path: Path | None = None,
     yaml_module: Any = None,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Load consensus policies from configuration.
 
     Args:
@@ -134,7 +134,7 @@ def load_consensus_policies(
         "quorum_size": int(defaults.get("quorum_size", 2) or 2),
     }
 
-    command_maps: Dict[str, Dict[str, Any]] = {}
+    command_maps: dict[str, dict[str, Any]] = {}
     for name, cfg in commands.items():
         if not isinstance(cfg, dict):
             continue
@@ -152,9 +152,9 @@ def load_consensus_policies(
 
 
 def resolve_consensus_policy(
-    command_name: Optional[str],
-    policies: Dict[str, Any],
-) -> Dict[str, Any]:
+    command_name: str | None,
+    policies: dict[str, Any],
+) -> dict[str, Any]:
     """Resolve consensus policy for a command name.
 
     Args:
@@ -176,10 +176,10 @@ def resolve_consensus_policy(
 
 
 def format_consensus_result(
-    result: Dict[str, Any],
+    result: dict[str, Any],
     vote_type: VoteType,
     quorum_size: int,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Format a consensus result with metadata.
 
     Args:
@@ -199,8 +199,8 @@ def format_consensus_result(
 
 
 def extract_consensus_metadata(
-    result: Dict[str, Any],
-) -> Dict[str, Any]:
+    result: dict[str, Any],
+) -> dict[str, Any]:
     """Extract key metadata from a consensus result.
 
     Args:
@@ -228,7 +228,7 @@ def extract_consensus_metadata(
 
 
 def consensus_failed_message(
-    result: Dict[str, Any],
+    result: dict[str, Any],
     default_message: str = "Consensus not reached; additional review required.",
 ) -> str:
     """Generate failure message from consensus result.

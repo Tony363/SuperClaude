@@ -11,7 +11,7 @@ import logging
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set
+from typing import Any
 
 try:  # Optional dependency used for YAML frontmatter
     import yaml
@@ -26,7 +26,7 @@ class AgentSchemaError:
     field: str
     message: str
     severity: str = "error"  # "error", "warning", "info"
-    line_number: Optional[int] = None
+    line_number: int | None = None
 
 
 @dataclass
@@ -34,17 +34,17 @@ class AgentValidationResult:
     """Result of agent schema validation."""
 
     valid: bool
-    errors: List[AgentSchemaError] = field(default_factory=list)
-    warnings: List[AgentSchemaError] = field(default_factory=list)
+    errors: list[AgentSchemaError] = field(default_factory=list)
+    warnings: list[AgentSchemaError] = field(default_factory=list)
     agent_name: str = ""
     file_path: str = ""
 
-    def add_error(self, field: str, message: str, line: Optional[int] = None) -> None:
+    def add_error(self, field: str, message: str, line: int | None = None) -> None:
         """Add a validation error."""
         self.errors.append(AgentSchemaError(field, message, "error", line))
         self.valid = False
 
-    def add_warning(self, field: str, message: str, line: Optional[int] = None) -> None:
+    def add_warning(self, field: str, message: str, line: int | None = None) -> None:
         """Add a validation warning."""
         self.warnings.append(AgentSchemaError(field, message, "warning", line))
 
@@ -58,25 +58,49 @@ class AgentSchema:
     """
 
     # Required fields in YAML frontmatter
-    REQUIRED_FIELDS: Set[str] = {"name", "description"}
+    REQUIRED_FIELDS: set[str] = {"name", "description"}
 
     # Optional but recommended fields
-    RECOMMENDED_FIELDS: Set[str] = {"tools", "category"}
+    RECOMMENDED_FIELDS: set[str] = {"tools", "category"}
 
     # Valid tool names (from Claude Code)
-    VALID_TOOLS: Set[str] = {
-        "Read", "Write", "Edit", "MultiEdit", "Bash", "Glob", "Grep",
-        "Task", "TodoWrite", "WebFetch", "WebSearch", "NotebookEdit",
+    VALID_TOOLS: set[str] = {
+        "Read",
+        "Write",
+        "Edit",
+        "MultiEdit",
+        "Bash",
+        "Glob",
+        "Grep",
+        "Task",
+        "TodoWrite",
+        "WebFetch",
+        "WebSearch",
+        "NotebookEdit",
         # MCP tools
-        "Docker", "docker", "database", "redis", "postgresql", "postgres",
-        "mcp", "Browser", "browser", "playwright",
+        "Docker",
+        "docker",
+        "database",
+        "redis",
+        "postgresql",
+        "postgres",
+        "mcp",
+        "Browser",
+        "browser",
+        "playwright",
     }
 
     # Valid agent categories
-    VALID_CATEGORIES: Set[str] = {
-        "core-development", "language-specialist", "infrastructure",
-        "quality-security", "data-ai", "developer-experience",
-        "specialized-domain", "business-product", "meta-orchestration",
+    VALID_CATEGORIES: set[str] = {
+        "core-development",
+        "language-specialist",
+        "infrastructure",
+        "quality-security",
+        "data-ai",
+        "developer-experience",
+        "specialized-domain",
+        "business-product",
+        "meta-orchestration",
         "research-analysis",
     }
 
@@ -98,7 +122,7 @@ class AgentMarkdownParser:
         """Initialize the markdown parser."""
         self.logger = logging.getLogger("agent.parser")
 
-    def parse(self, file_path: Path) -> Optional[Dict[str, Any]]:
+    def parse(self, file_path: Path) -> dict[str, Any] | None:
         """
         Parse an agent markdown file.
 
@@ -140,7 +164,7 @@ class AgentMarkdownParser:
             self.logger.error(f"Failed to parse {file_path}: {e}")
             return None
 
-    def _parse_frontmatter(self, content: str) -> Dict[str, Any]:
+    def _parse_frontmatter(self, content: str) -> dict[str, Any]:
         """
         Parse YAML frontmatter from markdown content.
 
@@ -169,7 +193,7 @@ class AgentMarkdownParser:
             self.logger.warning(f"Failed to parse YAML frontmatter: {e}")
             return {}
 
-    def _parse_sections(self, content: str) -> Dict[str, str]:
+    def _parse_sections(self, content: str) -> dict[str, str]:
         """
         Parse markdown sections from content.
 
@@ -211,7 +235,7 @@ class AgentMarkdownParser:
 
         return sections
 
-    def _extract_agent_info(self, sections: Dict[str, str]) -> Dict[str, Any]:
+    def _extract_agent_info(self, sections: dict[str, str]) -> dict[str, Any]:
         """
         Extract agent information from parsed sections.
 
@@ -249,7 +273,7 @@ class AgentMarkdownParser:
 
         return info
 
-    def _parse_list_section(self, content: str) -> List[str]:
+    def _parse_list_section(self, content: str) -> list[str]:
         """
         Parse a section containing a list.
 
@@ -270,7 +294,7 @@ class AgentMarkdownParser:
 
         return items
 
-    def _parse_numbered_list(self, content: str) -> List[str]:
+    def _parse_numbered_list(self, content: str) -> list[str]:
         """
         Parse a numbered list section.
 
@@ -304,7 +328,7 @@ class AgentMarkdownParser:
 
         return items
 
-    def _parse_focus_areas(self, content: str) -> Dict[str, str]:
+    def _parse_focus_areas(self, content: str) -> dict[str, str]:
         """
         Parse focus areas section.
 
@@ -327,7 +351,7 @@ class AgentMarkdownParser:
 
         return areas
 
-    def _parse_boundaries(self, content: str) -> Dict[str, List[str]]:
+    def _parse_boundaries(self, content: str) -> dict[str, list[str]]:
         """
         Parse boundaries section (Will/Will Not).
 
@@ -356,7 +380,7 @@ class AgentMarkdownParser:
 
         return boundaries
 
-    def validate_agent_config(self, config: Dict[str, Any]) -> bool:
+    def validate_agent_config(self, config: dict[str, Any]) -> bool:
         """
         Validate agent configuration (simple boolean check).
 
@@ -370,7 +394,7 @@ class AgentMarkdownParser:
         return result.valid
 
     def validate_schema(
-        self, config: Dict[str, Any], file_path: Optional[Path] = None
+        self, config: dict[str, Any], file_path: Path | None = None
     ) -> AgentValidationResult:
         """
         Validate agent configuration against schema.
@@ -393,7 +417,9 @@ class AgentMarkdownParser:
         # Check required fields
         for field_name in AgentSchema.REQUIRED_FIELDS:
             if field_name not in config or not config[field_name]:
-                result.add_error(field_name, f"Required field '{field_name}' is missing")
+                result.add_error(
+                    field_name, f"Required field '{field_name}' is missing"
+                )
 
         # Check recommended fields (warnings only)
         for field_name in AgentSchema.RECOMMENDED_FIELDS:
@@ -468,7 +494,7 @@ class AgentMarkdownParser:
 
         return result
 
-    def validate_all_agents(self, agents_dir: Path) -> List[AgentValidationResult]:
+    def validate_all_agents(self, agents_dir: Path) -> list[AgentValidationResult]:
         """
         Validate all agent markdown files in a directory.
 
@@ -506,8 +532,8 @@ class AgentMarkdownParser:
         return results
 
     def get_validation_summary(
-        self, results: List[AgentValidationResult]
-    ) -> Dict[str, Any]:
+        self, results: list[AgentValidationResult]
+    ) -> dict[str, Any]:
         """
         Generate a summary of validation results.
 

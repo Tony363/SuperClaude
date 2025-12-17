@@ -7,9 +7,6 @@ runtime parsing errors from malformed agent definitions.
 
 from __future__ import annotations
 
-from pathlib import Path
-from typing import Any, Dict
-
 import pytest
 
 from SuperClaude.Agents.parser import (
@@ -408,7 +405,7 @@ Content here.
         md_file.write_text(content)
 
         # Should not raise, may return empty or partial config
-        config = parser.parse(md_file)
+        _ = parser.parse(md_file)
 
         # Parser should handle gracefully (either None or empty dict)
         # The key is no exception is raised

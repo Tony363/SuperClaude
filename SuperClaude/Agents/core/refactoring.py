@@ -6,7 +6,7 @@ maintainability, and structure without changing functionality.
 """
 
 import re
-from typing import Any, Dict, List
+from typing import Any
 
 from ..base import BaseAgent
 
@@ -19,7 +19,7 @@ class RefactoringExpert(BaseAgent):
     refactoring recommendations with focus on maintainability.
     """
 
-    def __init__(self, config: Dict[str, Any]):
+    def __init__(self, config: dict[str, Any]):
         """
         Initialize the refactoring expert.
 
@@ -42,7 +42,7 @@ class RefactoringExpert(BaseAgent):
         self.code_smells = self._initialize_code_smells()
         self.refactoring_patterns = self._initialize_refactoring_patterns()
 
-    def execute(self, context: Dict[str, Any]) -> Dict[str, Any]:
+    def execute(self, context: dict[str, Any]) -> dict[str, Any]:
         """
         Execute refactoring analysis and recommendations.
 
@@ -121,7 +121,7 @@ class RefactoringExpert(BaseAgent):
 
         return result
 
-    def validate(self, context: Dict[str, Any]) -> bool:
+    def validate(self, context: dict[str, Any]) -> bool:
         """
         Check if this agent can handle the context.
 
@@ -150,7 +150,7 @@ class RefactoringExpert(BaseAgent):
         task_lower = task.lower()
         return any(keyword in task_lower for keyword in refactoring_keywords)
 
-    def _initialize_code_smells(self) -> Dict[str, Dict[str, Any]]:
+    def _initialize_code_smells(self) -> dict[str, dict[str, Any]]:
         """
         Initialize code smell detection patterns.
 
@@ -200,7 +200,7 @@ class RefactoringExpert(BaseAgent):
             },
         }
 
-    def _initialize_refactoring_patterns(self) -> Dict[str, Dict[str, Any]]:
+    def _initialize_refactoring_patterns(self) -> dict[str, dict[str, Any]]:
         """
         Initialize refactoring patterns.
 
@@ -251,8 +251,8 @@ class RefactoringExpert(BaseAgent):
         }
 
     def _detect_code_smells(
-        self, task: str, code: str, files: List[str]
-    ) -> List[Dict[str, Any]]:
+        self, task: str, code: str, files: list[str]
+    ) -> list[dict[str, Any]]:
         """
         Detect code smells in the provided context.
 
@@ -317,8 +317,8 @@ class RefactoringExpert(BaseAgent):
         return smells
 
     def _identify_opportunities(
-        self, smells: List[Dict[str, Any]], task: str
-    ) -> List[Dict[str, Any]]:
+        self, smells: list[dict[str, Any]], task: str
+    ) -> list[dict[str, Any]]:
         """
         Identify refactoring opportunities based on code smells.
 
@@ -370,8 +370,8 @@ class RefactoringExpert(BaseAgent):
         return opportunities
 
     def _create_refactoring_plan(
-        self, opportunities: List[Dict[str, Any]]
-    ) -> List[Dict[str, Any]]:
+        self, opportunities: list[dict[str, Any]]
+    ) -> list[dict[str, Any]]:
         """
         Create a refactoring plan from opportunities.
 
@@ -414,7 +414,7 @@ class RefactoringExpert(BaseAgent):
 
         return plan[:10]  # Limit to top 10 refactorings
 
-    def _estimate_impact(self, plan: List[Dict[str, Any]]) -> Dict[str, Any]:
+    def _estimate_impact(self, plan: list[dict[str, Any]]) -> dict[str, Any]:
         """
         Estimate the impact of refactoring plan.
 
@@ -477,9 +477,9 @@ class RefactoringExpert(BaseAgent):
     def _generate_recommendations(
         self,
         task: str,
-        smells: List[Dict[str, Any]],
-        plan: List[Dict[str, Any]],
-        impact: Dict[str, Any],
+        smells: list[dict[str, Any]],
+        plan: list[dict[str, Any]],
+        impact: dict[str, Any],
     ) -> str:
         """
         Generate refactoring recommendations report.

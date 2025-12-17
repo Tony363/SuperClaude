@@ -4,7 +4,6 @@ CLAUDE.md Manager for preserving user customizations while managing framework im
 
 import re
 from pathlib import Path
-from typing import Dict, List, Set
 
 from ..utils.logger import get_logger
 
@@ -23,7 +22,7 @@ class CLAUDEMdService:
         self.claude_md_path = install_dir / "CLAUDE.md"
         self.logger = get_logger()
 
-    def read_existing_imports(self) -> Set[str]:
+    def read_existing_imports(self) -> set[str]:
         """
         Parse CLAUDE.md for existing @import statements
 
@@ -90,7 +89,7 @@ class CLAUDEMdService:
         return user_content
 
     def organize_imports_by_category(
-        self, files_by_category: Dict[str, List[str]]
+        self, files_by_category: dict[str, list[str]]
     ) -> str:
         """
         Organize imports into categorized sections
@@ -122,7 +121,7 @@ class CLAUDEMdService:
 
         return "\n".join(sections)
 
-    def add_imports(self, files: List[str], category: str = "Framework") -> bool:
+    def add_imports(self, files: list[str], category: str = "Framework") -> bool:
         """
         Add new imports with duplicate checking and user content preservation
 
@@ -193,7 +192,7 @@ class CLAUDEMdService:
             self.logger.error(f"Failed to update CLAUDE.md: {e}")
             return False
 
-    def _parse_existing_framework_imports(self, content: str) -> Dict[str, List[str]]:
+    def _parse_existing_framework_imports(self, content: str) -> dict[str, list[str]]:
         """
         Parse existing framework imports organized by category
 
@@ -270,7 +269,7 @@ The SuperClaude framework components will be automatically imported below.
             self.logger.error(f"Failed to create CLAUDE.md: {e}")
             raise
 
-    def remove_imports(self, files: List[str]) -> bool:
+    def remove_imports(self, files: list[str]) -> bool:
         """
         Remove specific imports from CLAUDE.md
 

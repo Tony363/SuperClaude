@@ -19,8 +19,8 @@ import shlex
 import subprocess
 import sys
 import textwrap
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable, Dict, Optional
 
 # Add the local 'setup' directory to the Python import path
 current_dir = Path(__file__).parent
@@ -73,7 +73,7 @@ def _handle_setup_import_failure(error: ImportError, *, retry: bool) -> None:
     )
 
     attempted = False
-    bootstrap_error: Optional[str] = None
+    bootstrap_error: str | None = None
 
     if not skip_bootstrap and not retry:
         bootstrap_cmd = [
@@ -327,7 +327,7 @@ def setup_global_environment(args: argparse.Namespace):
         logger.debug(f"Arguments: {vars(args)}")
 
 
-def get_operation_modules() -> Dict[str, str]:
+def get_operation_modules() -> dict[str, str]:
     """Return supported operations and their descriptions"""
     return {
         "install": "Install SuperClaude framework components",
@@ -350,7 +350,7 @@ def load_operation_module(name: str):
         return None
 
 
-def register_operation_parsers(subparsers, global_parser) -> Dict[str, Callable]:
+def register_operation_parsers(subparsers, global_parser) -> dict[str, Callable]:
     """Register subcommand parsers and map operation names to their run functions"""
     operations = {}
     for name, desc in get_operation_modules().items():

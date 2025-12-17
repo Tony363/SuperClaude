@@ -6,13 +6,14 @@ agent payload building, and result ingestion without instance dependencies.
 """
 
 import logging
-from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
+from collections.abc import Iterable
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
 
 # Default persona to agent mapping
-PERSONA_TO_AGENT: Dict[str, str] = {
+PERSONA_TO_AGENT: dict[str, str] = {
     "architect": "system-architect",
     "frontend": "frontend-architect",
     "backend": "backend-architect",
@@ -72,8 +73,8 @@ STRATEGIST_FALLBACK_ORDER = [
 
 def map_persona_to_agent(
     persona: str,
-    custom_mapping: Optional[Dict[str, str]] = None,
-) -> Optional[str]:
+    custom_mapping: dict[str, str] | None = None,
+) -> str | None:
     """Map a persona name to its corresponding agent name.
 
     Args:
@@ -87,7 +88,7 @@ def map_persona_to_agent(
     return mapping.get(persona)
 
 
-def detect_task_domain(task: str) -> Tuple[bool, bool]:
+def detect_task_domain(task: str) -> tuple[bool, bool]:
     """Detect if a task involves frontend and/or backend domains.
 
     Args:
@@ -105,9 +106,9 @@ def detect_task_domain(task: str) -> Tuple[bool, bool]:
 def select_strategist_candidate(
     task: str,
     available_agents: Iterable[str],
-    capability_tiers: Dict[str, str],
-    exclude: Optional[Iterable[str]] = None,
-) -> Optional[str]:
+    capability_tiers: dict[str, str],
+    exclude: Iterable[str] | None = None,
+) -> str | None:
     """Choose a strategist-tier agent for escalation based on task context.
 
     Args:
@@ -122,7 +123,7 @@ def select_strategist_candidate(
     exclude_set = set(exclude or [])
     has_frontend, has_backend = detect_task_domain(task)
 
-    fallback_order: List[str] = []
+    fallback_order: list[str] = []
 
     # Prefer fullstack for mixed frontend/backend tasks
     if has_frontend and has_backend:
@@ -148,9 +149,9 @@ def select_strategist_candidate(
 
 
 def extract_delegate_targets(
-    parameters: Dict[str, Any],
-    flags: Optional[Dict[str, Any]] = None,
-) -> List[str]:
+    parameters: dict[str, Any],
+    flags: dict[str, Any] | None = None,
+) -> list[str]:
     """Extract explicit delegate targets provided by the user.
 
     Args:
@@ -160,7 +161,7 @@ def extract_delegate_targets(
     Returns:
         List of delegate target agent names.
     """
-    values: List[str] = []
+    values: list[str] = []
     keys = [
         "delegate",
         "delegate_to",
@@ -179,8 +180,8 @@ def extract_delegate_targets(
                 values.extend(str(part).strip() for part in str(raw).split(","))
 
     # Deduplicate while preserving order
-    seen: Set[str] = set()
-    result: List[str] = []
+    seen: set[str] = set()
+    result: list[str] = []
     for v in values:
         normalized = v.strip()
         if normalized and normalized not in seen:
@@ -190,7 +191,7 @@ def extract_delegate_targets(
     return result
 
 
-def extract_files_from_parameters(parameters: Dict[str, Any]) -> List[str]:
+def extract_files_from_parameters(parameters: dict[str, Any]) -> list[str]:
     """Extract file or path hints from command parameters.
 
     Args:
@@ -199,7 +200,7 @@ def extract_files_from_parameters(parameters: Dict[str, Any]) -> List[str]:
     Returns:
         Deduplicated list of file paths.
     """
-    files: List[str] = []
+    files: list[str] = []
     keys = [
         "file",
         "files",
@@ -220,8 +221,8 @@ def extract_files_from_parameters(parameters: Dict[str, Any]) -> List[str]:
                 files.append(str(raw).strip())
 
     # Deduplicate
-    seen: Set[str] = set()
-    result: List[str] = []
+    seen: set[str] = set()
+    result: list[str] = []
     for f in files:
         if f and f not in seen:
             seen.add(f)
@@ -233,13 +234,13 @@ def extract_files_from_parameters(parameters: Dict[str, Any]) -> List[str]:
 def build_agent_payload(
     task_description: str,
     command_name: str,
-    flags: Dict[str, Any],
-    parameters: Dict[str, Any],
+    flags: dict[str, Any],
+    parameters: dict[str, Any],
     behavior_mode: str,
-    mode_context: Optional[Dict[str, Any]] = None,
-    repo_root: Optional[str] = None,
-    retrieved_context: Optional[List[Dict[str, Any]]] = None,
-) -> Dict[str, Any]:
+    mode_context: dict[str, Any] | None = None,
+    repo_root: str | None = None,
+    retrieved_context: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
     """Build a payload dictionary for agent execution.
 
     Args:
@@ -255,7 +256,7 @@ def build_agent_payload(
     Returns:
         Agent payload dictionary.
     """
-    payload: Dict[str, Any] = {
+    payload: dict[str, Any] = {
         "task": task_description,
         "command": command_name,
         "flags": sorted(flags.keys()),
@@ -275,10 +276,10 @@ def build_agent_payload(
 
 def build_delegation_context(
     task: str,
-    parameters: Dict[str, Any],
+    parameters: dict[str, Any],
     behavior_mode: str,
-    category: Optional[str] = None,
-) -> Dict[str, Any]:
+    category: str | None = None,
+) -> dict[str, Any]:
     """Construct context payload for delegate selection.
 
     Args:
@@ -317,8 +318,8 @@ def build_delegation_context(
 
 def ingest_agent_result(
     agent_name: str,
-    result: Dict[str, Any],
-) -> Tuple[List[str], List[str], List[str], str]:
+    result: dict[str, Any],
+) -> tuple[list[str], list[str], list[str], str]:
     """Normalize an agent's raw result into aggregated collections.
 
     Args:
@@ -328,9 +329,9 @@ def ingest_agent_result(
     Returns:
         Tuple of (operations, notes, warnings, status).
     """
-    operations: List[str] = []
-    notes: List[str] = []
-    warnings: List[str] = []
+    operations: list[str] = []
+    notes: list[str] = []
+    warnings: list[str] = []
 
     actions = _normalize_evidence_value(result.get("actions_taken"))
     plans = _normalize_evidence_value(result.get("planned_actions"))
@@ -350,11 +351,11 @@ def ingest_agent_result(
 
 
 def _extract_list_param(
-    parameters: Dict[str, Any],
-    keys: List[str],
-) -> List[str]:
+    parameters: dict[str, Any],
+    keys: list[str],
+) -> list[str]:
     """Extract list values from parameters for multiple possible keys."""
-    result: List[str] = []
+    result: list[str] = []
     for key in keys:
         if key in parameters:
             raw = parameters[key]
@@ -365,10 +366,10 @@ def _extract_list_param(
     return result
 
 
-def _deduplicate_list(items: List[str]) -> List[str]:
+def _deduplicate_list(items: list[str]) -> list[str]:
     """Deduplicate list while preserving order."""
-    seen: Set[str] = set()
-    result: List[str] = []
+    seen: set[str] = set()
+    result: list[str] = []
     for item in items:
         normalized = item.strip().lower() if item else ""
         if normalized and normalized not in seen:
@@ -377,9 +378,9 @@ def _deduplicate_list(items: List[str]) -> List[str]:
     return result
 
 
-def _normalize_evidence_value(value: Any) -> List[str]:
+def _normalize_evidence_value(value: Any) -> list[str]:
     """Normalize evidence values into a flat list of strings."""
-    items: List[str] = []
+    items: list[str] = []
     if value is None:
         return items
 

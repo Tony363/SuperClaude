@@ -11,11 +11,12 @@ Use NORMAL mode for general-purpose operations.
 
 import json
 import logging
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any
 
 
 class BehavioralMode(Enum):
@@ -32,14 +33,14 @@ class ModeConfiguration:
 
     name: str
     description: str
-    triggers: List[str]
-    behaviors: Dict[str, Any]
-    symbol_system: Optional[Dict[str, str]] = None
+    triggers: list[str]
+    behaviors: dict[str, Any]
+    symbol_system: dict[str, str] | None = None
     output_format: str = "standard"
     token_reduction_target: float = 0.0
-    active_tools: List[str] = field(default_factory=list)
-    disabled_tools: List[str] = field(default_factory=list)
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    active_tools: list[str] = field(default_factory=list)
+    disabled_tools: list[str] = field(default_factory=list)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -50,7 +51,7 @@ class ModeTransition:
     to_mode: str
     timestamp: datetime
     trigger: str
-    context: Dict[str, Any]
+    context: dict[str, Any]
 
 
 class BehavioralModeManager:
@@ -61,7 +62,7 @@ class BehavioralModeManager:
     management to ultra-compressed token efficiency mode.
     """
 
-    def __init__(self, config_path: Optional[str] = None):
+    def __init__(self, config_path: str | None = None):
         """
         Initialize the behavioral mode manager.
 
@@ -72,14 +73,14 @@ class BehavioralModeManager:
 
         # Current mode
         self.current_mode = BehavioralMode.NORMAL
-        self.mode_stack: List[BehavioralMode] = []
+        self.mode_stack: list[BehavioralMode] = []
 
         # Mode configurations
-        self.configurations: Dict[BehavioralMode, ModeConfiguration] = {}
+        self.configurations: dict[BehavioralMode, ModeConfiguration] = {}
 
         # Mode history
-        self.transition_history: List[ModeTransition] = []
-        self.mode_metrics: Dict[str, Dict[str, Any]] = {}
+        self.transition_history: list[ModeTransition] = []
+        self.mode_metrics: dict[str, dict[str, Any]] = {}
 
         # Initialize default configurations
         self._initialize_default_configurations()
@@ -89,7 +90,7 @@ class BehavioralModeManager:
             self.load_configuration(config_path)
 
         # Mode change callbacks
-        self.mode_change_callbacks: List[Callable] = []
+        self.mode_change_callbacks: list[Callable] = []
 
     def _initialize_default_configurations(self):
         """Initialize default mode configurations."""
@@ -162,7 +163,7 @@ class BehavioralModeManager:
         return self.current_mode
 
     def get_mode_configuration(
-        self, mode: Optional[BehavioralMode] = None
+        self, mode: BehavioralMode | None = None
     ) -> ModeConfiguration:
         """
         Get configuration for a mode.
@@ -179,8 +180,8 @@ class BehavioralModeManager:
         )
 
     def detect_mode_from_context(
-        self, context: Dict[str, Any]
-    ) -> Optional[BehavioralMode]:
+        self, context: dict[str, Any]
+    ) -> BehavioralMode | None:
         """
         Detect appropriate mode from context.
 
@@ -217,7 +218,7 @@ class BehavioralModeManager:
     def switch_mode(
         self,
         mode: BehavioralMode,
-        context: Optional[Dict[str, Any]] = None,
+        context: dict[str, Any] | None = None,
         trigger: str = "manual",
     ) -> bool:
         """
@@ -268,7 +269,7 @@ class BehavioralModeManager:
             self.logger.error(f"Failed to switch mode: {e}")
             return False
 
-    def push_mode(self, mode: BehavioralMode, context: Optional[Dict[str, Any]] = None):
+    def push_mode(self, mode: BehavioralMode, context: dict[str, Any] | None = None):
         """
         Push a new mode onto the stack (temporary switch).
 
@@ -279,7 +280,7 @@ class BehavioralModeManager:
         self.mode_stack.append(self.current_mode)
         self.switch_mode(mode, context, trigger="push")
 
-    def pop_mode(self) -> Optional[BehavioralMode]:
+    def pop_mode(self) -> BehavioralMode | None:
         """
         Pop mode from stack and restore previous.
 
@@ -293,7 +294,7 @@ class BehavioralModeManager:
             return previous
         return None
 
-    def apply_mode_behaviors(self, context: Dict[str, Any]) -> Dict[str, Any]:
+    def apply_mode_behaviors(self, context: dict[str, Any]) -> dict[str, Any]:
         """
         Apply current mode behaviors to context.
 
@@ -333,7 +334,7 @@ class BehavioralModeManager:
 
         return enhanced
 
-    def format_output(self, output: str, context: Dict[str, Any]) -> str:
+    def format_output(self, output: str, context: dict[str, Any]) -> str:
         """
         Format output according to current mode.
 
@@ -353,7 +354,7 @@ class BehavioralModeManager:
 
         return output
 
-    def get_mode_metrics(self, mode: Optional[BehavioralMode] = None) -> Dict[str, Any]:
+    def get_mode_metrics(self, mode: BehavioralMode | None = None) -> dict[str, Any]:
         """
         Get metrics for a specific mode.
 
@@ -369,7 +370,7 @@ class BehavioralModeManager:
 
         return self.mode_metrics
 
-    def get_transition_history(self, limit: int = 10) -> List[Dict[str, Any]]:
+    def get_transition_history(self, limit: int = 10) -> list[dict[str, Any]]:
         """
         Get mode transition history.
 
@@ -448,7 +449,7 @@ class BehavioralModeManager:
         ]
         return any(pattern in text for pattern in patterns)
 
-    def _detect_efficiency_need(self, context: Dict[str, Any]) -> bool:
+    def _detect_efficiency_need(self, context: dict[str, Any]) -> bool:
         """Detect if token efficiency is needed."""
         # Check context size
         context_str = str(context)
@@ -465,8 +466,8 @@ class BehavioralModeManager:
         return False
 
     def _apply_specific_behaviors(
-        self, context: Dict[str, Any], config: ModeConfiguration
-    ) -> Dict[str, Any]:
+        self, context: dict[str, Any], config: ModeConfiguration
+    ) -> dict[str, Any]:
         """Apply mode-specific behavioral modifications."""
 
         # Task management modifications

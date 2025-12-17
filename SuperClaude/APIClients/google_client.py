@@ -7,9 +7,10 @@ Provides unified interface for Google's Gemini models with long context support.
 import asyncio
 import logging
 import os
+from collections.abc import AsyncIterator
 from dataclasses import dataclass, field, replace
 from datetime import datetime, timedelta
-from typing import Any, AsyncIterator, Dict, List, Optional, Tuple
+from typing import Any
 
 from .http_utils import HTTPClientError, post_json
 
@@ -37,13 +38,13 @@ class GeminiRequest:
     max_output_tokens: int = 8192
     temperature: float = 0.7
     top_p: float = 1.0
-    top_k: Optional[int] = None
+    top_k: int | None = None
     candidate_count: int = 1
-    stop_sequences: Optional[List[str]] = None
-    safety_settings: Optional[List[Dict[str, Any]]] = None
-    system_instruction: Optional[str] = None
-    tools: Optional[List[Dict[str, Any]]] = None
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    stop_sequences: list[str] | None = None
+    safety_settings: list[dict[str, Any]] | None = None
+    system_instruction: str | None = None
+    tools: list[dict[str, Any]] | None = None
+    metadata: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -53,10 +54,10 @@ class GeminiResponse:
     text: str
     model: str
     finish_reason: str = "STOP"
-    safety_ratings: List[Dict[str, Any]] = field(default_factory=list)
-    citation_metadata: Optional[Dict[str, Any]] = None
-    token_count: Dict[str, int] = field(default_factory=dict)
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    safety_ratings: list[dict[str, Any]] = field(default_factory=list)
+    citation_metadata: dict[str, Any] | None = None
+    token_count: dict[str, int] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
 
 class GoogleClient:
@@ -94,9 +95,7 @@ class GoogleClient:
         },
     }
 
-    def __init__(
-        self, config: Optional[GoogleConfig] = None, api_key: Optional[str] = None
-    ):
+    def __init__(self, config: GoogleConfig | None = None, api_key: str | None = None):
         """Initialize Google client."""
         if not config:
             # Try to load from environment
@@ -210,7 +209,7 @@ class GoogleClient:
     async def complete_long_context(
         self,
         prompt: str,
-        context_files: List[str],
+        context_files: list[str],
         model: str = "gemini-2.5-pro",
         max_tokens: int = 8192,
     ) -> GeminiResponse:
@@ -258,7 +257,7 @@ class GoogleClient:
         return await self.complete(request)
 
     async def complete_with_tools(
-        self, prompt: str, tools: List[Dict[str, Any]], model: str = "gemini-2.5-pro"
+        self, prompt: str, tools: list[dict[str, Any]], model: str = "gemini-2.5-pro"
     ) -> GeminiResponse:
         """
         Complete with function calling.
@@ -346,14 +345,14 @@ Analyze this problem systematically:
         # For now, rough approximation
         return len(text) // 4
 
-    def _chunk_stream_text(self, content: str, *, chunk_size: int = 128) -> List[str]:
+    def _chunk_stream_text(self, content: str, *, chunk_size: int = 128) -> list[str]:
         """Split Gemini content into deterministic streaming chunks."""
         if not content:
             return [""]
 
         return [content[i : i + chunk_size] for i in range(0, len(content), chunk_size)]
 
-    def estimate_cost(self, request: GeminiRequest) -> Dict[str, float]:
+    def estimate_cost(self, request: GeminiRequest) -> dict[str, float]:
         """
         Estimate cost for a request.
 
@@ -389,7 +388,7 @@ Analyze this problem systematically:
             "max_output_tokens": output_tokens,
         }
 
-    def get_model_info(self, model: str) -> Optional[Dict[str, Any]]:
+    def get_model_info(self, model: str) -> dict[str, Any] | None:
         """Get model configuration info."""
         # Check both short and full names
         if model in self.MODEL_CONFIGS:
@@ -401,7 +400,7 @@ Analyze this problem systematically:
 
         return None
 
-    def _build_payload(self, request: GeminiRequest) -> Dict[str, Any]:
+    def _build_payload(self, request: GeminiRequest) -> dict[str, Any]:
         """Build API request payload."""
         contents = [{"parts": [{"text": request.prompt}]}]
 
@@ -441,8 +440,8 @@ class RateLimiter:
         """Initialize rate limiter."""
         self.rpm_limit = rpm_limit
         self.tpm_limit = tpm_limit
-        self.request_times: List[datetime] = []
-        self.token_counts: List[Tuple[datetime, int]] = []
+        self.request_times: list[datetime] = []
+        self.token_counts: list[tuple[datetime, int]] = []
 
     async def acquire(self, request: GeminiRequest):
         """Wait if necessary to respect rate limits."""
@@ -486,14 +485,14 @@ class TokenCounter:
         self.total_tokens = 0
         self.request_count = 0
 
-    def add(self, usage: Dict[str, int]):
+    def add(self, usage: dict[str, int]):
         """Add usage from a response."""
         self.total_prompt_tokens += usage.get("prompt_tokens", 0)
         self.total_output_tokens += usage.get("candidates_tokens", 0)
         self.total_tokens += usage.get("total_tokens", 0)
         self.request_count += 1
 
-    def get_summary(self) -> Dict[str, Any]:
+    def get_summary(self) -> dict[str, Any]:
         """Get usage summary."""
         return {
             "total_prompt_tokens": self.total_prompt_tokens,
@@ -507,7 +506,7 @@ class TokenCounter:
 
 
 # Convenience functions
-async def create_google_client(api_key: Optional[str] = None) -> GoogleClient:
+async def create_google_client(api_key: str | None = None) -> GoogleClient:
     """Create and initialize Google client."""
     config = GoogleConfig(api_key=api_key) if api_key else None
     return GoogleClient(config)

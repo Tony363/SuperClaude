@@ -10,7 +10,7 @@ import logging
 import time
 from collections import OrderedDict
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from . import usage_tracker
 from .base import BaseAgent
@@ -27,7 +27,7 @@ class AgentLoader:
 
     def __init__(
         self,
-        registry: Optional[AgentRegistry] = None,
+        registry: AgentRegistry | None = None,
         cache_size: int = 10,
         ttl_seconds: int = 3600,
     ):
@@ -45,7 +45,7 @@ class AgentLoader:
         self.logger = logging.getLogger("agent.loader")
 
         # LRU cache implementation
-        self._cache: OrderedDict[str, Dict[str, Any]] = OrderedDict()
+        self._cache: OrderedDict[str, dict[str, Any]] = OrderedDict()
 
         # Load statistics
         self._stats = {
@@ -67,7 +67,7 @@ class AgentLoader:
         # Load trigger configuration if available
         self.triggers = self._load_triggers()
 
-    def load_agent(self, name: str, force_reload: bool = False) -> Optional[BaseAgent]:
+    def load_agent(self, name: str, force_reload: bool = False) -> BaseAgent | None:
         """
         Load an agent by name.
 
@@ -156,7 +156,7 @@ class AgentLoader:
         self._cache[name] = {"agent": agent, "timestamp": time.time()}
         self._cache.move_to_end(name)
 
-    def preload_agents(self, agent_names: List[str]) -> int:
+    def preload_agents(self, agent_names: list[str]) -> int:
         """
         Preload multiple agents into cache.
 
@@ -176,7 +176,7 @@ class AgentLoader:
         self.logger.info(f"Preloaded {loaded}/{len(agent_names)} agents")
         return loaded
 
-    def load_by_trigger(self, trigger: str) -> Optional[BaseAgent]:
+    def load_by_trigger(self, trigger: str) -> BaseAgent | None:
         """
         Load agent based on trigger keyword.
 
@@ -202,7 +202,7 @@ class AgentLoader:
 
         return None
 
-    def _load_triggers(self) -> Dict[str, Any]:
+    def _load_triggers(self) -> dict[str, Any]:
         """
         Load trigger configuration from TRIGGERS.json.
 
@@ -231,7 +231,7 @@ class AgentLoader:
             self.logger.error(f"Failed to load TRIGGERS.json: {e}")
             return {}
 
-    def _create_default_triggers(self) -> Dict[str, Any]:
+    def _create_default_triggers(self) -> dict[str, Any]:
         """
         Create default trigger configuration.
 
@@ -285,7 +285,7 @@ class AgentLoader:
         self._cache.clear()
         self.logger.info("Agent cache cleared")
 
-    def get_cached_agents(self) -> List[str]:
+    def get_cached_agents(self) -> list[str]:
         """
         Get list of currently cached agents.
 
@@ -294,7 +294,7 @@ class AgentLoader:
         """
         return list(self._cache.keys())
 
-    def get_statistics(self) -> Dict[str, Any]:
+    def get_statistics(self) -> dict[str, Any]:
         """
         Get loader statistics.
 
@@ -316,7 +316,7 @@ class AgentLoader:
 
         return stats
 
-    def optimize_cache(self, access_patterns: List[str]):
+    def optimize_cache(self, access_patterns: list[str]):
         """
         Optimize cache based on access patterns.
 
