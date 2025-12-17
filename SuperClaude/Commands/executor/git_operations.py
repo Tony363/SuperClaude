@@ -9,7 +9,7 @@ import logging
 import os
 import shutil
 import subprocess
-from collections.abc import Iterable, Sequence
+from collections.abc import Callable, Iterable, Sequence
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 
 def normalize_repo_root(
-    repo_root: Path | None, detect_fn: callable | None = None
+    repo_root: Path | None, detect_fn: Callable[[], Path | None] | None = None
 ) -> Path | None:
     """Normalize desired repo root, falling back to detected git root."""
     env_root = os.environ.get("SUPERCLAUDE_REPO_ROOT")
