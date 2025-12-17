@@ -11,7 +11,6 @@ import time
 import urllib.error
 import urllib.request
 from pathlib import Path
-from typing import Optional
 
 from packaging import version
 
@@ -86,7 +85,7 @@ class UpdateChecker:
         with open(self.CACHE_FILE, "w") as f:
             json.dump(data, f)
 
-    def get_latest_version(self) -> Optional[str]:
+    def get_latest_version(self) -> str | None:
         """
         Query PyPI for the latest version of SuperClaude
 

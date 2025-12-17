@@ -5,7 +5,7 @@ This agent serves as the default fallback and can handle a wide variety
 of tasks by delegating to specialized agents when appropriate.
 """
 
-from typing import Any, Dict, List
+from typing import Any
 
 from ..base import BaseAgent
 from ..registry import AgentRegistry
@@ -20,7 +20,7 @@ class GeneralPurposeAgent(BaseAgent):
     and can either handle tasks directly or delegate to specialists.
     """
 
-    def __init__(self, config: Dict[str, Any]):
+    def __init__(self, config: dict[str, Any]):
         """
         Initialize the general purpose agent.
 
@@ -55,7 +55,7 @@ class GeneralPurposeAgent(BaseAgent):
             self.logger.warning(f"Failed to initialize delegation: {e}")
             # Can still function without delegation
 
-    def execute(self, context: Dict[str, Any]) -> Dict[str, Any]:
+    def execute(self, context: dict[str, Any]) -> dict[str, Any]:
         """
         Execute task with optional delegation to specialists.
 
@@ -110,7 +110,7 @@ class GeneralPurposeAgent(BaseAgent):
 
         return result
 
-    def validate(self, context: Dict[str, Any]) -> bool:
+    def validate(self, context: dict[str, Any]) -> bool:
         """
         General purpose agent can handle any context.
 
@@ -123,8 +123,8 @@ class GeneralPurposeAgent(BaseAgent):
         return True
 
     def _consider_delegation(
-        self, task: str, context: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        self, task: str, context: dict[str, Any]
+    ) -> dict[str, Any]:
         """
         Consider whether to delegate task to a specialist.
 
@@ -187,8 +187,8 @@ class GeneralPurposeAgent(BaseAgent):
         return decision
 
     def _delegate_task(
-        self, agent_name: str, context: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        self, agent_name: str, context: dict[str, Any]
+    ) -> dict[str, Any]:
         """
         Delegate task to another agent.
 
@@ -232,8 +232,8 @@ class GeneralPurposeAgent(BaseAgent):
             return {"success": False, "errors": [f"Delegation error: {e!s}"]}
 
     def _handle_directly(
-        self, task: str, context: Dict[str, Any], delegation_result: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        self, task: str, context: dict[str, Any], delegation_result: dict[str, Any]
+    ) -> dict[str, Any]:
         """
         Handle task directly without delegation.
 
@@ -304,7 +304,7 @@ class GeneralPurposeAgent(BaseAgent):
         warnings = []
         success = False
         status = "plan-only"
-        actions_taken: List[str] = []
+        actions_taken: list[str] = []
 
         if executed_ops:
             success = True
@@ -320,7 +320,7 @@ class GeneralPurposeAgent(BaseAgent):
             task, "".join(output_lines), planned_steps, executed_ops
         )
 
-        result_payload: Dict[str, Any] = {
+        result_payload: dict[str, Any] = {
             "success": success,
             "status": status,
             "output": response_body,
@@ -353,7 +353,7 @@ class GeneralPurposeAgent(BaseAgent):
 
         return result_payload
 
-    def _extract_executed_operations(self, context: Dict[str, Any]) -> List[str]:
+    def _extract_executed_operations(self, context: dict[str, Any]) -> list[str]:
         """
         Extract evidence of executed work from context.
 
@@ -363,7 +363,7 @@ class GeneralPurposeAgent(BaseAgent):
         Returns:
             List of executed operations
         """
-        executed: List[str] = []
+        executed: list[str] = []
         candidate_keys = [
             "executed_operations",
             "applied_changes",
@@ -393,8 +393,8 @@ class GeneralPurposeAgent(BaseAgent):
         self,
         task: str,
         analysis: str,
-        planned_steps: List[str],
-        executed_ops: List[str],
+        planned_steps: list[str],
+        executed_ops: list[str],
     ) -> str:
         """
         Render the response combining analysis, plan, and execution evidence.
@@ -408,7 +408,7 @@ class GeneralPurposeAgent(BaseAgent):
         Returns:
             Response string
         """
-        sections: List[str] = []
+        sections: list[str] = []
         sections.append(f"# General Purpose Agent Summary\n\n**Task**: {task}\n")
         sections.append(analysis)
 
@@ -430,7 +430,7 @@ class GeneralPurposeAgent(BaseAgent):
 
         return "".join(sections)
 
-    def get_capabilities(self) -> List[str]:
+    def get_capabilities(self) -> list[str]:
         """
         Return general purpose capabilities.
 

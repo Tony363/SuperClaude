@@ -6,7 +6,7 @@ for software projects.
 """
 
 import re
-from typing import Any, Dict, List
+from typing import Any
 
 from ..base import BaseAgent
 
@@ -19,7 +19,7 @@ class QualityEngineer(BaseAgent):
     analysis, and quality metrics for codebases.
     """
 
-    def __init__(self, config: Dict[str, Any]):
+    def __init__(self, config: dict[str, Any]):
         """
         Initialize the quality engineer.
 
@@ -42,7 +42,7 @@ class QualityEngineer(BaseAgent):
         self.test_patterns = self._initialize_test_patterns()
         self.coverage_thresholds = self._initialize_coverage_thresholds()
 
-    def execute(self, context: Dict[str, Any]) -> Dict[str, Any]:
+    def execute(self, context: dict[str, Any]) -> dict[str, Any]:
         """
         Execute quality engineering tasks.
 
@@ -125,7 +125,7 @@ class QualityEngineer(BaseAgent):
 
         return result
 
-    def validate(self, context: Dict[str, Any]) -> bool:
+    def validate(self, context: dict[str, Any]) -> bool:
         """
         Check if this agent can handle the context.
 
@@ -160,7 +160,7 @@ class QualityEngineer(BaseAgent):
         task_lower = task.lower()
         return any(keyword in task_lower for keyword in quality_keywords)
 
-    def _initialize_test_patterns(self) -> Dict[str, Dict[str, Any]]:
+    def _initialize_test_patterns(self) -> dict[str, dict[str, Any]]:
         """
         Initialize testing patterns and strategies.
 
@@ -203,7 +203,7 @@ class QualityEngineer(BaseAgent):
             },
         }
 
-    def _initialize_coverage_thresholds(self) -> Dict[str, float]:
+    def _initialize_coverage_thresholds(self) -> dict[str, float]:
         """
         Initialize coverage thresholds.
 
@@ -219,8 +219,8 @@ class QualityEngineer(BaseAgent):
         }
 
     def _analyze_test_requirements(
-        self, task: str, files: List[str], code: str
-    ) -> List[Dict[str, Any]]:
+        self, task: str, files: list[str], code: str
+    ) -> list[dict[str, Any]]:
         """
         Analyze testing requirements.
 
@@ -269,8 +269,8 @@ class QualityEngineer(BaseAgent):
         return requirements
 
     def _generate_test_strategy(
-        self, requirements: List[Dict[str, Any]], test_type: str
-    ) -> Dict[str, Any]:
+        self, requirements: list[dict[str, Any]], test_type: str
+    ) -> dict[str, Any]:
         """
         Generate comprehensive test strategy.
 
@@ -310,8 +310,8 @@ class QualityEngineer(BaseAgent):
         return strategy
 
     def _generate_test_cases(
-        self, strategy: Dict[str, Any], code: str, files: List[str]
-    ) -> List[Dict[str, Any]]:
+        self, strategy: dict[str, Any], code: str, files: list[str]
+    ) -> list[dict[str, Any]]:
         """
         Generate test cases based on strategy.
 
@@ -412,8 +412,8 @@ class QualityEngineer(BaseAgent):
         return test_cases
 
     def _analyze_coverage(
-        self, test_cases: List[Dict[str, Any]], code: str, files: List[str]
-    ) -> Dict[str, Any]:
+        self, test_cases: list[dict[str, Any]], code: str, files: list[str]
+    ) -> dict[str, Any]:
         """
         Analyze test coverage.
 
@@ -475,10 +475,10 @@ class QualityEngineer(BaseAgent):
 
     def _calculate_quality_metrics(
         self,
-        test_cases: List[Dict[str, Any]],
-        coverage: Dict[str, Any],
-        requirements: List[Dict[str, Any]],
-    ) -> Dict[str, Any]:
+        test_cases: list[dict[str, Any]],
+        coverage: dict[str, Any],
+        requirements: list[dict[str, Any]],
+    ) -> dict[str, Any]:
         """
         Calculate quality metrics.
 
@@ -526,10 +526,10 @@ class QualityEngineer(BaseAgent):
     def _generate_quality_report(
         self,
         task: str,
-        strategy: Dict[str, Any],
-        test_cases: List[Dict[str, Any]],
-        coverage: Dict[str, Any],
-        metrics: Dict[str, Any],
+        strategy: dict[str, Any],
+        test_cases: list[dict[str, Any]],
+        coverage: dict[str, Any],
+        metrics: dict[str, Any],
     ) -> str:
         """
         Generate comprehensive quality report.

@@ -6,7 +6,7 @@ database design, and server-side implementation patterns.
 """
 
 import re
-from typing import Any, Dict, List
+from typing import Any
 
 from ..base import BaseAgent
 
@@ -19,7 +19,7 @@ class BackendArchitect(BaseAgent):
     and backend best practices for robust server-side systems.
     """
 
-    def __init__(self, config: Dict[str, Any]):
+    def __init__(self, config: dict[str, Any]):
         """
         Initialize the backend architect.
 
@@ -41,7 +41,7 @@ class BackendArchitect(BaseAgent):
         self.database_patterns = self._initialize_database_patterns()
         self.backend_principles = self._initialize_backend_principles()
 
-    def execute(self, context: Dict[str, Any]) -> Dict[str, Any]:
+    def execute(self, context: dict[str, Any]) -> dict[str, Any]:
         """
         Execute backend architecture tasks.
 
@@ -132,7 +132,7 @@ class BackendArchitect(BaseAgent):
 
         return result
 
-    def validate(self, context: Dict[str, Any]) -> bool:
+    def validate(self, context: dict[str, Any]) -> bool:
         """
         Check if this agent can handle the context.
 
@@ -167,7 +167,7 @@ class BackendArchitect(BaseAgent):
         task_lower = task.lower()
         return any(keyword in task_lower for keyword in backend_keywords)
 
-    def _initialize_api_patterns(self) -> Dict[str, Dict[str, Any]]:
+    def _initialize_api_patterns(self) -> dict[str, dict[str, Any]]:
         """
         Initialize API design patterns.
 
@@ -205,7 +205,7 @@ class BackendArchitect(BaseAgent):
             },
         }
 
-    def _initialize_database_patterns(self) -> Dict[str, Dict[str, Any]]:
+    def _initialize_database_patterns(self) -> dict[str, dict[str, Any]]:
         """
         Initialize database patterns.
 
@@ -250,7 +250,7 @@ class BackendArchitect(BaseAgent):
             },
         }
 
-    def _initialize_backend_principles(self) -> List[Dict[str, str]]:
+    def _initialize_backend_principles(self) -> list[dict[str, str]]:
         """
         Initialize backend development principles.
 
@@ -285,8 +285,8 @@ class BackendArchitect(BaseAgent):
         ]
 
     def _analyze_api_design(
-        self, task: str, files: List[str], code: str
-    ) -> Dict[str, Any]:
+        self, task: str, files: list[str], code: str
+    ) -> dict[str, Any]:
         """
         Analyze API design requirements.
 
@@ -360,8 +360,8 @@ class BackendArchitect(BaseAgent):
         return api_design
 
     def _analyze_database_design(
-        self, task: str, files: List[str], code: str, requirements: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        self, task: str, files: list[str], code: str, requirements: dict[str, Any]
+    ) -> dict[str, Any]:
         """
         Analyze database design requirements.
 
@@ -443,10 +443,10 @@ class BackendArchitect(BaseAgent):
     def _design_service_architecture(
         self,
         task: str,
-        api_design: Dict[str, Any],
-        db_design: Dict[str, Any],
-        requirements: Dict[str, Any],
-    ) -> Dict[str, Any]:
+        api_design: dict[str, Any],
+        db_design: dict[str, Any],
+        requirements: dict[str, Any],
+    ) -> dict[str, Any]:
         """
         Design service architecture.
 
@@ -507,10 +507,10 @@ class BackendArchitect(BaseAgent):
 
     def _evaluate_backend_patterns(
         self,
-        api_design: Dict[str, Any],
-        db_design: Dict[str, Any],
-        service_arch: Dict[str, Any],
-    ) -> List[Dict[str, Any]]:
+        api_design: dict[str, Any],
+        db_design: dict[str, Any],
+        service_arch: dict[str, Any],
+    ) -> list[dict[str, Any]]:
         """
         Evaluate backend patterns.
 
@@ -582,11 +582,11 @@ class BackendArchitect(BaseAgent):
 
     def _generate_recommendations(
         self,
-        api_design: Dict[str, Any],
-        db_design: Dict[str, Any],
-        service_arch: Dict[str, Any],
-        patterns: List[Dict[str, Any]],
-    ) -> List[Dict[str, Any]]:
+        api_design: dict[str, Any],
+        db_design: dict[str, Any],
+        service_arch: dict[str, Any],
+        patterns: list[dict[str, Any]],
+    ) -> list[dict[str, Any]]:
         """
         Generate backend recommendations.
 
@@ -682,11 +682,11 @@ class BackendArchitect(BaseAgent):
     def _generate_backend_report(
         self,
         task: str,
-        api_design: Dict[str, Any],
-        db_design: Dict[str, Any],
-        service_arch: Dict[str, Any],
-        patterns: List[Dict[str, Any]],
-        recommendations: List[Dict[str, Any]],
+        api_design: dict[str, Any],
+        db_design: dict[str, Any],
+        service_arch: dict[str, Any],
+        patterns: list[dict[str, Any]],
+        recommendations: list[dict[str, Any]],
     ) -> str:
         """
         Generate comprehensive backend report.

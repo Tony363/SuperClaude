@@ -5,7 +5,7 @@ Abstract base class for installable components
 import json
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 from ..services.files import FileService
 from ..services.settings import SettingsService
@@ -17,7 +17,7 @@ class Component(ABC):
     """Base class for all installable components"""
 
     def __init__(
-        self, install_dir: Optional[Path] = None, component_subdir: Path = Path("")
+        self, install_dir: Path | None = None, component_subdir: Path = Path("")
     ):
         """
         Initialize component with installation directory
@@ -37,7 +37,7 @@ class Component(ABC):
         self.install_component_subdir = self.install_dir / component_subdir
 
     @abstractmethod
-    def get_metadata(self) -> Dict[str, str]:
+    def get_metadata(self) -> dict[str, str]:
         """
         Return component metadata
 
@@ -51,8 +51,8 @@ class Component(ABC):
         pass
 
     def validate_prerequisites(
-        self, installSubPath: Optional[Path] = None
-    ) -> Tuple[bool, List[str]]:
+        self, installSubPath: Path | None = None
+    ) -> tuple[bool, list[str]]:
         """
         Check prerequisites for this component
 
@@ -108,7 +108,7 @@ class Component(ABC):
 
         return len(errors) == 0, errors
 
-    def get_files_to_install(self) -> List[Tuple[Path, Path]]:
+    def get_files_to_install(self) -> list[tuple[Path, Path]]:
         """
         Return list of files to install
 
@@ -126,7 +126,7 @@ class Component(ABC):
 
         return files
 
-    def get_settings_modifications(self) -> Dict[str, Any]:
+    def get_settings_modifications(self) -> dict[str, Any]:
         """
         Return settings.json modifications to apply
         (now only Claude Code compatible settings)
@@ -137,7 +137,7 @@ class Component(ABC):
         # Return empty dict as we don't modify Claude Code settings
         return {}
 
-    def install(self, config: Dict[str, Any]) -> bool:
+    def install(self, config: dict[str, Any]) -> bool:
         try:
             return self._install(config)
         except Exception as e:
@@ -145,7 +145,7 @@ class Component(ABC):
             return False
 
     @abstractmethod
-    def _install(self, config: Dict[str, Any]) -> bool:
+    def _install(self, config: dict[str, Any]) -> bool:
         """
         Perform component-specific installation logic
 
@@ -203,7 +203,7 @@ class Component(ABC):
         pass
 
     @abstractmethod
-    def get_dependencies(self) -> List[str]:
+    def get_dependencies(self) -> list[str]:
         """
         Return list of component dependencies
 
@@ -213,11 +213,11 @@ class Component(ABC):
         pass
 
     @abstractmethod
-    def _get_source_dir(self) -> Optional[Path]:
+    def _get_source_dir(self) -> Path | None:
         """Get source directory for component files"""
         pass
 
-    def update(self, config: Dict[str, Any]) -> bool:
+    def update(self, config: dict[str, Any]) -> bool:
         """
         Update component (default: uninstall then install)
 
@@ -232,7 +232,7 @@ class Component(ABC):
             return self.install(config)
         return False
 
-    def get_installed_version(self) -> Optional[str]:
+    def get_installed_version(self) -> str | None:
         """
         Get currently installed version of component
 
@@ -269,7 +269,7 @@ class Component(ABC):
         """
         return self.get_installed_version() is not None
 
-    def validate_installation(self) -> Tuple[bool, List[str]]:
+    def validate_installation(self) -> tuple[bool, list[str]]:
         """
         Validate that component is correctly installed
 
@@ -307,7 +307,7 @@ class Component(ABC):
                     )
         return total_size
 
-    def _discover_component_files(self) -> List[str]:
+    def _discover_component_files(self) -> list[str]:
         """
         Dynamically discover framework .md files in the Core directory
 
@@ -329,8 +329,8 @@ class Component(ABC):
         self,
         directory: Path,
         extension: str = ".md",
-        exclude_patterns: Optional[List[str]] = None,
-    ) -> List[str]:
+        exclude_patterns: list[str] | None = None,
+    ) -> list[str]:
         """
         Shared utility for discovering files in a directory
 
@@ -442,7 +442,7 @@ class Component(ABC):
             self.logger.error(f"Failed to resolve path {path}: {e}")
             raise ValueError(f"Invalid path: {path}")
 
-    def _resolve_source_path_safely(self, path: Path) -> Optional[Path]:
+    def _resolve_source_path_safely(self, path: Path) -> Path | None:
         """
         Safely resolve source path with existence check
 

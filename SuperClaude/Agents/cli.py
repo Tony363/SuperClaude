@@ -6,7 +6,6 @@ the 131-agent system.
 """
 
 import argparse
-from typing import Optional
 
 from rich import box
 from rich.console import Console
@@ -19,7 +18,7 @@ from .extended_loader import AgentCategory, ExtendedAgentLoader
 console = Console()
 
 
-def cmd_list_agents(loader: ExtendedAgentLoader, category: Optional[str] = None):
+def cmd_list_agents(loader: ExtendedAgentLoader, category: str | None = None):
     """List all agents, optionally filtered by category."""
     if category:
         try:

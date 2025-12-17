@@ -7,7 +7,7 @@ import argparse
 import sys
 import time
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from ... import PROJECT_ROOT
 from ...core.installer import Installer
@@ -89,7 +89,7 @@ def check_installation_exists(install_dir: Path) -> bool:
     return settings_manager.check_installation_exists()
 
 
-def get_installed_components(install_dir: Path) -> Dict[str, Dict[str, Any]]:
+def get_installed_components(install_dir: Path) -> dict[str, dict[str, Any]]:
     """Get currently installed components and their versions"""
     try:
         settings_manager = SettingsService(install_dir)
@@ -99,8 +99,8 @@ def get_installed_components(install_dir: Path) -> Dict[str, Dict[str, Any]]:
 
 
 def get_available_updates(
-    installed_components: Dict[str, str], registry: ComponentRegistry
-) -> Dict[str, Dict[str, str]]:
+    installed_components: dict[str, str], registry: ComponentRegistry
+) -> dict[str, dict[str, str]]:
     """Check for available updates"""
     updates = {}
 
@@ -122,7 +122,7 @@ def get_available_updates(
 
 
 def display_update_check(
-    installed_components: Dict[str, str], available_updates: Dict[str, Dict[str, str]]
+    installed_components: dict[str, str], available_updates: dict[str, dict[str, str]]
 ) -> None:
     """Display update check results"""
     print(f"\n{Colors.CYAN}{Colors.BRIGHT}Update Check Results{Colors.RESET}")
@@ -149,9 +149,9 @@ def display_update_check(
 
 def get_components_to_update(
     args: argparse.Namespace,
-    installed_components: Dict[str, str],
-    available_updates: Dict[str, Dict[str, str]],
-) -> Optional[List[str]]:
+    installed_components: dict[str, str],
+    available_updates: dict[str, dict[str, str]],
+) -> list[str] | None:
     """Determine which components to update"""
     logger = get_logger()
 
@@ -182,8 +182,8 @@ def get_components_to_update(
 
 
 def collect_api_keys_for_servers(
-    selected_servers: List[str], mcp_instance
-) -> Dict[str, str]:
+    selected_servers: list[str], mcp_instance
+) -> dict[str, str]:
     """
     Collect API keys for servers that require them during update
 
@@ -225,8 +225,8 @@ def collect_api_keys_for_servers(
 
 
 def interactive_update_selection(
-    available_updates: Dict[str, Dict[str, str]], installed_components: Dict[str, str]
-) -> Optional[List[str]]:
+    available_updates: dict[str, dict[str, str]], installed_components: dict[str, str]
+) -> list[str] | None:
     """Interactive update selection"""
     if not available_updates:
         return []
@@ -270,9 +270,9 @@ def interactive_update_selection(
 
 
 def display_update_plan(
-    components: List[str],
-    available_updates: Dict[str, Dict[str, str]],
-    installed_components: Dict[str, str],
+    components: list[str],
+    available_updates: dict[str, dict[str, str]],
+    installed_components: dict[str, str],
     install_dir: Path,
 ) -> None:
     """Display update plan"""
@@ -294,7 +294,7 @@ def display_update_plan(
 
 
 def perform_update(
-    components: List[str], args: argparse.Namespace, registry: ComponentRegistry
+    components: list[str], args: argparse.Namespace, registry: ComponentRegistry
 ) -> bool:
     """Perform the actual update"""
     logger = get_logger()

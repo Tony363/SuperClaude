@@ -11,7 +11,7 @@ import json
 import logging
 import sys
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Type
+from typing import Any
 
 from .base import BaseAgent
 from .parser import AgentMarkdownParser
@@ -26,7 +26,7 @@ class AgentRegistry:
     for agent lookup and instantiation.
     """
 
-    def __init__(self, agents_dir: Optional[Path] = None):
+    def __init__(self, agents_dir: Path | None = None):
         """
         Initialize the agent registry.
 
@@ -41,9 +41,9 @@ class AgentRegistry:
         self.logger = logging.getLogger("agent.registry")
 
         # Agent storage
-        self._agents: Dict[str, Dict[str, Any]] = {}  # name -> config
-        self._agent_classes: Dict[str, Type[BaseAgent]] = {}  # name -> class
-        self._categories: Dict[str, List[str]] = {}  # category -> [agent_names]
+        self._agents: dict[str, dict[str, Any]] = {}  # name -> config
+        self._agent_classes: dict[str, type[BaseAgent]] = {}  # name -> class
+        self._categories: dict[str, list[str]] = {}  # category -> [agent_names]
 
         # Parser for markdown files
         self.parser = AgentMarkdownParser()
@@ -122,7 +122,7 @@ class AgentRegistry:
 
         return count
 
-    def _register_agent(self, config: Dict[str, Any]):
+    def _register_agent(self, config: dict[str, Any]):
         """
         Register an agent configuration.
 
@@ -233,7 +233,7 @@ class AgentRegistry:
         parts = agent_name.split("-")
         return "".join(word.capitalize() for word in parts)
 
-    def get_agent(self, name: str) -> Optional[BaseAgent]:
+    def get_agent(self, name: str) -> BaseAgent | None:
         """
         Get an agent instance by name.
 
@@ -262,7 +262,7 @@ class AgentRegistry:
 
         return GenericMarkdownAgent(config)
 
-    def _ensure_agent_class(self, name: str, config: Dict[str, Any]) -> None:
+    def _ensure_agent_class(self, name: str, config: dict[str, Any]) -> None:
         """
         Ensure a Python implementation class exists for the given agent.
         Extended agents dynamically subclass the generic markdown agent so they
@@ -290,7 +290,7 @@ class AgentRegistry:
             config["capability_tier"] = "strategist"
 
     @staticmethod
-    def _guess_default_extension(config: Dict[str, Any]) -> str:
+    def _guess_default_extension(config: dict[str, Any]) -> str:
         """Heuristic mapping from agent metadata to a default stub extension."""
         candidates = []
         tools = [tool.lower() for tool in config.get("tools", [])]
@@ -321,7 +321,7 @@ class AgentRegistry:
             return "md"
         return "py"
 
-    def get_all_agents(self) -> List[str]:
+    def get_all_agents(self) -> list[str]:
         """
         Get list of all available agent names.
 
@@ -333,7 +333,7 @@ class AgentRegistry:
 
         return list(self._agents.keys())
 
-    def list_agents(self, category: str = None) -> List[str]:
+    def list_agents(self, category: str = None) -> list[str]:
         """
         List all available agent names, optionally filtered by category.
 
@@ -350,7 +350,7 @@ class AgentRegistry:
             return self.get_agents_by_category(category)
         return self.get_all_agents()
 
-    def get_agents_by_category(self, category: str) -> List[str]:
+    def get_agents_by_category(self, category: str) -> list[str]:
         """
         Get agents in a specific category.
 
@@ -365,7 +365,7 @@ class AgentRegistry:
 
         return self._categories.get(category, [])
 
-    def get_categories(self) -> List[str]:
+    def get_categories(self) -> list[str]:
         """
         Get all available categories.
 
@@ -377,7 +377,7 @@ class AgentRegistry:
 
         return list(self._categories.keys())
 
-    def get_agent_config(self, name: str) -> Optional[Dict[str, Any]]:
+    def get_agent_config(self, name: str) -> dict[str, Any] | None:
         """
         Get agent configuration by name.
 
@@ -401,7 +401,7 @@ class AgentRegistry:
             return "unknown"
         return str(config.get("capability_tier", "unknown"))
 
-    def search_agents(self, query: str) -> List[str]:
+    def search_agents(self, query: str) -> list[str]:
         """
         Search for agents by keyword.
 
@@ -436,7 +436,7 @@ class AgentRegistry:
 
         return matches
 
-    def get_statistics(self) -> Dict[str, Any]:
+    def get_statistics(self) -> dict[str, Any]:
         """
         Get registry statistics.
 
@@ -462,7 +462,7 @@ class AgentRegistry:
             },
         }
 
-    def export_catalog(self, output_path: Optional[Path] = None) -> Path:
+    def export_catalog(self, output_path: Path | None = None) -> Path:
         """
         Export agent catalog to JSON file.
 

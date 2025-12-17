@@ -7,7 +7,7 @@ that MCP tools are available.
 """
 
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 from setup import __version__
 
@@ -25,7 +25,7 @@ class MCPComponent(Component):
     No custom installation is needed - Claude Code handles MCP configuration.
     """
 
-    def __init__(self, install_dir: Optional[Path] = None):
+    def __init__(self, install_dir: Path | None = None):
         """Initialize MCP component."""
         super().__init__(install_dir)
 
@@ -63,7 +63,7 @@ class MCPComponent(Component):
             },
         }
 
-    def get_metadata(self) -> Dict[str, str]:
+    def get_metadata(self) -> dict[str, str]:
         """Get component metadata."""
         return {
             "name": "mcp",
@@ -73,16 +73,16 @@ class MCPComponent(Component):
         }
 
     def validate_prerequisites(
-        self, installSubPath: Optional[Path] = None
-    ) -> Tuple[bool, List[str]]:
+        self, installSubPath: Path | None = None
+    ) -> tuple[bool, list[str]]:
         """No prerequisites needed - native MCP tools are built into Claude Code."""
         return True, []
 
-    def get_files_to_install(self) -> List[Tuple[Path, Path]]:
+    def get_files_to_install(self) -> list[tuple[Path, Path]]:
         """No files to install - MCP is native to Claude Code."""
         return []
 
-    def get_metadata_modifications(self) -> Dict[str, Any]:
+    def get_metadata_modifications(self) -> dict[str, Any]:
         """Get metadata modifications for MCP component."""
         return {
             "components": {
@@ -133,6 +133,6 @@ class MCPComponent(Component):
         display_info("Native MCP tools are updated with Claude Code.")
         return True
 
-    def validate_installation(self, installSubPath: Optional[Path] = None) -> bool:
+    def validate_installation(self, installSubPath: Path | None = None) -> bool:
         """Native MCP tools are always available in Claude Code."""
         return True

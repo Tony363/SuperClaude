@@ -5,7 +5,7 @@ This agent specializes in requirements elicitation, analysis,
 and transformation of ambiguous ideas into concrete specifications.
 """
 
-from typing import Any, Dict, List
+from typing import Any
 
 from ..base import BaseAgent
 
@@ -18,7 +18,7 @@ class RequirementsAnalyst(BaseAgent):
     and structured specification generation from ambiguous inputs.
     """
 
-    def __init__(self, config: Dict[str, Any]):
+    def __init__(self, config: dict[str, Any]):
         """
         Initialize the requirements analyst.
 
@@ -43,7 +43,7 @@ class RequirementsAnalyst(BaseAgent):
         self.story_templates = self._initialize_story_templates()
         self.acceptance_criteria_patterns = self._initialize_acceptance_patterns()
 
-    def execute(self, context: Dict[str, Any]) -> Dict[str, Any]:
+    def execute(self, context: dict[str, Any]) -> dict[str, Any]:
         """
         Execute requirements analysis tasks.
 
@@ -142,7 +142,7 @@ class RequirementsAnalyst(BaseAgent):
 
         return result
 
-    def validate(self, context: Dict[str, Any]) -> bool:
+    def validate(self, context: dict[str, Any]) -> bool:
         """
         Check if this agent can handle the context.
 
@@ -173,7 +173,7 @@ class RequirementsAnalyst(BaseAgent):
         task_lower = task.lower()
         return any(keyword in task_lower for keyword in requirements_keywords)
 
-    def _initialize_requirement_types(self) -> Dict[str, Dict[str, Any]]:
+    def _initialize_requirement_types(self) -> dict[str, dict[str, Any]]:
         """
         Initialize requirement types.
 
@@ -217,7 +217,7 @@ class RequirementsAnalyst(BaseAgent):
             },
         }
 
-    def _initialize_question_templates(self) -> Dict[str, List[str]]:
+    def _initialize_question_templates(self) -> dict[str, list[str]]:
         """
         Initialize question templates for elicitation.
 
@@ -262,7 +262,7 @@ class RequirementsAnalyst(BaseAgent):
             ],
         }
 
-    def _initialize_story_templates(self) -> Dict[str, str]:
+    def _initialize_story_templates(self) -> dict[str, str]:
         """
         Initialize user story templates.
 
@@ -276,7 +276,7 @@ class RequirementsAnalyst(BaseAgent):
             "epic": "As {personas}, we want {big_feature} to {business_value}",
         }
 
-    def _initialize_acceptance_patterns(self) -> List[str]:
+    def _initialize_acceptance_patterns(self) -> list[str]:
         """
         Initialize acceptance criteria patterns.
 
@@ -291,7 +291,7 @@ class RequirementsAnalyst(BaseAgent):
             "System validates {input} and {validation_result}",
         ]
 
-    def _elicit_requirements(self, task: str, description: str) -> List[Dict[str, Any]]:
+    def _elicit_requirements(self, task: str, description: str) -> list[dict[str, Any]]:
         """
         Elicit requirements from task and description.
 
@@ -418,8 +418,8 @@ class RequirementsAnalyst(BaseAgent):
         return requirements
 
     def _identify_clarifications(
-        self, requirements: List[Dict[str, Any]], task: str
-    ) -> List[Dict[str, Any]]:
+        self, requirements: list[dict[str, Any]], task: str
+    ) -> list[dict[str, Any]]:
         """
         Identify clarifications needed.
 
@@ -503,8 +503,8 @@ class RequirementsAnalyst(BaseAgent):
         return clarifications
 
     def _create_user_stories(
-        self, requirements: List[Dict[str, Any]], stakeholders: List[str]
-    ) -> List[Dict[str, Any]]:
+        self, requirements: list[dict[str, Any]], stakeholders: list[str]
+    ) -> list[dict[str, Any]]:
         """
         Create user stories from requirements.
 
@@ -541,7 +541,7 @@ class RequirementsAnalyst(BaseAgent):
 
         return stories
 
-    def _estimate_story_points(self, requirement: Dict[str, Any]) -> int:
+    def _estimate_story_points(self, requirement: dict[str, Any]) -> int:
         """
         Estimate story points for requirement.
 
@@ -567,8 +567,8 @@ class RequirementsAnalyst(BaseAgent):
         return min(13, base_points)  # Cap at 13 (Fibonacci)
 
     def _define_acceptance_criteria(
-        self, stories: List[Dict[str, Any]], requirements: List[Dict[str, Any]]
-    ) -> List[Dict[str, Any]]:
+        self, stories: list[dict[str, Any]], requirements: list[dict[str, Any]]
+    ) -> list[dict[str, Any]]:
         """
         Define acceptance criteria for user stories.
 
@@ -622,11 +622,11 @@ class RequirementsAnalyst(BaseAgent):
 
     def _generate_specification(
         self,
-        requirements: List[Dict[str, Any]],
-        stories: List[Dict[str, Any]],
-        criteria: List[Dict[str, Any]],
-        constraints: Dict[str, Any],
-    ) -> Dict[str, Any]:
+        requirements: list[dict[str, Any]],
+        stories: list[dict[str, Any]],
+        criteria: list[dict[str, Any]],
+        constraints: dict[str, Any],
+    ) -> dict[str, Any]:
         """
         Generate formal specification.
 
@@ -699,10 +699,10 @@ class RequirementsAnalyst(BaseAgent):
 
     def _generate_recommendations(
         self,
-        requirements: List[Dict[str, Any]],
-        clarifications: List[Dict[str, Any]],
-        specification: Dict[str, Any],
-    ) -> List[Dict[str, Any]]:
+        requirements: list[dict[str, Any]],
+        clarifications: list[dict[str, Any]],
+        specification: dict[str, Any],
+    ) -> list[dict[str, Any]]:
         """
         Generate recommendations.
 
@@ -774,12 +774,12 @@ class RequirementsAnalyst(BaseAgent):
     def _generate_requirements_report(
         self,
         task: str,
-        requirements: List[Dict[str, Any]],
-        clarifications: List[Dict[str, Any]],
-        stories: List[Dict[str, Any]],
-        criteria: List[Dict[str, Any]],
-        specification: Dict[str, Any],
-        recommendations: List[Dict[str, Any]],
+        requirements: list[dict[str, Any]],
+        clarifications: list[dict[str, Any]],
+        stories: list[dict[str, Any]],
+        criteria: list[dict[str, Any]],
+        specification: dict[str, Any],
+        recommendations: list[dict[str, Any]],
     ) -> str:
         """
         Generate comprehensive requirements report.

@@ -9,9 +9,10 @@ import logging
 import os
 import shutil
 import subprocess
+from collections.abc import Callable, Iterable, Sequence
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional, Sequence, Set, Tuple
+from typing import Any
 
 from .utils import truncate_output
 
@@ -19,8 +20,8 @@ logger = logging.getLogger(__name__)
 
 
 def normalize_repo_root(
-    repo_root: Optional[Path], detect_fn: Optional[callable] = None
-) -> Optional[Path]:
+    repo_root: Path | None, detect_fn: Callable[[], Path | None] | None = None
+) -> Path | None:
     """Normalize desired repo root, falling back to detected git root."""
     env_root = os.environ.get("SUPERCLAUDE_REPO_ROOT")
     if repo_root is None and env_root:
@@ -37,7 +38,7 @@ def normalize_repo_root(
     return detect_repo_root()
 
 
-def detect_repo_root() -> Optional[Path]:
+def detect_repo_root() -> Path | None:
     """Locate the git repository root, if available."""
     try:
         current = Path.cwd().resolve()
@@ -50,12 +51,12 @@ def detect_repo_root() -> Optional[Path]:
     return None
 
 
-def snapshot_repo_changes(repo_root: Optional[Path]) -> Set[str]:
+def snapshot_repo_changes(repo_root: Path | None) -> set[str]:
     """Capture current git worktree changes for comparison."""
     if not repo_root or not (repo_root / ".git").exists():
         return set()
 
-    snapshot: Set[str] = set()
+    snapshot: set[str] = set()
     commands = [
         ["git", "diff", "--name-status"],
         ["git", "diff", "--name-status", "--cached"],
@@ -97,7 +98,7 @@ def snapshot_repo_changes(repo_root: Optional[Path]) -> Set[str]:
     return snapshot
 
 
-def diff_snapshots(before: Set[str], after: Set[str]) -> List[str]:
+def diff_snapshots(before: set[str], after: set[str]) -> list[str]:
     """Return new repo changes detected between snapshots."""
     if not after:
         return []
@@ -108,10 +109,10 @@ def diff_snapshots(before: Set[str], after: Set[str]) -> List[str]:
 
 def partition_change_entries(
     entries: Iterable[str],
-) -> Tuple[List[str], List[str]]:
+) -> tuple[list[str], list[str]]:
     """Separate artifact-only changes from potential evidence."""
-    artifact_entries: List[str] = []
-    evidence_entries: List[str] = []
+    artifact_entries: list[str] = []
+    evidence_entries: list[str] = []
 
     for entry in entries:
         if is_artifact_change(entry):
@@ -171,11 +172,11 @@ def format_change_entry(entry: str) -> str:
 def run_command(
     command: Sequence[str],
     *,
-    cwd: Optional[Path] = None,
-    repo_root: Optional[Path] = None,
-    env: Optional[Dict[str, Any]] = None,
-    timeout: Optional[int] = None,
-) -> Dict[str, Any]:
+    cwd: Path | None = None,
+    repo_root: Path | None = None,
+    env: dict[str, Any] | None = None,
+    timeout: int | None = None,
+) -> dict[str, Any]:
     """
     Execute a system command and capture its output.
 
@@ -244,12 +245,12 @@ def run_command(
         }
 
 
-def collect_diff_stats(repo_root: Optional[Path]) -> List[str]:
+def collect_diff_stats(repo_root: Path | None) -> list[str]:
     """Collect diff statistics for working and staged changes."""
     if not repo_root or not (repo_root / ".git").exists():
         return []
 
-    stats: List[str] = []
+    stats: list[str] = []
     commands = [
         ("working", ["git", "diff", "--stat"]),
         ("staged", ["git", "diff", "--stat", "--cached"]),
@@ -271,10 +272,10 @@ def collect_diff_stats(repo_root: Optional[Path]) -> List[str]:
     return stats
 
 
-def clean_build_artifacts(repo_root: Path) -> Tuple[List[str], List[str]]:
+def clean_build_artifacts(repo_root: Path) -> tuple[list[str], list[str]]:
     """Remove common build artifacts when a clean build is requested."""
-    removed: List[str] = []
-    errors: List[str] = []
+    removed: list[str] = []
+    errors: list[str] = []
     targets = [
         "build",
         "dist",
@@ -299,7 +300,7 @@ def clean_build_artifacts(repo_root: Path) -> Tuple[List[str], List[str]]:
     return removed, errors
 
 
-def git_has_modifications(repo_root: Optional[Path], file_path: Path) -> bool:
+def git_has_modifications(repo_root: Path | None, file_path: Path) -> bool:
     """Check whether git reports pending changes for the path (excluding untracked files)."""
     if not repo_root or not (repo_root / ".git").exists():
         return False
@@ -335,15 +336,15 @@ def git_has_modifications(repo_root: Optional[Path], file_path: Path) -> bool:
 
 
 def extract_changed_paths(
-    repo_root: Optional[Path],
-    repo_entries: List[str],
-    applied_changes: List[str],
-) -> List[Path]:
+    repo_root: Path | None,
+    repo_entries: list[str],
+    applied_changes: list[str],
+) -> list[Path]:
     """Derive candidate file paths that were reported as changed."""
     if not repo_root:
         return []
 
-    candidates: List[str] = []
+    candidates: list[str] = []
 
     for entry in repo_entries:
         parts = entry.split("\t")
@@ -367,8 +368,8 @@ def extract_changed_paths(
         ):
             candidates.append(tokens[-1])
 
-    seen: Set[str] = set()
-    paths: List[Path] = []
+    seen: set[str] = set()
+    paths: list[Path] = []
     for candidate in candidates:
         candidate = candidate.strip()
         if not candidate or candidate.startswith("diff"):
@@ -394,7 +395,7 @@ def generate_commit_message(repo_root: Path) -> str:
     if not stdout.strip():
         return "chore: update workspace"
 
-    scopes: Set[str] = set()
+    scopes: set[str] = set()
     doc_only = True
     test_only = True
 
@@ -426,7 +427,7 @@ def generate_commit_message(repo_root: Path) -> str:
     return f"{prefix}: update {scope_text}"
 
 
-def relative_to_repo_path(repo_root: Optional[Path], path: Path) -> str:
+def relative_to_repo_path(repo_root: Path | None, path: Path) -> str:
     """Convert absolute path to repo-relative string."""
     if not repo_root:
         return str(path)
@@ -436,9 +437,9 @@ def relative_to_repo_path(repo_root: Optional[Path], path: Path) -> str:
         return str(path)
 
 
-def extract_heading_titles(source_text: str) -> List[str]:
+def extract_heading_titles(source_text: str) -> list[str]:
     """Extract top-level headings from a document."""
-    titles: List[str] = []
+    titles: list[str] = []
     for line in source_text.splitlines():
         stripped = line.strip()
         if not stripped.startswith("#"):
@@ -452,9 +453,9 @@ def extract_heading_titles(source_text: str) -> List[str]:
     return titles[:12]
 
 
-def extract_feature_list(source_text: str) -> List[str]:
+def extract_feature_list(source_text: str) -> list[str]:
     """Extract feature-like bullet items from a document."""
-    features: List[str] = []
+    features: list[str] = []
     for line in source_text.splitlines():
         stripped = line.strip()
         if not stripped or stripped.startswith("#"):

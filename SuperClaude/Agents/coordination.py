@@ -10,7 +10,7 @@ import time
 from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any
 
 from .loader import AgentLoader
 from .registry import AgentRegistry
@@ -25,11 +25,11 @@ class ExecutionContext:
     task: str
     start_time: datetime
     depth: int = 0
-    parent: Optional[str] = None
-    children: List[str] = field(default_factory=list)
+    parent: str | None = None
+    children: list[str] = field(default_factory=list)
     status: str = "pending"  # pending, running, completed, failed
-    result: Optional[Dict[str, Any]] = None
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    result: dict[str, Any] | None = None
+    metadata: dict[str, Any] = field(default_factory=dict)
 
 
 class CoordinationManager:
@@ -67,10 +67,10 @@ class CoordinationManager:
         self.logger = logging.getLogger(__name__)
 
         # Execution tracking
-        self.execution_stack: List[ExecutionContext] = []
-        self.execution_history: List[ExecutionContext] = []
-        self.active_agents: Set[str] = set()
-        self.delegation_graph: Dict[str, Set[str]] = defaultdict(set)
+        self.execution_stack: list[ExecutionContext] = []
+        self.execution_history: list[ExecutionContext] = []
+        self.active_agents: set[str] = set()
+        self.delegation_graph: dict[str, set[str]] = defaultdict(set)
 
         # Performance metrics
         self.metrics = {
@@ -84,16 +84,16 @@ class CoordinationManager:
         }
 
         # Protection mechanisms
-        self.blocked_delegations: Set[Tuple[str, str]] = set()
+        self.blocked_delegations: set[tuple[str, str]] = set()
         self.last_delegation_time = datetime.now()
 
     def execute_with_delegation(
         self,
         agent_name: str,
-        context: Dict[str, Any],
+        context: dict[str, Any],
         allow_delegation: bool = True,
-        max_depth: Optional[int] = None,
-    ) -> Dict[str, Any]:
+        max_depth: int | None = None,
+    ) -> dict[str, Any]:
         """
         Execute an agent with delegation support.
 
@@ -209,8 +209,8 @@ class CoordinationManager:
                 self._record_delegation_chain()
 
     def coordinate_parallel(
-        self, tasks: List[Dict[str, Any]], strategy: str = "best_match"
-    ) -> List[Dict[str, Any]]:
+        self, tasks: list[dict[str, Any]], strategy: str = "best_match"
+    ) -> list[dict[str, Any]]:
         """
         Coordinate parallel execution of multiple tasks.
 
@@ -257,7 +257,7 @@ class CoordinationManager:
 
         return results
 
-    def get_delegation_chain(self) -> List[str]:
+    def get_delegation_chain(self) -> list[str]:
         """
         Get current delegation chain.
 
@@ -266,7 +266,7 @@ class CoordinationManager:
         """
         return [ctx.agent_name for ctx in self.execution_stack]
 
-    def get_execution_metrics(self) -> Dict[str, Any]:
+    def get_execution_metrics(self) -> dict[str, Any]:
         """
         Get execution metrics.
 
@@ -312,7 +312,7 @@ class CoordinationManager:
         # Check delegation graph for cycles
         visited = set()
 
-        def has_cycle(agent: str, path: Set[str]) -> bool:
+        def has_cycle(agent: str, path: set[str]) -> bool:
             if agent in path:
                 return True
             if agent in visited:
@@ -359,13 +359,13 @@ class CoordinationManager:
         """Get current delegation depth."""
         return len(self.execution_stack)
 
-    def _get_current_agent(self) -> Optional[str]:
+    def _get_current_agent(self) -> str | None:
         """Get current executing agent."""
         return self.execution_stack[-1].agent_name if self.execution_stack else None
 
     def _enhance_context(
-        self, context: Dict[str, Any], exec_context: ExecutionContext
-    ) -> Dict[str, Any]:
+        self, context: dict[str, Any], exec_context: ExecutionContext
+    ) -> dict[str, Any]:
         """
         Enhance context with coordination information.
 
@@ -397,8 +397,8 @@ class CoordinationManager:
         return enhanced
 
     def _execute_with_timeout(
-        self, agent: Any, context: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        self, agent: Any, context: dict[str, Any]
+    ) -> dict[str, Any]:
         """
         Execute agent with timeout protection.
 
@@ -429,8 +429,8 @@ class CoordinationManager:
             }
 
     def _handle_delegation(
-        self, result: Dict[str, Any], context: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        self, result: dict[str, Any], context: dict[str, Any]
+    ) -> dict[str, Any]:
         """
         Handle sub-delegation request.
 
@@ -477,7 +477,7 @@ class CoordinationManager:
             time.sleep(self.DELEGATION_COOLDOWN - elapsed)
         self.last_delegation_time = datetime.now()
 
-    def _select_best_agent(self, context: Dict[str, Any]) -> str:
+    def _select_best_agent(self, context: dict[str, Any]) -> str:
         """Select best agent for context."""
         scores = self.selector.select_agent(context)
         if scores:
@@ -485,8 +485,8 @@ class CoordinationManager:
         return "general-purpose"  # Fallback
 
     def _group_tasks_by_complexity(
-        self, tasks: List[Dict[str, Any]]
-    ) -> List[List[Dict[str, Any]]]:
+        self, tasks: list[dict[str, Any]]
+    ) -> list[list[dict[str, Any]]]:
         """Group tasks by estimated complexity."""
         # Simple grouping - could be enhanced with ML
         simple = []
@@ -507,7 +507,7 @@ class CoordinationManager:
 
         return [simple, moderate, complex]
 
-    def _get_most_delegated_agents(self) -> List[Tuple[str, int]]:
+    def _get_most_delegated_agents(self) -> list[tuple[str, int]]:
         """Get most frequently delegated-to agents."""
         delegation_counts = defaultdict(int)
 
@@ -551,8 +551,8 @@ class CoordinationManager:
         self.blocked_delegations.clear()
 
     def get_execution_history(
-        self, limit: int = 10, status: Optional[str] = None
-    ) -> List[Dict[str, Any]]:
+        self, limit: int = 10, status: str | None = None
+    ) -> list[dict[str, Any]]:
         """
         Get execution history.
 

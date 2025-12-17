@@ -3,7 +3,7 @@ Modes component for SuperClaude behavioral modes
 """
 
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 from setup import __version__
 
@@ -20,12 +20,12 @@ class ModesComponent(Component):
         "MODE_Token_Efficiency.md",
     ]
 
-    def __init__(self, install_dir: Optional[Path] = None):
+    def __init__(self, install_dir: Path | None = None):
         """Initialize modes component"""
         self._selected_profile = "minimal"
         super().__init__(install_dir, Path(""))
 
-    def get_metadata(self) -> Dict[str, str]:
+    def get_metadata(self) -> dict[str, str]:
         """Get component metadata"""
         return {
             "name": "modes",
@@ -34,7 +34,7 @@ class ModesComponent(Component):
             "category": "modes",
         }
 
-    def _install(self, config: Dict[str, Any]) -> bool:
+    def _install(self, config: dict[str, Any]) -> bool:
         """Install modes component"""
         self.logger.info("Installing SuperClaude behavioral modes...")
 
@@ -144,9 +144,9 @@ class ModesComponent(Component):
             self.logger.error(f"Failed to update metadata: {e}")
             return False
 
-    def validate_installation(self) -> Tuple[bool, List[str]]:
+    def validate_installation(self) -> tuple[bool, list[str]]:
         """Validate modes component installation."""
-        errors: List[str] = []
+        errors: list[str] = []
         files_to_check = self._get_installed_file_manifest() or self.component_files
 
         for filename in files_to_check:
@@ -161,7 +161,7 @@ class ModesComponent(Component):
 
         return len(errors) == 0, errors
 
-    def _get_installed_file_manifest(self) -> Optional[List[str]]:
+    def _get_installed_file_manifest(self) -> list[str] | None:
         try:
             components = self.settings_manager.get_installed_components()
             info = components.get("modes") or {}
@@ -211,11 +211,11 @@ class ModesComponent(Component):
             self.logger.exception(f"Unexpected error during modes uninstallation: {e}")
             return False
 
-    def get_dependencies(self) -> List[str]:
+    def get_dependencies(self) -> list[str]:
         """Get dependencies"""
         return ["core"]
 
-    def _get_source_dir(self) -> Optional[Path]:
+    def _get_source_dir(self) -> Path | None:
         """Get source directory for mode files"""
         # Assume we're in SuperClaude/setup/components/modes.py
         # and mode files are in SuperClaude/SuperClaude/Modes/

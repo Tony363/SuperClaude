@@ -6,7 +6,7 @@ Installs documentation files that describe how to use native MCP tools
 """
 
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 from setup import __version__
 
@@ -17,9 +17,9 @@ from ..services.claude_md import CLAUDEMdService
 class MCPDocsComponent(Component):
     """MCP documentation component - installs docs for native MCP tools."""
 
-    def __init__(self, install_dir: Optional[Path] = None):
+    def __init__(self, install_dir: Path | None = None):
         """Initialize MCP docs component."""
-        self.selected_servers: List[str] = []
+        self.selected_servers: list[str] = []
 
         # Map documentation categories to files
         self.server_docs_map = {
@@ -31,7 +31,7 @@ class MCPDocsComponent(Component):
 
         super().__init__(install_dir, Path(""))
 
-    def get_metadata(self) -> Dict[str, str]:
+    def get_metadata(self) -> dict[str, str]:
         """Get component metadata."""
         return {
             "name": "mcp_docs",
@@ -40,10 +40,10 @@ class MCPDocsComponent(Component):
             "category": "documentation",
         }
 
-    def set_selected_servers(self, selected_servers: List[str]) -> None:
+    def set_selected_servers(self, selected_servers: list[str]) -> None:
         """Set which documentation files to install."""
         seen = set()
-        filtered: List[str] = []
+        filtered: list[str] = []
         for server in selected_servers:
             server_key = server.lower()
             if server_key in self.server_docs_map and server_key not in seen:
@@ -51,7 +51,7 @@ class MCPDocsComponent(Component):
                 seen.add(server_key)
         self.selected_servers = filtered
 
-    def get_files_to_install(self) -> List[Tuple[Path, Path]]:
+    def get_files_to_install(self) -> list[tuple[Path, Path]]:
         """Return list of documentation files to install."""
         source_dir = self._get_source_dir()
         files = []
@@ -67,7 +67,7 @@ class MCPDocsComponent(Component):
 
         return files
 
-    def _discover_component_files(self) -> List[str]:
+    def _discover_component_files(self) -> list[str]:
         """Discover documentation files."""
         files = []
         if self.selected_servers:
@@ -76,7 +76,7 @@ class MCPDocsComponent(Component):
                     files.append(self.server_docs_map[server_name])
         return files
 
-    def _get_source_dir(self) -> Optional[Path]:
+    def _get_source_dir(self) -> Path | None:
         """Get source directory for documentation files."""
         possible_paths = [
             Path(__file__).parent.parent.parent / "SuperClaude" / "MCP",
@@ -88,12 +88,12 @@ class MCPDocsComponent(Component):
         return None
 
     def validate_prerequisites(
-        self, installSubPath: Optional[Path] = None
-    ) -> Tuple[bool, List[str]]:
+        self, installSubPath: Path | None = None
+    ) -> tuple[bool, list[str]]:
         """No prerequisites for documentation."""
         return True, []
 
-    def get_metadata_modifications(self) -> Dict[str, Any]:
+    def get_metadata_modifications(self) -> dict[str, Any]:
         """Get metadata modifications."""
         return {
             "components": {
@@ -142,7 +142,7 @@ class MCPDocsComponent(Component):
                 target.unlink()
         return True
 
-    def validate_installation(self, installSubPath: Optional[Path] = None) -> bool:
+    def validate_installation(self, installSubPath: Path | None = None) -> bool:
         """Verify documentation files exist."""
         if not self.selected_servers:
             return True

@@ -5,7 +5,7 @@ This agent specializes in educational guidance through the Socratic method,
 helping users discover solutions through strategic questioning and guided exploration.
 """
 
-from typing import Any, Dict, List
+from typing import Any
 
 from ..base import BaseAgent
 
@@ -18,7 +18,7 @@ class SocraticMentor(BaseAgent):
     understand concepts deeply rather than just providing answers.
     """
 
-    def __init__(self, config: Dict[str, Any]):
+    def __init__(self, config: dict[str, Any]):
         """
         Initialize the Socratic mentor.
 
@@ -41,7 +41,7 @@ class SocraticMentor(BaseAgent):
         self.concept_frameworks = self._initialize_concept_frameworks()
         self.scaffolding_patterns = self._initialize_scaffolding_patterns()
 
-    def execute(self, context: Dict[str, Any]) -> Dict[str, Any]:
+    def execute(self, context: dict[str, Any]) -> dict[str, Any]:
         """
         Execute Socratic mentoring session.
 
@@ -139,7 +139,7 @@ class SocraticMentor(BaseAgent):
 
         return result
 
-    def validate(self, context: Dict[str, Any]) -> bool:
+    def validate(self, context: dict[str, Any]) -> bool:
         """
         Check if this agent can handle the context.
 
@@ -172,7 +172,7 @@ class SocraticMentor(BaseAgent):
         task_lower = task.lower()
         return any(keyword in task_lower for keyword in education_keywords)
 
-    def _initialize_question_types(self) -> Dict[str, Dict[str, Any]]:
+    def _initialize_question_types(self) -> dict[str, dict[str, Any]]:
         """
         Initialize Socratic question types.
 
@@ -236,7 +236,7 @@ class SocraticMentor(BaseAgent):
             },
         }
 
-    def _initialize_learning_stages(self) -> List[Dict[str, Any]]:
+    def _initialize_learning_stages(self) -> list[dict[str, Any]]:
         """
         Initialize learning progression stages.
 
@@ -281,7 +281,7 @@ class SocraticMentor(BaseAgent):
             },
         ]
 
-    def _initialize_concept_frameworks(self) -> Dict[str, List[str]]:
+    def _initialize_concept_frameworks(self) -> dict[str, list[str]]:
         """
         Initialize concept learning frameworks.
 
@@ -331,7 +331,7 @@ class SocraticMentor(BaseAgent):
             ],
         }
 
-    def _initialize_scaffolding_patterns(self) -> Dict[str, Dict[str, Any]]:
+    def _initialize_scaffolding_patterns(self) -> dict[str, dict[str, Any]]:
         """
         Initialize learning scaffolding patterns.
 
@@ -363,7 +363,7 @@ class SocraticMentor(BaseAgent):
 
     def _assess_understanding(
         self, topic: str, question: str, level: str
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Assess learner's current understanding.
 
@@ -423,8 +423,8 @@ class SocraticMentor(BaseAgent):
         return assessment
 
     def _generate_guiding_questions(
-        self, topic: str, assessment: Dict[str, Any], goal: str
-    ) -> List[Dict[str, Any]]:
+        self, topic: str, assessment: dict[str, Any], goal: str
+    ) -> list[dict[str, Any]]:
         """
         Generate Socratic guiding questions.
 
@@ -502,8 +502,8 @@ class SocraticMentor(BaseAgent):
         return questions
 
     def _identify_key_concepts(
-        self, topic: str, question: str, assessment: Dict[str, Any]
-    ) -> List[Dict[str, Any]]:
+        self, topic: str, question: str, assessment: dict[str, Any]
+    ) -> list[dict[str, Any]]:
         """
         Identify key concepts to explore.
 
@@ -561,8 +561,8 @@ class SocraticMentor(BaseAgent):
         return concepts
 
     def _create_learning_path(
-        self, concepts: List[Dict[str, Any]], assessment: Dict[str, Any], level: str
-    ) -> List[Dict[str, Any]]:
+        self, concepts: list[dict[str, Any]], assessment: dict[str, Any], level: str
+    ) -> list[dict[str, Any]]:
         """
         Create personalized learning path.
 
@@ -627,8 +627,8 @@ class SocraticMentor(BaseAgent):
         return learning_path
 
     def _determine_next_steps(
-        self, assessment: Dict[str, Any], learning_path: List[Dict[str, Any]], goal: str
-    ) -> List[Dict[str, Any]]:
+        self, assessment: dict[str, Any], learning_path: list[dict[str, Any]], goal: str
+    ) -> list[dict[str, Any]]:
         """
         Determine next learning steps.
 
@@ -697,8 +697,8 @@ class SocraticMentor(BaseAgent):
         return next_steps
 
     def _gather_learning_resources(
-        self, topic: str, concepts: List[Dict[str, Any]], level: str
-    ) -> List[Dict[str, Any]]:
+        self, topic: str, concepts: list[dict[str, Any]], level: str
+    ) -> list[dict[str, Any]]:
         """
         Gather appropriate learning resources.
 
@@ -793,12 +793,12 @@ class SocraticMentor(BaseAgent):
     def _generate_mentoring_report(
         self,
         topic: str,
-        assessment: Dict[str, Any],
-        questions: List[Dict[str, Any]],
-        concepts: List[Dict[str, Any]],
-        learning_path: List[Dict[str, Any]],
-        next_steps: List[Dict[str, Any]],
-        resources: List[Dict[str, Any]],
+        assessment: dict[str, Any],
+        questions: list[dict[str, Any]],
+        concepts: list[dict[str, Any]],
+        learning_path: list[dict[str, Any]],
+        next_steps: list[dict[str, Any]],
+        resources: list[dict[str, Any]],
     ) -> str:
         """
         Generate comprehensive mentoring report.

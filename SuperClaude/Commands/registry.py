@@ -11,7 +11,7 @@ import re
 from dataclasses import dataclass, field
 from functools import lru_cache
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 try:  # Optional dependency
     import yaml
@@ -29,15 +29,15 @@ class CommandMetadata:
     description: str
     category: str
     complexity: str
-    mcp_servers: List[str] = field(default_factory=list)
-    personas: List[str] = field(default_factory=list)
-    triggers: List[str] = field(default_factory=list)
-    flags: List[Dict[str, Any]] = field(default_factory=list)
-    parameters: Dict[str, Any] = field(default_factory=dict)
+    mcp_servers: list[str] = field(default_factory=list)
+    personas: list[str] = field(default_factory=list)
+    triggers: list[str] = field(default_factory=list)
+    flags: list[dict[str, Any]] = field(default_factory=list)
+    parameters: dict[str, Any] = field(default_factory=dict)
     file_path: str = ""
     content: str = ""
     requires_evidence: bool = False
-    aliases: List[str] = field(default_factory=list)
+    aliases: list[str] = field(default_factory=list)
 
 
 class CommandRegistry:
@@ -52,7 +52,7 @@ class CommandRegistry:
     - Command validation and caching
     """
 
-    def __init__(self, commands_dir: Optional[str] = None):
+    def __init__(self, commands_dir: str | None = None):
         """
         Initialize command registry.
 
@@ -62,9 +62,9 @@ class CommandRegistry:
         self.commands_dir = Path(
             commands_dir or os.path.join(os.path.dirname(__file__), ".")
         )
-        self.commands: Dict[str, CommandMetadata] = {}
-        self.categories: Dict[str, List[str]] = {}
-        self.aliases: Dict[str, str] = {}  # Maps alias -> canonical command name
+        self.commands: dict[str, CommandMetadata] = {}
+        self.categories: dict[str, list[str]] = {}
+        self.aliases: dict[str, str] = {}  # Maps alias -> canonical command name
         self._discover_commands()
 
     def _discover_commands(self) -> None:
@@ -87,7 +87,7 @@ class CommandRegistry:
             except Exception as e:
                 logger.error(f"Failed to load command {file_path}: {e}")
 
-    def _load_command(self, file_path: Path) -> Optional[CommandMetadata]:
+    def _load_command(self, file_path: Path) -> CommandMetadata | None:
         """
         Load command from markdown file with YAML frontmatter.
 
@@ -143,7 +143,7 @@ class CommandRegistry:
             logger.error(f"Error loading command from {file_path}: {e}")
             return None
 
-    def _extract_triggers(self, content: str) -> List[str]:
+    def _extract_triggers(self, content: str) -> list[str]:
         """
         Extract trigger patterns from command content.
 
@@ -180,7 +180,7 @@ class CommandRegistry:
 
         return triggers
 
-    def _extract_parameters(self, content: str) -> Dict[str, Any]:
+    def _extract_parameters(self, content: str) -> dict[str, Any]:
         """
         Extract parameter definitions from command content.
 
@@ -228,7 +228,7 @@ class CommandRegistry:
             self.aliases[alias] = command.name
             logger.debug(f"Registered alias: {alias} -> {command.name}")
 
-    def get_command(self, name: str) -> Optional[CommandMetadata]:
+    def get_command(self, name: str) -> CommandMetadata | None:
         """
         Get command by name or alias.
 
@@ -253,7 +253,7 @@ class CommandRegistry:
         return None
 
     @lru_cache(maxsize=128)
-    def find_command(self, query: str) -> List[Tuple[str, float]]:
+    def find_command(self, query: str) -> list[tuple[str, float]]:
         """
         Find commands matching a query.
 
@@ -292,7 +292,7 @@ class CommandRegistry:
         matches.sort(key=lambda x: x[1], reverse=True)
         return matches
 
-    def list_commands(self, category: Optional[str] = None) -> List[str]:
+    def list_commands(self, category: str | None = None) -> list[str]:
         """
         List all registered commands.
 
@@ -306,11 +306,11 @@ class CommandRegistry:
             return self.categories.get(category, [])
         return list(self.commands.keys())
 
-    def get_categories(self) -> List[str]:
+    def get_categories(self) -> list[str]:
         """Get list of all command categories."""
         return list(self.categories.keys())
 
-    def get_mcp_requirements(self, command_name: str) -> List[str]:
+    def get_mcp_requirements(self, command_name: str) -> list[str]:
         """
         Get MCP server requirements for a command.
 
@@ -323,7 +323,7 @@ class CommandRegistry:
         command = self.get_command(command_name)
         return command.mcp_servers if command else []
 
-    def get_persona_requirements(self, command_name: str) -> List[str]:
+    def get_persona_requirements(self, command_name: str) -> list[str]:
         """
         Get persona requirements for a command.
 
@@ -336,7 +336,7 @@ class CommandRegistry:
         command = self.get_command(command_name)
         return command.personas if command else []
 
-    def validate_command(self, command_str: str) -> Tuple[bool, str]:
+    def validate_command(self, command_str: str) -> tuple[bool, str]:
         """
         Validate a command string.
 
@@ -405,7 +405,7 @@ class CommandRegistry:
 
         return "\n".join(help_text)
 
-    def export_manifest(self) -> Dict[str, Any]:
+    def export_manifest(self) -> dict[str, Any]:
         """
         Export command manifest for documentation.
 

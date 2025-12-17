@@ -3,17 +3,111 @@ Markdown Agent Parser for SuperClaude Framework
 
 This module parses agent definitions from markdown files, extracting
 metadata, behavioral mindset, focus areas, and boundaries.
+
+P0 SAFETY: Implements strict schema validation to prevent runtime parsing errors.
 """
 
 import logging
 import re
+from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 try:  # Optional dependency used for YAML frontmatter
     import yaml
 except ModuleNotFoundError:  # pragma: no cover - depends on optional extras
     yaml = None  # type: ignore
+
+
+@dataclass
+class AgentSchemaError:
+    """Represents a schema validation error."""
+
+    field: str
+    message: str
+    severity: str = "error"  # "error", "warning", "info"
+    line_number: int | None = None
+
+
+@dataclass
+class AgentValidationResult:
+    """Result of agent schema validation."""
+
+    valid: bool
+    errors: list[AgentSchemaError] = field(default_factory=list)
+    warnings: list[AgentSchemaError] = field(default_factory=list)
+    agent_name: str = ""
+    file_path: str = ""
+
+    def add_error(self, field: str, message: str, line: int | None = None) -> None:
+        """Add a validation error."""
+        self.errors.append(AgentSchemaError(field, message, "error", line))
+        self.valid = False
+
+    def add_warning(self, field: str, message: str, line: int | None = None) -> None:
+        """Add a validation warning."""
+        self.warnings.append(AgentSchemaError(field, message, "warning", line))
+
+
+class AgentSchema:
+    """
+    Schema definition for agent markdown files.
+
+    P0 SAFETY: Defines required and optional fields with type validation
+    to prevent runtime parsing failures.
+    """
+
+    # Required fields in YAML frontmatter
+    REQUIRED_FIELDS: set[str] = {"name", "description"}
+
+    # Optional but recommended fields
+    RECOMMENDED_FIELDS: set[str] = {"tools", "category"}
+
+    # Valid tool names (from Claude Code)
+    VALID_TOOLS: set[str] = {
+        "Read",
+        "Write",
+        "Edit",
+        "MultiEdit",
+        "Bash",
+        "Glob",
+        "Grep",
+        "Task",
+        "TodoWrite",
+        "WebFetch",
+        "WebSearch",
+        "NotebookEdit",
+        # MCP tools
+        "Docker",
+        "docker",
+        "database",
+        "redis",
+        "postgresql",
+        "postgres",
+        "mcp",
+        "Browser",
+        "browser",
+        "playwright",
+    }
+
+    # Valid agent categories
+    VALID_CATEGORIES: set[str] = {
+        "core-development",
+        "language-specialist",
+        "infrastructure",
+        "quality-security",
+        "data-ai",
+        "developer-experience",
+        "specialized-domain",
+        "business-product",
+        "meta-orchestration",
+        "research-analysis",
+    }
+
+    # Maximum lengths
+    MAX_NAME_LENGTH = 64
+    MAX_DESCRIPTION_LENGTH = 500
+    MAX_TOOLS_COUNT = 20
 
 
 class AgentMarkdownParser:
@@ -28,7 +122,7 @@ class AgentMarkdownParser:
         """Initialize the markdown parser."""
         self.logger = logging.getLogger("agent.parser")
 
-    def parse(self, file_path: Path) -> Optional[Dict[str, Any]]:
+    def parse(self, file_path: Path) -> dict[str, Any] | None:
         """
         Parse an agent markdown file.
 
@@ -70,7 +164,7 @@ class AgentMarkdownParser:
             self.logger.error(f"Failed to parse {file_path}: {e}")
             return None
 
-    def _parse_frontmatter(self, content: str) -> Dict[str, Any]:
+    def _parse_frontmatter(self, content: str) -> dict[str, Any]:
         """
         Parse YAML frontmatter from markdown content.
 
@@ -99,7 +193,7 @@ class AgentMarkdownParser:
             self.logger.warning(f"Failed to parse YAML frontmatter: {e}")
             return {}
 
-    def _parse_sections(self, content: str) -> Dict[str, str]:
+    def _parse_sections(self, content: str) -> dict[str, str]:
         """
         Parse markdown sections from content.
 
@@ -141,7 +235,7 @@ class AgentMarkdownParser:
 
         return sections
 
-    def _extract_agent_info(self, sections: Dict[str, str]) -> Dict[str, Any]:
+    def _extract_agent_info(self, sections: dict[str, str]) -> dict[str, Any]:
         """
         Extract agent information from parsed sections.
 
@@ -179,7 +273,7 @@ class AgentMarkdownParser:
 
         return info
 
-    def _parse_list_section(self, content: str) -> List[str]:
+    def _parse_list_section(self, content: str) -> list[str]:
         """
         Parse a section containing a list.
 
@@ -200,7 +294,7 @@ class AgentMarkdownParser:
 
         return items
 
-    def _parse_numbered_list(self, content: str) -> List[str]:
+    def _parse_numbered_list(self, content: str) -> list[str]:
         """
         Parse a numbered list section.
 
@@ -234,7 +328,7 @@ class AgentMarkdownParser:
 
         return items
 
-    def _parse_focus_areas(self, content: str) -> Dict[str, str]:
+    def _parse_focus_areas(self, content: str) -> dict[str, str]:
         """
         Parse focus areas section.
 
@@ -257,7 +351,7 @@ class AgentMarkdownParser:
 
         return areas
 
-    def _parse_boundaries(self, content: str) -> Dict[str, List[str]]:
+    def _parse_boundaries(self, content: str) -> dict[str, list[str]]:
         """
         Parse boundaries section (Will/Will Not).
 
@@ -286,9 +380,9 @@ class AgentMarkdownParser:
 
         return boundaries
 
-    def validate_agent_config(self, config: Dict[str, Any]) -> bool:
+    def validate_agent_config(self, config: dict[str, Any]) -> bool:
         """
-        Validate agent configuration.
+        Validate agent configuration (simple boolean check).
 
         Args:
             config: Agent configuration dictionary
@@ -296,18 +390,175 @@ class AgentMarkdownParser:
         Returns:
             True if configuration is valid
         """
-        required_fields = ["name"]
-        recommended_fields = ["description", "category", "tools"]
+        result = self.validate_schema(config)
+        return result.valid
+
+    def validate_schema(
+        self, config: dict[str, Any], file_path: Path | None = None
+    ) -> AgentValidationResult:
+        """
+        Validate agent configuration against schema.
+
+        P0 SAFETY: Comprehensive validation to prevent runtime parsing errors.
+
+        Args:
+            config: Agent configuration dictionary
+            file_path: Optional path for error reporting
+
+        Returns:
+            AgentValidationResult with errors and warnings
+        """
+        result = AgentValidationResult(
+            valid=True,
+            agent_name=config.get("name", "unknown"),
+            file_path=str(file_path) if file_path else "",
+        )
 
         # Check required fields
-        for field in required_fields:
-            if field not in config:
-                self.logger.error(f"Missing required field: {field}")
-                return False
+        for field_name in AgentSchema.REQUIRED_FIELDS:
+            if field_name not in config or not config[field_name]:
+                result.add_error(
+                    field_name, f"Required field '{field_name}' is missing"
+                )
 
-        # Warn about recommended fields
-        for field in recommended_fields:
-            if field not in config:
-                self.logger.warning(f"Missing recommended field: {field}")
+        # Check recommended fields (warnings only)
+        for field_name in AgentSchema.RECOMMENDED_FIELDS:
+            if field_name not in config:
+                result.add_warning(
+                    field_name, f"Recommended field '{field_name}' is missing"
+                )
 
-        return True
+        # Validate name format
+        if "name" in config:
+            name = config["name"]
+            if not isinstance(name, str):
+                result.add_error("name", "Name must be a string")
+            elif len(name) > AgentSchema.MAX_NAME_LENGTH:
+                result.add_error(
+                    "name",
+                    f"Name exceeds maximum length of {AgentSchema.MAX_NAME_LENGTH}",
+                )
+            elif not re.match(r"^[a-z][a-z0-9-]*$", name):
+                result.add_warning(
+                    "name",
+                    "Name should be lowercase with hyphens (e.g., 'backend-developer')",
+                )
+
+        # Validate description
+        if "description" in config:
+            desc = config["description"]
+            if not isinstance(desc, str):
+                result.add_error("description", "Description must be a string")
+            elif len(desc) > AgentSchema.MAX_DESCRIPTION_LENGTH:
+                result.add_warning(
+                    "description",
+                    f"Description exceeds recommended length of {AgentSchema.MAX_DESCRIPTION_LENGTH}",
+                )
+
+        # Validate tools
+        if "tools" in config:
+            tools = config["tools"]
+            if isinstance(tools, str):
+                # Parse comma-separated tools
+                tool_list = [t.strip() for t in tools.split(",")]
+            elif isinstance(tools, list):
+                tool_list = tools
+            else:
+                result.add_error("tools", "Tools must be a string or list")
+                tool_list = []
+
+            if len(tool_list) > AgentSchema.MAX_TOOLS_COUNT:
+                result.add_warning(
+                    "tools",
+                    f"Agent has {len(tool_list)} tools, which exceeds recommended max of {AgentSchema.MAX_TOOLS_COUNT}",
+                )
+
+            # Check for unknown tools (warning only - new tools may be added)
+            for tool in tool_list:
+                if tool and tool not in AgentSchema.VALID_TOOLS:
+                    # Don't error on unknown tools, just warn
+                    result.add_warning(
+                        "tools",
+                        f"Unknown tool '{tool}' - verify it exists",
+                    )
+
+        # Validate category if present
+        if "category" in config:
+            category = config["category"]
+            if isinstance(category, str):
+                if category not in AgentSchema.VALID_CATEGORIES:
+                    result.add_warning(
+                        "category",
+                        f"Unknown category '{category}' - valid categories: {', '.join(sorted(AgentSchema.VALID_CATEGORIES))}",
+                    )
+
+        return result
+
+    def validate_all_agents(self, agents_dir: Path) -> list[AgentValidationResult]:
+        """
+        Validate all agent markdown files in a directory.
+
+        P0 SAFETY: Batch validation for CI/CD integration.
+
+        Args:
+            agents_dir: Directory containing agent markdown files
+
+        Returns:
+            List of validation results for all agents
+        """
+        results = []
+
+        # Find all markdown files
+        md_files = list(agents_dir.rglob("*.md"))
+
+        for md_file in md_files:
+            # Skip non-agent files
+            if md_file.name.startswith("_") or md_file.name == "README.md":
+                continue
+
+            config = self.parse(md_file)
+            if config is None:
+                result = AgentValidationResult(
+                    valid=False,
+                    agent_name=md_file.stem,
+                    file_path=str(md_file),
+                )
+                result.add_error("parse", f"Failed to parse markdown file: {md_file}")
+            else:
+                result = self.validate_schema(config, md_file)
+
+            results.append(result)
+
+        return results
+
+    def get_validation_summary(
+        self, results: list[AgentValidationResult]
+    ) -> dict[str, Any]:
+        """
+        Generate a summary of validation results.
+
+        Args:
+            results: List of validation results
+
+        Returns:
+            Summary dictionary with counts and details
+        """
+        total = len(results)
+        valid = sum(1 for r in results if r.valid)
+        invalid = total - valid
+        total_errors = sum(len(r.errors) for r in results)
+        total_warnings = sum(len(r.warnings) for r in results)
+
+        return {
+            "total_agents": total,
+            "valid": valid,
+            "invalid": invalid,
+            "total_errors": total_errors,
+            "total_warnings": total_warnings,
+            "pass_rate": valid / total if total > 0 else 0,
+            "invalid_agents": [
+                {"name": r.agent_name, "path": r.file_path, "errors": len(r.errors)}
+                for r in results
+                if not r.valid
+            ],
+        }

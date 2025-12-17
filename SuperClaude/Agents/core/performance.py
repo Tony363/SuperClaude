@@ -6,7 +6,7 @@ and bottleneck identification for code and systems.
 """
 
 import re
-from typing import Any, Dict, List
+from typing import Any
 
 from ..base import BaseAgent
 
@@ -19,7 +19,7 @@ class PerformanceEngineer(BaseAgent):
     bottlenecks, and provides optimization recommendations.
     """
 
-    def __init__(self, config: Dict[str, Any]):
+    def __init__(self, config: dict[str, Any]):
         """
         Initialize the performance engineer.
 
@@ -40,7 +40,7 @@ class PerformanceEngineer(BaseAgent):
         self.performance_patterns = self._initialize_patterns()
         self.optimization_strategies = self._initialize_strategies()
 
-    def execute(self, context: Dict[str, Any]) -> Dict[str, Any]:
+    def execute(self, context: dict[str, Any]) -> dict[str, Any]:
         """
         Execute performance analysis and optimization.
 
@@ -114,7 +114,7 @@ class PerformanceEngineer(BaseAgent):
 
         return result
 
-    def validate(self, context: Dict[str, Any]) -> bool:
+    def validate(self, context: dict[str, Any]) -> bool:
         """
         Check if this agent can handle the context.
 
@@ -145,7 +145,7 @@ class PerformanceEngineer(BaseAgent):
         task_lower = task.lower()
         return any(keyword in task_lower for keyword in performance_keywords)
 
-    def _initialize_patterns(self) -> Dict[str, Dict[str, Any]]:
+    def _initialize_patterns(self) -> dict[str, dict[str, Any]]:
         """
         Initialize performance patterns and anti-patterns.
 
@@ -215,7 +215,7 @@ class PerformanceEngineer(BaseAgent):
             },
         }
 
-    def _initialize_strategies(self) -> Dict[str, Dict[str, Any]]:
+    def _initialize_strategies(self) -> dict[str, dict[str, Any]]:
         """
         Initialize optimization strategies.
 
@@ -284,8 +284,8 @@ class PerformanceEngineer(BaseAgent):
         }
 
     def _identify_performance_issues(
-        self, task: str, code: str, system_info: Dict[str, Any]
-    ) -> List[Dict[str, Any]]:
+        self, task: str, code: str, system_info: dict[str, Any]
+    ) -> list[dict[str, Any]]:
         """
         Identify performance issues.
 
@@ -393,8 +393,8 @@ class PerformanceEngineer(BaseAgent):
         return issues
 
     def _detect_bottlenecks(
-        self, issues: List[Dict[str, Any]], code: str
-    ) -> List[Dict[str, Any]]:
+        self, issues: list[dict[str, Any]], code: str
+    ) -> list[dict[str, Any]]:
         """
         Detect performance bottlenecks.
 
@@ -486,8 +486,8 @@ class PerformanceEngineer(BaseAgent):
         return bottlenecks
 
     def _generate_optimizations(
-        self, issues: List[Dict[str, Any]], bottlenecks: List[Dict[str, Any]]
-    ) -> List[Dict[str, Any]]:
+        self, issues: list[dict[str, Any]], bottlenecks: list[dict[str, Any]]
+    ) -> list[dict[str, Any]]:
         """
         Generate optimization recommendations.
 
@@ -595,10 +595,10 @@ class PerformanceEngineer(BaseAgent):
 
     def _calculate_metrics(
         self,
-        issues: List[Dict[str, Any]],
-        bottlenecks: List[Dict[str, Any]],
-        optimizations: List[Dict[str, Any]],
-    ) -> Dict[str, Any]:
+        issues: list[dict[str, Any]],
+        bottlenecks: list[dict[str, Any]],
+        optimizations: list[dict[str, Any]],
+    ) -> dict[str, Any]:
         """
         Calculate performance metrics.
 
@@ -639,10 +639,10 @@ class PerformanceEngineer(BaseAgent):
     def _generate_performance_report(
         self,
         task: str,
-        issues: List[Dict[str, Any]],
-        bottlenecks: List[Dict[str, Any]],
-        optimizations: List[Dict[str, Any]],
-        metrics: Dict[str, Any],
+        issues: list[dict[str, Any]],
+        bottlenecks: list[dict[str, Any]],
+        optimizations: list[dict[str, Any]],
+        metrics: dict[str, Any],
     ) -> str:
         """
         Generate performance analysis report.

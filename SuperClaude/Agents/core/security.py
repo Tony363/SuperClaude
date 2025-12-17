@@ -6,7 +6,7 @@ and secure coding practices.
 """
 
 import re
-from typing import Any, Dict, List
+from typing import Any
 
 from ..base import BaseAgent
 from ..heuristic_markdown import HeuristicMarkdownAgent
@@ -20,7 +20,7 @@ class SecurityAnalysisAgent(BaseAgent):
     recommendations, and compliance validation.
     """
 
-    def __init__(self, config: Dict[str, Any]):
+    def __init__(self, config: dict[str, Any]):
         """
         Initialize the security engineer.
 
@@ -42,7 +42,7 @@ class SecurityAnalysisAgent(BaseAgent):
         self.security_best_practices = self._initialize_best_practices()
         self.owasp_top_10 = self._initialize_owasp_top_10()
 
-    def execute(self, context: Dict[str, Any]) -> Dict[str, Any]:
+    def execute(self, context: dict[str, Any]) -> dict[str, Any]:
         """
         Execute security analysis.
 
@@ -130,7 +130,7 @@ class SecurityAnalysisAgent(BaseAgent):
 
         return result
 
-    def validate(self, context: Dict[str, Any]) -> bool:
+    def validate(self, context: dict[str, Any]) -> bool:
         """Basic validation: require some code, files, or explicit task."""
         if not context:
             return False
@@ -167,7 +167,7 @@ class SecurityEngineer(HeuristicMarkdownAgent):
         "security audit",
     }
 
-    def __init__(self, config: Dict[str, Any]):
+    def __init__(self, config: dict[str, Any]):
         defaults = {
             "name": "security-engineer",
             "description": "Identify and mitigate security vulnerabilities",
@@ -185,13 +185,13 @@ class SecurityEngineer(HeuristicMarkdownAgent):
             self.logger.debug(f"SecurityAnalysisAgent unavailable: {exc}")
             self.analysis_agent = None
 
-    def validate(self, context: Dict[str, Any]) -> bool:
+    def validate(self, context: dict[str, Any]) -> bool:
         task = str(context.get("task", "")).lower()
         if any(keyword in task for keyword in self.SECURITY_KEYWORDS):
             return True
         return super().validate(context) or self.analysis_agent.validate(context)
 
-    def execute(self, context: Dict[str, Any]) -> Dict[str, Any]:
+    def execute(self, context: dict[str, Any]) -> dict[str, Any]:
         result = super().execute(context)
 
         if not self.analysis_agent:
@@ -244,7 +244,7 @@ class SecurityEngineer(HeuristicMarkdownAgent):
 
         return result
 
-    def validate(self, context: Dict[str, Any]) -> bool:
+    def validate(self, context: dict[str, Any]) -> bool:
         """
         Check if this agent can handle the context.
 
@@ -282,7 +282,7 @@ class SecurityEngineer(HeuristicMarkdownAgent):
         task_lower = task.lower()
         return any(keyword in task_lower for keyword in security_keywords)
 
-    def _initialize_vulnerability_patterns(self) -> Dict[str, Dict[str, Any]]:
+    def _initialize_vulnerability_patterns(self) -> dict[str, dict[str, Any]]:
         """
         Initialize vulnerability detection patterns.
 
@@ -352,7 +352,7 @@ class SecurityEngineer(HeuristicMarkdownAgent):
             },
         }
 
-    def _initialize_best_practices(self) -> Dict[str, str]:
+    def _initialize_best_practices(self) -> dict[str, str]:
         """
         Initialize security best practices.
 
@@ -372,7 +372,7 @@ class SecurityEngineer(HeuristicMarkdownAgent):
             "secure_defaults": "Use secure defaults for all configurations",
         }
 
-    def _initialize_owasp_top_10(self) -> Dict[str, Dict[str, Any]]:
+    def _initialize_owasp_top_10(self) -> dict[str, dict[str, Any]]:
         """
         Initialize OWASP Top 10 categories.
 
@@ -435,8 +435,8 @@ class SecurityEngineer(HeuristicMarkdownAgent):
         }
 
     def _scan_vulnerabilities(
-        self, code: str, files: List[str], scan_type: str
-    ) -> List[Dict[str, Any]]:
+        self, code: str, files: list[str], scan_type: str
+    ) -> list[dict[str, Any]]:
         """
         Scan for security vulnerabilities.
 
@@ -505,8 +505,8 @@ class SecurityEngineer(HeuristicMarkdownAgent):
         return vulnerabilities
 
     def _assess_owasp_risks(
-        self, code: str, vulnerabilities: List[Dict[str, Any]]
-    ) -> List[Dict[str, Any]]:
+        self, code: str, vulnerabilities: list[dict[str, Any]]
+    ) -> list[dict[str, Any]]:
         """
         Assess OWASP Top 10 risks.
 
@@ -565,8 +565,8 @@ class SecurityEngineer(HeuristicMarkdownAgent):
         return owasp_issues
 
     def _check_best_practices(
-        self, code: str, files: List[str]
-    ) -> List[Dict[str, str]]:
+        self, code: str, files: list[str]
+    ) -> list[dict[str, str]]:
         """
         Check security best practices.
 
@@ -621,7 +621,7 @@ class SecurityEngineer(HeuristicMarkdownAgent):
         return violations
 
     def _calculate_risk_level(
-        self, vulnerabilities: List[Dict[str, Any]], owasp_issues: List[Dict[str, Any]]
+        self, vulnerabilities: list[dict[str, Any]], owasp_issues: list[dict[str, Any]]
     ) -> str:
         """
         Calculate overall risk level.
@@ -681,10 +681,10 @@ class SecurityEngineer(HeuristicMarkdownAgent):
 
     def _generate_recommendations(
         self,
-        vulnerabilities: List[Dict[str, Any]],
-        owasp_issues: List[Dict[str, Any]],
-        practice_violations: List[Dict[str, str]],
-    ) -> List[str]:
+        vulnerabilities: list[dict[str, Any]],
+        owasp_issues: list[dict[str, Any]],
+        practice_violations: list[dict[str, str]],
+    ) -> list[str]:
         """
         Generate security recommendations.
 
@@ -743,11 +743,11 @@ class SecurityEngineer(HeuristicMarkdownAgent):
     def _generate_security_report(
         self,
         task: str,
-        vulnerabilities: List[Dict[str, Any]],
-        owasp_issues: List[Dict[str, Any]],
-        practice_violations: List[Dict[str, str]],
+        vulnerabilities: list[dict[str, Any]],
+        owasp_issues: list[dict[str, Any]],
+        practice_violations: list[dict[str, str]],
         risk_level: str,
-        recommendations: List[str],
+        recommendations: list[str],
     ) -> str:
         """
         Generate comprehensive security report.

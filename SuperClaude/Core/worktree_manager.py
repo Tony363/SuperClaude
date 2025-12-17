@@ -12,9 +12,10 @@ import shlex
 import subprocess
 import sys
 import time
+from collections.abc import Sequence
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Sequence, Tuple
+from typing import Any
 
 from SuperClaude.Quality.quality_scorer import QualityScorer
 
@@ -52,7 +53,7 @@ class WorktreeManager:
         self.state = self._load_state()
         self.quality_scorer = QualityScorer()
 
-    def _load_state(self) -> Dict:
+    def _load_state(self) -> dict:
         """Load worktree state from JSON file."""
         if self.state_file.exists():
             try:
@@ -68,7 +69,7 @@ class WorktreeManager:
         with open(self.state_file, "w") as f:
             json.dump(self.state, f, indent=2, default=str)
 
-    def _run_git(self, *args, cwd: Optional[Path] = None) -> Tuple[int, str, str]:
+    def _run_git(self, *args, cwd: Path | None = None) -> tuple[int, str, str]:
         """
         Run git command and return result.
 
@@ -90,11 +91,11 @@ class WorktreeManager:
 
     def apply_changes(
         self,
-        changes: Sequence[Dict[str, Any]],
+        changes: Sequence[dict[str, Any]],
         *,
-        worktree_id: Optional[str] = None,
+        worktree_id: str | None = None,
         mode: str = "replace",
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Apply proposed changes to the repository or a specific worktree.
 
         Args:
@@ -130,8 +131,8 @@ class WorktreeManager:
             base_path = Path(worktree_info.get("path", self.repo_path))
             session_id = worktree_id
 
-        applied: List[str] = []
-        warnings: List[str] = []
+        applied: list[str] = []
+        warnings: list[str] = []
 
         for change in changes:
             rel_path = change.get("path")
@@ -181,7 +182,7 @@ class WorktreeManager:
             "session": session_id,
         }
 
-    async def create_worktree(self, task_id: str, branch: str) -> Dict:
+    async def create_worktree(self, task_id: str, branch: str) -> dict:
         """
         Create a new worktree for a task.
 
@@ -233,7 +234,7 @@ class WorktreeManager:
         logger.info(f"Created worktree: {worktree_name}")
         return worktree_info
 
-    async def list_worktrees(self) -> List[Dict]:
+    async def list_worktrees(self) -> list[dict]:
         """
         List all active worktrees.
 
@@ -274,7 +275,7 @@ class WorktreeManager:
             wt for wt in self.state["worktrees"].values() if wt["status"] == "active"
         ]
 
-    def _parse_worktree_list(self, output: str) -> List[str]:
+    def _parse_worktree_list(self, output: str) -> list[str]:
         """Parse git worktree list output."""
         worktrees = []
         for line in output.split("\n"):
@@ -282,7 +283,7 @@ class WorktreeManager:
                 worktrees.append(line.split(" ", 1)[1])
         return worktrees
 
-    def _run_tests(self, worktree_path: Path) -> Dict[str, Any]:
+    def _run_tests(self, worktree_path: Path) -> dict[str, Any]:
         """Run the project's test suite inside the worktree."""
         command_str = os.environ.get("SUPERCLAUDE_WORKTREE_TEST_CMD")
         command = (
@@ -293,7 +294,7 @@ class WorktreeManager:
         env = os.environ.copy()
         env.setdefault("PYENV_DISABLE_REHASH", "1")
 
-        def _to_text(value: Optional[bytes]) -> str:
+        def _to_text(value: bytes | None) -> str:
             if value is None:
                 return ""
             return (
@@ -358,7 +359,7 @@ class WorktreeManager:
         if summary.get("pass_rate") is None:
             summary["pass_rate"] = 1.0 if passed else 0.0
 
-        errors: List[str] = summary.get("errors", [])
+        errors: list[str] = summary.get("errors", [])
         if summary.get("tests_failed", 0):
             errors.append(f"{summary['tests_failed']} test(s) failed")
         if summary.get("tests_errored", 0):
@@ -380,9 +381,9 @@ class WorktreeManager:
 
         return summary
 
-    def _parse_test_summary(self, output: str) -> Dict[str, Any]:
+    def _parse_test_summary(self, output: str) -> dict[str, Any]:
         """Parse pytest summary output into structured metrics."""
-        summary: Dict[str, Any] = {
+        summary: dict[str, Any] = {
             "tests_passed": 0,
             "tests_failed": 0,
             "tests_errored": 0,
@@ -447,10 +448,10 @@ class WorktreeManager:
 
     def _build_quality_context(
         self,
-        test_results: Dict[str, Any],
-        validation: Dict[str, Any],
+        test_results: dict[str, Any],
+        validation: dict[str, Any],
         worktree_path: Path,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Build context dictionary for quality scoring."""
         pass_rate = test_results.get("pass_rate")
         if pass_rate is None:
@@ -464,7 +465,7 @@ class WorktreeManager:
                 + test_results.get("tests_errored", 0)
             )
 
-        context: Dict[str, Any] = {
+        context: dict[str, Any] = {
             "test_results": {
                 "pass_rate": pass_rate,
                 "tests_collected": tests_collected,
@@ -482,7 +483,7 @@ class WorktreeManager:
 
         return context
 
-    async def validate_worktree(self, worktree_id: str) -> Dict:
+    async def validate_worktree(self, worktree_id: str) -> dict:
         """
         Validate a worktree is ready for merging.
 
@@ -577,7 +578,7 @@ class WorktreeManager:
 
     async def progressive_merge(
         self, worktree_id: str, target_branch: str = "integration"
-    ) -> Dict:
+    ) -> dict:
         """
         Progressively merge worktree to target branch.
 
@@ -652,7 +653,7 @@ class WorktreeManager:
             "worktree_id": worktree_id,
         }
 
-    async def cleanup_old_worktrees(self, age_days: Optional[int] = None):
+    async def cleanup_old_worktrees(self, age_days: int | None = None):
         """
         Clean up old merged or abandoned worktrees.
 
@@ -693,7 +694,7 @@ class WorktreeManager:
 
         return {"cleaned": cleaned, "count": len(cleaned)}
 
-    async def get_worktree_status(self, worktree_id: str) -> Dict:
+    async def get_worktree_status(self, worktree_id: str) -> dict:
         """
         Get detailed status of a specific worktree.
 

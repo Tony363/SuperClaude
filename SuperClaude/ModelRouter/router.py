@@ -9,7 +9,7 @@ import logging
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -36,9 +36,9 @@ class ModelCapabilities:
     supports_thinking: bool = False
     supports_vision: bool = False
     supports_tools: bool = True
-    best_for: List[str] = field(default_factory=list)
+    best_for: list[str] = field(default_factory=list)
     availability: float = 1.0  # 0.0-1.0
-    last_error: Optional[datetime] = None
+    last_error: datetime | None = None
 
 
 @dataclass
@@ -46,7 +46,7 @@ class RoutingDecision:
     """Model routing decision with reasoning."""
 
     primary_model: str
-    fallback_chain: List[str]
+    fallback_chain: list[str]
     reason: str
     token_budget: int
     estimated_cost: float
@@ -170,7 +170,7 @@ class ModelRouter:
         "standard": ["gpt-4o", "claude-opus-4.1", "gpt-5"],
     }
 
-    def __init__(self, config: Optional[Dict[str, Any]] = None):
+    def __init__(self, config: dict[str, Any] | None = None):
         """
         Initialize model router.
 
@@ -178,17 +178,17 @@ class ModelRouter:
             config: Optional configuration overrides
         """
         self.config = config or {}
-        self.availability_cache: Dict[str, Tuple[bool, datetime]] = {}
+        self.availability_cache: dict[str, tuple[bool, datetime]] = {}
         self.backoff_duration = timedelta(seconds=60)  # 1 minute backoff
-        self.usage_history: List[Dict[str, Any]] = []
+        self.usage_history: list[dict[str, Any]] = []
 
     def route(
         self,
         task_type: str = "standard",
         context_size: int = 0,
         think_level: int = 2,
-        excluded_models: Optional[List[str]] = None,
-        force_model: Optional[str] = None,
+        excluded_models: list[str] | None = None,
+        force_model: str | None = None,
     ) -> RoutingDecision:
         """
         Route to optimal model based on context.
@@ -255,7 +255,7 @@ class ModelRouter:
         )
 
     def _route_long_context(
-        self, context_size: int, excluded_models: List[str]
+        self, context_size: int, excluded_models: list[str]
     ) -> RoutingDecision:
         """
         Route for long context scenarios.
@@ -304,7 +304,7 @@ class ModelRouter:
         )
 
     def _select_primary_model(
-        self, preferred_models: List[str], excluded_models: List[str], context_size: int
+        self, preferred_models: list[str], excluded_models: list[str], context_size: int
     ) -> str:
         """
         Select primary model from preferences.
@@ -339,8 +339,8 @@ class ModelRouter:
         return "claude-opus-4.1"
 
     def _get_fallback_chain(
-        self, primary: str, excluded_models: List[str]
-    ) -> List[str]:
+        self, primary: str, excluded_models: list[str]
+    ) -> list[str]:
         """
         Build fallback chain for primary model.
 
@@ -404,7 +404,7 @@ class ModelRouter:
         return capability.availability > 0.5
 
     def mark_unavailable(
-        self, model_name: str, duration: Optional[timedelta] = None
+        self, model_name: str, duration: timedelta | None = None
     ) -> None:
         """
         Mark model as temporarily unavailable.
@@ -425,7 +425,7 @@ class ModelRouter:
     def _create_decision(
         self,
         primary: str,
-        fallback_chain: List[str],
+        fallback_chain: list[str],
         reason: str,
         context_size: int,
         think_level: int,
@@ -490,7 +490,7 @@ class ModelRouter:
 
         return " | ".join(reasons) if reasons else "Standard routing"
 
-    def get_ensemble(self, size: int = 3, exclude_duplicates: bool = True) -> List[str]:
+    def get_ensemble(self, size: int = 3, exclude_duplicates: bool = True) -> list[str]:
         """
         Get ensemble of models for consensus.
 
@@ -564,7 +564,7 @@ class ModelRouter:
                 1.0, self.MODEL_CAPABILITIES[model].availability * 1.1
             )
 
-    def get_statistics(self) -> Dict[str, Any]:
+    def get_statistics(self) -> dict[str, Any]:
         """Get routing statistics."""
         stats = {
             "total_requests": len(self.usage_history),

@@ -8,10 +8,11 @@ import asyncio
 import hashlib
 import json
 import logging
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -41,10 +42,10 @@ class ModelVote:
     response: Any
     confidence: float  # 0.0-1.0
     reasoning: str
-    stance: Optional[Stance] = None
+    stance: Stance | None = None
     tokens_used: int = 0
     execution_time: float = 0.0
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -53,10 +54,10 @@ class ConsensusResult:
 
     consensus_reached: bool
     final_decision: Any
-    votes: List[ModelVote]
+    votes: list[ModelVote]
     vote_type: VoteType
     agreement_score: float  # 0.0-1.0
-    disagreements: List[Dict[str, Any]]
+    disagreements: list[dict[str, Any]]
     synthesis: str
     total_tokens: int
     total_time: float
@@ -82,8 +83,8 @@ class ConsensusBuilder:
             router: Optional ModelRouter for model selection
         """
         self.router = router
-        self.execution_cache: Dict[str, ConsensusResult] = {}
-        self.model_executors: Dict[
+        self.execution_cache: dict[str, ConsensusResult] = {}
+        self.model_executors: dict[
             str, Callable
         ] = {}  # Model name to executor function
 
@@ -100,11 +101,11 @@ class ConsensusBuilder:
     async def build_consensus(
         self,
         prompt: str,
-        models: Optional[List[str]] = None,
+        models: list[str] | None = None,
         vote_type: VoteType = VoteType.MAJORITY,
         quorum_size: int = 2,
-        stances: Optional[Dict[str, Stance]] = None,
-        context: Optional[Dict[str, Any]] = None,
+        stances: dict[str, Stance] | None = None,
+        context: dict[str, Any] | None = None,
     ) -> ConsensusResult:
         """
         Build consensus across multiple models.
@@ -191,10 +192,10 @@ class ConsensusBuilder:
     def _prepare_prompts(
         self,
         base_prompt: str,
-        models: List[str],
-        stances: Optional[Dict[str, Stance]],
-        context: Optional[Dict[str, Any]],
-    ) -> Dict[str, str]:
+        models: list[str],
+        stances: dict[str, Stance] | None,
+        context: dict[str, Any] | None,
+    ) -> dict[str, str]:
         """
         Prepare model-specific prompts with stances.
 
@@ -251,8 +252,8 @@ class ConsensusBuilder:
         return prompts
 
     async def _execute_models_parallel(
-        self, model_prompts: Dict[str, str]
-    ) -> List[ModelVote]:
+        self, model_prompts: dict[str, str]
+    ) -> list[ModelVote]:
         """
         Execute multiple models in parallel.
 
@@ -326,8 +327,8 @@ class ConsensusBuilder:
         raise RuntimeError(f"No consensus executor registered for model '{model_name}'")
 
     def _analyze_votes(
-        self, votes: List[ModelVote], vote_type: VoteType, quorum_size: int
-    ) -> Tuple[bool, Any]:
+        self, votes: list[ModelVote], vote_type: VoteType, quorum_size: int
+    ) -> tuple[bool, Any]:
         """
         Analyze votes to determine consensus.
 
@@ -353,8 +354,8 @@ class ConsensusBuilder:
 
         elif vote_type == VoteType.MAJORITY:
             # Simple majority (more than half of votes)
-            response_counts: Dict[str, int] = {}
-            response_map: Dict[str, Any] = {}
+            response_counts: dict[str, int] = {}
+            response_map: dict[str, Any] = {}
             for vote in valid_votes:
                 response_key = self._normalize_vote_response(vote.response)
                 response_counts[response_key] = response_counts.get(response_key, 0) + 1
@@ -368,8 +369,8 @@ class ConsensusBuilder:
 
         elif vote_type == VoteType.QUORUM:
             # Minimum number must agree
-            response_counts: Dict[str, int] = {}
-            response_map: Dict[str, Any] = {}
+            response_counts: dict[str, int] = {}
+            response_map: dict[str, Any] = {}
             for vote in valid_votes:
                 response_key = self._normalize_vote_response(vote.response)
                 response_counts[response_key] = response_counts.get(response_key, 0) + 1
@@ -412,7 +413,7 @@ class ConsensusBuilder:
 
         return False, None
 
-    def _identify_disagreements(self, votes: List[ModelVote]) -> List[Dict[str, Any]]:
+    def _identify_disagreements(self, votes: list[ModelVote]) -> list[dict[str, Any]]:
         """
         Identify and categorize disagreements.
 
@@ -447,7 +448,7 @@ class ConsensusBuilder:
 
         return disagreements
 
-    def _calculate_agreement_score(self, votes: List[ModelVote]) -> float:
+    def _calculate_agreement_score(self, votes: list[ModelVote]) -> float:
         """
         Calculate overall agreement score.
 
@@ -474,7 +475,7 @@ class ConsensusBuilder:
         return weighted_agreement
 
     def _synthesize_results(
-        self, votes: List[ModelVote], consensus_reached: bool, final_decision: Any
+        self, votes: list[ModelVote], consensus_reached: bool, final_decision: Any
     ) -> str:
         """
         Synthesize results into summary.
@@ -517,7 +518,7 @@ class ConsensusBuilder:
         return "\n".join(synthesis_parts)
 
     def _generate_cache_key(
-        self, prompt: str, models: List[str], vote_type: VoteType
+        self, prompt: str, models: list[str], vote_type: VoteType
     ) -> str:
         """Generate cache key for consensus result."""
         key_parts = [
@@ -529,7 +530,7 @@ class ConsensusBuilder:
         return hashlib.md5(key_str.encode()).hexdigest()
 
     async def debate_consensus(
-        self, topic: str, models: Optional[List[str]] = None, rounds: int = 2
+        self, topic: str, models: list[str] | None = None, rounds: int = 2
     ) -> ConsensusResult:
         """
         Run debate-style consensus with multiple rounds.

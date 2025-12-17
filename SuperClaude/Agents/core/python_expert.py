@@ -6,7 +6,7 @@ advanced patterns, and production-ready code implementation.
 """
 
 import ast
-from typing import Any, Dict, List
+from typing import Any
 
 from ..base import BaseAgent
 
@@ -19,7 +19,7 @@ class PythonExpert(BaseAgent):
     and production-ready implementations.
     """
 
-    def __init__(self, config: Dict[str, Any]):
+    def __init__(self, config: dict[str, Any]):
         """
         Initialize the Python expert.
 
@@ -42,7 +42,7 @@ class PythonExpert(BaseAgent):
         self.python_features = self._initialize_python_features()
         self.testing_patterns = self._initialize_testing_patterns()
 
-    def execute(self, context: Dict[str, Any]) -> Dict[str, Any]:
+    def execute(self, context: dict[str, Any]) -> dict[str, Any]:
         """
         Execute Python expertise tasks.
 
@@ -135,7 +135,7 @@ class PythonExpert(BaseAgent):
 
         return result
 
-    def validate(self, context: Dict[str, Any]) -> bool:
+    def validate(self, context: dict[str, Any]) -> bool:
         """
         Check if this agent can handle the context.
 
@@ -174,7 +174,7 @@ class PythonExpert(BaseAgent):
             keyword in task_lower for keyword in python_keywords
         )
 
-    def _initialize_design_patterns(self) -> Dict[str, Dict[str, Any]]:
+    def _initialize_design_patterns(self) -> dict[str, dict[str, Any]]:
         """
         Initialize Python design patterns.
 
@@ -224,7 +224,7 @@ class PythonExpert(BaseAgent):
             },
         }
 
-    def _initialize_code_standards(self) -> Dict[str, Any]:
+    def _initialize_code_standards(self) -> dict[str, Any]:
         """
         Initialize Python code standards.
 
@@ -266,7 +266,7 @@ class PythonExpert(BaseAgent):
             },
         }
 
-    def _initialize_python_features(self) -> Dict[str, Dict[str, str]]:
+    def _initialize_python_features(self) -> dict[str, dict[str, str]]:
         """
         Initialize modern Python features.
 
@@ -304,7 +304,7 @@ class PythonExpert(BaseAgent):
             },
         }
 
-    def _initialize_testing_patterns(self) -> Dict[str, Dict[str, Any]]:
+    def _initialize_testing_patterns(self) -> dict[str, dict[str, Any]]:
         """
         Initialize testing patterns.
 
@@ -332,7 +332,7 @@ class PythonExpert(BaseAgent):
             },
         }
 
-    def _analyze_code_quality(self, code: str, files: List[str]) -> Dict[str, Any]:
+    def _analyze_code_quality(self, code: str, files: list[str]) -> dict[str, Any]:
         """
         Analyze Python code quality.
 
@@ -403,7 +403,7 @@ class PythonExpert(BaseAgent):
 
         return analysis
 
-    def _check_code_issues(self, tree: ast.AST, analysis: Dict[str, Any]):
+    def _check_code_issues(self, tree: ast.AST, analysis: dict[str, Any]):
         """
         Check for code quality issues.
 
@@ -432,8 +432,8 @@ class PythonExpert(BaseAgent):
                     analysis["issues"].append("Bare except clause found")
 
     def _apply_design_patterns(
-        self, task: str, code: str, analysis: Dict[str, Any]
-    ) -> List[Dict[str, Any]]:
+        self, task: str, code: str, analysis: dict[str, Any]
+    ) -> list[dict[str, Any]]:
         """
         Apply appropriate design patterns.
 
@@ -490,8 +490,8 @@ class PythonExpert(BaseAgent):
         return patterns
 
     def _generate_improvements(
-        self, code: str, analysis: Dict[str, Any], patterns: List[Dict[str, Any]]
-    ) -> List[Dict[str, Any]]:
+        self, code: str, analysis: dict[str, Any], patterns: list[dict[str, Any]]
+    ) -> list[dict[str, Any]]:
         """
         Generate code improvements.
 
@@ -573,7 +573,7 @@ class PythonExpert(BaseAgent):
 
         return improvements
 
-    def _design_test_coverage(self, code: str, files: List[str]) -> Dict[str, Any]:
+    def _design_test_coverage(self, code: str, files: list[str]) -> dict[str, Any]:
         """
         Design test coverage strategy.
 
@@ -623,11 +623,11 @@ class PythonExpert(BaseAgent):
 
     def _generate_recommendations(
         self,
-        analysis: Dict[str, Any],
-        patterns: List[Dict[str, Any]],
-        improvements: List[Dict[str, Any]],
-        test_coverage: Dict[str, Any],
-    ) -> List[Dict[str, Any]]:
+        analysis: dict[str, Any],
+        patterns: list[dict[str, Any]],
+        improvements: list[dict[str, Any]],
+        test_coverage: dict[str, Any],
+    ) -> list[dict[str, Any]]:
         """
         Generate Python-specific recommendations.
 
@@ -711,8 +711,8 @@ class PythonExpert(BaseAgent):
     def _generate_improved_code(
         self,
         original_code: str,
-        improvements: List[Dict[str, Any]],
-        patterns: List[Dict[str, Any]],
+        improvements: list[dict[str, Any]],
+        patterns: list[dict[str, Any]],
     ) -> str:
         """
         Generate improved Python code.
@@ -762,11 +762,11 @@ class PythonExpert(BaseAgent):
     def _generate_python_report(
         self,
         task: str,
-        analysis: Dict[str, Any],
-        patterns: List[Dict[str, Any]],
-        improvements: List[Dict[str, Any]],
-        test_coverage: Dict[str, Any],
-        recommendations: List[Dict[str, Any]],
+        analysis: dict[str, Any],
+        patterns: list[dict[str, Any]],
+        improvements: list[dict[str, Any]],
+        test_coverage: dict[str, Any],
+        recommendations: list[dict[str, Any]],
     ) -> str:
         """
         Generate comprehensive Python report.

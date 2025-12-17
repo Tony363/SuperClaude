@@ -5,7 +5,7 @@ This agent specializes in CI/CD pipelines, infrastructure as code,
 containerization, and deployment automation.
 """
 
-from typing import Any, Dict, List
+from typing import Any
 
 from ..base import BaseAgent
 
@@ -18,7 +18,7 @@ class DevOpsArchitect(BaseAgent):
     and infrastructure automation for reliable deployments.
     """
 
-    def __init__(self, config: Dict[str, Any]):
+    def __init__(self, config: dict[str, Any]):
         """
         Initialize the DevOps architect.
 
@@ -41,7 +41,7 @@ class DevOpsArchitect(BaseAgent):
         self.monitoring_stack = self._initialize_monitoring_stack()
         self.deployment_strategies = self._initialize_deployment_strategies()
 
-    def execute(self, context: Dict[str, Any]) -> Dict[str, Any]:
+    def execute(self, context: dict[str, Any]) -> dict[str, Any]:
         """
         Execute DevOps architecture tasks.
 
@@ -142,7 +142,7 @@ class DevOpsArchitect(BaseAgent):
 
         return result
 
-    def validate(self, context: Dict[str, Any]) -> bool:
+    def validate(self, context: dict[str, Any]) -> bool:
         """
         Check if this agent can handle the context.
 
@@ -176,7 +176,7 @@ class DevOpsArchitect(BaseAgent):
         task_lower = task.lower()
         return any(keyword in task_lower for keyword in devops_keywords)
 
-    def _initialize_ci_cd_tools(self) -> Dict[str, Dict[str, Any]]:
+    def _initialize_ci_cd_tools(self) -> dict[str, dict[str, Any]]:
         """
         Initialize CI/CD tools.
 
@@ -214,7 +214,7 @@ class DevOpsArchitect(BaseAgent):
             },
         }
 
-    def _initialize_container_platforms(self) -> Dict[str, Dict[str, Any]]:
+    def _initialize_container_platforms(self) -> dict[str, dict[str, Any]]:
         """
         Initialize container platforms.
 
@@ -244,7 +244,7 @@ class DevOpsArchitect(BaseAgent):
             },
         }
 
-    def _initialize_monitoring_stack(self) -> Dict[str, Dict[str, Any]]:
+    def _initialize_monitoring_stack(self) -> dict[str, dict[str, Any]]:
         """
         Initialize monitoring tools.
 
@@ -274,7 +274,7 @@ class DevOpsArchitect(BaseAgent):
             },
         }
 
-    def _initialize_deployment_strategies(self) -> Dict[str, Dict[str, Any]]:
+    def _initialize_deployment_strategies(self) -> dict[str, dict[str, Any]]:
         """
         Initialize deployment strategies.
 
@@ -309,8 +309,8 @@ class DevOpsArchitect(BaseAgent):
         }
 
     def _design_ci_cd_pipeline(
-        self, task: str, files: List[str], code: str
-    ) -> Dict[str, Any]:
+        self, task: str, files: list[str], code: str
+    ) -> dict[str, Any]:
         """
         Design CI/CD pipeline.
 
@@ -385,8 +385,8 @@ class DevOpsArchitect(BaseAgent):
         return pipeline
 
     def _design_infrastructure(
-        self, task: str, files: List[str], environment: str
-    ) -> Dict[str, Any]:
+        self, task: str, files: list[str], environment: str
+    ) -> dict[str, Any]:
         """
         Design infrastructure architecture.
 
@@ -454,8 +454,8 @@ class DevOpsArchitect(BaseAgent):
         return infrastructure
 
     def _determine_deployment_strategy(
-        self, task: str, infrastructure: Dict[str, Any], environment: str
-    ) -> Dict[str, Any]:
+        self, task: str, infrastructure: dict[str, Any], environment: str
+    ) -> dict[str, Any]:
         """
         Determine deployment strategy.
 
@@ -497,8 +497,8 @@ class DevOpsArchitect(BaseAgent):
         return deployment
 
     def _plan_monitoring(
-        self, infrastructure: Dict[str, Any], deployment: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        self, infrastructure: dict[str, Any], deployment: dict[str, Any]
+    ) -> dict[str, Any]:
         """
         Plan monitoring strategy.
 
@@ -563,10 +563,10 @@ class DevOpsArchitect(BaseAgent):
 
     def _assess_security_measures(
         self,
-        pipeline: Dict[str, Any],
-        infrastructure: Dict[str, Any],
-        deployment: Dict[str, Any],
-    ) -> Dict[str, Any]:
+        pipeline: dict[str, Any],
+        infrastructure: dict[str, Any],
+        deployment: dict[str, Any],
+    ) -> dict[str, Any]:
         """
         Assess security measures.
 
@@ -621,12 +621,12 @@ class DevOpsArchitect(BaseAgent):
 
     def _generate_recommendations(
         self,
-        pipeline: Dict[str, Any],
-        infrastructure: Dict[str, Any],
-        deployment: Dict[str, Any],
-        monitoring: Dict[str, Any],
-        security: Dict[str, Any],
-    ) -> List[Dict[str, Any]]:
+        pipeline: dict[str, Any],
+        infrastructure: dict[str, Any],
+        deployment: dict[str, Any],
+        monitoring: dict[str, Any],
+        security: dict[str, Any],
+    ) -> list[dict[str, Any]]:
         """
         Generate DevOps recommendations.
 
@@ -718,12 +718,12 @@ class DevOpsArchitect(BaseAgent):
     def _generate_devops_report(
         self,
         task: str,
-        pipeline: Dict[str, Any],
-        infrastructure: Dict[str, Any],
-        deployment: Dict[str, Any],
-        monitoring: Dict[str, Any],
-        security: Dict[str, Any],
-        recommendations: List[Dict[str, Any]],
+        pipeline: dict[str, Any],
+        infrastructure: dict[str, Any],
+        deployment: dict[str, Any],
+        monitoring: dict[str, Any],
+        security: dict[str, Any],
+        recommendations: list[dict[str, Any]],
     ) -> str:
         """
         Generate comprehensive DevOps report.

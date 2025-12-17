@@ -7,7 +7,6 @@ import getpass
 import shutil
 import sys
 import time
-from typing import List, Optional, Union
 
 # Try to import colorama for cross-platform color support
 try:
@@ -162,7 +161,7 @@ class ProgressBar:
 class Menu:
     """Interactive menu system with keyboard navigation"""
 
-    def __init__(self, title: str, options: List[str], multi_select: bool = False):
+    def __init__(self, title: str, options: list[str], multi_select: bool = False):
         """
         Initialize menu
 
@@ -176,7 +175,7 @@ class Menu:
         self.multi_select = multi_select
         self.selected = set() if multi_select else None
 
-    def display(self) -> Union[int, List[int]]:
+    def display(self) -> int | list[int]:
         """
         Display menu and get user selection
 
@@ -319,7 +318,7 @@ def display_step(step: int, total: int, message: str) -> None:
     print(f"{Colors.CYAN}[{step}/{total}] {message}{Colors.RESET}")
 
 
-def display_table(headers: List[str], rows: List[List[str]], title: str = "") -> None:
+def display_table(headers: list[str], rows: list[list[str]], title: str = "") -> None:
     """
     Display data in table format
 
@@ -360,7 +359,7 @@ def display_table(headers: List[str], rows: List[List[str]], title: str = "") ->
     print()
 
 
-def prompt_api_key(service_name: str, env_var_name: str) -> Optional[str]:
+def prompt_api_key(service_name: str, env_var_name: str) -> str | None:
     """
     Prompt for API key with security and UX best practices
 

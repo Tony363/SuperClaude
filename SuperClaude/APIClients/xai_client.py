@@ -7,9 +7,10 @@ Provides unified interface for X.AI's Grok models with code analysis capabilitie
 import asyncio
 import logging
 import os
+from collections.abc import AsyncIterator
 from dataclasses import dataclass, field, replace
 from datetime import datetime, timedelta
-from typing import Any, AsyncIterator, Dict, List, Optional, Tuple
+from typing import Any
 
 from .http_utils import HTTPClientError, post_json
 
@@ -33,18 +34,18 @@ class GrokRequest:
     """Request for Grok completion."""
 
     model: str
-    messages: List[Dict[str, str]]
+    messages: list[dict[str, str]]
     max_tokens: int = 8192
     temperature: float = 0.7
     top_p: float = 1.0
     frequency_penalty: float = 0.0
     presence_penalty: float = 0.0
     stream: bool = False
-    stop: Optional[List[str]] = None
-    system: Optional[str] = None
-    tools: Optional[List[Dict[str, Any]]] = None
-    tool_choice: Optional[str] = None
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    stop: list[str] | None = None
+    system: str | None = None
+    tools: list[dict[str, Any]] | None = None
+    tool_choice: str | None = None
+    metadata: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -55,10 +56,10 @@ class GrokResponse:
     model: str
     content: str
     role: str = "assistant"
-    tool_calls: Optional[List[Dict[str, Any]]] = None
+    tool_calls: list[dict[str, Any]] | None = None
     finish_reason: str = "stop"
-    usage: Dict[str, int] = field(default_factory=dict)
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    usage: dict[str, int] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
 
 class XAIClient:
@@ -96,9 +97,7 @@ class XAIClient:
         },
     }
 
-    def __init__(
-        self, config: Optional[XAIConfig] = None, api_key: Optional[str] = None
-    ):
+    def __init__(self, config: XAIConfig | None = None, api_key: str | None = None):
         """Initialize X.AI client."""
         if not config:
             # Try to load from environment
@@ -201,7 +200,7 @@ class XAIClient:
         language: str,
         analysis_type: str = "full",
         model: str = "grok-4",
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Analyze code with Grok.
 
@@ -283,7 +282,7 @@ Code:
 
     async def quick_fix(
         self, code: str, error: str, language: str, model: str = "grok-code-fast-1"
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Quick fix for code errors using fast model.
 
@@ -327,8 +326,8 @@ Provide:
         }
 
     async def refactor_code(
-        self, code: str, language: str, refactor_goals: List[str], model: str = "grok-4"
-    ) -> Dict[str, Any]:
+        self, code: str, language: str, refactor_goals: list[str], model: str = "grok-4"
+    ) -> dict[str, Any]:
         """
         Refactor code with specific goals.
 
@@ -434,7 +433,7 @@ Consider edge cases, performance implications, and best practices.
         for chunk in self._chunk_stream_text(response.content):
             yield chunk
 
-    def estimate_cost(self, request: GrokRequest) -> Dict[str, float]:
+    def estimate_cost(self, request: GrokRequest) -> dict[str, float]:
         """
         Estimate cost for a request.
 
@@ -466,18 +465,18 @@ Consider edge cases, performance implications, and best practices.
             "estimated_tokens": prompt_tokens + completion_tokens,
         }
 
-    def get_model_info(self, model: str) -> Optional[Dict[str, Any]]:
+    def get_model_info(self, model: str) -> dict[str, Any] | None:
         """Get model configuration info."""
         return self.MODEL_CONFIGS.get(model)
 
-    def _chunk_stream_text(self, content: str, *, chunk_size: int = 128) -> List[str]:
+    def _chunk_stream_text(self, content: str, *, chunk_size: int = 128) -> list[str]:
         """Split Grok content into deterministic streaming chunks."""
         if not content:
             return [""]
 
         return [content[i : i + chunk_size] for i in range(0, len(content), chunk_size)]
 
-    def _build_payload(self, request: GrokRequest) -> Dict[str, Any]:
+    def _build_payload(self, request: GrokRequest) -> dict[str, Any]:
         """Build API request payload."""
         payload = {
             "model": request.model,
@@ -511,8 +510,8 @@ class RateLimiter:
         """Initialize rate limiter."""
         self.rpm_limit = rpm_limit
         self.tpm_limit = tpm_limit
-        self.request_times: List[datetime] = []
-        self.token_counts: List[Tuple[datetime, int]] = []
+        self.request_times: list[datetime] = []
+        self.token_counts: list[tuple[datetime, int]] = []
 
     async def acquire(self, request: GrokRequest):
         """Wait if necessary to respect rate limits."""
@@ -556,14 +555,14 @@ class TokenCounter:
         self.total_tokens = 0
         self.request_count = 0
 
-    def add(self, usage: Dict[str, int]):
+    def add(self, usage: dict[str, int]):
         """Add usage from a response."""
         self.total_prompt_tokens += usage.get("prompt_tokens", 0)
         self.total_completion_tokens += usage.get("completion_tokens", 0)
         self.total_tokens += usage.get("total_tokens", 0)
         self.request_count += 1
 
-    def get_summary(self) -> Dict[str, Any]:
+    def get_summary(self) -> dict[str, Any]:
         """Get usage summary."""
         return {
             "total_prompt_tokens": self.total_prompt_tokens,
@@ -577,7 +576,7 @@ class TokenCounter:
 
 
 # Convenience functions
-async def create_xai_client(api_key: Optional[str] = None) -> XAIClient:
+async def create_xai_client(api_key: str | None = None) -> XAIClient:
     """Create and initialize X.AI client."""
     config = XAIConfig(api_key=api_key) if api_key else None
     return XAIClient(config)

@@ -5,7 +5,7 @@ Provides common helper functions for type coercion, string manipulation,
 evidence normalization, and flag handling.
 """
 
-from typing import Any, Dict, List, Optional, Set
+from typing import Any
 
 
 def slugify(value: str) -> str:
@@ -26,9 +26,9 @@ def truncate_output(text: str, max_length: int = 800) -> str:
     return f"{head}\n... [truncated] ...\n{tail}"
 
 
-def normalize_evidence_value(value: Any) -> List[str]:
+def normalize_evidence_value(value: Any) -> list[str]:
     """Normalize evidence values into a flat list of strings."""
-    items: List[str] = []
+    items: list[str] = []
     if value is None:
         return items
 
@@ -53,17 +53,17 @@ def normalize_evidence_value(value: Any) -> List[str]:
     return items
 
 
-def extract_output_evidence(output: Dict[str, Any], key: str) -> List[str]:
+def extract_output_evidence(output: dict[str, Any], key: str) -> list[str]:
     """Extract evidence from an output dictionary for a specific key."""
     if key not in output:
         return []
     return normalize_evidence_value(output.get(key))
 
 
-def deduplicate(items: List[str]) -> List[str]:
+def deduplicate(items: list[str]) -> list[str]:
     """Remove duplicate evidence entries preserving order."""
-    seen: Set[str] = set()
-    deduped: List[str] = []
+    seen: set[str] = set()
+    deduped: list[str] = []
     for item in items:
         normalized = item.strip()
         if not normalized or normalized in seen:
@@ -73,7 +73,7 @@ def deduplicate(items: List[str]) -> List[str]:
     return deduped
 
 
-def ensure_list(container: Dict[str, Any], key: str) -> List[str]:
+def ensure_list(container: dict[str, Any], key: str) -> list[str]:
     """Ensure a dictionary value is a list, normalizing if necessary."""
     value = container.get(key)
     if isinstance(value, list):
@@ -97,7 +97,7 @@ def is_truthy(value: Any) -> bool:
     return False
 
 
-def coerce_float(value: Any, default: Optional[float]) -> Optional[float]:
+def coerce_float(value: Any, default: float | None) -> float | None:
     """Best-effort float coercion."""
     try:
         if isinstance(value, bool):
@@ -119,7 +119,7 @@ def clamp_int(value: Any, minimum: int, maximum: int, default: int) -> int:
     return max(minimum, min(maximum, intval))
 
 
-def to_list(value: Any) -> List[str]:
+def to_list(value: Any) -> list[str]:
     """Normalize value into a list of strings."""
     if value is None:
         return []

@@ -5,7 +5,6 @@ Component registry for auto-discovery and dependency resolution
 import importlib
 import inspect
 from pathlib import Path
-from typing import Dict, List, Optional, Set, Type
 
 from ..utils.logger import get_logger
 from .base import Component
@@ -22,9 +21,9 @@ class ComponentRegistry:
             components_dir: Directory containing component modules
         """
         self.components_dir = components_dir
-        self.component_classes: Dict[str, Type[Component]] = {}
-        self.component_instances: Dict[str, Component] = {}
-        self.dependency_graph: Dict[str, Set[str]] = {}
+        self.component_classes: dict[str, type[Component]] = {}
+        self.component_instances: dict[str, Component] = {}
+        self.dependency_graph: dict[str, set[str]] = {}
         self._discovered = False
         self.logger = get_logger()
 
@@ -118,7 +117,7 @@ class ComponentRegistry:
                 self.logger.warning(f"Could not get dependencies for {name}: {e}")
                 self.dependency_graph[name] = set()
 
-    def get_component_class(self, component_name: str) -> Optional[Type[Component]]:
+    def get_component_class(self, component_name: str) -> type[Component] | None:
         """
         Get component class by name
 
@@ -132,8 +131,8 @@ class ComponentRegistry:
         return self.component_classes.get(component_name)
 
     def get_component_instance(
-        self, component_name: str, install_dir: Optional[Path] = None
-    ) -> Optional[Component]:
+        self, component_name: str, install_dir: Path | None = None
+    ) -> Component | None:
         """
         Get component instance by name
 
@@ -160,7 +159,7 @@ class ComponentRegistry:
 
         return self.component_instances.get(component_name)
 
-    def list_components(self) -> List[str]:
+    def list_components(self) -> list[str]:
         """
         Get list of all discovered component names
 
@@ -170,7 +169,7 @@ class ComponentRegistry:
         self.discover_components()
         return list(self.component_classes.keys())
 
-    def get_component_metadata(self, component_name: str) -> Optional[Dict[str, str]]:
+    def get_component_metadata(self, component_name: str) -> dict[str, str] | None:
         """
         Get metadata for a component
 
@@ -191,7 +190,7 @@ class ComponentRegistry:
                 return None
         return None
 
-    def resolve_dependencies(self, component_names: List[str]) -> List[str]:
+    def resolve_dependencies(self, component_names: list[str]) -> list[str]:
         """
         Resolve component dependencies in correct installation order
 
@@ -234,7 +233,7 @@ class ComponentRegistry:
 
         return resolved
 
-    def get_dependencies(self, component_name: str) -> Set[str]:
+    def get_dependencies(self, component_name: str) -> set[str]:
         """
         Get direct dependencies for a component
 
@@ -247,7 +246,7 @@ class ComponentRegistry:
         self.discover_components()
         return self.dependency_graph.get(component_name, set())
 
-    def get_dependents(self, component_name: str) -> Set[str]:
+    def get_dependents(self, component_name: str) -> set[str]:
         """
         Get components that depend on the given component
 
@@ -266,7 +265,7 @@ class ComponentRegistry:
 
         return dependents
 
-    def validate_dependency_graph(self) -> List[str]:
+    def validate_dependency_graph(self) -> list[str]:
         """
         Validate dependency graph for cycles and missing dependencies
 
@@ -294,7 +293,7 @@ class ComponentRegistry:
 
         return errors
 
-    def get_components_by_category(self, category: str) -> List[str]:
+    def get_components_by_category(self, category: str) -> list[str]:
         """
         Get components filtered by category
 
@@ -321,7 +320,7 @@ class ComponentRegistry:
 
         return components
 
-    def get_installation_order(self, component_names: List[str]) -> List[List[str]]:
+    def get_installation_order(self, component_names: list[str]) -> list[list[str]]:
         """
         Get installation order grouped by dependency levels
 
@@ -363,8 +362,8 @@ class ComponentRegistry:
         return levels
 
     def create_component_instances(
-        self, component_names: List[str], install_dir: Optional[Path] = None
-    ) -> Dict[str, Component]:
+        self, component_names: list[str], install_dir: Path | None = None
+    ) -> dict[str, Component]:
         """
         Create instances for multiple components
 
@@ -387,7 +386,7 @@ class ComponentRegistry:
 
         return instances
 
-    def get_registry_info(self) -> Dict[str, any]:
+    def get_registry_info(self) -> dict[str, any]:
         """
         Get comprehensive registry information
 

@@ -7,9 +7,10 @@ Provides unified interface for all OpenAI models with streaming and function cal
 import asyncio
 import logging
 import os
+from collections.abc import AsyncIterator
 from dataclasses import dataclass, field, replace
 from datetime import datetime, timedelta
-from typing import Any, AsyncIterator, Dict, List, Optional, Tuple
+from typing import Any
 
 from .http_utils import HTTPClientError, post_json
 
@@ -22,7 +23,7 @@ class OpenAIConfig:
 
     api_key: str
     endpoint: str = "https://api.openai.com/v1"
-    organization: Optional[str] = None
+    organization: str | None = None
     timeout: int = 300
     max_retries: int = 3
     rate_limit_rpm: int = 100
@@ -34,17 +35,17 @@ class CompletionRequest:
     """Request for completion."""
 
     model: str
-    messages: List[Dict[str, str]]
+    messages: list[dict[str, str]]
     temperature: float = 0.7
-    max_tokens: Optional[int] = None
+    max_tokens: int | None = None
     top_p: float = 1.0
     frequency_penalty: float = 0.0
     presence_penalty: float = 0.0
     stream: bool = False
-    functions: Optional[List[Dict[str, Any]]] = None
-    function_call: Optional[Dict[str, str]] = None
-    user: Optional[str] = None
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    functions: list[dict[str, Any]] | None = None
+    function_call: dict[str, str] | None = None
+    user: str | None = None
+    metadata: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -55,10 +56,10 @@ class CompletionResponse:
     model: str
     content: str
     role: str = "assistant"
-    function_call: Optional[Dict[str, Any]] = None
-    usage: Dict[str, int] = field(default_factory=dict)
+    function_call: dict[str, Any] | None = None
+    usage: dict[str, int] = field(default_factory=dict)
     finish_reason: str = "stop"
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
 
 class OpenAIClient:
@@ -104,9 +105,7 @@ class OpenAIClient:
         },
     }
 
-    def __init__(
-        self, config: Optional[OpenAIConfig] = None, api_key: Optional[str] = None
-    ):
+    def __init__(self, config: OpenAIConfig | None = None, api_key: str | None = None):
         """Initialize OpenAI client."""
         if not config:
             # Try to load from environment
@@ -296,7 +295,7 @@ Use structured reasoning and consider multiple angles.
         return await self.complete(request)
 
     async def complete_with_functions(
-        self, prompt: str, functions: List[Dict[str, Any]], model: str = "gpt-4o"
+        self, prompt: str, functions: list[dict[str, Any]], model: str = "gpt-4o"
     ) -> CompletionResponse:
         """
         Complete with function calling.
@@ -318,14 +317,14 @@ Use structured reasoning and consider multiple angles.
 
         return await self.complete(request)
 
-    def _chunk_stream_text(self, content: str, *, chunk_size: int = 128) -> List[str]:
+    def _chunk_stream_text(self, content: str, *, chunk_size: int = 128) -> list[str]:
         """Split completion content into chunks for streaming fallback."""
         if not content:
             return [""]
 
         return [content[i : i + chunk_size] for i in range(0, len(content), chunk_size)]
 
-    def estimate_cost(self, request: CompletionRequest) -> Dict[str, float]:
+    def estimate_cost(self, request: CompletionRequest) -> dict[str, float]:
         """
         Estimate cost for a request.
 
@@ -354,11 +353,11 @@ Use structured reasoning and consider multiple angles.
             "estimated_tokens": prompt_tokens + completion_tokens,
         }
 
-    def get_model_info(self, model: str) -> Optional[Dict[str, Any]]:
+    def get_model_info(self, model: str) -> dict[str, Any] | None:
         """Get model configuration info."""
         return self.MODEL_CONFIGS.get(model)
 
-    def _build_payload(self, request: CompletionRequest) -> Dict[str, Any]:
+    def _build_payload(self, request: CompletionRequest) -> dict[str, Any]:
         """Build API request payload."""
         payload = {
             "model": request.model,
@@ -389,8 +388,8 @@ class RateLimiter:
         """Initialize rate limiter."""
         self.rpm_limit = rpm_limit
         self.tpm_limit = tpm_limit
-        self.request_times: List[datetime] = []
-        self.token_counts: List[Tuple[datetime, int]] = []
+        self.request_times: list[datetime] = []
+        self.token_counts: list[tuple[datetime, int]] = []
 
     async def acquire(self, request: CompletionRequest):
         """Wait if necessary to respect rate limits."""
@@ -435,14 +434,14 @@ class TokenCounter:
         self.total_tokens = 0
         self.request_count = 0
 
-    def add(self, usage: Dict[str, int]):
+    def add(self, usage: dict[str, int]):
         """Add usage from a response."""
         self.total_prompt_tokens += usage.get("prompt_tokens", 0)
         self.total_completion_tokens += usage.get("completion_tokens", 0)
         self.total_tokens += usage.get("total_tokens", 0)
         self.request_count += 1
 
-    def get_summary(self) -> Dict[str, Any]:
+    def get_summary(self) -> dict[str, Any]:
         """Get usage summary."""
         return {
             "total_prompt_tokens": self.total_prompt_tokens,
@@ -456,7 +455,7 @@ class TokenCounter:
 
 
 # Convenience functions
-async def create_openai_client(api_key: Optional[str] = None) -> OpenAIClient:
+async def create_openai_client(api_key: str | None = None) -> OpenAIClient:
     """Create and initialize OpenAI client."""
     config = OpenAIConfig(api_key=api_key) if api_key else None
     return OpenAIClient(config)

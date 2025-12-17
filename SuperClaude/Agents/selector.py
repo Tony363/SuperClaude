@@ -7,7 +7,7 @@ keywords, and task requirements.
 
 import logging
 import re
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 from .registry import AgentRegistry
 
@@ -20,7 +20,7 @@ class AgentSelector:
     agent based on keywords, categories, and confidence scoring.
     """
 
-    def __init__(self, registry: Optional[AgentRegistry] = None):
+    def __init__(self, registry: AgentRegistry | None = None):
         """
         Initialize the agent selector.
 
@@ -43,9 +43,9 @@ class AgentSelector:
     def select_agent(
         self,
         context: Any,
-        category_hint: Optional[str] = None,
-        exclude_agents: Optional[List[str]] = None,
-    ) -> List[Tuple[str, float]]:
+        category_hint: str | None = None,
+        exclude_agents: list[str] | None = None,
+    ) -> list[tuple[str, float]]:
         """
         Select agents for the given context, ordered by relevance.
 
@@ -97,9 +97,9 @@ class AgentSelector:
     def find_best_match(
         self,
         context: str,
-        category_hint: Optional[str] = None,
-        exclude_agents: Optional[List[str]] = None,
-    ) -> Tuple[Optional[str], float]:
+        category_hint: str | None = None,
+        exclude_agents: list[str] | None = None,
+    ) -> tuple[str | None, float]:
         """
         Find the best matching agent for context.
 
@@ -158,7 +158,7 @@ class AgentSelector:
         return best_agent, best_score
 
     def _calculate_agent_score(
-        self, context: Any, config: Dict[str, Any], category_hint: Optional[str] = None
+        self, context: Any, config: dict[str, Any], category_hint: str | None = None
     ) -> float:
         """
         Calculate confidence score for an agent.
@@ -295,7 +295,7 @@ class AgentSelector:
             self.logger.debug(f"Error calculating agent boost for {agent_name}: {e}")
         return boosts
 
-    def _score_triggers(self, context: str, triggers: List[str]) -> float:
+    def _score_triggers(self, context: str, triggers: list[str]) -> float:
         """Score based on trigger keyword matches."""
         if not triggers:
             return 0.0
@@ -323,7 +323,7 @@ class AgentSelector:
         return matches / max_possible if max_possible > 0 else 0.0
 
     def _score_category(
-        self, context: str, category: str, hint: Optional[str] = None
+        self, context: str, category: str, hint: str | None = None
     ) -> float:
         """Score based on category matching."""
         score = 0.0
@@ -357,7 +357,7 @@ class AgentSelector:
 
         return min(matches / max(len(key_terms), 1), 1.0)
 
-    def _score_tools(self, context: str, tools: List[str]) -> float:
+    def _score_tools(self, context: str, tools: list[str]) -> float:
         """Score based on tool mentions."""
         if not tools:
             return 0.0
@@ -370,7 +370,7 @@ class AgentSelector:
 
         return matches / len(tools)
 
-    def _score_focus_areas(self, context: str, focus_areas: Dict[str, str]) -> float:
+    def _score_focus_areas(self, context: str, focus_areas: dict[str, str]) -> float:
         """Score based on focus area matching."""
         if not focus_areas:
             return 0.0
@@ -423,7 +423,7 @@ class AgentSelector:
 
     def get_agent_suggestions(
         self, context: str, top_n: int = 5
-    ) -> List[Tuple[str, float]]:
+    ) -> list[tuple[str, float]]:
         """
         Get top N agent suggestions for context.
 
@@ -447,7 +447,7 @@ class AgentSelector:
         sorted_agents = sorted(scores.items(), key=lambda x: x[1], reverse=True)
         return sorted_agents[:top_n]
 
-    def explain_selection(self, context: str, agent_name: str) -> Dict[str, Any]:
+    def explain_selection(self, context: str, agent_name: str) -> dict[str, Any]:
         """
         Explain why an agent was selected.
 

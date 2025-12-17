@@ -9,10 +9,11 @@ to simplify the main executor logic.
 import logging
 import shutil
 import tempfile
+from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Sequence
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -48,7 +49,7 @@ def build_metric_tags(
     status: str,
     execution_mode: str = "standard",
     **extra_tags: str,
-) -> Dict[str, str]:
+) -> dict[str, str]:
     """Build a consistent tag dictionary for metrics recording."""
     tags = {
         "command": command_name,
@@ -64,12 +65,12 @@ def format_evidence_event(
     requires_evidence: bool,
     derived_status: str,
     success: bool,
-    static_issues: List[str],
-    context_snapshot: Optional[Dict[str, Any]] = None,
-    consensus: Optional[Dict[str, Any]] = None,
-    quality_score: Optional[float] = None,
-    quality_threshold: Optional[float] = None,
-) -> Dict[str, Any]:
+    static_issues: list[str],
+    context_snapshot: dict[str, Any] | None = None,
+    consensus: dict[str, Any] | None = None,
+    quality_score: float | None = None,
+    quality_threshold: float | None = None,
+) -> dict[str, Any]:
     """Format a structured event payload for requires-evidence telemetry."""
     snapshot = context_snapshot or {}
     execution_mode = str(snapshot.get("execution_mode") or "standard")
@@ -102,8 +103,8 @@ def format_evidence_event(
 def format_fast_codex_event(
     phase: str,
     message: str,
-    details: Optional[Dict[str, Any]] = None,
-) -> Dict[str, Any]:
+    details: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     """Format a structured fast-codex event entry."""
     entry = {
         "timestamp": datetime.now().isoformat(),
@@ -117,24 +118,24 @@ def format_fast_codex_event(
 
 def format_plan_only_event(
     command_name: str,
-    arguments: List[str],
-    flags: Dict[str, Any],
+    arguments: list[str],
+    flags: dict[str, Any],
     session_id: str,
     requires_evidence: bool,
     derived_status: str,
     missing_evidence: bool = False,
-    plan_only_agents: Optional[List[str]] = None,
-    guidance: Optional[List[str]] = None,
+    plan_only_agents: list[str] | None = None,
+    guidance: list[str] | None = None,
     safe_apply_requested: bool = False,
-    change_plan: Optional[List[Dict[str, Any]]] = None,
-    consensus: Optional[Dict[str, Any]] = None,
-    errors: Optional[List[str]] = None,
-    retrieval_hits: Optional[int] = None,
-    safe_apply_snapshot: Optional[Dict[str, Any]] = None,
-    safe_apply_directory: Optional[str] = None,
-) -> Dict[str, Any]:
+    change_plan: list[dict[str, Any]] | None = None,
+    consensus: dict[str, Any] | None = None,
+    errors: list[str] | None = None,
+    retrieval_hits: int | None = None,
+    safe_apply_snapshot: dict[str, Any] | None = None,
+    safe_apply_directory: str | None = None,
+) -> dict[str, Any]:
     """Format a plan-only event for telemetry."""
-    event: Dict[str, Any] = {
+    event: dict[str, Any] = {
         "command": command_name,
         "arguments": list(arguments),
         "flags": sorted(flags.keys()),
@@ -148,7 +149,7 @@ def format_plan_only_event(
     }
 
     if change_plan:
-        summary: List[Dict[str, Any]] = []
+        summary: list[dict[str, Any]] = []
         for entry in change_plan[:10]:
             if not isinstance(entry, dict):
                 continue
@@ -193,9 +194,9 @@ def format_plan_only_event(
 
 def write_safe_apply_snapshot(
     session_id: str,
-    stubs: Sequence[Dict[str, Any]],
-    base_dir: Optional[Path] = None,
-) -> Optional[Dict[str, Any]]:
+    stubs: Sequence[dict[str, Any]],
+    base_dir: Path | None = None,
+) -> dict[str, Any] | None:
     """Write stub files to a safe-apply snapshot directory.
 
     Args:
@@ -215,7 +216,7 @@ def write_safe_apply_snapshot(
     timestamp = datetime.utcnow().strftime("%Y%m%d%H%M%S")
     snapshot_dir = base_dir / timestamp
 
-    saved_files: List[str] = []
+    saved_files: list[str] = []
     created_any = False
 
     for entry in stubs:
@@ -283,7 +284,7 @@ def prune_safe_apply_snapshots(session_root: Path, keep: int = 3) -> None:
             logger.debug("Safe-apply cleanup skipped for %s: %s", obsolete, exc)
 
 
-def truncate_fast_codex_stream(payload: Optional[str], limit: int = 600) -> str:
+def truncate_fast_codex_stream(payload: str | None, limit: int = 600) -> str:
     """Return a concise preview of Codex CLI stdout/stderr for display."""
     if not payload:
         return ""
@@ -295,7 +296,7 @@ def truncate_fast_codex_stream(payload: Optional[str], limit: int = 600) -> str:
     return f"{head} … {tail}"
 
 
-def format_test_artifact_summary(test_results: Dict[str, Any]) -> List[str]:
+def format_test_artifact_summary(test_results: dict[str, Any]) -> list[str]:
     """Format test results into artifact summary lines."""
     if not test_results:
         return []
@@ -322,9 +323,9 @@ def format_quality_artifact_summary(
     overall_score: float,
     threshold: float,
     passed: bool,
-    metrics: List[Dict[str, Any]],
-    improvements_needed: Optional[List[str]] = None,
-) -> List[str]:
+    metrics: list[dict[str, Any]],
+    improvements_needed: list[str] | None = None,
+) -> list[str]:
     """Format quality assessment into artifact summary lines."""
     lines = [
         f"Overall: {overall_score:.1f} (threshold {threshold:.1f})",
@@ -349,7 +350,7 @@ def format_quality_artifact_summary(
 def summarize_rube_context(
     command_name: str,
     output: Any,
-    applied_changes: Optional[List[Any]] = None,
+    applied_changes: list[Any] | None = None,
     status: str = "unknown",
 ) -> str:
     """Generate a short summary for Rube automation payloads."""

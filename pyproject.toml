@@ -12,14 +12,12 @@ authors = [
 description = "SuperClaude Framework Management Hub - AI-enhanced development framework for Claude Code"
 readme = "README.md"
 license = {text = "MIT"}
-requires-python = ">=3.8"
+requires-python = ">=3.10"
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
 "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.8",
-    "Programming Language :: Python :: 3.9", 
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
@@ -31,7 +29,6 @@ classifiers = [
 keywords = ["claude", "ai", "automation", "framework", "mcp", "agents", "development", "code-generation", "assistant"]
 dependencies = [
     "setuptools>=45.0.0",
-    "importlib-metadata>=1.0.0; python_version<'3.8'"
 ]
 
 [project.urls]
@@ -76,7 +73,7 @@ exclude = ["tests*", "*.tests*", "*.tests", ".git*", ".venv*", "*.egg-info*"]
 
 [tool.black]
 line-length = 88
-target-version = ["py38", "py39", "py310", "py311", "py312"]
+target-version = ["py310"]
 include = '\.pyi?$'
 extend-exclude = '''
 /(
@@ -93,7 +90,7 @@ extend-exclude = '''
 '''
 
 [tool.mypy]
-python_version = "3.8"
+python_version = "3.10"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true
@@ -141,7 +138,7 @@ show_missing = true
 
 # Ruff - Fast Python linter (replaces Flake8, isort)
 [tool.ruff]
-target-version = "py38"
+target-version = "py310"
 line-length = 88
 exclude = [
     ".eggs",

@@ -7,7 +7,7 @@ import argparse
 import sys
 import time
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from ... import PROJECT_ROOT
 from ...core.registry import ComponentRegistry
@@ -211,7 +211,7 @@ Examples:
     return parser
 
 
-def get_installed_components(install_dir: Path) -> Dict[str, Dict[str, Any]]:
+def get_installed_components(install_dir: Path) -> dict[str, dict[str, Any]]:
     """Get currently installed components and their versions"""
     try:
         settings_manager = SettingsService(install_dir)
@@ -220,7 +220,7 @@ def get_installed_components(install_dir: Path) -> Dict[str, Dict[str, Any]]:
         return {}
 
 
-def get_installation_info(install_dir: Path) -> Dict[str, Any]:
+def get_installation_info(install_dir: Path) -> dict[str, Any]:
     """Get detailed installation information"""
     info = {
         "install_dir": install_dir,
@@ -251,7 +251,7 @@ def get_installation_info(install_dir: Path) -> Dict[str, Any]:
     return info
 
 
-def display_environment_info() -> Dict[str, str]:
+def display_environment_info() -> dict[str, str]:
     """Display SuperClaude environment variables and return them"""
     env_vars = get_superclaude_environment_variables()
 
@@ -277,7 +277,7 @@ def display_environment_info() -> Dict[str, str]:
     return env_vars
 
 
-def display_uninstall_info(info: Dict[str, Any]) -> None:
+def display_uninstall_info(info: dict[str, Any]) -> None:
     """Display installation information before uninstall"""
     print(f"\n{Colors.CYAN}{Colors.BRIGHT}Current Installation{Colors.RESET}")
     print("=" * 50)
@@ -307,8 +307,8 @@ def display_uninstall_info(info: Dict[str, Any]) -> None:
 
 
 def get_components_to_uninstall(
-    args: argparse.Namespace, installed_components: Dict[str, str]
-) -> Optional[List[str]]:
+    args: argparse.Namespace, installed_components: dict[str, str]
+) -> list[str] | None:
     """Determine which components to uninstall"""
     logger = get_logger()
 
@@ -332,8 +332,8 @@ def get_components_to_uninstall(
 
 
 def interactive_component_selection(
-    installed_components: Dict[str, str], env_vars: Dict[str, str]
-) -> Optional[tuple]:
+    installed_components: dict[str, str], env_vars: dict[str, str]
+) -> tuple | None:
     """
     Enhanced interactive selection with granular component options
 
@@ -369,7 +369,7 @@ def interactive_component_selection(
     return None
 
 
-def _ask_complete_uninstall_options(env_vars: Dict[str, str]) -> Dict[str, bool]:
+def _ask_complete_uninstall_options(env_vars: dict[str, str]) -> dict[str, bool]:
     """Ask for complete uninstall options"""
     cleanup_options = {
         "remove_mcp_configs": True,
@@ -401,8 +401,8 @@ def _ask_complete_uninstall_options(env_vars: Dict[str, str]) -> Dict[str, bool]
 
 
 def _custom_component_selection(
-    installed_components: Dict[str, str], env_vars: Dict[str, str]
-) -> Optional[tuple]:
+    installed_components: dict[str, str], env_vars: dict[str, str]
+) -> tuple | None:
     """Handle custom component selection with granular options"""
     print(
         f"\n{Colors.CYAN}{Colors.BRIGHT}Custom Uninstall - Choose Components{Colors.RESET}"
@@ -460,7 +460,7 @@ def _custom_component_selection(
     return selected_components, cleanup_options
 
 
-def _ask_mcp_cleanup_options(env_vars: Dict[str, str]) -> Dict[str, bool]:
+def _ask_mcp_cleanup_options(env_vars: dict[str, str]) -> dict[str, bool]:
     """Ask for MCP-related cleanup options"""
     print(f"\n{Colors.YELLOW}{Colors.BRIGHT}MCP Cleanup Options{Colors.RESET}")
     print("Since you're removing the MCP component:")
@@ -502,8 +502,8 @@ def _ask_mcp_cleanup_options(env_vars: Dict[str, str]) -> Dict[str, bool]:
 
 
 def interactive_uninstall_selection(
-    installed_components: Dict[str, str],
-) -> Optional[List[str]]:
+    installed_components: dict[str, str],
+) -> list[str] | None:
     """Legacy function - redirects to enhanced selection"""
     env_vars = get_superclaude_environment_variables()
     result = interactive_component_selection(installed_components, env_vars)
@@ -530,7 +530,7 @@ def display_preservation_info() -> None:
     )
 
 
-def display_component_details(component: str, info: Dict[str, Any]) -> Dict[str, Any]:
+def display_component_details(component: str, info: dict[str, Any]) -> dict[str, Any]:
     """Get detailed information about what will be removed for a component"""
     details = {"files": [], "directories": [], "size": 0, "description": ""}
 
@@ -581,10 +581,10 @@ def display_component_details(component: str, info: Dict[str, Any]) -> Dict[str,
 
 
 def display_uninstall_plan(
-    components: List[str],
+    components: list[str],
     args: argparse.Namespace,
-    info: Dict[str, Any],
-    env_vars: Dict[str, str],
+    info: dict[str, Any],
+    env_vars: dict[str, str],
 ) -> None:
     """Display detailed uninstall plan"""
     print(f"\n{Colors.CYAN}{Colors.BRIGHT}Uninstall Plan{Colors.RESET}")
@@ -677,7 +677,7 @@ def display_uninstall_plan(
     print()
 
 
-def create_uninstall_backup(install_dir: Path, components: List[str]) -> Optional[Path]:
+def create_uninstall_backup(install_dir: Path, components: list[str]) -> Path | None:
     """Create backup before uninstall"""
     logger = get_logger()
 
@@ -711,10 +711,10 @@ def create_uninstall_backup(install_dir: Path, components: List[str]) -> Optiona
 
 
 def perform_uninstall(
-    components: List[str],
+    components: list[str],
     args: argparse.Namespace,
-    info: Dict[str, Any],
-    env_vars: Dict[str, str],
+    info: dict[str, Any],
+    env_vars: dict[str, str],
 ) -> bool:
     """Perform the actual uninstall"""
     logger = get_logger()

@@ -3,7 +3,7 @@ Commands component for SuperClaude slash command definitions
 """
 
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 from setup import __version__
 
@@ -13,11 +13,11 @@ from ..core.base import Component
 class CommandsComponent(Component):
     """SuperClaude slash commands component"""
 
-    def __init__(self, install_dir: Optional[Path] = None):
+    def __init__(self, install_dir: Path | None = None):
         """Initialize commands component"""
         super().__init__(install_dir, Path("commands/sc"))
 
-    def get_metadata(self) -> Dict[str, str]:
+    def get_metadata(self) -> dict[str, str]:
         """Get component metadata"""
         return {
             "name": "commands",
@@ -26,7 +26,7 @@ class CommandsComponent(Component):
             "category": "commands",
         }
 
-    def get_metadata_modifications(self) -> Dict[str, Any]:
+    def get_metadata_modifications(self) -> dict[str, Any]:
         """Get metadata modifications for commands component"""
         return {
             "components": {
@@ -39,7 +39,7 @@ class CommandsComponent(Component):
             "commands": {"enabled": True, "version": __version__, "auto_update": False},
         }
 
-    def _install(self, config: Dict[str, Any]) -> bool:
+    def _install(self, config: dict[str, Any]) -> bool:
         """Install commands component"""
         self.logger.info("Installing SuperClaude command definitions...")
 
@@ -152,11 +152,11 @@ class CommandsComponent(Component):
             )
             return False
 
-    def get_dependencies(self) -> List[str]:
+    def get_dependencies(self) -> list[str]:
         """Get dependencies"""
         return ["core"]
 
-    def update(self, config: Dict[str, Any]) -> bool:
+    def update(self, config: dict[str, Any]) -> bool:
         """Update commands component"""
         try:
             self.logger.info("Updating SuperClaude commands component...")
@@ -219,7 +219,7 @@ class CommandsComponent(Component):
             self.logger.exception(f"Unexpected error during commands update: {e}")
             return False
 
-    def validate_installation(self) -> Tuple[bool, List[str]]:
+    def validate_installation(self) -> tuple[bool, list[str]]:
         """Validate commands component installation"""
         errors = []
 
@@ -273,7 +273,7 @@ class CommandsComponent(Component):
 
         return total_size
 
-    def get_installation_summary(self) -> Dict[str, Any]:
+    def get_installation_summary(self) -> dict[str, Any]:
         """Get installation summary"""
         return {
             "component": self.get_metadata()["name"],

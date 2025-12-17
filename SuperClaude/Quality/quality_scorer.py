@@ -7,11 +7,12 @@ automatic iteration until quality thresholds are met.
 
 import logging
 import re
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
+from typing import Any
 
 try:  # Optional dependency for YAML configs
     import yaml
@@ -47,8 +48,8 @@ class QualityMetric:
     score: float  # 0-100
     weight: float  # Importance weight
     details: str
-    issues: List[str] = field(default_factory=list)
-    suggestions: List[str] = field(default_factory=list)
+    issues: list[str] = field(default_factory=list)
+    suggestions: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -56,15 +57,15 @@ class QualityAssessment:
     """Complete quality assessment."""
 
     overall_score: float  # 0-100
-    metrics: List[QualityMetric]
+    metrics: list[QualityMetric]
     timestamp: datetime
     iteration: int
     passed: bool
     threshold: float
-    context: Dict[str, Any]
-    improvements_needed: List[str] = field(default_factory=list)
+    context: dict[str, Any]
+    improvements_needed: list[str] = field(default_factory=list)
     band: str = "iterate"
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -74,9 +75,22 @@ class IterationResult:
     iteration: int
     input_quality: float
     output_quality: float
-    improvements_applied: List[str]
+    improvements_applied: list[str]
     time_taken: float
     success: bool
+    termination_reason: str = ""  # Why the loop stopped
+
+
+class IterationTermination:
+    """Constants for iteration termination reasons."""
+
+    QUALITY_MET = "quality_threshold_met"
+    MAX_ITERATIONS = "max_iterations_reached"
+    INSUFFICIENT_IMPROVEMENT = "insufficient_improvement"
+    STAGNATION = "score_stagnation"
+    OSCILLATION = "score_oscillation"
+    ERROR = "improver_error"
+    HUMAN_ESCALATION = "requires_human_review"
 
 
 @dataclass(frozen=True)
@@ -95,6 +109,106 @@ class QualityThresholds:
         return "iterate"
 
 
+@dataclass
+class DeterministicSignals:
+    """
+    P1: Deterministic signals that ground quality scoring in verifiable facts.
+
+    These signals come from actual tool execution (tests, linters, builds)
+    rather than LLM self-evaluation, providing trustworthy quality gates.
+    """
+
+    # Test results
+    tests_passed: bool = False
+    tests_total: int = 0
+    tests_failed: int = 0
+    test_coverage: float = 0.0  # 0-100
+
+    # Lint/type check results
+    lint_passed: bool = False
+    lint_errors: int = 0
+    lint_warnings: int = 0
+    type_check_passed: bool = False
+    type_errors: int = 0
+
+    # Build results
+    build_passed: bool = False
+    build_errors: int = 0
+
+    # Security scan
+    security_passed: bool = False
+    security_critical: int = 0
+    security_high: int = 0
+
+    def has_hard_failures(self) -> bool:
+        """Check for any hard failures that should cap the score."""
+        return (
+            self.tests_failed > 0
+            or self.security_critical > 0
+            or (not self.build_passed and self.build_errors > 0)
+        )
+
+    def get_hard_failure_cap(self) -> float:
+        """
+        Get the maximum score allowed given hard failures.
+
+        P1 SAFETY: Prevents high scores when critical issues exist.
+        """
+        if self.security_critical > 0:
+            return 30.0  # Critical security = very low cap
+        if self.tests_failed > 0:
+            # More tests failed = lower cap
+            if self.tests_total > 0:
+                fail_rate = self.tests_failed / self.tests_total
+                if fail_rate > 0.5:
+                    return 40.0
+                elif fail_rate > 0.2:
+                    return 50.0
+                else:
+                    return 60.0
+            return 50.0
+        if not self.build_passed and self.build_errors > 0:
+            return 45.0
+        if self.security_high > 0:
+            return 65.0
+
+        return 100.0  # No cap
+
+    def calculate_bonus(self) -> float:
+        """
+        Calculate bonus points from positive signals.
+
+        Clean lints, passing tests, and good coverage earn bonus points.
+        """
+        bonus = 0.0
+
+        # Test coverage bonus (up to 10 points)
+        if self.test_coverage >= 80:
+            bonus += 10.0
+        elif self.test_coverage >= 60:
+            bonus += 5.0
+        elif self.test_coverage >= 40:
+            bonus += 2.0
+
+        # Clean lint bonus
+        if self.lint_passed and self.lint_errors == 0:
+            bonus += 5.0
+
+        # Type check bonus
+        if self.type_check_passed and self.type_errors == 0:
+            bonus += 5.0
+
+        # All tests passing bonus
+        if self.tests_passed and self.tests_failed == 0 and self.tests_total > 0:
+            bonus += 5.0
+
+        # Security clean bonus
+        if self.security_passed:
+            bonus += 5.0
+
+        return min(bonus, 25.0)  # Cap total bonus
+
+
 class QualityScorer:
     """
     Evaluates output quality and manages the agentic loop pattern.
@@ -105,11 +219,16 @@ class QualityScorer:
 
     # Configuration constants
     DEFAULT_THRESHOLD = 70.0  # Minimum acceptable quality score
-    MAX_ITERATIONS = 5  # Maximum improvement iterations
+    MAX_ITERATIONS = (
+        3  # Maximum improvement iterations (P0 safety: prevent infinite loops)
+    )
     MIN_IMPROVEMENT = 5.0  # Minimum score improvement to continue
+    HARD_MAX_ITERATIONS = 5  # Absolute ceiling, cannot be overridden
+    OSCILLATION_WINDOW = 3  # Number of scores to check for oscillation
+    STAGNATION_THRESHOLD = 2.0  # Score difference below which is considered stagnation
 
     def __init__(
-        self, threshold: float = DEFAULT_THRESHOLD, config_path: Optional[str] = None
+        self, threshold: float = DEFAULT_THRESHOLD, config_path: str | None = None
     ):
         """
         Initialize the quality scorer.
@@ -124,10 +243,10 @@ class QualityScorer:
             if config_path
             else Path(__file__).resolve().parent.parent / "Config" / "quality.yaml"
         )
-        self.config_data: Dict[str, Any] = {}
+        self.config_data: dict[str, Any] = {}
 
         # Quality evaluators by dimension
-        self.evaluators: Dict[QualityDimension, Callable] = {
+        self.evaluators: dict[QualityDimension, Callable] = {
             QualityDimension.CORRECTNESS: self._evaluate_correctness,
             QualityDimension.COMPLETENESS: self._evaluate_completeness,
             QualityDimension.MAINTAINABILITY: self._evaluate_maintainability,
@@ -159,14 +278,14 @@ class QualityScorer:
             self.threshold = self.thresholds.production_ready
 
         # Iteration history
-        self.iteration_history: List[IterationResult] = []
-        self.assessment_history: List[QualityAssessment] = []
+        self.iteration_history: list[IterationResult] = []
+        self.assessment_history: list[QualityAssessment] = []
 
         # Custom evaluators
-        self.custom_evaluators: List[Callable] = []
-        self.primary_evaluator: Optional[
-            Callable[[Any, Dict[str, Any], int], Optional[Dict[str, Any]]]
-        ] = None
+        self.custom_evaluators: list[Callable] = []
+        self.primary_evaluator: (
+            Callable[[Any, dict[str, Any], int], dict[str, Any] | None] | None
+        ) = None
 
     def _load_configuration(self) -> None:
         """Load quality configuration from YAML if available."""
@@ -213,9 +332,9 @@ class QualityScorer:
             except (TypeError, ValueError):
                 self.logger.debug("Invalid 'good' threshold in quality config")
 
-    def _load_component_weights(self) -> Dict[str, float]:
+    def _load_component_weights(self) -> dict[str, float]:
         weights = DEFAULT_COMPONENT_WEIGHTS.copy()
-        config_weights: Dict[str, Any] = {}
+        config_weights: dict[str, Any] = {}
         if self.config_data:
             scoring_cfg = self.config_data.get("scoring") or {}
             config_weights = scoring_cfg.get("component_weights", {}) or {}
@@ -229,9 +348,7 @@ class QualityScorer:
             return DEFAULT_COMPONENT_WEIGHTS.copy()
         return weights
 
-    def _load_thresholds(
-        self, override_threshold: Optional[float]
-    ) -> QualityThresholds:
+    def _load_thresholds(self, override_threshold: float | None) -> QualityThresholds:
         scoring_cfg = self.config_data.get("scoring", {}) if self.config_data else {}
         thresholds_cfg = (
             scoring_cfg.get("thresholds", {}) if isinstance(scoring_cfg, dict) else {}
@@ -267,9 +384,9 @@ class QualityScorer:
     def evaluate(
         self,
         output: Any,
-        context: Dict[str, Any],
-        dimensions: Optional[List[QualityDimension]] = None,
-        weights: Optional[Dict[QualityDimension, float]] = None,
+        context: dict[str, Any],
+        dimensions: list[QualityDimension] | None = None,
+        weights: dict[QualityDimension, float] | None = None,
         iteration: int = 0,
     ) -> QualityAssessment:
         """
@@ -285,11 +402,11 @@ class QualityScorer:
         Returns:
             Quality assessment
         """
-        metrics: List[QualityMetric] = []
-        improvements_override: Optional[List[str]] = None
-        metadata_overrides: Dict[str, Any] = {}
+        metrics: list[QualityMetric] = []
+        improvements_override: list[str] | None = None
+        metadata_overrides: dict[str, Any] = {}
 
-        primary_payload: Optional[Dict[str, Any]] = None
+        primary_payload: dict[str, Any] | None = None
         if self.primary_evaluator:
             try:
                 primary_payload = self.primary_evaluator(output, context, iteration)
@@ -372,41 +489,60 @@ class QualityScorer:
     def agentic_loop(
         self,
         initial_output: Any,
-        context: Dict[str, Any],
+        context: dict[str, Any],
         improver_func: Callable,
-        max_iterations: Optional[int] = None,
-        min_improvement: Optional[float] = None,
-    ) -> Tuple[Any, QualityAssessment, List[IterationResult]]:
+        max_iterations: int | None = None,
+        min_improvement: float | None = None,
+    ) -> tuple[Any, QualityAssessment, list[IterationResult]]:
         """
         Run agentic loop to iteratively improve output quality.
+
+        SAFETY FEATURES (P0):
+        - Hard max iteration cap (HARD_MAX_ITERATIONS) cannot be overridden
+        - Oscillation detection prevents infinite back-and-forth
+        - Stagnation detection stops when no meaningful progress
+        - All termination reasons are logged for debugging
 
         Args:
             initial_output: Initial output to improve
             context: Execution context
             improver_func: Function to improve output
-            max_iterations: Maximum iterations (default: MAX_ITERATIONS)
+            max_iterations: Maximum iterations (default: MAX_ITERATIONS, capped at HARD_MAX_ITERATIONS)
             min_improvement: Minimum improvement to continue (default: MIN_IMPROVEMENT)
 
         Returns:
             Tuple of (final_output, final_assessment, iteration_history)
         """
-        max_iter = max_iterations or self.MAX_ITERATIONS
+        # P0 SAFETY: Enforce hard maximum - never exceed this regardless of input
+        requested_max = max_iterations or self.MAX_ITERATIONS
+        max_iter = min(requested_max, self.HARD_MAX_ITERATIONS)
+        if requested_max > self.HARD_MAX_ITERATIONS:
+            self.logger.warning(
+                f"Requested max_iterations={requested_max} exceeds hard limit "
+                f"{self.HARD_MAX_ITERATIONS}, capping to prevent infinite loops"
+            )
+
         min_improv = min_improvement or self.MIN_IMPROVEMENT
 
         current_output = initial_output
-        iteration_results = []
+        iteration_results: list[IterationResult] = []
         previous_score = 0.0
+        score_history: list[float] = []  # Track scores for oscillation detection
+        termination_reason = (
+            IterationTermination.MAX_ITERATIONS
+        )  # Default if loop completes
 
         for iteration in range(max_iter):
             start_time = datetime.now()
 
             # Evaluate current quality
             assessment = self.evaluate(current_output, context, iteration=iteration)
-
             current_score = assessment.overall_score
+            score_history.append(current_score)
 
             # Check if quality threshold is met
             if assessment.passed:
+                termination_reason = IterationTermination.QUALITY_MET
                 self.logger.info(
                     f"Quality threshold met at iteration {iteration}: {current_score:.1f}"
                 )
@@ -417,6 +553,43 @@ class QualityScorer:
                     improvements_applied=[],
                     time_taken=(datetime.now() - start_time).total_seconds(),
                     success=True,
+                    termination_reason=termination_reason,
+                )
+                iteration_results.append(result)
+                break
+
+            # P0 SAFETY: Check for oscillation (scores alternating up/down)
+            if self._detect_oscillation(score_history):
+                termination_reason = IterationTermination.OSCILLATION
+                self.logger.warning(
+                    f"Score oscillation detected at iteration {iteration}: {score_history[-3:]}"
+                )
+                result = IterationResult(
+                    iteration=iteration,
+                    input_quality=previous_score,
+                    output_quality=current_score,
+                    improvements_applied=[],
+                    time_taken=(datetime.now() - start_time).total_seconds(),
+                    success=False,
+                    termination_reason=termination_reason,
+                )
+                iteration_results.append(result)
+                break
+
+            # P0 SAFETY: Check for stagnation (scores not changing meaningfully)
+            if self._detect_stagnation(score_history):
+                termination_reason = IterationTermination.STAGNATION
+                self.logger.warning(
+                    f"Score stagnation detected at iteration {iteration}: {score_history[-3:]}"
+                )
+                result = IterationResult(
+                    iteration=iteration,
+                    input_quality=previous_score,
+                    output_quality=current_score,
+                    improvements_applied=[],
+                    time_taken=(datetime.now() - start_time).total_seconds(),
+                    success=False,
+                    termination_reason=termination_reason,
                 )
                 iteration_results.append(result)
                 break
@@ -425,6 +598,7 @@ class QualityScorer:
             if iteration > 0:
                 improvement = current_score - previous_score
                 if improvement < min_improv:
+                    termination_reason = IterationTermination.INSUFFICIENT_IMPROVEMENT
                     self.logger.info(
                         f"Insufficient improvement ({improvement:.1f}) at iteration {iteration}"
                     )
@@ -435,6 +609,7 @@ class QualityScorer:
                         improvements_applied=[],
                         time_taken=(datetime.now() - start_time).total_seconds(),
                         success=False,
+                        termination_reason=termination_reason,
                     )
                     iteration_results.append(result)
                     break
@@ -446,6 +621,9 @@ class QualityScorer:
                 "improvements_needed": assessment.improvements_needed,
                 "current_score": current_score,
                 "target_score": self.threshold,
+                "iteration": iteration,
+                "max_iterations": max_iter,
+                "remaining_iterations": max_iter - iteration - 1,
             }
 
             try:
@@ -458,6 +636,7 @@ class QualityScorer:
                     improvements_applied=assessment.improvements_needed[:5],  # Top 5
                     time_taken=(datetime.now() - start_time).total_seconds(),
                     success=False,
+                    termination_reason="",
                 )
                 iteration_results.append(result)
 
@@ -465,7 +644,18 @@ class QualityScorer:
                 previous_score = current_score
 
             except Exception as e:
+                termination_reason = IterationTermination.ERROR
                 self.logger.error(f"Improvement function error: {e}")
+                result = IterationResult(
+                    iteration=iteration,
+                    input_quality=current_score,
+                    output_quality=current_score,
+                    improvements_applied=[],
+                    time_taken=(datetime.now() - start_time).total_seconds(),
+                    success=False,
+                    termination_reason=termination_reason,
+                )
+                iteration_results.append(result)
                 break
 
         # Final evaluation
@@ -473,15 +663,68 @@ class QualityScorer:
             current_output, context, iteration=len(iteration_results)
         )
 
-        # Update last iteration result
+        # Update last iteration result with final info
         if iteration_results:
             iteration_results[-1].output_quality = final_assessment.overall_score
             iteration_results[-1].success = final_assessment.passed
+            if not iteration_results[-1].termination_reason:
+                iteration_results[-1].termination_reason = termination_reason
+
+        # Log summary for debugging
+        self.logger.info(
+            f"Agentic loop completed: {len(iteration_results)} iterations, "
+            f"final_score={final_assessment.overall_score:.1f}, "
+            f"passed={final_assessment.passed}, "
+            f"reason={termination_reason}"
+        )
 
         # Store iteration history
         self.iteration_history.extend(iteration_results)
 
         return current_output, final_assessment, iteration_results
+
+    def _detect_oscillation(self, score_history: list[float]) -> bool:
+        """
+        Detect if scores are oscillating (alternating up/down).
+
+        This prevents infinite loops where the model keeps switching
+        between two approaches without converging.
+        """
+        if len(score_history) < self.OSCILLATION_WINDOW:
+            return False
+
+        # Check last N scores for alternating pattern
+        recent = score_history[-self.OSCILLATION_WINDOW :]
+        directions = []
+        for i in range(1, len(recent)):
+            diff = recent[i] - recent[i - 1]
+            if abs(diff) > self.STAGNATION_THRESHOLD:
+                directions.append(1 if diff > 0 else -1)
+
+        # Oscillation = alternating directions (e.g., [1, -1, 1] or [-1, 1, -1])
+        if len(directions) >= 2:
+            alternating = all(
+                directions[i] != directions[i + 1] for i in range(len(directions) - 1)
+            )
+            return alternating
+
+        return False
+
+    def _detect_stagnation(self, score_history: list[float]) -> bool:
+        """
+        Detect if scores have stagnated (not changing meaningfully).
+
+        This prevents wasting tokens on iterations that aren't improving.
+        """
+        if len(score_history) < self.OSCILLATION_WINDOW:
+            return False
+
+        # Check if all recent scores are within STAGNATION_THRESHOLD of each other
+        recent = score_history[-self.OSCILLATION_WINDOW :]
+        min_score = min(recent)
+        max_score = max(recent)
+
+        return (max_score - min_score) < self.STAGNATION_THRESHOLD
 
     def add_custom_evaluator(self, evaluator: Callable):
         """
@@ -492,8 +735,199 @@ class QualityScorer:
         """
         self.custom_evaluators.append(evaluator)
 
+    def apply_deterministic_signals(
+        self, base_score: float, signals: DeterministicSignals
+    ) -> tuple[float, dict[str, Any]]:
+        """
+        Apply deterministic signals to adjust the quality score.
+
+        P1 SAFETY: Grounds LLM-based scoring in verifiable facts.
+        Hard failures from tests/build/security cap the maximum score.
+        Positive signals (coverage, clean lint) add bonus points.
+
+        Args:
+            base_score: The base quality score (0-100)
+            signals: Deterministic signals from tool execution
+
+        Returns:
+            Tuple of (adjusted_score, adjustment_details)
+        """
+        details: dict[str, Any] = {
+            "base_score": base_score,
+            "signals_applied": True,
+            "hard_failures": [],
+            "bonuses": [],
+        }
+
+        adjusted_score = base_score
+
+        # Apply hard failure cap (P1: tests/build/security gate the score)
+        if signals.has_hard_failures():
+            cap = signals.get_hard_failure_cap()
+            if adjusted_score > cap:
+                details["hard_failure_cap"] = cap
+                details["score_before_cap"] = adjusted_score
+
+                if signals.security_critical > 0:
+                    details["hard_failures"].append(
+                        f"Critical security issues: {signals.security_critical}"
+                    )
+                if signals.tests_failed > 0:
+                    details["hard_failures"].append(
+                        f"Failing tests: {signals.tests_failed}/{signals.tests_total}"
+                    )
+                if not signals.build_passed and signals.build_errors > 0:
+                    details["hard_failures"].append(
+                        f"Build failures: {signals.build_errors}"
+                    )
+                if signals.security_high > 0:
+                    details["hard_failures"].append(
+                        f"High severity security issues: {signals.security_high}"
+                    )
+
+                adjusted_score = cap
+                self.logger.warning(
+                    f"Score capped from {base_score:.1f} to {cap:.1f} due to hard failures: "
+                    f"{', '.join(details['hard_failures'])}"
+                )
+
+        # Apply bonus for positive signals
+        bonus = signals.calculate_bonus()
+        if bonus > 0:
+            details["bonus_applied"] = bonus
+
+            if signals.test_coverage >= 80:
+                details["bonuses"].append(
+                    f"High test coverage: {signals.test_coverage:.0f}%"
+                )
+            if signals.lint_passed:
+                details["bonuses"].append("Clean lint")
+            if signals.type_check_passed:
+                details["bonuses"].append("Clean type check")
+            if signals.tests_passed and signals.tests_total > 0:
+                details["bonuses"].append(f"All {signals.tests_total} tests passing")
+            if signals.security_passed:
+                details["bonuses"].append("Security scan passed")
+
+            # Only apply bonus if no hard failures
+            if not signals.has_hard_failures():
+                adjusted_score = min(100.0, adjusted_score + bonus)
+
+        details["final_score"] = adjusted_score
+        details["adjustment"] = adjusted_score - base_score
+
+        return adjusted_score, details
+
+    def evaluate_with_signals(
+        self,
+        output: Any,
+        context: dict[str, Any],
+        signals: DeterministicSignals,
+        dimensions: list[QualityDimension] | None = None,
+        weights: dict[QualityDimension, float] | None = None,
+        iteration: int = 0,
+    ) -> QualityAssessment:
+        """
+        Evaluate output quality with deterministic signal grounding.
+
+        P1 SAFETY: Combines LLM-based evaluation with hard facts from
+        actual tool execution (tests, linters, builds, security scans).
+
+        Args:
+            output: Output to evaluate
+            context: Evaluation context
+            signals: Deterministic signals from tool execution
+            dimensions: Specific dimensions to evaluate
+            weights: Custom dimension weights
+            iteration: Current iteration number
+
+        Returns:
+            Quality assessment with deterministic adjustments
+        """
+        # First, get the base evaluation
+        assessment = self.evaluate(output, context, dimensions, weights, iteration)
+
+        # Apply deterministic signals
+        adjusted_score, signal_details = self.apply_deterministic_signals(
+            assessment.overall_score, signals
+        )
+
+        # Update assessment with adjusted score
+        assessment.overall_score = adjusted_score
+        assessment.passed = adjusted_score >= self.thresholds.production_ready
+        assessment.band = self.thresholds.classify(adjusted_score)
+
+        # Add signal details to metadata
+        assessment.metadata["deterministic_signals"] = signal_details
+        assessment.metadata["signals_grounded"] = True
+
+        # Add any hard failure reasons to improvements_needed
+        if signal_details.get("hard_failures"):
+            for failure in signal_details["hard_failures"]:
+                if failure not in assessment.improvements_needed:
+                    assessment.improvements_needed.insert(0, f"FIX: {failure}")
+
+        return assessment
+
+    @staticmethod
+    def signals_from_context(context: dict[str, Any]) -> DeterministicSignals:
+        """
+        Extract deterministic signals from a context dictionary.
+
+        Convenience method for building signals from typical context format.
+
+        Args:
+            context: Context dictionary with test_results, lint_results, etc.
+
+        Returns:
+            DeterministicSignals instance
+        """
+        signals = DeterministicSignals()
+
+        # Extract test results
+        test_results = context.get("test_results", {})
+        if test_results:
+            signals.tests_total = test_results.get("total", 0)
+            signals.tests_failed = test_results.get("failed", 0)
+            signals.tests_passed = (
+                test_results.get("passed", False) or signals.tests_failed == 0
+            )
+            coverage = test_results.get("coverage", 0)
+            if isinstance(coverage, (int, float)):
+                signals.test_coverage = coverage * 100 if coverage <= 1 else coverage
+
+        # Extract lint results
+        lint_results = context.get("lint_results", {})
+        if lint_results:
+            signals.lint_passed = lint_results.get("passed", False)
+            signals.lint_errors = lint_results.get("errors", 0)
+            signals.lint_warnings = lint_results.get("warnings", 0)
+
+        # Extract type check results
+        type_results = context.get("type_check_results", {})
+        if type_results:
+            signals.type_check_passed = type_results.get("passed", False)
+            signals.type_errors = type_results.get("errors", 0)
+
+        # Extract build results
+        build_results = context.get("build_results", {})
+        if build_results:
+            signals.build_passed = build_results.get("passed", False)
+            signals.build_errors = build_results.get("errors", 0)
+
+        # Extract security results
+        security_results = context.get("security_scan", {}) or context.get(
+            "security_results", {}
+        )
+        if security_results:
+            signals.security_passed = security_results.get("passed", False)
+            signals.security_critical = security_results.get("critical", 0)
+            signals.security_high = security_results.get("high", 0)
+
+        return signals
+
     def set_primary_evaluator(
-        self, evaluator: Callable[[Any, Dict[str, Any], int], Optional[Dict[str, Any]]]
+        self, evaluator: Callable[[Any, dict[str, Any], int], dict[str, Any] | None]
     ) -> None:
         """Set a callable that supplies the primary metrics for evaluation."""
         self.primary_evaluator = evaluator
@@ -504,7 +938,7 @@ class QualityScorer:
 
     def get_improvement_suggestions(
         self, assessment: QualityAssessment
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """
         Get detailed improvement suggestions.
 
@@ -535,7 +969,7 @@ class QualityScorer:
 
         return suggestions
 
-    def get_metrics_summary(self) -> Dict[str, Any]:
+    def get_metrics_summary(self) -> dict[str, Any]:
         """
         Get summary of quality metrics.
 
@@ -564,7 +998,7 @@ class QualityScorer:
         }
 
     # Simple convenience API expected by some tests
-    def calculate_score(self, scores: Dict[str, float]) -> Dict[str, Any]:
+    def calculate_score(self, scores: dict[str, float]) -> dict[str, Any]:
         """Calculate overall quality score and suggested action from dimension scores.
 
         Args:
@@ -596,7 +1030,7 @@ class QualityScorer:
         }
 
     def _evaluate_correctness(
-        self, output: Any, context: Dict[str, Any]
+        self, output: Any, context: dict[str, Any]
     ) -> QualityMetric:
         """Evaluate correctness dimension."""
         score = 70.0  # Base score
@@ -640,7 +1074,7 @@ class QualityScorer:
         )
 
     def _evaluate_completeness(
-        self, output: Any, context: Dict[str, Any]
+        self, output: Any, context: dict[str, Any]
     ) -> QualityMetric:
         """Evaluate completeness dimension."""
         score = 80.0  # Base score
@@ -697,7 +1131,7 @@ class QualityScorer:
         )
 
     def _evaluate_scalability(
-        self, output: Any, context: Dict[str, Any]
+        self, output: Any, context: dict[str, Any]
     ) -> QualityMetric:
         """Evaluate scalability dimension."""
         score = 70.0  # Base score
@@ -759,7 +1193,7 @@ class QualityScorer:
         )
 
     def _evaluate_testability(
-        self, output: Any, context: Dict[str, Any]
+        self, output: Any, context: dict[str, Any]
     ) -> QualityMetric:
         """Evaluate testability dimension."""
         score = 65.0  # Base score
@@ -803,7 +1237,7 @@ class QualityScorer:
         )
 
     def _evaluate_maintainability(
-        self, output: Any, context: Dict[str, Any]
+        self, output: Any, context: dict[str, Any]
     ) -> QualityMetric:
         """Evaluate maintainability dimension."""
         score = 75.0  # Base score
@@ -844,7 +1278,7 @@ class QualityScorer:
             suggestions=suggestions,
         )
 
-    def _evaluate_security(self, output: Any, context: Dict[str, Any]) -> QualityMetric:
+    def _evaluate_security(self, output: Any, context: dict[str, Any]) -> QualityMetric:
         """Evaluate security dimension."""
         score = 80.0  # Base score
         issues = []
@@ -883,7 +1317,7 @@ class QualityScorer:
         )
 
     def _evaluate_performance(
-        self, output: Any, context: Dict[str, Any]
+        self, output: Any, context: dict[str, Any]
     ) -> QualityMetric:
         """Evaluate performance dimension."""
         score = 70.0  # Base score
@@ -916,7 +1350,7 @@ class QualityScorer:
         )
 
     def _evaluate_usability(
-        self, output: Any, context: Dict[str, Any]
+        self, output: Any, context: dict[str, Any]
     ) -> QualityMetric:
         """Evaluate usability dimension."""
         score = 75.0  # Base score
@@ -961,9 +1395,9 @@ class QualityScorer:
 
     def _calculate_overall_score(
         self,
-        metrics: List[QualityMetric],
-        context: Optional[Dict[str, Any]] = None,
-    ) -> Tuple[float, Dict[str, Any]]:
+        metrics: list[QualityMetric],
+        context: dict[str, Any] | None = None,
+    ) -> tuple[float, dict[str, Any]]:
         """Calculate the blended score using weighted component signals."""
 
         component_scores = self._derive_component_scores(metrics, context or {})
@@ -977,8 +1411,8 @@ class QualityScorer:
         return blended_score, metadata
 
     def _identify_improvements(
-        self, metrics: List[QualityMetric], overall_score: float
-    ) -> List[str]:
+        self, metrics: list[QualityMetric], overall_score: float
+    ) -> list[str]:
         """Identify key improvements needed."""
         improvements = []
 
@@ -1002,9 +1436,9 @@ class QualityScorer:
 
     def _derive_component_scores(
         self,
-        metrics: List[QualityMetric],
-        context: Dict[str, Any],
-    ) -> Dict[str, Optional[float]]:
+        metrics: list[QualityMetric],
+        context: dict[str, Any],
+    ) -> dict[str, float | None]:
         return {
             "superclaude": self._get_metric_score(
                 metrics, QualityDimension.CORRECTNESS
@@ -1017,9 +1451,9 @@ class QualityScorer:
 
     def _get_metric_score(
         self,
-        metrics: List[QualityMetric],
+        metrics: list[QualityMetric],
         dimension: QualityDimension,
-    ) -> Optional[float]:
+    ) -> float | None:
         for metric in metrics:
             if metric.dimension == dimension:
                 try:
@@ -1030,9 +1464,9 @@ class QualityScorer:
 
     def _derive_test_coverage(
         self,
-        metrics: List[QualityMetric],
-        context: Dict[str, Any],
-    ) -> Optional[float]:
+        metrics: list[QualityMetric],
+        context: dict[str, Any],
+    ) -> float | None:
         metric_score = self._get_metric_score(metrics, QualityDimension.TESTABILITY)
         if metric_score is not None:
             return metric_score
@@ -1059,8 +1493,8 @@ class QualityScorer:
 
     def _combine_component_scores(
         self,
-        component_scores: Dict[str, Optional[float]],
-    ) -> Tuple[float, Dict[str, float]]:
+        component_scores: dict[str, float | None],
+    ) -> tuple[float, dict[str, float]]:
         available = {
             key: val for key, val in component_scores.items() if val is not None
         }
@@ -1083,8 +1517,8 @@ class QualityScorer:
         return blended, normalized
 
     def _component_inputs_from_dict(
-        self, values: Dict[str, Any]
-    ) -> Dict[str, Optional[float]]:
+        self, values: dict[str, Any]
+    ) -> dict[str, float | None]:
         values = values or {}
         return {
             "superclaude": self._coerce_score_value(
@@ -1099,7 +1533,7 @@ class QualityScorer:
             ),
         }
 
-    def _coerce_score_value(self, value: Any) -> Optional[float]:
+    def _coerce_score_value(self, value: Any) -> float | None:
         if value is None:
             return None
         try:
@@ -1118,8 +1552,8 @@ class QualityScorer:
         return all(keyword in output_str for keyword in keywords)
 
     def _extract_execution_evidence(
-        self, output: Any, context: Dict[str, Any]
-    ) -> List[str]:
+        self, output: Any, context: dict[str, Any]
+    ) -> list[str]:
         """
         Collect any evidence that real work was performed.
 
@@ -1131,8 +1565,8 @@ class QualityScorer:
             List of execution evidence descriptions
         """
 
-        def collect(value: Any, prefix: Optional[str] = None) -> List[str]:
-            evidence: List[str] = []
+        def collect(value: Any, prefix: str | None = None) -> list[str]:
+            evidence: list[str] = []
             label = f"{prefix}: " if prefix else ""
 
             if isinstance(value, list):
@@ -1152,7 +1586,7 @@ class QualityScorer:
 
             return evidence
 
-        evidence: List[str] = []
+        evidence: list[str] = []
 
         if isinstance(output, dict):
             for key in (
@@ -1191,7 +1625,7 @@ class QualityScorer:
 
         return unique_evidence
 
-    def _extract_functions(self, code: str) -> List[str]:
+    def _extract_functions(self, code: str) -> list[str]:
         """Extract function bodies from code."""
         functions = []
         lines = code.split("\n")

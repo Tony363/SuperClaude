@@ -4,7 +4,7 @@ Configuration management for SuperClaude installation system
 
 import json
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 # Handle jsonschema import - if not available, use basic validation
 try:
@@ -152,7 +152,7 @@ class ConfigService:
             "additionalProperties": False,
         }
 
-    def load_features(self) -> Dict[str, Any]:
+    def load_features(self) -> dict[str, Any]:
         """
         Load and validate features configuration
 
@@ -184,7 +184,7 @@ class ConfigService:
         except ValidationError as e:
             raise ValidationError(f"Invalid features schema: {e!s}")
 
-    def load_requirements(self) -> Dict[str, Any]:
+    def load_requirements(self) -> dict[str, Any]:
         """
         Load and validate requirements configuration
 
@@ -218,7 +218,7 @@ class ConfigService:
         except ValidationError as e:
             raise ValidationError(f"Invalid requirements schema: {e!s}")
 
-    def get_component_info(self, component_name: str) -> Optional[Dict[str, Any]]:
+    def get_component_info(self, component_name: str) -> dict[str, Any] | None:
         """
         Get information about a specific component
 
@@ -231,7 +231,7 @@ class ConfigService:
         features = self.load_features()
         return features.get("components", {}).get(component_name)
 
-    def get_enabled_components(self) -> List[str]:
+    def get_enabled_components(self) -> list[str]:
         """
         Get list of enabled component names
 
@@ -247,7 +247,7 @@ class ConfigService:
 
         return enabled
 
-    def get_components_by_category(self, category: str) -> List[str]:
+    def get_components_by_category(self, category: str) -> list[str]:
         """
         Get component names by category
 
@@ -266,7 +266,7 @@ class ConfigService:
 
         return components
 
-    def get_component_dependencies(self, component_name: str) -> List[str]:
+    def get_component_dependencies(self, component_name: str) -> list[str]:
         """
         Get dependencies for a component
 
@@ -281,7 +281,7 @@ class ConfigService:
             return component_info.get("dependencies", [])
         return []
 
-    def get_system_requirements(self) -> Dict[str, Any]:
+    def get_system_requirements(self) -> dict[str, Any]:
         """
         Get system requirements
 
@@ -291,8 +291,8 @@ class ConfigService:
         return self.load_requirements()
 
     def get_requirements_for_components(
-        self, component_names: List[str]
-    ) -> Dict[str, Any]:
+        self, component_names: list[str]
+    ) -> dict[str, Any]:
         """
         Get consolidated requirements for specific components
 
@@ -338,7 +338,7 @@ class ConfigService:
 
         return result
 
-    def validate_config_files(self) -> List[str]:
+    def validate_config_files(self) -> list[str]:
         """
         Validate all configuration files
 

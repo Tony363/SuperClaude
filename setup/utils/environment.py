@@ -8,7 +8,6 @@ import os
 import subprocess
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, Optional
 
 from .logger import get_logger
 from .ui import Colors, display_info, display_success, display_warning
@@ -21,7 +20,7 @@ def _get_env_tracking_file() -> Path:
     return install_dir / "superclaude_env_vars.json"
 
 
-def _load_env_tracking() -> Dict[str, Dict[str, str]]:
+def _load_env_tracking() -> dict[str, dict[str, str]]:
     """Load environment variable tracking data"""
     tracking_file = _get_env_tracking_file()
 
@@ -35,7 +34,7 @@ def _load_env_tracking() -> Dict[str, Dict[str, str]]:
     return {}
 
 
-def _save_env_tracking(tracking_data: Dict[str, Dict[str, str]]) -> bool:
+def _save_env_tracking(tracking_data: dict[str, dict[str, str]]) -> bool:
     """Save environment variable tracking data"""
     tracking_file = _get_env_tracking_file()
 
@@ -48,7 +47,7 @@ def _save_env_tracking(tracking_data: Dict[str, Dict[str, str]]) -> bool:
         return False
 
 
-def _add_env_tracking(env_vars: Dict[str, str]) -> None:
+def _add_env_tracking(env_vars: dict[str, str]) -> None:
     """Add environment variables to tracking"""
     if not env_vars:
         return
@@ -82,7 +81,7 @@ def _remove_env_tracking(env_vars: list) -> None:
     get_logger().info(f"Removed {len(env_vars)} environment variables from tracking")
 
 
-def detect_shell_config() -> Optional[Path]:
+def detect_shell_config() -> Path | None:
     """
     Detect user's shell configuration file
 
@@ -107,7 +106,7 @@ def detect_shell_config() -> Optional[Path]:
     return home / ".bashrc"
 
 
-def setup_environment_variables(api_keys: Dict[str, str]) -> bool:
+def setup_environment_variables(api_keys: dict[str, str]) -> bool:
     """
     Set up environment variables across platforms
 
@@ -201,7 +200,7 @@ def setup_environment_variables(api_keys: Dict[str, str]) -> bool:
     return success
 
 
-def validate_environment_setup(env_vars: Dict[str, str]) -> bool:
+def validate_environment_setup(env_vars: dict[str, str]) -> bool:
     """
     Validate that environment variables are properly set
 
@@ -242,7 +241,7 @@ def get_shell_name() -> str:
     return "unknown"
 
 
-def get_superclaude_environment_variables() -> Dict[str, str]:
+def get_superclaude_environment_variables() -> dict[str, str]:
     """
     Get environment variables that were set by SuperClaude
 
@@ -276,7 +275,7 @@ def get_superclaude_environment_variables() -> Dict[str, str]:
 
 
 def cleanup_environment_variables(
-    env_vars_to_remove: Dict[str, str], create_restore_script: bool = True
+    env_vars_to_remove: dict[str, str], create_restore_script: bool = True
 ) -> bool:
     """
     Safely remove environment variables with backup and restore options
@@ -352,7 +351,7 @@ def cleanup_environment_variables(
     return success
 
 
-def _create_restore_script(env_vars: Dict[str, str]) -> Optional[Path]:
+def _create_restore_script(env_vars: dict[str, str]) -> Path | None:
     """Create a script to restore environment variables"""
     try:
         home = Path.home()
@@ -429,7 +428,7 @@ def _remove_env_var_from_shell_config(shell_config: Path, env_var: str) -> bool:
 
 
 def create_env_file(
-    api_keys: Dict[str, str], env_file_path: Optional[Path] = None
+    api_keys: dict[str, str], env_file_path: Path | None = None
 ) -> bool:
     """
     Create a .env file with the API keys (alternative to shell config)

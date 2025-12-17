@@ -9,7 +9,7 @@ import json
 import shutil
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 
 class SettingsService:
@@ -27,7 +27,7 @@ class SettingsService:
         self.metadata_file = install_dir / ".superclaude-metadata.json"
         self.backup_dir = install_dir / "backups" / "settings"
 
-    def load_settings(self) -> Dict[str, Any]:
+    def load_settings(self) -> dict[str, Any]:
         """
         Load settings from settings.json
 
@@ -44,7 +44,7 @@ class SettingsService:
             raise ValueError(f"Could not load settings from {self.settings_file}: {e}")
 
     def save_settings(
-        self, settings: Dict[str, Any], create_backup: bool = True
+        self, settings: dict[str, Any], create_backup: bool = True
     ) -> None:
         """
         Save settings to settings.json with optional backup
@@ -67,7 +67,7 @@ class SettingsService:
         except OSError as e:
             raise ValueError(f"Could not save settings to {self.settings_file}: {e}")
 
-    def load_metadata(self) -> Dict[str, Any]:
+    def load_metadata(self) -> dict[str, Any]:
         """
         Load SuperClaude metadata from .superclaude-metadata.json
 
@@ -83,7 +83,7 @@ class SettingsService:
         except (OSError, json.JSONDecodeError) as e:
             raise ValueError(f"Could not load metadata from {self.metadata_file}: {e}")
 
-    def save_metadata(self, metadata: Dict[str, Any]) -> None:
+    def save_metadata(self, metadata: dict[str, Any]) -> None:
         """
         Save SuperClaude metadata to .superclaude-metadata.json
 
@@ -100,7 +100,7 @@ class SettingsService:
         except OSError as e:
             raise ValueError(f"Could not save metadata to {self.metadata_file}: {e}")
 
-    def merge_metadata(self, modifications: Dict[str, Any]) -> Dict[str, Any]:
+    def merge_metadata(self, modifications: dict[str, Any]) -> dict[str, Any]:
         """
         Deep merge modifications into existing settings
 
@@ -113,7 +113,7 @@ class SettingsService:
         existing = self.load_metadata()
         return self._deep_merge(existing, modifications)
 
-    def update_metadata(self, modifications: Dict[str, Any]) -> None:
+    def update_metadata(self, modifications: dict[str, Any]) -> None:
         """
         Update settings with modifications
 
@@ -164,7 +164,7 @@ class SettingsService:
 
         return True
 
-    def merge_settings(self, modifications: Dict[str, Any]) -> Dict[str, Any]:
+    def merge_settings(self, modifications: dict[str, Any]) -> dict[str, Any]:
         """
         Deep merge modifications into existing settings
 
@@ -178,7 +178,7 @@ class SettingsService:
         return self._deep_merge(existing, modifications)
 
     def update_settings(
-        self, modifications: Dict[str, Any], create_backup: bool = True
+        self, modifications: dict[str, Any], create_backup: bool = True
     ) -> None:
         """
         Update settings with modifications
@@ -267,7 +267,7 @@ class SettingsService:
             return False
 
     def add_component_registration(
-        self, component_name: str, component_info: Dict[str, Any]
+        self, component_name: str, component_info: dict[str, Any]
     ) -> None:
         """
         Add component to registry in metadata
@@ -304,7 +304,7 @@ class SettingsService:
             return True
         return False
 
-    def get_installed_components(self) -> Dict[str, Dict[str, Any]]:
+    def get_installed_components(self) -> dict[str, dict[str, Any]]:
         """
         Get all installed components from registry
 
@@ -327,7 +327,7 @@ class SettingsService:
         components = self.get_installed_components()
         return component_name in components
 
-    def get_component_version(self, component_name: str) -> Optional[str]:
+    def get_component_version(self, component_name: str) -> str | None:
         """
         Get installed version of component
 
@@ -397,8 +397,8 @@ class SettingsService:
             return default
 
     def _deep_merge(
-        self, base: Dict[str, Any], overlay: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        self, base: dict[str, Any], overlay: dict[str, Any]
+    ) -> dict[str, Any]:
         """
         Deep merge two dictionaries
 
@@ -471,7 +471,7 @@ class SettingsService:
             except OSError:
                 pass  # Ignore errors when cleaning up
 
-    def list_backups(self) -> List[Dict[str, Any]]:
+    def list_backups(self) -> list[dict[str, Any]]:
         """
         List available settings backups
 

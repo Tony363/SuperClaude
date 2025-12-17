@@ -5,8 +5,8 @@ from __future__ import annotations
 
 import argparse
 import math
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Iterable
 
 
 def estimate_tokens(text: str) -> int:

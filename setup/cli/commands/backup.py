@@ -10,7 +10,7 @@ import tarfile
 import time
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from setup import __version__
 
@@ -137,7 +137,7 @@ def check_installation_exists(install_dir: Path) -> bool:
     )
 
 
-def get_backup_info(backup_path: Path) -> Dict[str, Any]:
+def get_backup_info(backup_path: Path) -> dict[str, Any]:
     """Get information about a backup file"""
     info = {
         "path": backup_path,
@@ -183,7 +183,7 @@ def get_backup_info(backup_path: Path) -> Dict[str, Any]:
     return info
 
 
-def list_backups(backup_dir: Path) -> List[Dict[str, Any]]:
+def list_backups(backup_dir: Path) -> list[dict[str, Any]]:
     """List all available backups"""
     backups = []
 
@@ -202,7 +202,7 @@ def list_backups(backup_dir: Path) -> List[Dict[str, Any]]:
     return backups
 
 
-def display_backup_list(backups: List[Dict[str, Any]]) -> None:
+def display_backup_list(backups: list[dict[str, Any]]) -> None:
     """Display list of available backups"""
     print(f"\n{Colors.CYAN}{Colors.BRIGHT}Available Backups{Colors.RESET}")
     print("=" * 70)
@@ -229,7 +229,7 @@ def display_backup_list(backups: List[Dict[str, Any]]) -> None:
     print()
 
 
-def create_backup_metadata(install_dir: Path) -> Dict[str, Any]:
+def create_backup_metadata(install_dir: Path) -> dict[str, Any]:
     """Create metadata for the backup"""
     metadata = {
         "backup_version": __version__,
@@ -416,7 +416,7 @@ def restore_backup(backup_path: Path, args: argparse.Namespace) -> bool:
         return False
 
 
-def interactive_restore_selection(backups: List[Dict[str, Any]]) -> Optional[Path]:
+def interactive_restore_selection(backups: list[dict[str, Any]]) -> Path | None:
     """Interactive backup selection for restore"""
     if not backups:
         print(f"{Colors.YELLOW}No backups available for restore{Colors.RESET}")

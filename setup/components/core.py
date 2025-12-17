@@ -5,7 +5,7 @@ Core component for SuperClaude framework files installation
 import shutil
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 from setup import __version__
 
@@ -31,12 +31,12 @@ class CoreComponent(Component):
         "OPERATIONS_SUMMARY.md",
     ]
 
-    def __init__(self, install_dir: Optional[Path] = None):
+    def __init__(self, install_dir: Path | None = None):
         """Initialize core component"""
         self._selected_profile = "minimal"
         super().__init__(install_dir)
 
-    def get_metadata(self) -> Dict[str, str]:
+    def get_metadata(self) -> dict[str, str]:
         """Get component metadata"""
         return {
             "name": "core",
@@ -45,7 +45,7 @@ class CoreComponent(Component):
             "category": "core",
         }
 
-    def get_metadata_modifications(self) -> Dict[str, Any]:
+    def get_metadata_modifications(self) -> dict[str, Any]:
         """Get metadata modifications for SuperClaude"""
         return {
             "framework": {
@@ -63,7 +63,7 @@ class CoreComponent(Component):
             },
         }
 
-    def _install(self, config: Dict[str, Any]) -> bool:
+    def _install(self, config: dict[str, Any]) -> bool:
         """Install core component"""
         self.logger.info("Installing SuperClaude core framework files...")
 
@@ -209,11 +209,11 @@ class CoreComponent(Component):
             self.logger.exception(f"Unexpected error during core uninstallation: {e}")
             return False
 
-    def get_dependencies(self) -> List[str]:
+    def get_dependencies(self) -> list[str]:
         """Get component dependencies (core has none)"""
         return []
 
-    def update(self, config: Dict[str, Any]) -> bool:
+    def update(self, config: dict[str, Any]) -> bool:
         """Update core component"""
         try:
             self.logger.info("Updating SuperClaude core component...")
@@ -271,7 +271,7 @@ class CoreComponent(Component):
             self.logger.exception(f"Unexpected error during core update: {e}")
             return False
 
-    def validate_installation(self) -> Tuple[bool, List[str]]:
+    def validate_installation(self) -> tuple[bool, list[str]]:
         """Validate core component installation"""
         errors = []
 
@@ -312,7 +312,7 @@ class CoreComponent(Component):
 
         return len(errors) == 0, errors
 
-    def _get_installed_file_manifest(self) -> Optional[List[str]]:
+    def _get_installed_file_manifest(self) -> list[str] | None:
         try:
             components = self.settings_manager.get_installed_components()
             info = components.get("core") or {}
@@ -345,7 +345,7 @@ class CoreComponent(Component):
 
         return total_size
 
-    def get_installation_summary(self) -> Dict[str, Any]:
+    def get_installation_summary(self) -> dict[str, Any]:
         """Get installation summary"""
         return {
             "component": self.get_metadata()["name"],

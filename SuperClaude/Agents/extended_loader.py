@@ -11,7 +11,7 @@ from collections import OrderedDict
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 try:  # Optional dependency for YAML registry parsing
     import yaml
@@ -46,13 +46,13 @@ class AgentMetadata:
     name: str
     category: AgentCategory
     priority: int
-    domains: List[str] = field(default_factory=list)
-    languages: List[str] = field(default_factory=list)
-    keywords: List[str] = field(default_factory=list)
-    file_patterns: List[str] = field(default_factory=list)
-    imports: List[str] = field(default_factory=list)
+    domains: list[str] = field(default_factory=list)
+    languages: list[str] = field(default_factory=list)
+    keywords: list[str] = field(default_factory=list)
+    file_patterns: list[str] = field(default_factory=list)
+    imports: list[str] = field(default_factory=list)
     description: str = ""
-    path: Optional[Path] = None
+    path: Path | None = None
     is_loaded: bool = False
     load_count: int = 0
     last_accessed: float = 0.0
@@ -64,8 +64,8 @@ class MatchScore:
 
     agent_id: str
     total_score: float
-    breakdown: Dict[str, float] = field(default_factory=dict)
-    matched_criteria: List[str] = field(default_factory=list)
+    breakdown: dict[str, float] = field(default_factory=dict)
+    matched_criteria: list[str] = field(default_factory=list)
     confidence: str = "low"  # low, medium, high, excellent
 
 
@@ -84,10 +84,10 @@ class ExtendedAgentLoader:
 
     def __init__(
         self,
-        registry: Optional[AgentRegistry] = None,
+        registry: AgentRegistry | None = None,
         cache_size: int = 20,
         ttl_seconds: int = 1800,  # 30 minutes
-        registry_path: Optional[Path] = None,
+        registry_path: Path | None = None,
     ):
         """
         Initialize the extended agent loader.
@@ -111,13 +111,13 @@ class ExtendedAgentLoader:
         self.registry_path = registry_path
 
         # Agent metadata index (lightweight, always loaded)
-        self._agent_metadata: Dict[str, AgentMetadata] = {}
-        self._category_index: Dict[AgentCategory, List[str]] = {
+        self._agent_metadata: dict[str, AgentMetadata] = {}
+        self._category_index: dict[AgentCategory, list[str]] = {
             cat: [] for cat in AgentCategory
         }
 
         # LRU cache for loaded agents
-        self._cache: OrderedDict[str, Dict[str, Any]] = OrderedDict()
+        self._cache: OrderedDict[str, dict[str, Any]] = OrderedDict()
 
         # Statistics
         self._stats = {
@@ -131,8 +131,8 @@ class ExtendedAgentLoader:
         }
 
         # Access patterns for optimization
-        self._access_history: List[str] = []
-        self._access_frequency: Dict[str, int] = {}
+        self._access_history: list[str] = []
+        self._access_frequency: dict[str, int] = {}
 
         # Load metadata index
         self._load_metadata_index()
@@ -207,7 +207,7 @@ class ExtendedAgentLoader:
         except Exception as e:
             self.logger.error(f"Failed to load metadata index: {e}")
 
-    def _map_category_key(self, key: str) -> Optional[AgentCategory]:
+    def _map_category_key(self, key: str) -> AgentCategory | None:
         """Map registry category key to AgentCategory enum."""
         mapping = {
             "extended_core_development": AgentCategory.CORE_DEVELOPMENT,
@@ -223,9 +223,7 @@ class ExtendedAgentLoader:
         }
         return mapping.get(key)
 
-    def load_agent(
-        self, agent_id: str, force_reload: bool = False
-    ) -> Optional[BaseAgent]:
+    def load_agent(self, agent_id: str, force_reload: bool = False) -> BaseAgent | None:
         """
         Load an agent by ID with caching.
 
@@ -333,11 +331,11 @@ class ExtendedAgentLoader:
 
     def select_agent(
         self,
-        context: Dict[str, Any],
-        category_hint: Optional[AgentCategory] = None,
+        context: dict[str, Any],
+        category_hint: AgentCategory | None = None,
         top_n: int = 5,
         min_confidence: float = 0.3,
-    ) -> List[MatchScore]:
+    ) -> list[MatchScore]:
         """
         Intelligent agent selection based on context.
 
@@ -376,7 +374,7 @@ class ExtendedAgentLoader:
         return scores[:top_n]
 
     def _calculate_match_score(
-        self, context: Dict[str, Any], metadata: AgentMetadata
+        self, context: dict[str, Any], metadata: AgentMetadata
     ) -> MatchScore:
         """
         Calculate detailed match score for an agent.
@@ -543,7 +541,7 @@ class ExtendedAgentLoader:
 
         return fnmatch.fnmatch(filename, pattern)
 
-    def get_agents_by_category(self, category: AgentCategory) -> List[AgentMetadata]:
+    def get_agents_by_category(self, category: AgentCategory) -> list[AgentMetadata]:
         """Get all agents in a category."""
         agent_ids = self._category_index.get(category, [])
         return [
@@ -552,13 +550,13 @@ class ExtendedAgentLoader:
             if aid in self._agent_metadata
         ]
 
-    def list_categories(self) -> Dict[AgentCategory, int]:
+    def list_categories(self) -> dict[AgentCategory, int]:
         """List all categories with agent counts."""
         return {cat: len(agents) for cat, agents in self._category_index.items()}
 
     def search_agents(
-        self, query: str, search_fields: List[str] = None
-    ) -> List[AgentMetadata]:
+        self, query: str, search_fields: list[str] = None
+    ) -> list[AgentMetadata]:
         """
         Search agents by query string.
 
@@ -623,7 +621,7 @@ class ExtendedAgentLoader:
         self.logger.info(f"Preloaded {loaded}/{count} top agents")
         return loaded
 
-    def get_statistics(self) -> Dict[str, Any]:
+    def get_statistics(self) -> dict[str, Any]:
         """Get comprehensive loader statistics."""
         stats = self._stats.copy()
 
@@ -650,9 +648,9 @@ class ExtendedAgentLoader:
 
         return stats
 
-    def load_all_agents(self) -> Dict[str, Any]:
+    def load_all_agents(self) -> dict[str, Any]:
         """Load all agents into memory and return a mapping of id->agent instance."""
-        loaded: Dict[str, Any] = {}
+        loaded: dict[str, Any] = {}
         for agent_id in list(self._agent_metadata.keys()):
             agent = self.load_agent(agent_id)
             if agent:
@@ -660,8 +658,8 @@ class ExtendedAgentLoader:
         return loaded
 
     def explain_selection(
-        self, agent_id: str, context: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        self, agent_id: str, context: dict[str, Any]
+    ) -> dict[str, Any]:
         """
         Explain why an agent was selected.
 

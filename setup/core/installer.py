@@ -6,7 +6,7 @@ import shutil
 import tempfile
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any
 
 from ..utils.logger import get_logger
 from .base import Component
@@ -15,7 +15,7 @@ from .base import Component
 class Installer:
     """Main installer orchestrator"""
 
-    def __init__(self, install_dir: Optional[Path] = None, dry_run: bool = False):
+    def __init__(self, install_dir: Path | None = None, dry_run: bool = False):
         """
         Initialize installer
 
@@ -27,18 +27,18 @@ class Installer:
 
         self.install_dir = install_dir or DEFAULT_INSTALL_DIR
         self.dry_run = dry_run
-        self.components: Dict[str, Component] = {}
+        self.components: dict[str, Component] = {}
         from ..services.settings import SettingsService
 
         settings_manager = SettingsService(self.install_dir)
-        self.installed_components: Set[str] = set(
+        self.installed_components: set[str] = set(
             settings_manager.get_installed_components().keys()
         )
-        self.updated_components: Set[str] = set()
+        self.updated_components: set[str] = set()
 
-        self.failed_components: Set[str] = set()
-        self.skipped_components: Set[str] = set()
-        self.backup_path: Optional[Path] = None
+        self.failed_components: set[str] = set()
+        self.skipped_components: set[str] = set()
+        self.backup_path: Path | None = None
         self.logger = get_logger()
 
     def register_component(self, component: Component) -> None:
@@ -51,7 +51,7 @@ class Installer:
         metadata = component.get_metadata()
         self.components[metadata["name"]] = component
 
-    def register_components(self, components: List[Component]) -> None:
+    def register_components(self, components: list[Component]) -> None:
         """
         Register multiple components
 
@@ -61,7 +61,7 @@ class Installer:
         for component in components:
             self.register_component(component)
 
-    def resolve_dependencies(self, component_names: List[str]) -> List[str]:
+    def resolve_dependencies(self, component_names: list[str]) -> list[str]:
         """
         Resolve component dependencies in correct installation order
 
@@ -102,7 +102,7 @@ class Installer:
 
         return resolved
 
-    def validate_system_requirements(self) -> Tuple[bool, List[str]]:
+    def validate_system_requirements(self) -> tuple[bool, list[str]]:
         """
         Validate system requirements for all registered components
 
@@ -133,7 +133,7 @@ class Installer:
 
         return len(errors) == 0, errors
 
-    def create_backup(self) -> Optional[Path]:
+    def create_backup(self) -> Path | None:
         """
         Create backup of existing installation
 
@@ -189,7 +189,7 @@ class Installer:
         self.backup_path = backup_path
         return backup_path
 
-    def install_component(self, component_name: str, config: Dict[str, Any]) -> bool:
+    def install_component(self, component_name: str, config: dict[str, Any]) -> bool:
         """
         Install a single component
 
@@ -242,7 +242,7 @@ class Installer:
             return False
 
     def install_components(
-        self, component_names: List[str], config: Optional[Dict[str, Any]] = None
+        self, component_names: list[str], config: dict[str, Any] | None = None
     ) -> bool:
         """
         Install multiple components in dependency order
@@ -316,13 +316,13 @@ class Installer:
             self.logger.error("Some components failed validation. Check errors above.")
 
     def update_components(
-        self, component_names: List[str], config: Dict[str, Any]
+        self, component_names: list[str], config: dict[str, Any]
     ) -> bool:
         """Alias for update operation (uses install logic)"""
         config["update_mode"] = True
         return self.install_components(component_names, config)
 
-    def get_installation_summary(self) -> Dict[str, Any]:
+    def get_installation_summary(self) -> dict[str, Any]:
         """
         Get summary of installation results
 
@@ -338,7 +338,7 @@ class Installer:
             "dry_run": self.dry_run,
         }
 
-    def get_update_summary(self) -> Dict[str, Any]:
+    def get_update_summary(self) -> dict[str, Any]:
         return {
             "updated": list(self.updated_components),
             "failed": list(self.failed_components),

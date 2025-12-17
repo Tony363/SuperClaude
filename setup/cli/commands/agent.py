@@ -5,8 +5,9 @@ import json
 import logging
 import os
 import traceback
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Any, Dict, Iterable
+from typing import Any
 
 # Try to import from the installed package
 try:
@@ -308,7 +309,7 @@ def run_agent(
         return 1
 
 
-def _log_agent_context(agent_name: str, context: Dict[str, Any]) -> None:
+def _log_agent_context(agent_name: str, context: dict[str, Any]) -> None:
     """Emit a concise diagnostics block for the agent invocation."""
 
     task = str(context.get("task", "")).strip()

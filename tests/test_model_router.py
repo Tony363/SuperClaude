@@ -9,7 +9,7 @@ import json
 import sys
 from datetime import timedelta
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 import pytest
 
@@ -37,7 +37,7 @@ def run(coro):
 
 
 @pytest.fixture(scope="module")
-def consensus_fixtures(fixture_root) -> Dict[str, Dict[str, Dict[str, Any]]]:
+def consensus_fixtures(fixture_root) -> dict[str, dict[str, dict[str, Any]]]:
     base = fixture_root / "consensus"
     return {
         "approve": json.loads((base / "approve.json").read_text(encoding="utf-8")),
@@ -45,10 +45,10 @@ def consensus_fixtures(fixture_root) -> Dict[str, Dict[str, Dict[str, Any]]]:
     }
 
 
-def _build_fixture_executor(payload: Dict[str, Any]):
+def _build_fixture_executor(payload: dict[str, Any]):
     template = copy.deepcopy(payload)
 
-    async def executor(prompt: str) -> Dict[str, Any]:
+    async def executor(prompt: str) -> dict[str, Any]:
         token_estimate = len(prompt.split()) or 1
         metadata = copy.deepcopy(template.get("metadata", {}))
         metadata["prompt_hash"] = hashlib.sha1(prompt.encode("utf-8")).hexdigest()
@@ -66,7 +66,7 @@ def _build_fixture_executor(payload: Dict[str, Any]):
 def _deterministic_executor(
     decision: Any, confidence: float = 0.8, provider: str = "test"
 ):
-    async def executor(prompt: str) -> Dict[str, Any]:
+    async def executor(prompt: str) -> dict[str, Any]:
         tokens = len(prompt.split()) or 1
         metadata = {
             "provider": provider,
@@ -269,7 +269,7 @@ class TestConsensusBuilder:
         """Test debate-style consensus."""
         builder = ConsensusBuilder()
 
-        async def debate_executor(prompt: str) -> Dict[str, Any]:
+        async def debate_executor(prompt: str) -> dict[str, Any]:
             if "FOR" in prompt.upper():
                 decision = {"decision": "approve", "stance": "FOR"}
             elif "AGAINST" in prompt.upper():
@@ -511,7 +511,7 @@ def _register_uniform_stub_executors(
 
     for model_name in facade.router.MODEL_CAPABILITIES.keys():
 
-        async def executor(prompt: str, *, model=model_name) -> Dict[str, Any]:
+        async def executor(prompt: str, *, model=model_name) -> dict[str, Any]:
             tokens = len(prompt.split()) or 1
             reasoning = f"{model} voting {decision} for prompt ({tokens} tokens)"
             return {

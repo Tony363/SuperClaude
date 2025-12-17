@@ -6,7 +6,7 @@ component systems, and modern web development best practices.
 """
 
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
 
 from ..base import BaseAgent
 
@@ -19,7 +19,7 @@ class FrontendArchitect(BaseAgent):
     and frontend best practices for modern web applications.
     """
 
-    def __init__(self, config: Dict[str, Any]):
+    def __init__(self, config: dict[str, Any]):
         """
         Initialize the frontend architect.
 
@@ -42,7 +42,7 @@ class FrontendArchitect(BaseAgent):
         self.state_patterns = self._initialize_state_patterns()
         self.performance_metrics = self._initialize_performance_metrics()
 
-    def execute(self, context: Dict[str, Any]) -> Dict[str, Any]:
+    def execute(self, context: dict[str, Any]) -> dict[str, Any]:
         """
         Execute frontend architecture tasks.
 
@@ -139,7 +139,7 @@ class FrontendArchitect(BaseAgent):
 
         return result
 
-    def validate(self, context: Dict[str, Any]) -> bool:
+    def validate(self, context: dict[str, Any]) -> bool:
         """
         Check if this agent can handle the context.
 
@@ -175,7 +175,7 @@ class FrontendArchitect(BaseAgent):
         task_lower = task.lower()
         return any(keyword in task_lower for keyword in frontend_keywords)
 
-    def _initialize_frameworks(self) -> Dict[str, Dict[str, Any]]:
+    def _initialize_frameworks(self) -> dict[str, dict[str, Any]]:
         """
         Initialize frontend frameworks.
 
@@ -213,7 +213,7 @@ class FrontendArchitect(BaseAgent):
             },
         }
 
-    def _initialize_ui_patterns(self) -> Dict[str, Dict[str, Any]]:
+    def _initialize_ui_patterns(self) -> dict[str, dict[str, Any]]:
         """
         Initialize UI design patterns.
 
@@ -249,7 +249,7 @@ class FrontendArchitect(BaseAgent):
             },
         }
 
-    def _initialize_state_patterns(self) -> Dict[str, Dict[str, Any]]:
+    def _initialize_state_patterns(self) -> dict[str, dict[str, Any]]:
         """
         Initialize state management patterns.
 
@@ -284,7 +284,7 @@ class FrontendArchitect(BaseAgent):
             },
         }
 
-    def _initialize_performance_metrics(self) -> Dict[str, Dict[str, Any]]:
+    def _initialize_performance_metrics(self) -> dict[str, dict[str, Any]]:
         """
         Initialize performance metrics.
 
@@ -313,8 +313,8 @@ class FrontendArchitect(BaseAgent):
         }
 
     def _analyze_component_architecture(
-        self, task: str, files: List[str], code: str
-    ) -> Dict[str, Any]:
+        self, task: str, files: list[str], code: str
+    ) -> dict[str, Any]:
         """
         Analyze component architecture.
 
@@ -431,8 +431,8 @@ class FrontendArchitect(BaseAgent):
             return "component"
 
     def _identify_ui_patterns(
-        self, architecture: Dict[str, Any], code: str
-    ) -> List[Dict[str, Any]]:
+        self, architecture: dict[str, Any], code: str
+    ) -> list[dict[str, Any]]:
         """
         Identify UI patterns.
 
@@ -488,8 +488,8 @@ class FrontendArchitect(BaseAgent):
         return patterns
 
     def _analyze_state_management(
-        self, task: str, files: List[str], code: str
-    ) -> Dict[str, Any]:
+        self, task: str, files: list[str], code: str
+    ) -> dict[str, Any]:
         """
         Analyze state management approach.
 
@@ -538,8 +538,8 @@ class FrontendArchitect(BaseAgent):
         return state_mgmt
 
     def _analyze_performance(
-        self, architecture: Dict[str, Any], code: str
-    ) -> Dict[str, Any]:
+        self, architecture: dict[str, Any], code: str
+    ) -> dict[str, Any]:
         """
         Analyze performance considerations.
 
@@ -590,8 +590,8 @@ class FrontendArchitect(BaseAgent):
         return performance
 
     def _audit_accessibility(
-        self, code: str, architecture: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        self, code: str, architecture: dict[str, Any]
+    ) -> dict[str, Any]:
         """
         Audit accessibility compliance.
 
@@ -653,12 +653,12 @@ class FrontendArchitect(BaseAgent):
 
     def _generate_recommendations(
         self,
-        architecture: Dict[str, Any],
-        ui_patterns: List[Dict[str, Any]],
-        state_mgmt: Dict[str, Any],
-        performance: Dict[str, Any],
-        accessibility: Dict[str, Any],
-    ) -> List[Dict[str, Any]]:
+        architecture: dict[str, Any],
+        ui_patterns: list[dict[str, Any]],
+        state_mgmt: dict[str, Any],
+        performance: dict[str, Any],
+        accessibility: dict[str, Any],
+    ) -> list[dict[str, Any]]:
         """
         Generate frontend recommendations.
 
@@ -754,12 +754,12 @@ class FrontendArchitect(BaseAgent):
     def _generate_frontend_report(
         self,
         task: str,
-        architecture: Dict[str, Any],
-        ui_patterns: List[Dict[str, Any]],
-        state_mgmt: Dict[str, Any],
-        performance: Dict[str, Any],
-        accessibility: Dict[str, Any],
-        recommendations: List[Dict[str, Any]],
+        architecture: dict[str, Any],
+        ui_patterns: list[dict[str, Any]],
+        state_mgmt: dict[str, Any],
+        performance: dict[str, Any],
+        accessibility: dict[str, Any],
+        recommendations: list[dict[str, Any]],
     ) -> str:
         """
         Generate comprehensive frontend report.

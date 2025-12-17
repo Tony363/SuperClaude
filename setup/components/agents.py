@@ -3,7 +3,7 @@ Agents component for SuperClaude specialized AI agents installation
 """
 
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 from setup import __version__
 
@@ -13,11 +13,11 @@ from ..core.base import Component
 class AgentsComponent(Component):
     """SuperClaude specialized AI agents component"""
 
-    def __init__(self, install_dir: Optional[Path] = None):
+    def __init__(self, install_dir: Path | None = None):
         """Initialize agents component"""
         super().__init__(install_dir, Path("agents"))
 
-    def get_metadata(self) -> Dict[str, str]:
+    def get_metadata(self) -> dict[str, str]:
         """Get component metadata"""
         return {
             "name": "agents",
@@ -26,7 +26,7 @@ class AgentsComponent(Component):
             "category": "agents",
         }
 
-    def get_metadata_modifications(self) -> Dict[str, Any]:
+    def get_metadata_modifications(self) -> dict[str, Any]:
         """Get metadata modifications for agents"""
         return {
             "components": {
@@ -39,7 +39,7 @@ class AgentsComponent(Component):
             }
         }
 
-    def _install(self, config: Dict[str, Any]) -> bool:
+    def _install(self, config: dict[str, Any]) -> bool:
         """Install agents component"""
         self.logger.info("Installing SuperClaude specialized agents...")
 
@@ -125,11 +125,11 @@ class AgentsComponent(Component):
             self.logger.exception(f"Unexpected error during agents uninstallation: {e}")
             return False
 
-    def get_dependencies(self) -> List[str]:
+    def get_dependencies(self) -> list[str]:
         """Get component dependencies"""
         return ["core"]
 
-    def update(self, config: Dict[str, Any]) -> bool:
+    def update(self, config: dict[str, Any]) -> bool:
         """Update agents component"""
         try:
             self.logger.info("Updating SuperClaude agents component...")
@@ -205,7 +205,7 @@ class AgentsComponent(Component):
 
         return total_size
 
-    def get_installation_summary(self) -> Dict[str, Any]:
+    def get_installation_summary(self) -> dict[str, Any]:
         """Get installation summary"""
         return {
             "component": self.get_metadata()["name"],
@@ -217,7 +217,7 @@ class AgentsComponent(Component):
             "dependencies": self.get_dependencies(),
         }
 
-    def validate_installation(self) -> Tuple[bool, List[str]]:
+    def validate_installation(self) -> tuple[bool, list[str]]:
         """Validate that agents component is correctly installed"""
         errors = []
 
