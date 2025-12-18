@@ -122,7 +122,7 @@ def mock_quality_scorer():
 
 @pytest.fixture
 def mock_consensus_facade():
-    """Create a mock ModelRouterFacade with controllable votes."""
+    """Create a mock consensus facade with controllable votes (ModelRouter removed)."""
     facade = MagicMock()
     facade.vote.return_value = {
         "decision": "approve",
