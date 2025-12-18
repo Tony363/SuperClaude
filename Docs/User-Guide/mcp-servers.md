@@ -17,18 +17,20 @@ have been removed.
 
 ## 2. PAL Integration (Consensus)
 
-- The PAL adapter now uses `ModelRouterFacade.run_consensus`, which means it
-  requires the same provider executors as the rest of the framework.
-- When no executors are available the integration raises `RuntimeError` and the
-  command fails fast—there is no heuristic fallback.
-- Provide API keys or register in-memory executors during tests:
+SuperClaude uses PAL MCP directly via Claude Code's native tool system. The
+Python `ModelRouter` and `APIClients` modules have been removed in favor of
+meta-prompting patterns.
 
-  ```python
-  from SuperClaude.ModelRouter import ModelRouterFacade
+PAL MCP provides these tools for consensus and model routing:
+- `mcp__pal__consensus` - Multi-model consensus with stances
+- `mcp__pal__chat` - General model chat with model selection
+- `mcp__pal__codereview` - Systematic code review
+- `mcp__pal__thinkdeep` - Multi-stage investigation
+- `mcp__pal__debug` - Root cause analysis
+- `mcp__pal__planner` - Interactive planning
+- `mcp__pal__listmodels` - Available models
 
-  facade = ModelRouterFacade(offline=True)
-  facade.consensus.register_executor('gpt-4o', my_executor)
-  ```
+See `CLAUDE.md` for usage patterns and when to use each tool.
 
 ## 3. Rube Integration (Automation)
 

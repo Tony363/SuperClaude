@@ -193,6 +193,60 @@ sequenceDiagram
     end
 ```
 
+### Agentic Quality Loop with PAL MCP
+
+When `--loop` is enabled, SuperClaude runs an iterative improvement cycle with automatic PAL MCP code review:
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant Executor as Command Executor
+    participant Agents as Expert Sub-Agents<br/>(quality-engineer,<br/>refactoring-expert)
+    participant PAL as PAL MCP<br/>(mcp__pal__codereview)
+    participant Quality as Quality Scorer
+
+    User->>Executor: /sc:implement --loop [n]
+
+    Note over Executor: --loop enables<br/>PAL review automatically
+
+    loop Iteration 1..n (max capped at HARD_MAX_ITERATIONS)
+        Executor->>Agents: Run agent pipeline
+        Agents-->>Executor: Code changes + tests
+
+        Executor->>PAL: mcp__pal__codereview(changed_files)
+        PAL-->>Executor: Review findings
+
+        Executor->>Quality: evaluate(output, context)
+        Quality-->>Executor: QualityAssessment<br/>(score, improvements_needed)
+
+        alt score >= 70 (QUALITY_MET)
+            Executor-->>User: Success Response
+        else score < 70 AND iterations < max
+            Note over Executor: Build feedback context:<br/>improvements_needed,<br/>PAL findings,<br/>current_score
+            Executor->>Agents: Re-delegate with feedback
+        else Oscillation/Stagnation detected
+            Executor-->>User: Best result + warnings
+        else Max iterations reached
+            Executor-->>User: Best result + termination reason
+        end
+    end
+```
+
+**Loop Termination Conditions:**
+| Condition | Description |
+|-----------|-------------|
+| `QUALITY_MET` | Score >= 70, quality threshold achieved |
+| `MAX_ITERATIONS` | Hard cap reached (prevents infinite loops) |
+| `INSUFFICIENT_IMPROVEMENT` | Score improvement below minimum threshold |
+| `OSCILLATION` | Scores alternating up/down without convergence |
+| `STAGNATION` | Scores not changing meaningfully |
+
+**Key Integration Points:**
+- `--loop` flag automatically enables `--pal-review`
+- `QualityDimension.PAL_REVIEW` contributes 10% to overall score
+- Expert sub-agents (`quality-engineer`, `refactoring-expert`) handle remediation
+- Feedback context includes: `improvements_needed`, PAL findings, `current_score`, `target_score`
+
 ---
 
 ## Core Components

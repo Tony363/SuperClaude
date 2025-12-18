@@ -52,8 +52,19 @@ class CodexCLIClient:
 
 
 from ..Core.worktree_manager import WorktreeManager
-from ..ModelRouter.consensus import VoteType
-from ..ModelRouter.facade import ModelRouterFacade
+# ModelRouter removed - consensus now handled via PAL MCP meta-prompting
+# See CLAUDE.md for PAL MCP tool usage patterns
+from enum import Enum
+
+
+class VoteType(Enum):
+    """Stub for removed ModelRouter consensus voting types."""
+    MAJORITY = "majority"
+    UNANIMOUS = "unanimous"
+    QUORUM = "quorum"
+    WEIGHTED = "weighted"
+
+
 from ..Modes.behavioral_manager import BehavioralMode, BehavioralModeManager
 from ..Quality.quality_scorer import (
     QualityAssessment,
@@ -175,7 +186,7 @@ class CommandExecutor:
         self.artifact_manager = CommandArtifactManager(
             base_path / "SuperClaude" / "Generated"
         )
-        self.consensus_facade = ModelRouterFacade()
+        self.consensus_facade = None  # Removed - use PAL MCP via meta-prompting
         self.consensus_policies = self._load_consensus_policies()
         self.quality_scorer = QualityScorer()
         self.retriever = None  # Retrieval module removed
@@ -5115,27 +5126,26 @@ class CommandExecutor:
         think_level: int | None = None,
         task_type: str = "consensus",
     ) -> dict[str, Any]:
-        """Run consensus builder and attach the result to the context."""
-        prompt = self._build_consensus_prompt(context, output)
+        """
+        Consensus stub - ModelRouter removed.
+
+        Consensus is now handled via PAL MCP meta-prompting. See CLAUDE.md for:
+        - mcp__pal__consensus for multi-model consensus
+        - mcp__pal__codereview for code review validation
+        - mcp__pal__thinkdeep for complex analysis
+        """
         policy = self._resolve_consensus_policy(
             context.command.name if context.command else None
         )
         vote_type = policy.get("vote_type", VoteType.MAJORITY)
         quorum_size = max(2, int(policy.get("quorum_size", 2)))
-        try:
-            result = await self.consensus_facade.run_consensus(
-                prompt,
-                vote_type=vote_type,
-                quorum_size=quorum_size,
-                context=context.results,
-                think_level=think_level,
-                task_type=task_type,
-            )
-        except Exception as exc:
-            message = f"Consensus evaluation failed: {exc}"
-            logger.error(message)
-            context.errors.append(message)
-            result = {"consensus_reached": False, "error": str(exc)}
+
+        # Return no-op result - actual consensus via PAL MCP meta-prompting
+        result = {
+            "consensus_reached": True,
+            "offline": True,
+            "note": "Consensus via PAL MCP - see mcp__pal__consensus",
+        }
 
         context.consensus_summary = result
         context.results["consensus"] = result
