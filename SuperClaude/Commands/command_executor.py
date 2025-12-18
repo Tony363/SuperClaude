@@ -20,6 +20,7 @@ import textwrap
 from collections.abc import Callable, Iterable, Sequence
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
+from enum import Enum
 from pathlib import Path
 from typing import Any
 
@@ -32,6 +33,20 @@ from ..Agents import usage_tracker as agent_usage_tracker
 from ..Agents.extended_loader import AgentCategory, ExtendedAgentLoader
 from ..Agents.loader import AgentLoader
 from ..Agents.registry import AgentRegistry
+from ..Core.worktree_manager import WorktreeManager
+from ..Modes.behavioral_manager import BehavioralMode, BehavioralModeManager
+from ..Quality.quality_scorer import (
+    QualityAssessment,
+    QualityScorer,
+)
+from .artifact_manager import CommandArtifactManager
+from .executor import (
+    PythonSemanticAnalyzer as _PythonSemanticAnalyzer,
+)
+from .parser import CommandParser, ParsedCommand
+from .registry import CommandMetadata, CommandRegistry
+
+logger = logging.getLogger(__name__)
 
 
 # Codex CLI integration removed - provide stubs for backwards compatibility
@@ -51,35 +66,15 @@ class CodexCLIClient:
         return ""
 
 
-from ..Core.worktree_manager import WorktreeManager
 # ModelRouter removed - consensus now handled via PAL MCP meta-prompting
 # See CLAUDE.md for PAL MCP tool usage patterns
-from enum import Enum
-
-
 class VoteType(Enum):
     """Stub for removed ModelRouter consensus voting types."""
+
     MAJORITY = "majority"
     UNANIMOUS = "unanimous"
     QUORUM = "quorum"
     WEIGHTED = "weighted"
-
-
-from ..Modes.behavioral_manager import BehavioralMode, BehavioralModeManager
-from ..Quality.quality_scorer import (
-    QualityAssessment,
-    QualityScorer,
-)
-from .artifact_manager import CommandArtifactManager
-
-# Import decomposed executor modules
-from .executor import (
-    PythonSemanticAnalyzer as _PythonSemanticAnalyzer,
-)
-from .parser import CommandParser, ParsedCommand
-from .registry import CommandMetadata, CommandRegistry
-
-logger = logging.getLogger(__name__)
 
 
 # Stub for removed Monitoring module
