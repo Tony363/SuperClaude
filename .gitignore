@@ -99,7 +99,10 @@ Pipfile.lock
 poetry.lock
 
 # Claude Code
-.claude/
+# Ignore all .claude/ contents by default (logs, history, local state)
+.claude/*
+# Track skills directory so users get them on clone
+!.claude/skills/
 CLAUDE.md
 
 # SuperClaude specific
