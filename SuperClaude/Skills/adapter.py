@@ -28,12 +28,12 @@ def _parse_simple_yaml(content: str) -> dict:
     Only handles basic key: value pairs, not nested structures.
     """
     result = {}
-    for line in content.strip().split('\n'):
+    for line in content.strip().split("\n"):
         line = line.strip()
-        if not line or line.startswith('#'):
+        if not line or line.startswith("#"):
             continue
-        if ':' in line:
-            key, value = line.split(':', 1)
+        if ":" in line:
+            key, value = line.split(":", 1)
             key = key.strip()
             value = value.strip()
             # Handle quoted strings
@@ -42,11 +42,12 @@ def _parse_simple_yaml(content: str) -> dict:
             ):
                 value = value[1:-1]
             # Handle lists (simple format: [item1, item2])
-            if value.startswith('[') and value.endswith(']'):
-                items = value[1:-1].split(',')
+            if value.startswith("[") and value.endswith("]"):
+                items = value[1:-1].split(",")
                 value = [i.strip().strip('"').strip("'") for i in items if i.strip()]
             result[key] = value
     return result
+
 
 logger = logging.getLogger(__name__)
 
@@ -173,7 +174,7 @@ class SkillAdapter:
             return None
 
         # Extract skill body
-        body = content[frontmatter_match.end():]
+        body = content[frontmatter_match.end() :]
 
         # Determine skill type from directory name
         dir_name = skill_dir.name
@@ -209,7 +210,9 @@ class SkillAdapter:
         domain = self._extract_domain(body)
 
         # Determine category
-        category = frontmatter.get("category", self._infer_category(skill_type, dir_name))
+        category = frontmatter.get(
+            "category", self._infer_category(skill_type, dir_name)
+        )
 
         # Check for evidence requirements
         requires_evidence = self._check_evidence_requirement(body)
@@ -273,7 +276,7 @@ class SkillAdapter:
             # Parse markdown table rows
             rows = re.findall(
                 r"\|\s*`--(\w+)`\s*\|\s*(\w+)\s*\|\s*([^|]*)\s*\|\s*([^|]*)\s*\|",
-                table_content
+                table_content,
             )
             for row in rows:
                 flag_name, flag_type, default, description = row
@@ -463,7 +466,9 @@ class SkillAdapter:
             servers = ", ".join(skill.mcp_servers)
             body_parts.extend(["## MCP Integration", "", f"Servers: {servers}", ""])
 
-        body_parts.extend(["## Activation", "", f"Use for {skill.name} related tasks.", ""])
+        body_parts.extend(
+            ["## Activation", "", f"Use for {skill.name} related tasks.", ""]
+        )
 
         body = "\n".join(body_parts)
 

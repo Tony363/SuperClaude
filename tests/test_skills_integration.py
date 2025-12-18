@@ -121,7 +121,14 @@ def test_select_agent_script():
     """Test the select_agent.py bundled script."""
     import subprocess
 
-    script_path = project_root / ".claude" / "skills" / "sc-implement" / "scripts" / "select_agent.py"
+    script_path = (
+        project_root
+        / ".claude"
+        / "skills"
+        / "sc-implement"
+        / "scripts"
+        / "select_agent.py"
+    )
 
     if not script_path.exists():
         print("⚠ select_agent.py not found, skipping")
@@ -145,7 +152,9 @@ def test_select_agent_script():
     if result.returncode == 0:
         output = json.loads(result.stdout)
         assert "selected_agent" in output, "No agent selected"
-        print(f"✓ Agent selection: {output['selected_agent']} (confidence: {output.get('confidence', 'N/A')})")
+        print(
+            f"✓ Agent selection: {output['selected_agent']} (confidence: {output.get('confidence', 'N/A')})"
+        )
     else:
         print(f"⚠ Agent selection script failed: {result.stderr}")
 
@@ -156,7 +165,14 @@ def test_evidence_gate_script():
     """Test the evidence_gate.py bundled script."""
     import subprocess
 
-    script_path = project_root / ".claude" / "skills" / "sc-implement" / "scripts" / "evidence_gate.py"
+    script_path = (
+        project_root
+        / ".claude"
+        / "skills"
+        / "sc-implement"
+        / "scripts"
+        / "evidence_gate.py"
+    )
 
     if not script_path.exists():
         print("⚠ evidence_gate.py not found, skipping")
@@ -193,7 +209,9 @@ def test_evidence_gate_script():
     if result.returncode == 0:
         output = json.loads(result.stdout)
         assert output.get("passed") is True, "Evidence gate should pass"
-        print(f"✓ Evidence gate: score={output.get('score')}, status={output.get('status')}")
+        print(
+            f"✓ Evidence gate: score={output.get('score')}, status={output.get('status')}"
+        )
     else:
         print(f"⚠ Evidence gate script failed: {result.stderr}")
 

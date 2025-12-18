@@ -60,7 +60,9 @@ def detect_test_framework(project_root: Path) -> str:
         if "pytest" in content:
             return "pytest"
 
-    if (project_root / "pytest.ini").exists() or (project_root / "conftest.py").exists():
+    if (project_root / "pytest.ini").exists() or (
+        project_root / "conftest.py"
+    ).exists():
         return "pytest"
 
     if (project_root / "setup.py").exists():
@@ -77,10 +79,14 @@ def detect_test_framework(project_root: Path) -> str:
             return "mocha"
 
     # Check for specific config files
-    if (project_root / "vitest.config.ts").exists() or (project_root / "vitest.config.js").exists():
+    if (project_root / "vitest.config.ts").exists() or (
+        project_root / "vitest.config.js"
+    ).exists():
         return "vitest"
 
-    if (project_root / "jest.config.js").exists() or (project_root / "jest.config.ts").exists():
+    if (project_root / "jest.config.js").exists() or (
+        project_root / "jest.config.ts"
+    ).exists():
         return "jest"
 
     return "unknown"
@@ -227,7 +233,9 @@ def run_tests(config: dict[str, Any]) -> dict[str, Any]:
             "framework": "unknown",
             "results": {},
             "coverage": None,
-            "errors": ["Could not detect test framework. Specify 'framework' in config."],
+            "errors": [
+                "Could not detect test framework. Specify 'framework' in config."
+            ],
             "output_summary": "",
         }
 

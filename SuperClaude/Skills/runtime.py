@@ -43,12 +43,14 @@ class RuntimeConfig:
     fallback_to_python: bool = True
 
     # Guardrails that ALWAYS run regardless of runtime
-    enforced_guardrails: list[str] = field(default_factory=lambda: [
-        "evidence_gating",
-        "quality_loop_limits",
-        "safe_apply",
-        "path_traversal_prevention",
-    ])
+    enforced_guardrails: list[str] = field(
+        default_factory=lambda: [
+            "evidence_gating",
+            "quality_loop_limits",
+            "safe_apply",
+            "path_traversal_prevention",
+        ]
+    )
 
     script_timeout: int = 300  # 5 minutes
     progressive_loading: bool = True
@@ -196,8 +198,7 @@ class SkillRuntime:
             SkillMetadata or None
         """
         return self.discovery.get_skill(
-            skill_id,
-            load_content=self.config.progressive_loading
+            skill_id, load_content=self.config.progressive_loading
         )
 
     def find_skill_for_task(
@@ -303,11 +304,11 @@ class SkillRuntime:
             Agent selection result
         """
         script_path = (
-            self.project_root /
-            self.config.skills_dir /
-            "sc-implement" /
-            "scripts" /
-            "select_agent.py"
+            self.project_root
+            / self.config.skills_dir
+            / "sc-implement"
+            / "scripts"
+            / "select_agent.py"
         )
 
         args = {
@@ -342,11 +343,11 @@ class SkillRuntime:
             Evidence gate result
         """
         script_path = (
-            self.project_root /
-            self.config.skills_dir /
-            "sc-implement" /
-            "scripts" /
-            "evidence_gate.py"
+            self.project_root
+            / self.config.skills_dir
+            / "sc-implement"
+            / "scripts"
+            / "evidence_gate.py"
         )
 
         args = {
@@ -358,7 +359,11 @@ class SkillRuntime:
         }
 
         result = self.execute_script(script_path, args)
-        return result.output if result.success else {"passed": False, "error": result.error}
+        return (
+            result.output
+            if result.success
+            else {"passed": False, "error": result.error}
+        )
 
     def run_tests(
         self,
@@ -378,11 +383,11 @@ class SkillRuntime:
             Test execution result
         """
         script_path = (
-            self.project_root /
-            self.config.skills_dir /
-            "sc-implement" /
-            "scripts" /
-            "run_tests.py"
+            self.project_root
+            / self.config.skills_dir
+            / "sc-implement"
+            / "scripts"
+            / "run_tests.py"
         )
 
         args = {
@@ -393,7 +398,11 @@ class SkillRuntime:
         }
 
         result = self.execute_script(script_path, args)
-        return result.output if result.success else {"success": False, "error": result.error}
+        return (
+            result.output
+            if result.success
+            else {"success": False, "error": result.error}
+        )
 
     def should_enforce_guardrail(self, guardrail: str) -> bool:
         """Check if a guardrail should be enforced."""

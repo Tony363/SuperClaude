@@ -76,7 +76,17 @@ AGENTS = [
         priority=1,
         domains=["frontend", "ui", "ux", "web"],
         languages=["javascript", "typescript", "css", "html"],
-        keywords=["react", "vue", "angular", "component", "ui", "frontend", "css", "tailwind", "styled"],
+        keywords=[
+            "react",
+            "vue",
+            "angular",
+            "component",
+            "ui",
+            "frontend",
+            "css",
+            "tailwind",
+            "styled",
+        ],
         file_patterns=["*.tsx", "*.jsx", "*.vue", "*.svelte", "*.css", "*.scss"],
         imports=["react", "vue", "@angular", "svelte", "styled-components"],
     ),
@@ -86,7 +96,15 @@ AGENTS = [
         priority=1,
         domains=["backend", "api", "database", "server"],
         languages=["python", "javascript", "typescript", "go", "rust", "java"],
-        keywords=["api", "endpoint", "database", "server", "rest", "graphql", "microservice"],
+        keywords=[
+            "api",
+            "endpoint",
+            "database",
+            "server",
+            "rest",
+            "graphql",
+            "microservice",
+        ],
         file_patterns=["*.py", "*.go", "*.rs", "*.java", "routes/*", "api/*"],
         imports=["express", "fastapi", "django", "flask", "gin", "actix"],
     ),
@@ -96,7 +114,14 @@ AGENTS = [
         priority=1,
         domains=["architecture", "system", "infrastructure", "design"],
         languages=["any"],
-        keywords=["architecture", "system", "design", "scalability", "distributed", "microservice"],
+        keywords=[
+            "architecture",
+            "system",
+            "design",
+            "scalability",
+            "distributed",
+            "microservice",
+        ],
         file_patterns=["*.md", "docs/*", "architecture/*"],
         imports=[],
     ),
@@ -106,7 +131,15 @@ AGENTS = [
         priority=1,
         domains=["security", "auth", "encryption", "compliance"],
         languages=["any"],
-        keywords=["security", "auth", "authentication", "authorization", "encryption", "vulnerability", "owasp"],
+        keywords=[
+            "security",
+            "auth",
+            "authentication",
+            "authorization",
+            "encryption",
+            "vulnerability",
+            "owasp",
+        ],
         file_patterns=["*auth*", "*security*", "*crypto*"],
         imports=["bcrypt", "jwt", "oauth", "passport", "cryptography"],
     ),
@@ -116,7 +149,17 @@ AGENTS = [
         priority=1,
         domains=["devops", "ci", "cd", "deployment", "infrastructure"],
         languages=["yaml", "bash", "python"],
-        keywords=["docker", "kubernetes", "ci", "cd", "pipeline", "deployment", "terraform", "aws", "gcp"],
+        keywords=[
+            "docker",
+            "kubernetes",
+            "ci",
+            "cd",
+            "pipeline",
+            "deployment",
+            "terraform",
+            "aws",
+            "gcp",
+        ],
         file_patterns=["Dockerfile", "*.yml", "*.yaml", ".github/*", "terraform/*"],
         imports=["boto3", "google-cloud", "azure"],
     ),
@@ -136,7 +179,16 @@ AGENTS = [
         priority=2,
         domains=["testing", "qa", "quality", "automation"],
         languages=["any"],
-        keywords=["test", "testing", "qa", "quality", "coverage", "e2e", "unit", "integration"],
+        keywords=[
+            "test",
+            "testing",
+            "qa",
+            "quality",
+            "coverage",
+            "e2e",
+            "unit",
+            "integration",
+        ],
         file_patterns=["*test*", "*spec*", "*.test.*", "*.spec.*"],
         imports=["pytest", "jest", "mocha", "cypress", "playwright"],
     ),
@@ -153,7 +205,9 @@ AGENTS = [
 ]
 
 
-def calculate_match_score(context: dict[str, Any], metadata: AgentMetadata) -> MatchScore:
+def calculate_match_score(
+    context: dict[str, Any], metadata: AgentMetadata
+) -> MatchScore:
     """
     Calculate detailed match score for an agent.
 
@@ -251,7 +305,9 @@ def calculate_match_score(context: dict[str, Any], metadata: AgentMetadata) -> M
                     break
 
         if metadata.file_patterns:
-            file_pattern_score = min(file_pattern_score / len(metadata.file_patterns), 1.0)
+            file_pattern_score = min(
+                file_pattern_score / len(metadata.file_patterns), 1.0
+            )
         if matched_patterns:
             matched_criteria.append(f"files: {', '.join(matched_patterns[:3])}")
 
@@ -337,7 +393,9 @@ def select_agent(context: dict[str, Any], top_n: int = 3) -> dict[str, Any]:
 def main():
     """Main entry point for script execution."""
     if len(sys.argv) < 2:
-        print(json.dumps({"error": "No context provided. Pass JSON as first argument."}))
+        print(
+            json.dumps({"error": "No context provided. Pass JSON as first argument."})
+        )
         sys.exit(1)
 
     try:

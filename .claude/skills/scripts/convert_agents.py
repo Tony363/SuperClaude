@@ -18,17 +18,17 @@ def parse_agent_frontmatter(content: str) -> dict:
     frontmatter = {}
 
     # Match YAML frontmatter
-    match = re.match(r'^---\s*\n(.*?)\n---\s*\n', content, re.DOTALL)
+    match = re.match(r"^---\s*\n(.*?)\n---\s*\n", content, re.DOTALL)
     if not match:
         return frontmatter, content
 
     yaml_content = match.group(1)
-    body = content[match.end():]
+    body = content[match.end() :]
 
     # Parse simple YAML (name, description, tools)
-    for line in yaml_content.split('\n'):
-        if ':' in line:
-            key, value = line.split(':', 1)
+    for line in yaml_content.split("\n"):
+        if ":" in line:
+            key, value = line.split(":", 1)
             key = key.strip()
             value = value.strip()
             # Handle quoted strings
@@ -42,7 +42,7 @@ def parse_agent_frontmatter(content: str) -> dict:
 def extract_first_paragraph(body: str) -> str:
     """Extract the first paragraph as agent summary."""
     # Skip empty lines and headers
-    lines = body.strip().split('\n')
+    lines = body.strip().split("\n")
     paragraph = []
 
     for line in lines:
@@ -51,23 +51,23 @@ def extract_first_paragraph(body: str) -> str:
             if paragraph:
                 break
             continue
-        if line.startswith('#'):
+        if line.startswith("#"):
             continue
-        if line.startswith('When invoked:'):
+        if line.startswith("When invoked:"):
             break
         paragraph.append(line)
 
-    return ' '.join(paragraph)[:500] if paragraph else ""
+    return " ".join(paragraph)[:500] if paragraph else ""
 
 
 def extract_tools(frontmatter: dict) -> list:
     """Extract tools from frontmatter."""
-    tools_str = frontmatter.get('tools', '')
+    tools_str = frontmatter.get("tools", "")
     if not tools_str:
         return []
 
     # Parse comma-separated tools
-    tools = [t.strip() for t in tools_str.split(',') if t.strip()]
+    tools = [t.strip() for t in tools_str.split(",") if t.strip()]
     return tools
 
 
@@ -76,16 +76,16 @@ def extract_checklist(body: str) -> list:
     checklist = []
     in_checklist = False
 
-    for line in body.split('\n'):
+    for line in body.split("\n"):
         line = line.strip()
-        if 'checklist:' in line.lower():
+        if "checklist:" in line.lower():
             in_checklist = True
             continue
         if in_checklist:
-            if line.startswith('-'):
+            if line.startswith("-"):
                 item = line[1:].strip()
                 checklist.append(item)
-            elif line and not line.startswith('-'):
+            elif line and not line.startswith("-"):
                 in_checklist = False
 
     return checklist[:8]  # Limit to 8 items
@@ -97,23 +97,29 @@ def extract_sections(body: str) -> dict:
     current_section = None
     current_content = []
 
-    for line in body.split('\n'):
-        if line.startswith('## '):
+    for line in body.split("\n"):
+        if line.startswith("## "):
             if current_section:
-                sections[current_section] = '\n'.join(current_content)
+                sections[current_section] = "\n".join(current_content)
             current_section = line[3:].strip()
             current_content = []
         elif current_section:
             current_content.append(line)
 
     if current_section:
-        sections[current_section] = '\n'.join(current_content)
+        sections[current_section] = "\n".join(current_content)
 
     return sections
 
 
-def generate_skill_md(name: str, description: str, tools: list, summary: str,
-                      checklist: list, category: str) -> str:
+def generate_skill_md(
+    name: str,
+    description: str,
+    tools: list,
+    summary: str,
+    checklist: list,
+    category: str,
+) -> str:
     """Generate SKILL.md content from parsed agent data."""
 
     # Create skill ID from name
@@ -122,7 +128,7 @@ def generate_skill_md(name: str, description: str, tools: list, summary: str,
     # Format tools section
     tools_section = ""
     if tools:
-        tools_list = ', '.join(tools[:6])  # Limit displayed tools
+        tools_list = ", ".join(tools[:6])  # Limit displayed tools
         tools_section = f"""
 ## Tools
 
@@ -132,7 +138,7 @@ Primary: {tools_list}
     # Format checklist
     checklist_section = ""
     if checklist:
-        items = '\n'.join(f"- {item}" for item in checklist[:6])
+        items = "\n".join(f"- {item}" for item in checklist[:6])
         checklist_section = f"""
 ## Key Capabilities
 
@@ -141,18 +147,18 @@ Primary: {tools_list}
 
     # Determine domain from category
     domain_map = {
-        '01-core-development': 'Core Development',
-        '02-language-specialists': 'Language Expertise',
-        '03-infrastructure': 'Infrastructure & DevOps',
-        '04-quality-security': 'Quality & Security',
-        '05-data-ai': 'Data & AI',
-        '06-developer-experience': 'Developer Experience',
-        '07-specialized-domains': 'Specialized Domains',
-        '08-business-product': 'Business & Product',
-        '09-meta-orchestration': 'Meta Orchestration',
-        '10-research-analysis': 'Research & Analysis',
+        "01-core-development": "Core Development",
+        "02-language-specialists": "Language Expertise",
+        "03-infrastructure": "Infrastructure & DevOps",
+        "04-quality-security": "Quality & Security",
+        "05-data-ai": "Data & AI",
+        "06-developer-experience": "Developer Experience",
+        "07-specialized-domains": "Specialized Domains",
+        "08-business-product": "Business & Product",
+        "09-meta-orchestration": "Meta Orchestration",
+        "10-research-analysis": "Research & Analysis",
     }
-    domain = domain_map.get(category, 'General')
+    domain = domain_map.get(category, "General")
 
     # Generate SKILL.md
     skill_content = f"""---
@@ -160,7 +166,7 @@ name: {skill_id}
 description: {description}
 ---
 
-# {name.replace('-', ' ').title()} Agent
+# {name.replace("-", " ").title()} Agent
 
 {summary}
 
@@ -171,7 +177,7 @@ description: {description}
 ## Activation
 
 This agent activates for tasks involving:
-- {name.replace('-', ' ').replace('pro', 'professional').replace('expert', 'expertise')} related work
+- {name.replace("-", " ").replace("pro", "professional").replace("expert", "expertise")} related work
 - Domain-specific implementation and optimization
 - Technical guidance and best practices
 
@@ -186,28 +192,32 @@ Works with other agents for:
     return skill_content
 
 
-def convert_agent_file(source_path: Path, target_dir: Path, dry_run: bool = False) -> bool:
+def convert_agent_file(
+    source_path: Path, target_dir: Path, dry_run: bool = False
+) -> bool:
     """Convert a single agent file to SKILL.md format."""
     try:
         # Read source file
-        content = source_path.read_text(encoding='utf-8')
+        content = source_path.read_text(encoding="utf-8")
 
         # Parse frontmatter and body
         frontmatter, body = parse_agent_frontmatter(content)
 
-        if not frontmatter.get('name'):
+        if not frontmatter.get("name"):
             print(f"  SKIP: No name in {source_path.name}")
             return False
 
-        name = frontmatter['name']
-        description = frontmatter.get('description', f'{name} agent')
+        name = frontmatter["name"]
+        description = frontmatter.get("description", f"{name} agent")
         tools = extract_tools(frontmatter)
         summary = extract_first_paragraph(body)
         checklist = extract_checklist(body)
         category = source_path.parent.name
 
         # Generate SKILL.md content
-        skill_content = generate_skill_md(name, description, tools, summary, checklist, category)
+        skill_content = generate_skill_md(
+            name, description, tools, summary, checklist, category
+        )
 
         # Create target directory
         skill_dir = target_dir / f"agent-{name}"
@@ -220,7 +230,7 @@ def convert_agent_file(source_path: Path, target_dir: Path, dry_run: bool = Fals
 
         # Write SKILL.md
         skill_file = skill_dir / "SKILL.md"
-        skill_file.write_text(skill_content, encoding='utf-8')
+        skill_file.write_text(skill_content, encoding="utf-8")
 
         print(f"  Created: agent-{name}/SKILL.md")
         return True
@@ -232,7 +242,7 @@ def convert_agent_file(source_path: Path, target_dir: Path, dry_run: bool = Fals
 
 def main():
     """Main entry point."""
-    dry_run = '--dry-run' in sys.argv
+    dry_run = "--dry-run" in sys.argv
 
     # Paths
     project_root = Path(__file__).parent.parent.parent.parent

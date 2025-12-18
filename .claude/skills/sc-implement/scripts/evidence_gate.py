@@ -59,7 +59,9 @@ class EvidenceThresholds:
 THRESHOLDS = EvidenceThresholds()
 
 
-def calculate_evidence_score(evidence: dict[str, Any]) -> tuple[float, list[str], dict[str, Any]]:
+def calculate_evidence_score(
+    evidence: dict[str, Any],
+) -> tuple[float, list[str], dict[str, Any]]:
     """
     Calculate evidence quality score.
 
@@ -160,7 +162,9 @@ def calculate_evidence_score(evidence: dict[str, Any]) -> tuple[float, list[str]
         elif coverage > 0:
             score += 3.0
             summary["coverage_status"] = "low"
-            missing.append(f"Test coverage {coverage}% below threshold ({THRESHOLDS.min_test_coverage}%)")
+            missing.append(
+                f"Test coverage {coverage}% below threshold ({THRESHOLDS.min_test_coverage}%)"
+            )
         else:
             summary["coverage_status"] = "none"
 
@@ -231,7 +235,9 @@ def evaluate_evidence(evidence: dict[str, Any]) -> dict[str, Any]:
 def main():
     """Main entry point for script execution."""
     if len(sys.argv) < 2:
-        print(json.dumps({"error": "No evidence provided. Pass JSON as first argument."}))
+        print(
+            json.dumps({"error": "No evidence provided. Pass JSON as first argument."})
+        )
         sys.exit(1)
 
     try:

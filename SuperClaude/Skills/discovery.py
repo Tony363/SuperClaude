@@ -209,7 +209,9 @@ class SkillDiscovery:
 
         return self.index
 
-    def get_skill(self, skill_id: str, load_content: bool = False) -> SkillMetadata | None:
+    def get_skill(
+        self, skill_id: str, load_content: bool = False
+    ) -> SkillMetadata | None:
         """
         Get skill by ID.
 
@@ -282,7 +284,9 @@ class SkillDiscovery:
 
             # Sort by relevance
             relevance = dict(search_results)
-            skill_ids = sorted(skill_ids, key=lambda x: relevance.get(x, 0), reverse=True)
+            skill_ids = sorted(
+                skill_ids, key=lambda x: relevance.get(x, 0), reverse=True
+            )
         else:
             skill_ids = sorted(skill_ids)
 
