@@ -281,7 +281,7 @@ class SkillDiscovery:
             skill_ids &= search_ids
 
             # Sort by relevance
-            relevance = {sid: score for sid, score in search_results}
+            relevance = dict(search_results)
             skill_ids = sorted(skill_ids, key=lambda x: relevance.get(x, 0), reverse=True)
         else:
             skill_ids = sorted(skill_ids)
@@ -304,8 +304,7 @@ class SkillDiscovery:
         if not self._discovered:
             self.discover()
 
-        for skill in self.index.skills.values():
-            yield skill
+        yield from self.index.skills.values()
 
     def get_skill_for_task(
         self,

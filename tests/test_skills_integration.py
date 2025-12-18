@@ -91,7 +91,7 @@ def test_runtime_config():
 
 def test_skill_runtime():
     """Test skill runtime initialization."""
-    from SuperClaude.Skills.runtime import SkillRuntime, RuntimeConfig
+    from SuperClaude.Skills.runtime import RuntimeConfig, SkillRuntime
 
     config = RuntimeConfig(
         runtime="skills",
@@ -220,7 +220,7 @@ def test_skill_search():
     agents = discovery.find_skills(skill_type="agent", limit=20)
     assert len(agents) > 0, "No agents found"
 
-    print(f"✓ Search tests passed")
+    print("✓ Search tests passed")
     return True
 
 

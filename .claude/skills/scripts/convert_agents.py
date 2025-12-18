@@ -8,7 +8,6 @@ Usage:
     python convert_agents.py [--dry-run]
 """
 
-import os
 import re
 import sys
 from pathlib import Path

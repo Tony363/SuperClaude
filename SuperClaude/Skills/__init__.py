@@ -7,7 +7,7 @@ between SKILL.md files and Python CommandMetadata registry.
 
 from .adapter import SkillAdapter, SkillMetadata
 from .discovery import SkillDiscovery
-from .runtime import SkillRuntime, RuntimeConfig
+from .runtime import RuntimeConfig, SkillRuntime
 
 __all__ = [
     "SkillAdapter",
