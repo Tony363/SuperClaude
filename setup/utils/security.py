@@ -846,7 +846,6 @@ class SecurityValidator:
         """
         try:
             import datetime
-            import logging
 
             # Create security logger if it doesn't exist
             security_logger = logging.getLogger("superclaude.security")

@@ -3312,8 +3312,7 @@ class CommandExecutor:
         precomputed: QualityAssessment | None = None,
     ) -> QualityAssessment | None:
         """Run quality scoring against the command result."""
-        evaluation_context = dict(context.results)
-        evaluation_context["status"] = status
+        evaluation_context = {**context.results, "status": status}
         evaluation_context["changed_files"] = [
             self._relative_to_repo_path(path) for path in changed_paths
         ]
@@ -3765,7 +3764,7 @@ class CommandExecutor:
             event["safe_apply_directory"] = context.results["safe_apply_directory"]
 
         # Monitoring removed - plan_only_event logging disabled
-        pass
+        # Event data is prepared but not currently sent anywhere
 
     async def _dispatch_rube_actions(
         self, context: CommandContext, output: Any

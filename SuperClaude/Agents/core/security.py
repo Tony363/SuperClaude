@@ -244,44 +244,6 @@ class SecurityEngineer(HeuristicMarkdownAgent):
 
         return result
 
-    def validate(self, context: dict[str, Any]) -> bool:
-        """
-        Check if this agent can handle the context.
-
-        Args:
-            context: Validation context
-
-        Returns:
-            True if context contains security-related tasks
-        """
-        task = context.get("task", "")
-
-        # Check for security keywords
-        security_keywords = [
-            "security",
-            "vulnerability",
-            "secure",
-            "auth",
-            "authentication",
-            "authorization",
-            "permission",
-            "encrypt",
-            "decrypt",
-            "hash",
-            "owasp",
-            "pentest",
-            "penetration",
-            "exploit",
-            "injection",
-            "xss",
-            "csrf",
-            "sql injection",
-            "security audit",
-        ]
-
-        task_lower = task.lower()
-        return any(keyword in task_lower for keyword in security_keywords)
-
     def _initialize_vulnerability_patterns(self) -> dict[str, dict[str, Any]]:
         """
         Initialize vulnerability detection patterns.

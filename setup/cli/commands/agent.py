@@ -339,6 +339,7 @@ def _probe_critical_paths() -> None:
             try:
                 probe_name.unlink(missing_ok=True)
             except OSError:
+                # Cleanup failure is non-critical; file may already be removed
                 pass
 
 

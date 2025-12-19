@@ -245,7 +245,8 @@ def get_installation_info(install_dir: Path) -> dict[str, Any]:
                 info["total_size"] += item.stat().st_size
             elif item.is_dir():
                 info["directories"].append(item)
-    except Exception:
+    except OSError:
+        # Directory listing may fail due to permissions or missing path
         pass
 
     return info
@@ -534,7 +535,8 @@ def display_component_details(component: str, info: dict[str, Any]) -> dict[str,
     """Get detailed information about what will be removed for a component"""
     details = {"files": [], "directories": [], "size": 0, "description": ""}
 
-    info["install_dir"]
+    # Validate that install_dir is present in info
+    _ = info["install_dir"]
 
     component_paths = {
         "core": {

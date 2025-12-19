@@ -5,12 +5,9 @@ Provides helper functions for quality assessment serialization,
 validation, and result formatting.
 """
 
-import logging
 from dataclasses import asdict
 from datetime import datetime
 from typing import Any
-
-logger = logging.getLogger(__name__)
 
 
 def serialize_assessment(assessment: Any) -> dict[str, Any]:
