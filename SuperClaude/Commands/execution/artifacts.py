@@ -160,13 +160,15 @@ class ArtifactsService:
             "",
         ]
 
-        summary_lines.extend([
-            f"Tests Collected: {test_results.get('tests_collected', 0)}",
-            f"Tests Passed: {test_results.get('tests_passed', 0)}",
-            f"Tests Failed: {test_results.get('tests_failed', 0)}",
-            f"Tests Errored: {test_results.get('tests_errored', 0)}",
-            f"Tests Skipped: {test_results.get('tests_skipped', 0)}",
-        ])
+        summary_lines.extend(
+            [
+                f"Tests Collected: {test_results.get('tests_collected', 0)}",
+                f"Tests Passed: {test_results.get('tests_passed', 0)}",
+                f"Tests Failed: {test_results.get('tests_failed', 0)}",
+                f"Tests Errored: {test_results.get('tests_errored', 0)}",
+                f"Tests Skipped: {test_results.get('tests_skipped', 0)}",
+            ]
+        )
 
         if test_results.get("summary"):
             summary_lines.append("")

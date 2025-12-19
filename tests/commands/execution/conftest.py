@@ -43,9 +43,7 @@ class TelemetryCapture:
         tags: dict[str, str] | None = None,
     ) -> None:
         """Record a metric."""
-        self.metrics.append(
-            {"name": name, "value": value, "kind": kind, "tags": tags}
-        )
+        self.metrics.append({"name": name, "value": value, "kind": kind, "tags": tags})
 
     def increment(
         self,
@@ -113,9 +111,7 @@ def env_isolation(monkeypatch):
             elif len(commands) == 0:
                 self._mp.setenv("SUPERCLAUDE_DECOMPOSED_COMMANDS", "")
             else:
-                self._mp.setenv(
-                    "SUPERCLAUDE_DECOMPOSED_COMMANDS", ",".join(commands)
-                )
+                self._mp.setenv("SUPERCLAUDE_DECOMPOSED_COMMANDS", ",".join(commands))
 
         def clear(self):
             """Clear all decomposed-related env vars."""

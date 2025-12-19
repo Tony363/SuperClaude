@@ -47,7 +47,8 @@ class JsonlTelemetryClient:
             auto_flush: Whether to auto-flush when buffer is full
         """
         self.metrics_dir = Path(
-            metrics_dir or os.environ.get("SUPERCLAUDE_METRICS_DIR", ".superclaude_metrics")
+            metrics_dir
+            or os.environ.get("SUPERCLAUDE_METRICS_DIR", ".superclaude_metrics")
         )
         self.session_id = session_id or str(uuid.uuid4())[:8]
         self.buffer_size = buffer_size

@@ -303,7 +303,9 @@ class TestCommandRouter:
 
         assert router.get_runtime_mode("analyze") == "python"
 
-    def test_plan_legacy_mode(self, resolver, mock_skills_runtime, sample_command_metadata):
+    def test_plan_legacy_mode(
+        self, resolver, mock_skills_runtime, sample_command_metadata
+    ):
         """Create LEGACY plan when skill not available."""
         mock_skills_runtime.get_skill.return_value = None
         resolver.registry.get_command.return_value = sample_command_metadata

@@ -44,7 +44,9 @@ class ConsensusService:
         Args:
             config_dir: Directory containing consensus_policies.yaml
         """
-        self.config_dir = config_dir or Path(__file__).resolve().parent.parent.parent / "Config"
+        self.config_dir = (
+            config_dir or Path(__file__).resolve().parent.parent.parent / "Config"
+        )
         self.policies = self._load_policies()
 
     def _load_policies(self) -> dict[str, Any]:
@@ -62,14 +64,18 @@ class ConsensusService:
             with cfg_path.open("r", encoding="utf-8") as handle:
                 data = yaml.safe_load(handle) or {}
         except Exception as exc:
-            logger.warning("Failed to load consensus policy config %s: %s", cfg_path, exc)
+            logger.warning(
+                "Failed to load consensus policy config %s: %s", cfg_path, exc
+            )
             data = {}
 
         defaults = data.get("defaults") or {}
         commands = data.get("commands") or {}
 
         defaults_normalized = {
-            "vote_type": self._normalize_vote(defaults.get("vote_type", VoteType.MAJORITY)),
+            "vote_type": self._normalize_vote(
+                defaults.get("vote_type", VoteType.MAJORITY)
+            ),
             "quorum_size": int(defaults.get("quorum_size", 2) or 2),
         }
 

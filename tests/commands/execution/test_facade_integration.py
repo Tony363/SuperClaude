@@ -105,7 +105,9 @@ class TestFacadeIntegrationWithExecutor:
         # Need to reinitialize to pick up env changes
         registry = CommandRegistry()
         parser = CommandParser()
-        new_executor = CommandExecutor(registry, parser, repo_root=integration_workspace)
+        new_executor = CommandExecutor(
+            registry, parser, repo_root=integration_workspace
+        )
 
         if new_executor.execution_facade:
             assert new_executor.execution_facade.should_handle("analyze") is True

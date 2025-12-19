@@ -521,9 +521,7 @@ class SkillRuntime:
 
         # Try script execution first
         if execute_script.exists():
-            result = self._execute_via_script(
-                execute_script, skill, args, context
-            )
+            result = self._execute_via_script(execute_script, skill, args, context)
             result["execution_mode"] = "script"
             return result
 
@@ -560,9 +558,9 @@ class SkillRuntime:
         # Include relevant context state if available
         if context:
             script_args["context"] = {
-                "command_name": getattr(
-                    context.command, "name", None
-                ) if hasattr(context, "command") else None,
+                "command_name": getattr(context.command, "name", None)
+                if hasattr(context, "command")
+                else None,
                 "behavior_mode": getattr(context, "behavior_mode", "normal"),
                 "session_id": getattr(context, "session_id", ""),
                 "loop_enabled": getattr(context, "loop_enabled", False),

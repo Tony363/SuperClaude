@@ -61,5 +61,7 @@ def create_telemetry(
         logger.debug(f"Created JsonlTelemetryClient at {client.metrics_dir}")
         return client
     except Exception as e:
-        logger.warning(f"Failed to create JsonlTelemetryClient: {e}, using NoopTelemetryClient")
+        logger.warning(
+            f"Failed to create JsonlTelemetryClient: {e}, using NoopTelemetryClient"
+        )
         return NoopTelemetryClient()

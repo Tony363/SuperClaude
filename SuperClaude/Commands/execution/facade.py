@@ -93,7 +93,8 @@ class ExecutionFacade:
     async def execute(
         self,
         context: CommandContext,
-        legacy_executor: Callable[[CommandContext], Awaitable[dict[str, Any]]] | None = None,
+        legacy_executor: Callable[[CommandContext], Awaitable[dict[str, Any]]]
+        | None = None,
     ) -> dict[str, Any]:
         """
         Execute command via facade orchestration.
