@@ -5,12 +5,8 @@ Provides helper functions for persona mapping, delegate target extraction,
 agent payload building, and result ingestion without instance dependencies.
 """
 
-import logging
 from collections.abc import Iterable
 from typing import Any
-
-logger = logging.getLogger(__name__)
-
 
 # Default persona to agent mapping
 PERSONA_TO_AGENT: dict[str, str] = {

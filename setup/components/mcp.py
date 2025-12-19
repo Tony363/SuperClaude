@@ -98,7 +98,7 @@ class MCPComponent(Component):
             },
         }
 
-    def install(self, **kwargs) -> bool:
+    def install(self, config: dict = None, **kwargs) -> bool:
         """Display MCP tools information.
 
         No installation needed - just shows documentation about available tools.
@@ -128,7 +128,7 @@ class MCPComponent(Component):
         display_info("No uninstallation needed.")
         return True
 
-    def update(self) -> bool:
+    def update(self, config: dict = None) -> bool:
         """No update needed for native MCP tools."""
         display_info("Native MCP tools are updated with Claude Code.")
         return True

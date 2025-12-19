@@ -105,7 +105,7 @@ class MCPDocsComponent(Component):
             }
         }
 
-    def install(self, **kwargs) -> bool:
+    def install(self, config: dict = None, **kwargs) -> bool:
         """Install documentation files."""
         if not self.selected_servers:
             self.selected_servers = self.default_doc_servers
@@ -130,6 +130,7 @@ class MCPDocsComponent(Component):
             for _, target in files:
                 service.add_import(f"@{target.name}")
         except Exception:
+            # CLAUDEMdService may not be available; imports are optional
             pass
 
         return True

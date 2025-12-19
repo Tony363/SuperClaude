@@ -1,0 +1,31 @@
+#!/bin/bash
+# Post-merge hook: Clean up local branches that have been merged to main
+# and whose remote tracking branch has been deleted
+
+# Get the current branch
+current_branch=$(git symbolic-ref --short HEAD 2>/dev/null)
+
+# Only run cleanup when on main branch
+if [ "$current_branch" != "main" ]; then
+    exit 0
+fi
+
+echo "🧹 Cleaning up merged branches..."
+
+# Prune remote tracking branches that no longer exist on origin
+git fetch --prune origin 2>/dev/null
+
+# Find and delete local branches whose upstream tracking branch is gone
+# These are branches that were merged and deleted on the remote
+gone_branches=$(git for-each-ref --format '%(refname:short) %(upstream:track)' refs/heads | awk '$2 == "[gone]" {print $1}')
+
+if [ -n "$gone_branches" ]; then
+    echo "Deleting local branches with deleted remotes:"
+    for branch in $gone_branches; do
+        echo "  - $branch"
+        git branch -D "$branch" 2>/dev/null
+    done
+    echo "✅ Cleanup complete!"
+else
+    echo "✅ No stale branches to clean up."
+fi

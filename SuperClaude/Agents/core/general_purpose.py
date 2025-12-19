@@ -302,8 +302,6 @@ class GeneralPurposeAgent(BaseAgent):
 
         executed_ops = self._extract_executed_operations(context)
         warnings = []
-        success = False
-        status = "plan-only"
         actions_taken: list[str] = []
 
         if executed_ops:

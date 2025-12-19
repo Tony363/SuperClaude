@@ -6,15 +6,12 @@ generating stubs, and managing implementation artifacts.
 """
 
 import json
-import logging
 import textwrap
 from datetime import datetime
 from pathlib import Path
 from typing import Any
 
 from .utils import deduplicate, slugify
-
-logger = logging.getLogger(__name__)
 
 
 def derive_change_plan(

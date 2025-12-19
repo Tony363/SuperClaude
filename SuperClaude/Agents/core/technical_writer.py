@@ -200,36 +200,6 @@ class TechnicalWriter(HeuristicMarkdownAgent):
 
         return result
 
-    def validate(self, context: dict[str, Any]) -> bool:
-        """
-        Check if this agent can handle the context.
-
-        Args:
-            context: Validation context
-
-        Returns:
-            True if context contains documentation task
-        """
-        task = context.get("task", "")
-
-        # Check for documentation keywords
-        doc_keywords = [
-            "document",
-            "documentation",
-            "docs",
-            "readme",
-            "explain",
-            "describe",
-            "write docs",
-            "api docs",
-            "user guide",
-            "technical docs",
-            "comment",
-        ]
-
-        task_lower = task.lower()
-        return any(keyword in task_lower for keyword in doc_keywords)
-
     def _initialize_templates(self) -> dict[str, str]:
         """
         Initialize documentation templates.
