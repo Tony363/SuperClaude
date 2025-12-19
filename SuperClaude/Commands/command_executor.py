@@ -18,7 +18,7 @@ import subprocess
 import tempfile
 import textwrap
 from collections.abc import Callable, Iterable, Sequence
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict
 from datetime import datetime
 from enum import Enum
 from pathlib import Path

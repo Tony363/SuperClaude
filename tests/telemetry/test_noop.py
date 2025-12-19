@@ -2,7 +2,7 @@
 
 import pytest
 
-from SuperClaude.Telemetry.interfaces import MetricType, TelemetryClient
+from SuperClaude.Telemetry.interfaces import MetricType
 from SuperClaude.Telemetry.noop import NoopTelemetryClient
 
 
@@ -104,10 +104,9 @@ class TestNoopTelemetryClientContextManager:
 
     def test_context_manager_exit_handles_exception(self):
         """Context manager exit handles exceptions gracefully."""
-        with pytest.raises(ValueError):
-            with NoopTelemetryClient() as client:
-                client.record_event("event", {})
-                raise ValueError("Test exception")
+        with pytest.raises(ValueError), NoopTelemetryClient() as client:
+            client.record_event("event", {})
+            raise ValueError("Test exception")
         # No additional exception from __exit__
 
 

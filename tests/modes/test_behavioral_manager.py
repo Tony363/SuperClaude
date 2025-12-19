@@ -1,11 +1,6 @@
 """Tests for BehavioralModeManager."""
 
 import json
-import tempfile
-from pathlib import Path
-from unittest.mock import MagicMock, patch
-
-import pytest
 
 from SuperClaude.Modes.behavioral_manager import (
     BehavioralMode,

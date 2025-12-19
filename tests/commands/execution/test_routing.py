@@ -2,10 +2,7 @@
 
 from __future__ import annotations
 
-from pathlib import Path
 from unittest.mock import MagicMock
-
-import pytest
 
 from SuperClaude.Commands.execution.routing import (
     CommandMetadataResolver,
@@ -13,7 +10,6 @@ from SuperClaude.Commands.execution.routing import (
     ExecutionPlan,
     RuntimeMode,
 )
-from SuperClaude.Commands.registry import CommandMetadata
 
 
 class TestRuntimeMode:
@@ -172,7 +168,7 @@ class TestCommandMetadataResolver:
             skills_first=False,
         )
 
-        result = resolver.resolve("analyze")
+        resolver.resolve("analyze")
         mock_skills_runtime.get_skill.assert_not_called()
         mock_registry.get_command.assert_called_once()
 

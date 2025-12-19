@@ -6,7 +6,7 @@ Golden tests that verify end-to-end behavior through the real executor.
 from __future__ import annotations
 
 import subprocess
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -14,7 +14,6 @@ from SuperClaude.Commands import CommandExecutor, CommandParser, CommandRegistry
 from SuperClaude.Commands.execution.facade import (
     DECOMPOSED_COMMANDS_ENV_VAR,
     DECOMPOSED_ENV_VAR,
-    ExecutionFacade,
 )
 from SuperClaude.Commands.execution.routing import RuntimeMode
 
@@ -137,7 +136,7 @@ class TestFacadeRoutingDecisions:
             CommandMetadataResolver,
             CommandRouter,
         )
-        from SuperClaude.Commands.registry import CommandMetadata, CommandRegistry
+        from SuperClaude.Commands.registry import CommandRegistry
 
         # Create mock skill dir with execute script
         skill_dir = tmp_path / "skills" / "sc-analyze"

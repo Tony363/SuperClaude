@@ -7,7 +7,6 @@ Creates telemetry clients based on configuration and environment.
 import logging
 import os
 from pathlib import Path
-from typing import Union
 
 from .jsonl import JsonlTelemetryClient
 from .noop import NoopTelemetryClient
@@ -15,7 +14,7 @@ from .noop import NoopTelemetryClient
 logger = logging.getLogger(__name__)
 
 # Type alias for telemetry clients
-TelemetryClientType = Union[JsonlTelemetryClient, NoopTelemetryClient]
+TelemetryClientType = JsonlTelemetryClient | NoopTelemetryClient
 
 
 def create_telemetry(

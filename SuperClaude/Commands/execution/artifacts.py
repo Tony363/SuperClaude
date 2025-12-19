@@ -104,7 +104,7 @@ class ArtifactsService:
             "overall_score": assessment.overall_score,
             "passed": assessment.passed,
             "threshold": assessment.threshold,
-            "dimensions": {k: v for k, v in assessment.dimension_scores.items()},
+            "dimensions": dict(assessment.dimension_scores.items()),
         }
 
         summary_lines = [

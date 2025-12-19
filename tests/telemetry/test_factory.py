@@ -1,12 +1,11 @@
 """Tests for telemetry factory."""
 
 import os
-from pathlib import Path
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
 import pytest
 
-from SuperClaude.Telemetry.factory import create_telemetry, TelemetryClientType
+from SuperClaude.Telemetry.factory import create_telemetry
 from SuperClaude.Telemetry.jsonl import JsonlTelemetryClient
 from SuperClaude.Telemetry.noop import NoopTelemetryClient
 
@@ -105,14 +104,16 @@ class TestCreateTelemetryErrorHandling:
     def test_falls_back_to_noop_on_error(self):
         """Returns NoopTelemetryClient if JsonlTelemetryClient init raises."""
         # Mock JsonlTelemetryClient to raise an exception during init
-        with patch(
-            "SuperClaude.Telemetry.factory.JsonlTelemetryClient",
-            side_effect=Exception("Simulated init failure"),
+        with (
+            patch(
+                "SuperClaude.Telemetry.factory.JsonlTelemetryClient",
+                side_effect=Exception("Simulated init failure"),
+            ),
+            patch.dict(os.environ, {}, clear=True),
         ):
-            with patch.dict(os.environ, {}, clear=True):
-                client = create_telemetry()
-                # Should fall back to NoopTelemetryClient
-                assert isinstance(client, NoopTelemetryClient)
+            client = create_telemetry()
+            # Should fall back to NoopTelemetryClient
+            assert isinstance(client, NoopTelemetryClient)
 
 
 class TestTelemetryClientTypeAlias:

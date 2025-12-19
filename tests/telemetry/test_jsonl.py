@@ -2,9 +2,7 @@
 
 import json
 import os
-import tempfile
 import threading
-from pathlib import Path
 from unittest.mock import patch
 
 import pytest
@@ -142,7 +140,7 @@ class TestJsonlTelemetryClientFileOperations:
         metrics_dir = tmp_path / "nested" / "metrics"
         assert not metrics_dir.exists()
 
-        client = JsonlTelemetryClient(metrics_dir=metrics_dir)
+        JsonlTelemetryClient(metrics_dir=metrics_dir)
         assert metrics_dir.exists()
 
     def test_appends_to_existing_file(self, tmp_path):

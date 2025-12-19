@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import os
 from dataclasses import dataclass, field
 from typing import Any
 from unittest.mock import MagicMock
@@ -13,8 +12,6 @@ from SuperClaude.Commands.execution.context import CommandContext
 from SuperClaude.Commands.execution.routing import (
     CommandMetadataResolver,
     CommandRouter,
-    ExecutionPlan,
-    RuntimeMode,
 )
 from SuperClaude.Commands.parser import ParsedCommand
 from SuperClaude.Commands.registry import CommandMetadata, CommandRegistry

@@ -2,14 +2,14 @@
 
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import MagicMock
 
 import pytest
 
 from SuperClaude.Commands.execution.facade import (
-    DEFAULT_DECOMPOSED_COMMANDS,
     DECOMPOSED_COMMANDS_ENV_VAR,
     DECOMPOSED_ENV_VAR,
+    DEFAULT_DECOMPOSED_COMMANDS,
     ExecutionFacade,
 )
 from SuperClaude.Commands.execution.routing import (
