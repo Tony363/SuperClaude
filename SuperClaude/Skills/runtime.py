@@ -453,6 +453,173 @@ class SkillRuntime:
 
         return resources
 
+    def can_execute(self, command_name: str) -> bool:
+        """
+        Check if a command can be executed via Skills runtime.
+
+        Args:
+            command_name: Command name (e.g., 'implement', 'build')
+
+        Returns:
+            True if skill exists and has execute capability
+        """
+        skill_id = f"sc-{command_name}"
+        skill = self.get_skill(skill_id)
+        if not skill:
+            return False
+
+        # Check for execute script
+        skill_dir = Path(skill.skill_dir)
+        execute_script = skill_dir / "scripts" / "execute.py"
+        if execute_script.exists():
+            return True
+
+        # Check if instruction-only execution is allowed
+        # (skill with SKILL.md but no execute script)
+        if skill.content and self.config.fallback_to_python:
+            # Has content, can provide instructions even without script
+            return True
+
+        return False
+
+    def execute_command(
+        self,
+        command_name: str,
+        args: dict[str, Any],
+        context: Any | None = None,
+    ) -> dict[str, Any]:
+        """
+        Execute a command via Skills runtime.
+
+        Args:
+            command_name: Command name (e.g., 'implement', 'build')
+            args: Command arguments
+            context: Optional CommandContext for state sharing
+
+        Returns:
+            Execution result dictionary with:
+            - success: bool
+            - output: Any
+            - skill_id: str
+            - execution_mode: 'script' | 'instruction'
+            - errors: list[str]
+        """
+        skill_id = f"sc-{command_name}"
+        skill = self.get_skill(skill_id)
+
+        if not skill:
+            return {
+                "success": False,
+                "output": None,
+                "skill_id": skill_id,
+                "execution_mode": None,
+                "errors": [f"Skill not found: {skill_id}"],
+            }
+
+        skill_dir = Path(skill.skill_dir)
+        execute_script = skill_dir / "scripts" / "execute.py"
+
+        # Try script execution first
+        if execute_script.exists():
+            result = self._execute_via_script(
+                execute_script, skill, args, context
+            )
+            result["execution_mode"] = "script"
+            return result
+
+        # Fall back to instruction-based execution
+        return self._execute_via_instruction(skill, args, context)
+
+    def _execute_via_script(
+        self,
+        script_path: Path,
+        skill: SkillMetadata,
+        args: dict[str, Any],
+        context: Any | None,
+    ) -> dict[str, Any]:
+        """
+        Execute command via bundled Python script.
+
+        Args:
+            script_path: Path to execute.py
+            skill: Skill metadata
+            args: Command arguments
+            context: Optional execution context
+
+        Returns:
+            Execution result
+        """
+        # Prepare script arguments including context state
+        script_args = {
+            "skill_id": skill.skill_id,
+            "skill_dir": str(skill.skill_dir),
+            "args": args,
+            "project_root": str(self.project_root),
+        }
+
+        # Include relevant context state if available
+        if context:
+            script_args["context"] = {
+                "command_name": getattr(
+                    context.command, "name", None
+                ) if hasattr(context, "command") else None,
+                "behavior_mode": getattr(context, "behavior_mode", "normal"),
+                "session_id": getattr(context, "session_id", ""),
+                "loop_enabled": getattr(context, "loop_enabled", False),
+            }
+
+        result = self.execute_script(script_path, script_args)
+
+        return {
+            "success": result.success,
+            "output": result.output,
+            "skill_id": skill.skill_id,
+            "errors": [result.error] if result.error else [],
+            "exit_code": result.exit_code,
+        }
+
+    def _execute_via_instruction(
+        self,
+        skill: SkillMetadata,
+        args: dict[str, Any],
+        context: Any | None,
+    ) -> dict[str, Any]:
+        """
+        Execute command via instruction-based execution.
+
+        Returns skill content and metadata for Claude to execute.
+
+        Args:
+            skill: Skill metadata
+            args: Command arguments
+            context: Optional execution context
+
+        Returns:
+            Execution result with instructions
+        """
+        # Load full skill content
+        content = self.get_skill_content(skill)
+        resources = self.get_skill_resources(skill)
+
+        return {
+            "success": True,
+            "output": {
+                "instructions": content,
+                "resources": resources,
+                "metadata": {
+                    "skill_id": skill.skill_id,
+                    "name": skill.name,
+                    "description": skill.description,
+                    "domains": skill.domains,
+                    "triggers": skill.triggers,
+                },
+                "args": args,
+            },
+            "skill_id": skill.skill_id,
+            "execution_mode": "instruction",
+            "errors": [],
+        }
+
     def list_commands(self) -> list[str]:
         """List all available command skills."""
         commands = self.discovery.get_commands()

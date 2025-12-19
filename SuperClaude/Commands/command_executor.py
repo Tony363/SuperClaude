@@ -77,60 +77,19 @@ class VoteType(Enum):
     WEIGHTED = "weighted"
 
 
-# Stub for removed Monitoring module
-class MetricType:
-    COUNTER = "counter"
-    GAUGE = "gauge"
-    TIMER = "timer"
+# Import real MetricType from Telemetry module (legacy stub fallback)
+try:
+    from ..Telemetry.interfaces import MetricType
+except ImportError:
+
+    class MetricType:  # type: ignore[no-redef]
+        COUNTER = "counter"
+        GAUGE = "gauge"
+        TIMER = "timer"
 
 
-@dataclass
-class CommandContext:
-    """Execution context for a command."""
-
-    command: ParsedCommand
-    metadata: CommandMetadata
-    mcp_servers: list[str] = field(default_factory=list)
-    agents: list[str] = field(default_factory=list)
-    agent_instances: dict[str, Any] = field(default_factory=dict)
-    agent_outputs: dict[str, Any] = field(default_factory=dict)
-    start_time: datetime = field(default_factory=datetime.now)
-    results: dict[str, Any] = field(default_factory=dict)
-    errors: list[str] = field(default_factory=list)
-    session_id: str = ""
-    behavior_mode: str = BehavioralMode.NORMAL.value
-    consensus_summary: dict[str, Any] | None = None
-    artifact_records: list[dict[str, Any]] = field(default_factory=list)
-    think_level: int = 2
-    loop_enabled: bool = False
-    loop_iterations: int | None = None
-    loop_min_improvement: float | None = None
-    consensus_forced: bool = False
-    delegated_agents: list[str] = field(default_factory=list)
-    delegation_strategy: str | None = None
-    active_personas: list[str] = field(default_factory=list)
-    fast_codex_requested: bool = False
-    fast_codex_active: bool = False
-    fast_codex_blocked: list[str] = field(default_factory=list)
-
-
-@dataclass
-class CommandResult:
-    """Result of command execution."""
-
-    success: bool
-    command_name: str
-    output: Any
-    errors: list[str] = field(default_factory=list)
-    execution_time: float = 0.0
-    mcp_servers_used: list[str] = field(default_factory=list)
-    agents_used: list[str] = field(default_factory=list)
-    executed_operations: list[str] = field(default_factory=list)
-    applied_changes: list[str] = field(default_factory=list)
-    artifacts: list[str] = field(default_factory=list)
-    consensus: dict[str, Any] | None = None
-    behavior_mode: str = BehavioralMode.NORMAL.value
-    status: str = "plan-only"
+# Import context dataclasses from execution module
+from .execution.context import CommandContext, CommandResult
 
 
 class CommandExecutor:
@@ -193,10 +152,13 @@ class CommandExecutor:
             "delegate_search": AgentCategory.DEVELOPER_EXPERIENCE,
             "delegate-search": AgentCategory.DEVELOPER_EXPERIENCE,
         }
+        # Initialize telemetry client
         try:
-            self.monitor = None  # Monitoring removed
+            from ..Telemetry import create_telemetry
+
+            self.monitor = create_telemetry()
         except Exception as exc:
-            logger.debug(f"Performance monitor unavailable: {exc}")
+            logger.debug(f"Telemetry client unavailable: {exc}")
             self.monitor = None
 
         try:
@@ -204,6 +166,44 @@ class CommandExecutor:
         except Exception as exc:
             logger.debug(f"Worktree manager unavailable: {exc}")
             self.worktree_manager = None
+
+        # Initialize execution facade for decomposed execution
+        self.execution_facade = self._init_execution_facade()
+
+    def _init_execution_facade(self):
+        """Initialize execution facade if dependencies are available."""
+        try:
+            from .execution.facade import ExecutionFacade
+            from .execution.routing import CommandMetadataResolver, CommandRouter
+
+            # Create resolver and router
+            resolver = CommandMetadataResolver(
+                registry=self.registry,
+                skills_runtime=None,  # Will be set if skills available
+                skills_first=True,
+            )
+            router = CommandRouter(
+                resolver=resolver,
+                skills_runtime=None,  # Will be set if skills available
+            )
+
+            # Try to wire up skills runtime
+            try:
+                from ..Skills.runtime import create_runtime
+
+                skills_runtime = create_runtime(project_root=self.repo_root)
+                resolver.skills_runtime = skills_runtime
+                router.skills_runtime = skills_runtime
+            except Exception as exc:
+                logger.debug(f"Skills runtime unavailable: {exc}")
+
+            return ExecutionFacade(
+                router=router,
+                telemetry_client=self.monitor,
+            )
+        except Exception as exc:
+            logger.debug(f"Execution facade unavailable: {exc}")
+            return None
 
     def set_agent_loader(self, agent_loader) -> None:
         """
@@ -804,6 +804,31 @@ class CommandExecutor:
     async def _execute_command_logic(self, context: CommandContext) -> Any:
         """
         Execute the actual command logic.
+
+        Args:
+            context: Command execution context
+
+        Returns:
+            Command output
+        """
+        command_name = context.command.name
+
+        # Check if facade should handle this command (decomposed execution)
+        if self.execution_facade and self.execution_facade.should_handle(command_name):
+            # Create legacy executor closure for fallback
+            async def legacy_executor(ctx: CommandContext) -> dict[str, Any]:
+                return await self._execute_legacy_dispatch(ctx)
+
+            return await self.execution_facade.execute(context, legacy_executor)
+
+        # Legacy dispatch path
+        return await self._execute_legacy_dispatch(context)
+
+    async def _execute_legacy_dispatch(self, context: CommandContext) -> Any:
+        """
+        Legacy command dispatch.
+
+        Routes to specific command handlers based on command name.
 
         Args:
             context: Command execution context
