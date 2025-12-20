@@ -11,7 +11,6 @@ from SuperClaude.Quality.generated_validator import (
     GeneratedDocValidation,
     GeneratedValidator,
     ValidationIssue,
-    ValidationReport,
 )
 
 

@@ -11,11 +11,12 @@ import json
 import logging
 import sqlite3
 import threading
+from collections.abc import Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Iterator
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -316,8 +317,9 @@ class EvidenceStore:
 
         with self._cursor() as cursor:
             # Get total count
+            # SECURITY: where_clause only contains hardcoded SQL fragments; user values in params
             cursor.execute(
-                f"SELECT COUNT(*) FROM evidence WHERE {where_clause}",
+                f"SELECT COUNT(*) FROM evidence WHERE {where_clause}",  # noqa: S608
                 params,
             )
             total_count = cursor.fetchone()[0]
@@ -330,7 +332,7 @@ class EvidenceStore:
                 WHERE {where_clause}
                 ORDER BY timestamp DESC
                 LIMIT ? OFFSET ?
-                """,
+                """,  # noqa: S608
                 params + [limit, offset],
             )
 
@@ -424,6 +426,7 @@ class EvidenceStore:
         where_clause = " AND ".join(conditions)
 
         with self._cursor() as cursor:
+            # SECURITY: where_clause only contains hardcoded SQL fragments; user values in params
             cursor.execute(
                 f"""
                 SELECT session_id, timestamp, name, payload
@@ -431,7 +434,7 @@ class EvidenceStore:
                 WHERE {where_clause}
                 ORDER BY timestamp DESC
                 LIMIT ?
-                """,
+                """,  # noqa: S608
                 params + [limit],
             )
 
@@ -518,7 +521,7 @@ class EvidenceStore:
             return 0
 
         count = 0
-        with open(filepath, "r", encoding="utf-8") as f:
+        with open(filepath, encoding="utf-8") as f:
             for line in f:
                 line = line.strip()
                 if not line:

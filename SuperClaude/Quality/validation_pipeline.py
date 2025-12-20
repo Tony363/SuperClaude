@@ -333,7 +333,7 @@ class ToolRunner:
 
         for filepath in files:
             try:
-                with open(filepath, "r", encoding="utf-8") as f:
+                with open(filepath, encoding="utf-8") as f:
                     source = f.read()
                 compile(source, str(filepath), "exec")
             except SyntaxError as e:

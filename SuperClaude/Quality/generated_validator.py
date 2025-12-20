@@ -367,8 +367,8 @@ def main():
     if args.json:
         print(validator.to_json(report))
     else:
-        print(f"Generated Implementation Validation Report")
-        print(f"=" * 50)
+        print("Generated Implementation Validation Report")
+        print("=" * 50)
         print(f"Total files:     {report.total_files}")
         print(f"Valid files:     {report.valid_files}")
         print(f"Invalid files:   {report.invalid_files}")
