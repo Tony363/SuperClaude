@@ -7,7 +7,8 @@ from SuperClaude.Quality.validation_pipeline import ValidationPipeline
 
 def test_pipeline_short_circuits_on_fatal_security(tmp_path, monkeypatch):
     monkeypatch.setenv("SUPERCLAUDE_METRICS_DIR", str(tmp_path / "metrics"))
-    pipeline = ValidationPipeline()
+    # Use context-provided data, not real tools
+    pipeline = ValidationPipeline(use_real_tools=False)
     context = {
         "syntax_report": {"errors": []},
         "security_scan": {
@@ -30,7 +31,8 @@ def test_pipeline_short_circuits_on_fatal_security(tmp_path, monkeypatch):
 
 def test_security_stage_degraded_without_scan(tmp_path, monkeypatch):
     monkeypatch.setenv("SUPERCLAUDE_METRICS_DIR", str(tmp_path / "metrics"))
-    pipeline = ValidationPipeline()
+    # Use context-provided data, not real tools
+    pipeline = ValidationPipeline(use_real_tools=False)
     context = {
         "syntax_report": {"errors": []},
         "test_results": {"failed": 0},
@@ -46,7 +48,8 @@ def test_security_stage_degraded_without_scan(tmp_path, monkeypatch):
 
 def test_pipeline_marks_test_stage_failed(tmp_path, monkeypatch):
     monkeypatch.setenv("SUPERCLAUDE_METRICS_DIR", str(tmp_path / "metrics"))
-    pipeline = ValidationPipeline()
+    # Use context-provided data, not real tools
+    pipeline = ValidationPipeline(use_real_tools=False)
     context = {
         "syntax_report": {"errors": []},
         "security_scan": {"issues": []},
