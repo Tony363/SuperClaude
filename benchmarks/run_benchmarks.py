@@ -83,6 +83,28 @@ SUITES: Mapping[str, list[BenchmarkCase]] = {
             "Check worktree guardrail behaviour.",
         ),
     ],
+    "generated": [
+        _cli_case(
+            "generated-validation",
+            (
+                sys.executable,
+                "-m",
+                "SuperClaude.Quality.generated_validator",
+                "--fail-on-errors",
+            ),
+            "Validate generated implementation documents.",
+        ),
+        _pytest_case(
+            "evidence-store-tests",
+            "tests/telemetry/test_evidence_store.py",
+            "Test SQLite evidence store functionality.",
+        ),
+        _pytest_case(
+            "generated-validator-tests",
+            "tests/quality/test_generated_validator.py",
+            "Test generated document validator.",
+        ),
+    ],
     "full": [
         BenchmarkCase(
             name="quality-suite",
@@ -97,6 +119,15 @@ SUITES: Mapping[str, list[BenchmarkCase]] = {
             "benchmark-report",
             (sys.executable, "scripts/report_agent_usage.py"),
             "Generate the agent usage report to confirm telemetry parsing.",
+        ),
+        _cli_case(
+            "generated-validation",
+            (
+                sys.executable,
+                "-m",
+                "SuperClaude.Quality.generated_validator",
+            ),
+            "Validate generated implementation documents.",
         ),
     ],
 }

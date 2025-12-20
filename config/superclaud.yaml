@@ -79,16 +79,18 @@ quality:
   default_threshold: 70.0
   max_iterations: 5
 
-  # Quality dimensions and weights
+  # Quality dimensions and weights (9 dimensions, must sum to 1.0)
+  # These align with QualityDimension enum in quality_scorer.py
   dimensions:
-    correctness: 0.25
-    completeness: 0.15
-    clarity: 0.15
-    efficiency: 0.10
-    maintainability: 0.10
-    security: 0.10
-    documentation: 0.10
-    testing: 0.05
+    correctness: 0.25      # Tests pass, no runtime errors, output validation
+    completeness: 0.20     # Feature coverage, edge cases, documentation
+    performance: 0.10      # Time/space complexity, resource usage
+    maintainability: 0.10  # Readability, modularity, naming
+    security: 0.10         # Input validation, authentication, data protection
+    scalability: 0.10      # Architecture, database design, caching
+    testability: 0.10      # Unit tests, integration tests, test quality
+    pal_review: 0.00       # External code review via mcp__pal__codereview (dynamic)
+    usability: 0.05        # UI consistency, error messages, accessibility
 
 # Worktree management configuration
 worktree:
