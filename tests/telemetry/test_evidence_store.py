@@ -296,7 +296,11 @@ class TestJSONLImport:
         """Import events from JSONL file."""
         jsonl_file = temp_db.parent / "events.jsonl"
         events = [
-            {"session_id": "import-1", "event": "start", "timestamp": "2024-01-01T00:00:00Z"},
+            {
+                "session_id": "import-1",
+                "event": "start",
+                "timestamp": "2024-01-01T00:00:00Z",
+            },
             {"session_id": "import-1", "event": "end", "payload": {"status": "ok"}},
         ]
         with open(jsonl_file, "w") as f:
@@ -364,8 +368,7 @@ class TestThreadSafety:
             results.append(session_id)
 
         threads = [
-            threading.Thread(target=worker, args=(f"thread-{i}",))
-            for i in range(5)
+            threading.Thread(target=worker, args=(f"thread-{i}",)) for i in range(5)
         ]
 
         for t in threads:

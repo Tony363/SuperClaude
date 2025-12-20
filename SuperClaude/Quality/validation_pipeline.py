@@ -226,14 +226,18 @@ class ToolRunner:
         }
 
         # Parse mypy output (format: file:line: error: message)
-        error_pattern = re.compile(r"^(.+):(\d+):\s*(error|warning):\s*(.+)$", re.MULTILINE)
+        error_pattern = re.compile(
+            r"^(.+):(\d+):\s*(error|warning):\s*(.+)$", re.MULTILINE
+        )
         for match in error_pattern.finditer(stdout):
-            result["errors"].append({
-                "file": match.group(1),
-                "line": int(match.group(2)),
-                "severity": match.group(3),
-                "message": match.group(4),
-            })
+            result["errors"].append(
+                {
+                    "file": match.group(1),
+                    "line": int(match.group(2)),
+                    "severity": match.group(3),
+                    "message": match.group(4),
+                }
+            )
 
         result["count"] = len(result["errors"])
         return result
@@ -281,14 +285,16 @@ class ToolRunner:
 
                 for issue in issues:
                     severity = issue.get("issue_severity", "LOW").upper()
-                    result["issues"].append({
-                        "file": issue.get("filename", ""),
-                        "line": issue.get("line_number", 0),
-                        "severity": severity,
-                        "confidence": issue.get("issue_confidence", ""),
-                        "message": issue.get("issue_text", ""),
-                        "test_id": issue.get("test_id", ""),
-                    })
+                    result["issues"].append(
+                        {
+                            "file": issue.get("filename", ""),
+                            "line": issue.get("line_number", 0),
+                            "severity": severity,
+                            "confidence": issue.get("issue_confidence", ""),
+                            "message": issue.get("issue_text", ""),
+                            "test_id": issue.get("test_id", ""),
+                        }
+                    )
 
                     if severity == "CRITICAL":
                         result["critical"] += 1
@@ -337,19 +343,23 @@ class ToolRunner:
                     source = f.read()
                 compile(source, str(filepath), "exec")
             except SyntaxError as e:
-                result["errors"].append({
-                    "file": str(filepath),
-                    "line": e.lineno or 0,
-                    "message": str(e.msg),
-                    "offset": e.offset or 0,
-                })
+                result["errors"].append(
+                    {
+                        "file": str(filepath),
+                        "line": e.lineno or 0,
+                        "message": str(e.msg),
+                        "offset": e.offset or 0,
+                    }
+                )
                 result["success"] = False
             except Exception as e:
-                result["errors"].append({
-                    "file": str(filepath),
-                    "line": 0,
-                    "message": str(e),
-                })
+                result["errors"].append(
+                    {
+                        "file": str(filepath),
+                        "line": 0,
+                        "message": str(e),
+                    }
+                )
 
         return result
 
@@ -433,15 +443,23 @@ class ValidationPipeline:
                 if target.is_file():
                     files = [target]
 
-            result = ToolRunner.check_syntax(files=files, cwd=target if target and target.is_dir() else None)
+            result = ToolRunner.check_syntax(
+                files=files, cwd=target if target and target.is_dir() else None
+            )
 
             if result["errors"]:
                 return ValidationStageResult(
                     name="syntax",
                     status="failed",
-                    findings=[f"{e['file']}:{e['line']}: {e['message']}" for e in result["errors"]],
+                    findings=[
+                        f"{e['file']}:{e['line']}: {e['message']}"
+                        for e in result["errors"]
+                    ],
                     fatal=True,
-                    metadata={"tool": "py_compile", "error_count": len(result["errors"])},
+                    metadata={
+                        "tool": "py_compile",
+                        "error_count": len(result["errors"]),
+                    },
                 )
             return ValidationStageResult(
                 name="syntax",
@@ -718,7 +736,11 @@ class ValidationPipeline:
                     findings=[
                         f"Found {result['medium']} medium and {result['low']} low severity issues"
                     ],
-                    metadata={"tool": "bandit", "medium": result["medium"], "low": result["low"]},
+                    metadata={
+                        "tool": "bandit",
+                        "medium": result["medium"],
+                        "low": result["low"],
+                    },
                 )
 
             return ValidationStageResult(

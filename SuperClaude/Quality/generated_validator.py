@@ -189,7 +189,9 @@ class GeneratedValidator:
         issues.extend(content_issues)
 
         # Extract and validate metadata
-        meta_issues, extracted_meta = self._validate_metadata(content, doc_type, file_path)
+        meta_issues, extracted_meta = self._validate_metadata(
+            content, doc_type, file_path
+        )
         issues.extend(meta_issues)
         metadata.update(extracted_meta)
 
@@ -238,9 +240,7 @@ class GeneratedValidator:
 
         return issues
 
-    def _validate_content(
-        self, content: str, file_path: Path
-    ) -> list[ValidationIssue]:
+    def _validate_content(self, content: str, file_path: Path) -> list[ValidationIssue]:
         """Check for incomplete content markers."""
         issues = []
 
