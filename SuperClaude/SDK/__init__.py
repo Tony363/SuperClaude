@@ -32,6 +32,16 @@ Example:
 from __future__ import annotations
 
 __version__ = "0.1.0"
+
+# Explicit imports for CodeQL compatibility
+# These modules have no external dependencies that would fail
+from .adapter import AgentToSDKAdapter
+from .agentic_loop import create_sdk_loop_context, run_sdk_loop
+from .client import SDKMessage, SDKOptions, SuperClaudeSDKClient
+from .executor import SDKExecutionResult, SDKExecutor, SDKExecutorConfig
+from .hooks import EvidenceHooks, QualityHooks
+from .types import TerminationReason
+
 __all__ = [
     # Client
     "SuperClaudeSDKClient",
@@ -52,63 +62,6 @@ __all__ = [
     "SDKOptions",
     "TerminationReason",
 ]
-
-# Lazy imports to avoid circular dependencies and allow graceful degradation
-# if claude-agent-sdk is not installed
-
-
-def __getattr__(name: str):
-    """Lazy import module components."""
-    if name == "SuperClaudeSDKClient":
-        from .client import SuperClaudeSDKClient
-
-        return SuperClaudeSDKClient
-    elif name == "AgentToSDKAdapter":
-        from .adapter import AgentToSDKAdapter
-
-        return AgentToSDKAdapter
-    elif name == "SDKExecutor":
-        from .executor import SDKExecutor
-
-        return SDKExecutor
-    elif name == "SDKExecutorConfig":
-        from .executor import SDKExecutorConfig
-
-        return SDKExecutorConfig
-    elif name == "SDKExecutionResult":
-        from .executor import SDKExecutionResult
-
-        return SDKExecutionResult
-    elif name == "run_sdk_loop":
-        from .agentic_loop import run_sdk_loop
-
-        return run_sdk_loop
-    elif name == "create_sdk_loop_context":
-        from .agentic_loop import create_sdk_loop_context
-
-        return create_sdk_loop_context
-    elif name == "QualityHooks":
-        from .hooks import QualityHooks
-
-        return QualityHooks
-    elif name == "EvidenceHooks":
-        from .hooks import EvidenceHooks
-
-        return EvidenceHooks
-    elif name == "SDKMessage":
-        from .types import SDKMessage
-
-        return SDKMessage
-    elif name == "SDKOptions":
-        from .types import SDKOptions
-
-        return SDKOptions
-    elif name == "TerminationReason":
-        from .types import TerminationReason
-
-        return TerminationReason
-    else:
-        raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
 def is_sdk_available() -> bool:
