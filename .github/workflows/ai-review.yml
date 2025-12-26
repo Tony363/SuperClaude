@@ -45,9 +45,9 @@ jobs:
           PYTHON_FILES=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | grep '\.py$' | head -20 | sed "s|^|$(pwd)/|" | tr '\n' ',' | sed 's/,$//')
           echo "python_files=$PYTHON_FILES" >> $GITHUB_OUTPUT
 
-          # Check if tests were modified
-          TESTS_MODIFIED=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | grep -c '^tests/' || echo "0")
-          echo "tests_modified=$TESTS_MODIFIED" >> $GITHUB_OUTPUT
+          # Check if tests were modified (use wc -l to avoid grep exit code issues)
+          TESTS_MODIFIED=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | grep '^tests/' | wc -l | tr -d ' ')
+          echo "tests_modified=${TESTS_MODIFIED:-0}" >> $GITHUB_OUTPUT
 
       - name: Run PAL MCP Consensus Code Review
         uses: anthropics/claude-code-action@v1

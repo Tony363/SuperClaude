@@ -3,14 +3,14 @@
 <p align="center">
   <img src="https://img.shields.io/badge/version-6.0.0--alpha-blue" alt="Version">
   <img src="https://img.shields.io/badge/python-3.10%2B-green" alt="Python">
-  <img src="https://img.shields.io/badge/agents-131-orange" alt="Agents">
+  <img src="https://img.shields.io/badge/agents-130-orange" alt="Agents">
   <img src="https://img.shields.io/badge/commands-13-purple" alt="Commands">
   <img src="https://img.shields.io/badge/license-MIT-lightgrey" alt="License">
 </p>
 
 **An intelligent AI orchestration framework for Claude Code that provides multi-model consensus, specialized agents, behavioral modes, and quality-driven execution with iterative improvement loops.**
 
-SuperClaude transforms Claude Code into a powerful development platform with 131 specialized agents, multi-provider AI routing, MCP server integration, and sophisticated quality validation pipelines featuring deterministic safety grounding.
+SuperClaude transforms Claude Code into a powerful development platform with 130 specialized agents (16 core + 114 extended), Claude Agent SDK integration, multi-provider AI routing, MCP server integration, and sophisticated quality validation pipelines featuring deterministic safety grounding.
 
 ---
 
@@ -20,7 +20,7 @@ SuperClaude transforms Claude Code into a powerful development platform with 131
 - [Key Features](#key-features)
 - [Architecture](#architecture)
   - [High-Level System Architecture](#high-level-system-architecture)
-  - [Execution Routing (Skills vs Legacy)](#execution-routing-skills-vs-legacy)
+  - [Claude Agent SDK Integration](#claude-agent-sdk-integration)
   - [Request Flow](#request-flow)
 - [The Agentic Loop (`--loop`)](#the-agentic-loop---loop)
   - [How It Works](#how-it-works)
@@ -53,7 +53,8 @@ SuperClaude transforms Claude Code into a powerful development platform with 131
 
 SuperClaude is a sophisticated AI orchestration framework that enhances Claude Code with:
 
-- **131 Specialized Agents**: 15 core + 116 extended agents across 10 categories
+- **130 Specialized Agents**: 16 core Python agents + 114 extended agents across 10 categories
+- **Claude Agent SDK Integration**: Native SDK support with quality hooks and evidence collection
 - **Multi-Model Consensus**: Route requests to GPT-5, Gemini 2.5 Pro, Claude, xAI Grok
 - **13 Commands**: analyze, implement, test, design, document, and more
 - **Agentic Loop**: Iterative improvement with PAL MCP code reviews (`--loop` flag)
@@ -64,6 +65,34 @@ SuperClaude is a sophisticated AI orchestration framework that enhances Claude C
 ---
 
 ## Key Features
+
+### Claude Agent SDK Integration
+
+SuperClaude v6.0.0 introduces native Claude Agent SDK integration for programmatic execution:
+
+```python
+from SuperClaude.SDK import SuperClaudeSDKClient, AgentToSDKAdapter
+
+# Create SDK client with SuperClaude capabilities
+client = SuperClaudeSDKClient(
+    registry=agent_registry,
+    selector=agent_selector,
+    quality_scorer=quality_scorer
+)
+
+# Execute with automatic agent selection
+async for message in client.execute_with_agent(
+    task="Fix the authentication bug in auth.py",
+    context={"cwd": "/project", "requires_evidence": True}
+):
+    process_message(message)
+```
+
+**SDK Components:**
+- `SuperClaudeSDKClient` - High-level execution API with agent orchestration
+- `AgentToSDKAdapter` - Converts SuperClaude agents to SDK format
+- `QualityHooks` - Evidence collection during execution
+- `SDKMessage`, `SDKOptions`, `ExecutionResult` - Type-safe data structures
 
 ### Agentic Loop for Iterative Development
 
@@ -87,7 +116,7 @@ Unlike pure LLM self-evaluation, SuperClaude grounds quality scores in **verifia
 - **Test failures** cap maximum score at 40-60%
 - **Security vulnerabilities** cap score at 30%
 - **Build failures** cap score at 45%
-- **Clean signals** (tests pass, lint clean) add bonuses
+- **Clean signals** (tests pass, lint clean) add bonuses up to +25 points
 
 This prevents the system from hallucinating success when real problems exist.
 
@@ -103,22 +132,23 @@ graph TB
         User[User Input] --> Parser[Command Parser]
         Parser --> Executor[Command Executor]
 
-        Executor --> Facade[Execution Facade]
+        Executor --> SDK[SDK Module]
         Executor --> Router[Model Router]
-        Executor --> Agents[Agent System<br/>131 Agents]
+        Executor --> Agents[Agent System<br/>130 Agents]
         Executor --> Modes[Behavioral Modes]
 
-        Facade --> Skills[Skills Runtime]
-        Facade --> Legacy[Legacy Executor]
+        SDK --> SDKClient[SuperClaudeSDKClient]
+        SDK --> SDKAdapter[AgentToSDKAdapter]
+        SDK --> SDKHooks[Quality Hooks]
 
-        Router --> Anthropic[Claude Opus 4.1]
+        Router --> Anthropic[Claude Opus 4.5]
         Router --> OpenAI[GPT-5 / GPT-4.1]
         Router --> Google[Gemini 2.5 Pro]
         Router --> xAI[Grok 4]
 
         Agents --> Registry[Agent Registry<br/>LRU Cache]
-        Registry --> CoreAgents[15 Core Agents]
-        Registry --> ExtendedAgents[116 Extended Agents]
+        Registry --> CoreAgents[16 Core Agents]
+        Registry --> ExtendedAgents[114 Extended Agents]
 
         Executor --> MCP[MCP Integrations]
         MCP --> Rube[Rube MCP<br/>500+ Apps]
@@ -132,40 +162,54 @@ graph TB
 
     style User fill:#e1f5fe
     style Executor fill:#fff3e0
-    style Facade fill:#e8f5e9
+    style SDK fill:#e8f5e9
     style Router fill:#f3e5f5
     style Agents fill:#e8f5e9
     style MCP fill:#fce4ec
     style Quality fill:#fff9c4
 ```
 
-### Execution Routing (Skills vs Legacy)
-
-SuperClaude supports dual execution paths controlled by feature flags:
+### Claude Agent SDK Integration
 
 ```mermaid
-graph LR
-    subgraph "Execution Facade"
-        Input[Command Context] --> Facade[ExecutionFacade]
-        Facade --> Check{SUPERCLAUDE_DECOMPOSED?}
-
-        Check -->|enabled + allowlisted| Router{Routing Plan}
-        Check -->|disabled| Legacy[Legacy Executor]
-
-        Router -->|RuntimeMode.SKILLS| Skills[Skills Runtime]
-        Router -->|RuntimeMode.LEGACY| Legacy
-
-        Skills --> Output[Command Output]
-        Legacy --> Output
+flowchart LR
+    subgraph UserLayer["Caller / CLI / Workflow"]
+        U[Developer]
     end
+
+    subgraph SdkModule["SuperClaude/SDK"]
+        C["SuperClaudeSDKClient<br/>(high-level execution API)"]
+        A["AgentToSDKAdapter<br/>(Agent → SDK format)"]
+        T["Types<br/>SDKMessage<br/>SDKOptions<br/>ExecutionResult"]
+        HQ["Quality Hooks<br/>(evidence collection)"]
+    end
+
+    subgraph AgentLayer["SuperClaude Agents"]
+        Core["Core Agents (16)<br/>backend_architect<br/>general_purpose<br/>..."]
+        Ext["Extended Agents (114)<br/>10 categories"]
+    end
+
+    subgraph LoopQuality["SuperClaude/Quality"]
+        Loop["Agentic Loop<br/>(iterative improvement)"]
+        Score["Quality Scoring<br/>(9 dims + caps/bonuses)"]
+    end
+
+    subgraph Telemetry["SuperClaude/Telemetry"]
+        Evidence["Evidence Store"]
+        Metrics["Metrics / Logs"]
+    end
+
+    U --> C
+    C --> A
+    A --> Core
+    A --> Ext
+
+    C --> HQ
+    HQ --> Evidence
+    Evidence --> Score
+    Score --> Loop
+    Loop --> C
 ```
-
-**Environment Variables:**
-
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `SUPERCLAUDE_DECOMPOSED` | Enable facade routing | `false` |
-| `SUPERCLAUDE_DECOMPOSED_COMMANDS` | Comma-separated allowlist | `analyze` |
 
 ### Request Flow
 
@@ -175,7 +219,7 @@ sequenceDiagram
     participant Parser as Command Parser
     participant Registry as Command Registry
     participant Executor as Command Executor
-    participant Facade as Execution Facade
+    participant SDK as SDK Client
     participant Agent as Agent Selector
     participant Router as Model Router
     participant Quality as Quality Pipeline
@@ -185,15 +229,18 @@ sequenceDiagram
     Registry-->>Parser: Command Metadata
     Parser->>Executor: ParsedCommand
 
-    Executor->>Facade: Route Execution
-    Facade-->>Executor: Skills or Legacy Path
-
     Executor->>Agent: Select Agent(context)
     Agent-->>Executor: Best Match Agent
 
-    Executor->>Router: Route Request
-    Router->>Router: Select Provider
-    Router-->>Executor: Model Response
+    alt SDK Execution Path
+        Executor->>SDK: Execute via SDK
+        SDK->>Router: Route Request
+        Router-->>SDK: Model Response
+        SDK-->>Executor: SDKExecutionResult
+    else Legacy Execution Path
+        Executor->>Router: Route Request
+        Router-->>Executor: Model Response
+    end
 
     Executor->>Quality: Validate Output
     Quality->>Quality: Apply Deterministic Signals
@@ -222,7 +269,7 @@ The agentic loop is SuperClaude's core iterative improvement mechanism. When ena
 sequenceDiagram
     participant User
     participant Executor as Command Executor
-    participant Agents as Expert Sub-Agents<br/>(quality-engineer,<br/>refactoring-expert)
+    participant SDK as SDK Client
     participant PAL as PAL MCP<br/>(mcp__pal__codereview)
     participant Quality as Quality Scorer
     participant Signals as Deterministic Signals
@@ -231,9 +278,9 @@ sequenceDiagram
 
     Note over Executor: --loop enables<br/>PAL review automatically
 
-    loop Iteration 1..n (max capped at HARD_MAX_ITERATIONS=5)
-        Executor->>Agents: Run agent pipeline
-        Agents-->>Executor: Code changes + tests
+    loop Iteration 1..n (max capped at HARD_MAX=5)
+        Executor->>SDK: Execute agent pipeline
+        SDK-->>Executor: Code changes + tests
 
         Executor->>PAL: mcp__pal__codereview(changed_files)
         PAL-->>Executor: Review findings
@@ -247,7 +294,7 @@ sequenceDiagram
             Executor-->>User: ✅ Success Response
         else score >= 75 AND iterations < max
             Note over Executor: Build feedback context:<br/>improvements_needed,<br/>PAL findings,<br/>current_score
-            Executor->>Agents: Re-delegate with feedback
+            Executor->>SDK: Re-delegate with feedback
         else Oscillation/Stagnation detected
             Executor-->>User: ⚠️ Best result + warnings
         else Max iterations reached
@@ -267,6 +314,7 @@ The agentic loop terminates when any of these conditions are met:
 | `INSUFFICIENT_IMPROVEMENT` | Progress stalled | Improvement < MIN_IMPROVEMENT (5.0) |
 | `OSCILLATION` | Scores alternating | Pattern like [65, 72, 65, 71] detected |
 | `STAGNATION` | Scores flat | All recent scores within 2.0 points |
+| `TIMEOUT` | Wall-clock limit exceeded | Best-effort timeout exceeded |
 | `ERROR` | Improver function failed | Exception during iteration |
 | `HUMAN_ESCALATION` | Requires manual review | Complex issues needing human judgment |
 
@@ -278,10 +326,11 @@ SuperClaude implements layered safety to prevent runaway loops and inflated scor
 
 ```python
 # From quality_scorer.py
-MAX_ITERATIONS = 3        # Default iterations
-HARD_MAX_ITERATIONS = 5   # Absolute ceiling, CANNOT be overridden
-OSCILLATION_WINDOW = 3    # Scores checked for oscillation
+MAX_ITERATIONS = 3          # Default iterations
+HARD_MAX_ITERATIONS = 5     # Absolute ceiling, CANNOT be overridden
+OSCILLATION_WINDOW = 3      # Scores checked for oscillation
 STAGNATION_THRESHOLD = 2.0  # Minimum score difference
+MIN_IMPROVEMENT = 5.0       # Minimum improvement to continue
 ```
 
 **Key guarantee**: Even if you pass `max_iterations=100`, the loop caps at 5.
@@ -291,40 +340,46 @@ STAGNATION_THRESHOLD = 2.0  # Minimum score difference
 Unlike pure LLM self-evaluation, quality scores are grounded in verifiable facts:
 
 ```mermaid
-graph TB
-    subgraph "Deterministic Signals"
-        Base[Base LLM Score] --> Check{Hard Failures?}
+flowchart TB
+    subgraph "Deterministic Signal Pipeline"
+        Base[Base LLM Score] --> Collect[Collect Signals]
+
+        subgraph Signals["Deterministic Signals"]
+            Tests["Tests<br/>(pass/fail %)"]
+            Lint["Lint<br/>(clean/issues)"]
+            Type["Type Check<br/>(pass/fail)"]
+            Build["Build<br/>(pass/fail)"]
+            Sec["Security Scan<br/>(critical/high)"]
+        end
+
+        Collect --> Signals
+        Signals --> Check{Hard Failures?}
 
         Check -->|Security Critical| Cap30[Cap at 30%]
-        Check -->|Tests Failing >50%| Cap40[Cap at 40%]
-        Check -->|Tests Failing >20%| Cap50[Cap at 50%]
+        Check -->|Tests >50% Failing| Cap40[Cap at 40%]
         Check -->|Build Errors| Cap45[Cap at 45%]
+        Check -->|Tests >20% Failing| Cap50[Cap at 50%]
         Check -->|Security High| Cap65[Cap at 65%]
         Check -->|No Failures| Bonus[Apply Bonuses]
 
-        Bonus --> Coverage{Coverage >= 80%?}
-        Coverage -->|Yes| Add10[+10 points]
-        Coverage -->|No| Lint{Lint Clean?}
+        subgraph BonusPoints["Bonus Points (max +25)"]
+            B1["Coverage ≥ 80%: +10"]
+            B2["Clean lint: +5"]
+            B3["Type check pass: +5"]
+            B4["All tests pass: +5"]
+            B5["Security pass: +5"]
+        end
 
-        Lint -->|Yes| Add5[+5 points]
-        Lint -->|No| Final[Final Score]
+        Bonus --> BonusPoints
+        BonusPoints --> Final[Final Score]
 
-        Add10 --> Final
-        Add5 --> Final
         Cap30 --> Final
         Cap40 --> Final
-        Cap50 --> Final
         Cap45 --> Final
+        Cap50 --> Final
         Cap65 --> Final
     end
 ```
-
-**Bonus Points (max +25):**
-- Test coverage >= 80%: +10 points
-- Clean lint: +5 points
-- Clean type check: +5 points
-- All tests passing: +5 points
-- Security scan passed: +5 points
 
 ---
 
@@ -332,69 +387,47 @@ graph TB
 
 ### Agent System
 
-SuperClaude features **131 specialized agents** organized into 10 categories:
+SuperClaude features **130 specialized agents** organized into 16 core Python agents and 114 extended markdown agents across 10 categories:
 
 ```mermaid
-mindmap
-  root((131 Agents))
-    Core Agents
-      15 agents
-      general-purpose
-      root-cause-analyst
-      refactoring-expert
-      security-engineer
-      system-architect
-      quality-engineer
-      python-expert
-    01-Core Development
-      11 agents
-      fullstack-developer
-      frontend-developer
-      backend-developer
-      api-designer
-    02-Language Specialists
-      23 agents
-      python-pro
-      typescript-pro
-      rust-engineer
-      golang-pro
-      java-architect
-    03-Infrastructure
-      12 agents
-      cloud-architect
-      kubernetes-specialist
-      terraform-engineer
-      devops-engineer
-    04-Quality Security
-      12 agents
-      code-reviewer
-      penetration-tester
-      qa-expert
-      security-auditor
-    05-Data AI
-      12 agents
-      ml-engineer
-      data-scientist
-      llm-architect
-      prompt-engineer
-    06-Developer Experience
-      10 agents
-      technical-writer
-      cli-developer
-      documentation-engineer
-    07-Specialized Domains
-      11 agents
-      domain experts
-    08-Business Product
-      11 agents
-      product-manager
-      business-analyst
-    09-Meta Orchestration
-      8 agents
-      coordinators
-    10-Research Analysis
-      6 agents
-      researchers
+flowchart TB
+    Total["SuperClaude Agents<br/>Total: 130"] --> Core["Core Python Agents<br/>16 total"]
+    Total --> Extended["Extended Agents<br/>114 total<br/>(10 categories)"]
+
+    subgraph CoreList["Core Agents (16)"]
+        C1["backend_architect"]
+        C2["devops_architect"]
+        C3["frontend_architect"]
+        C4["fullstack_developer"]
+        C5["general_purpose"]
+        C6["learning_guide"]
+        C7["performance"]
+        C8["python_expert"]
+        C9["quality"]
+        C10["refactoring"]
+        C11["requirements_analyst"]
+        C12["root_cause"]
+        C13["security"]
+        C14["socratic_mentor"]
+        C15["system_architect"]
+        C16["technical_writer"]
+    end
+
+    subgraph ExtCats["Extended Agent Categories (10)"]
+        E1["01-core-development: 10"]
+        E2["02-language-specialists: 23"]
+        E3["03-infrastructure: 12"]
+        E4["04-quality-security: 12"]
+        E5["05-data-ai: 12"]
+        E6["06-developer-experience: 10"]
+        E7["07-specialized-domains: 11"]
+        E8["08-business-product: 10"]
+        E9["09-meta-orchestration: 8"]
+        E10["10-research-analysis: 6"]
+    end
+
+    Core --> CoreList
+    Extended --> ExtCats
 ```
 
 #### Agent Selection Algorithm
@@ -502,7 +535,7 @@ graph LR
 
         Selector --> |deep_thinking| GPT5[GPT-5<br/>400K context]
         Selector --> |long_context| Gemini[Gemini 2.5 Pro<br/>2M context]
-        Selector --> |fallback| Claude[Claude Opus 4.1<br/>200K context]
+        Selector --> |fallback| Claude[Claude Opus 4.5<br/>200K context]
         Selector --> |fast_iteration| Grok[Grok 4<br/>256K context]
 
         GPT5 --> Consensus[Consensus Engine]
@@ -522,7 +555,7 @@ graph LR
 | **OpenAI** | GPT-4.1 | 1M | Large context | 3 |
 | **OpenAI** | GPT-4o | 128K | Fast, Cost-effective | 4 |
 | **Google** | Gemini 2.5 Pro | **2M** | Thinking, Vision | 1 |
-| **Anthropic** | Claude Opus 4.1 | 200K | Fallback, Validation | 2 |
+| **Anthropic** | Claude Opus 4.5 | 200K | Fallback, Validation | 2 |
 | **xAI** | Grok 4 | 256K | Thinking, Fast | 2 |
 
 ### Quality Pipeline
@@ -609,28 +642,6 @@ graph LR
     end
 ```
 
-**Configuration** (from `superclaud.yaml`):
-
-```yaml
-worktree:
-  enabled: true
-  base_dir: .worktrees
-  max_worktrees: 10
-  cleanup_age_days: 7
-  integration_branch: integration
-
-  validation:
-    run_tests: true
-    check_conflicts: true
-    require_clean: true
-```
-
-**Benefits:**
-- Prevents destructive changes to main branch
-- Enables parallel feature development
-- Automatic cleanup of stale worktrees
-- Conflict checking before merge
-
 ---
 
 ## MCP Integrations
@@ -686,8 +697,6 @@ Connects to 500+ apps for cross-application automation:
 | `RUBE_MANAGE_CONNECTIONS` | Manage OAuth/API connections |
 | `RUBE_REMOTE_WORKBENCH` | Execute Python in sandbox |
 | `RUBE_CREATE_UPDATE_RECIPE` | Create reusable automation recipes |
-
-**Supported Apps:** Slack, GitHub, Gmail, Google Sheets, Jira, Notion, Teams, and 500+ more.
 
 ### PAL MCP
 
@@ -763,12 +772,6 @@ Domain:  ⚡ Perf  🔍 Analysis  🛡️ Security  📦 Deploy  🏗️ Arch
 Logic:   → Leads to  ⇒ Transforms  ∴ Therefore  » Sequence
 ```
 
-**Example:**
-```
-Standard: "The authentication system has a security vulnerability"
-Token Efficient: "auth.js:45 → 🛡️ sec risk in user val()"
-```
-
 ---
 
 ## Installation
@@ -796,6 +799,13 @@ pip install -e .[dev]
 
 # Verify installation
 SuperClaude --help
+```
+
+### Install with SDK Support
+
+```bash
+# Install with Claude Agent SDK integration
+pip install -e .[sdk]
 ```
 
 ---
@@ -829,25 +839,69 @@ claude
 /sc:implement --loop --agent=security-engineer "Add CSRF protection"
 ```
 
-### Programmatic Usage
+### Programmatic Usage with SDK
 
 ```python
-from SuperClaude.Commands.command_executor import CommandExecutor
+from SuperClaude.SDK import SuperClaudeSDKClient, SDKOptions
 from SuperClaude.Agents.registry import AgentRegistry
+from SuperClaude.Agents.selector import AgentSelector
+from SuperClaude.Quality.quality_scorer import QualityScorer
 
-# Initialize
+# Initialize components
 registry = AgentRegistry()
-executor = CommandExecutor()
+selector = AgentSelector(registry)
+scorer = QualityScorer()
 
-# Execute command
-result = await executor.execute("/sc:analyze --agent=root-cause-analyst src/bug.py")
+# Create SDK client
+client = SuperClaudeSDKClient(
+    registry=registry,
+    selector=selector,
+    quality_scorer=scorer
+)
 
-if result.success:
-    print(f"Analysis complete: {result.output}")
-    print(f"Quality score: {result.quality_score}")
-    print(f"Band: {result.band}")  # production_ready, needs_attention, or iterate
-else:
-    print(f"Errors: {result.errors}")
+# Execute with SDK
+options = SDKOptions(
+    model="sonnet",
+    max_turns=50,
+    permission_mode="default"
+)
+
+async for message in client.execute_with_agent(
+    task="Fix the bug in auth.py",
+    context={"cwd": "/project"},
+    options=options
+):
+    if message.type == "text":
+        print(message.content)
+```
+
+### Using the Agentic Loop Programmatically
+
+```python
+from SuperClaude.SDK.agentic_loop import run_sdk_loop, create_sdk_loop_context
+
+# Create context with expectations
+context = create_sdk_loop_context(
+    command_name="implement",
+    task="Add user authentication",
+    cwd="/project",
+    requires_evidence=True,
+    expects_file_changes=True,
+    expects_tests=True
+)
+
+# Run SDK loop with quality iteration
+final_record, assessment, history = await run_sdk_loop(
+    executor=sdk_executor,
+    task="Add user authentication",
+    context=context,
+    scorer=quality_scorer,
+    max_iterations=3
+)
+
+print(f"Final score: {assessment.overall_score}")
+print(f"Band: {assessment.band}")
+print(f"Iterations: {len(history)}")
 ```
 
 ---
@@ -886,40 +940,6 @@ SuperClaude integrates with Claude Code via `CLAUDE.md` configuration files:
 | `config/superclaud.yaml` | Main framework config, modes, quality settings |
 | `config/models.yaml` | Model routing, provider settings |
 | `config/quality.yaml` | Quality scoring, thresholds, gates |
-
-### Key Configuration Options
-
-```yaml
-# From superclaud.yaml
-
-# Quality scoring
-quality:
-  enabled: true
-  default_threshold: 70.0
-  max_iterations: 5
-
-# Agent system
-agents:
-  max_delegation_depth: 5
-  parallel_execution: true
-  default_timeout: 300
-
-# Token optimization
-token_optimization:
-  enabled: true
-  compression_level: medium
-  budgets:
-    analysis: 10000
-    implementation: 20000
-    documentation: 5000
-    testing: 15000
-
-# Dynamic loading
-dynamic_loading:
-  enabled: true
-  max_cache_size: 10
-  load_time_target: 0.1
-```
 
 ---
 
@@ -1024,25 +1044,6 @@ flags:
 
 2. **Implement handler** in `SuperClaude/Commands/executor/` if needed.
 
-### Adding a Model Provider
-
-1. **Create client** in `SuperClaude/APIClients/`:
-
-```python
-from .base_client import BaseAPIClient
-
-class MyProviderClient(BaseAPIClient):
-    def __init__(self, api_key: str):
-        super().__init__(api_key)
-        self.base_url = "https://api.myprovider.com/v1"
-
-    async def complete(self, prompt: str, **kwargs) -> str:
-        # Implementation
-        pass
-```
-
-2. **Register in router** in `SuperClaude/ModelRouter/router.py`.
-
 ---
 
 ## Troubleshooting
@@ -1061,6 +1062,7 @@ class MyProviderClient(BaseAPIClient):
 | Stagnation detected | Scores not changing. Add more specific requirements or change approach. |
 | Insufficient improvement | Score improved < 5 points. Provide more detailed feedback. |
 | Hard cap reached | Hit HARD_MAX_ITERATIONS=5. This is intentional; refine requirements. |
+| Timeout exceeded | Wall-clock timeout hit. Increase timeout or simplify task. |
 
 #### Low Quality Score
 
@@ -1078,56 +1080,20 @@ cat .superclaude_metrics/quality_assessment_*.json
 - Score capped at 40-60%? Check test failures.
 - Score capped at 45%? Check build errors.
 
-#### MCP Connection Issues
+#### SDK Not Available
 
-**Symptom:** MCP tools not responding or timing out.
-
-**Solutions:**
-
-1. **Check API keys:**
-   ```bash
-   echo $ANTHROPIC_API_KEY
-   echo $OPENAI_API_KEY
-   ```
-
-2. **Verify MCP server status:**
-   ```bash
-   # Check Rube MCP
-   curl https://api.composio.dev/health
-
-   # Check PAL MCP
-   mcp__pal__listmodels
-   ```
-
-3. **Increase timeout** in `superclaud.yaml`:
-   ```yaml
-   mcp_servers:
-     timeout: 600  # Increase from 300
-   ```
-
-#### Agent Not Selected
-
-**Symptom:** Wrong agent handling task.
+**Symptom:** SDK features not working.
 
 **Solutions:**
 
-1. **Force specific agent:**
-   ```bash
-   /sc:implement --agent=security-engineer "Add auth"
-   ```
+```python
+from SuperClaude.SDK import is_sdk_available, get_sdk_version
 
-2. **Check agent triggers:**
-   ```python
-   registry = AgentRegistry()
-   config = registry.get_agent_config("security-engineer")
-   print(config["triggers"])
-   ```
-
-3. **Lower selection threshold** (advanced):
-   ```yaml
-   agents:
-     selection_threshold: 0.3  # Default is 0.6
-   ```
+if not is_sdk_available():
+    print("SDK not installed. Run: pip install -e .[sdk]")
+else:
+    print(f"SDK version: {get_sdk_version()}")
+```
 
 ### Debug Mode
 
@@ -1152,7 +1118,7 @@ SuperClaude uses GitHub Actions for continuous integration and deployment.
 ```mermaid
 flowchart LR
     subgraph "CI Pipeline"
-        Q[Quality Gate] --> T[Test Matrix<br/>Python 3.10]
+        Q[Quality Gate] --> T[Test Matrix<br/>Python 3.10+]
         T --> C[Coverage Gate<br/>35% min]
         C --> B[Build Check]
         B --> BM[Benchmark Smoke]
@@ -1165,6 +1131,7 @@ flowchart LR
 
     subgraph "Review Pipeline"
         AI[PAL MCP<br/>Consensus Review]
+        RQ[README Quality Check]
     end
 
     subgraph "Deploy Pipeline"
@@ -1174,10 +1141,12 @@ flowchart LR
 
 | Workflow | Trigger | Checks |
 |----------|---------|--------|
-| **CI** | Push/PR | Ruff lint, Ruff format, MyPy, Tests, Coverage (35%), Build |
-| **Security** | Push/PR + Weekly | CodeQL, pip-audit, Bandit |
-| **AI Review** | PR opened | PAL MCP Consensus Code Review |
-| **Publish** | Release | Build, version check, PyPI upload |
+| **CI** (`ci.yml`) | Push/PR | Ruff lint, Ruff format, MyPy, Tests, Coverage (35%), Build |
+| **Security** (`security.yml`) | Push/PR + Weekly | CodeQL, pip-audit, Bandit |
+| **AI Review** (`ai-review.yml`) | PR opened | PAL MCP Consensus Code Review |
+| **README Quality** (`readme-quality-check.yml`) | PR | Documentation quality check |
+| **Claude** (`claude.yml`) | Claude Code integration | CI integration for Claude |
+| **Publish** (`publish-pypi.yml`) | Release | Build, version check, PyPI upload |
 
 ---
 
@@ -1187,18 +1156,18 @@ flowchart LR
 SuperClaude/
 ├── SuperClaude/
 │   ├── Agents/
-│   │   ├── Extended/              # 116 extended agents
-│   │   │   ├── 01-core-development/
-│   │   │   ├── 02-language-specialists/
-│   │   │   ├── 03-infrastructure/
-│   │   │   ├── 04-quality-security/
-│   │   │   ├── 05-data-ai/
-│   │   │   ├── 06-developer-experience/
-│   │   │   ├── 07-specialized-domains/
-│   │   │   ├── 08-business-product/
-│   │   │   ├── 09-meta-orchestration/
-│   │   │   └── 10-research-analysis/
-│   │   ├── core/                  # 15 core agent implementations
+│   │   ├── Extended/              # 114 extended agents
+│   │   │   ├── 01-core-development/        (10 agents)
+│   │   │   ├── 02-language-specialists/    (23 agents)
+│   │   │   ├── 03-infrastructure/          (12 agents)
+│   │   │   ├── 04-quality-security/        (12 agents)
+│   │   │   ├── 05-data-ai/                 (12 agents)
+│   │   │   ├── 06-developer-experience/    (10 agents)
+│   │   │   ├── 07-specialized-domains/     (11 agents)
+│   │   │   ├── 08-business-product/        (10 agents)
+│   │   │   ├── 09-meta-orchestration/      (8 agents)
+│   │   │   └── 10-research-analysis/       (6 agents)
+│   │   ├── core/                  # 16 core Python agent implementations
 │   │   ├── base.py                # BaseAgent ABC
 │   │   ├── registry.py            # Agent discovery & catalog
 │   │   └── selector.py            # Intelligent selection
@@ -1218,18 +1187,32 @@ SuperClaude/
 │   │   ├── parser.py              # Command parsing
 │   │   └── registry.py            # Command catalog
 │   │
+│   ├── SDK/                       # Claude Agent SDK Integration
+│   │   ├── __init__.py            # Public API exports
+│   │   ├── client.py              # SuperClaudeSDKClient
+│   │   ├── adapter.py             # AgentToSDKAdapter
+│   │   ├── executor.py            # SDKExecutor
+│   │   ├── agentic_loop.py        # SDK loop integration
+│   │   ├── hooks.py               # Quality & Evidence hooks
+│   │   └── types.py               # Type definitions
+│   │
 │   ├── Quality/
 │   │   ├── quality_scorer.py      # 9-dimension scoring + agentic loop
 │   │   └── validation_pipeline.py # 5-stage validation
 │   │
 │   ├── Telemetry/
 │   │   ├── factory.py             # Telemetry factory
+│   │   ├── evidence_store.py      # Evidence collection
 │   │   ├── jsonl.py               # JSONL storage
 │   │   └── interfaces.py          # Client interfaces
 │   │
 │   ├── Modes/                     # Behavioral modes
+│   │   ├── __init__.py
+│   │   └── behavioral_manager.py
+│   │
 │   ├── Skills/                    # Skills runtime
-│   └── Core/                      # Core utilities
+│   ├── Core/                      # Core utilities
+│   └── MCP/                       # MCP integrations
 │
 ├── config/                        # YAML configurations
 ├── setup/                         # Installation system
@@ -1294,6 +1277,6 @@ MIT License - see [LICENSE](LICENSE) for details.
 <p align="center">
   <strong>SuperClaude v6.0.0-alpha</strong><br/>
   Intelligent AI Orchestration for Claude Code<br/>
-  <em>131 Agents • 13 Commands • 9 Quality Dimensions • 3 Modes</em><br/>
-  <em>Iterative Development with Deterministic Safety Grounding</em>
+  <em>130 Agents • 13 Commands • 9 Quality Dimensions • 3 Modes</em><br/>
+  <em>Claude Agent SDK Integration • Iterative Development with Deterministic Safety Grounding</em>
 </p>
