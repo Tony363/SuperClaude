@@ -58,6 +58,9 @@ test = [
     "pyyaml>=6.0",
     "rich>=10.0",
 ]
+sdk = [
+    "claude-agent-sdk>=0.1.0",
+]
 
 [tool.setuptools]
 include-package-data = true

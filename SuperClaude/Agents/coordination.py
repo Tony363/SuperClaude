@@ -3,18 +3,63 @@ Agent Coordination System for SuperClaude Framework
 
 Manages agent delegation, coordination, and execution flow with
 protection against infinite recursion and circular dependencies.
+
+SDK Integration:
+    The validate_sdk_delegation() method provides pre-validation for
+    Claude Agent SDK Task tool invocations, ensuring delegation is safe
+    before SDK subagent spawning.
 """
+
+from __future__ import annotations
 
 import logging
 import time
 from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from .loader import AgentLoader
 from .registry import AgentRegistry
 from .selector import AgentSelector
+
+if TYPE_CHECKING:
+    from ..SDK.adapter import SDKAgentDefinition
+
+
+@dataclass
+class SDKDelegationValidation:
+    """Result of SDK delegation validation.
+
+    Used to pre-validate before Claude Agent SDK Task tool invocations.
+    """
+
+    allowed: bool
+    """Whether the delegation is allowed."""
+
+    delegate_to: str | None
+    """Validated target agent name, if allowed."""
+
+    reason: str
+    """Human-readable explanation of the decision."""
+
+    current_depth: int
+    """Current delegation depth."""
+
+    remaining_depth: int
+    """Remaining allowed depth before max."""
+
+    sdk_compatible: bool
+    """Whether the target agent is SDK-compatible."""
+
+    sdk_definition: SDKAgentDefinition | None = None
+    """SDK definition for the target agent, if compatible."""
+
+    cycle_detected: bool = False
+    """True if circular delegation was detected."""
+
+    blocked_pair: tuple[str, str] | None = None
+    """The (from, to) pair that was blocked, if any."""
 
 
 @dataclass
@@ -581,3 +626,140 @@ class CoordinationManager:
             }
             for h in history
         ]
+
+    def validate_sdk_delegation(
+        self,
+        from_agent: str | None,
+        to_agent: str,
+        include_sdk_definition: bool = True,
+    ) -> SDKDelegationValidation:
+        """
+        Pre-validate delegation before Claude Agent SDK Task tool invocation.
+
+        This method validates that a delegation from one agent to another
+        is safe, checking:
+        1. Delegation depth limits
+        2. Circular delegation detection
+        3. Blocked delegation pairs
+        4. SDK compatibility of target agent
+
+        Use this before spawning subagents via the SDK's Task tool.
+
+        Args:
+            from_agent: Source agent name (None if starting fresh)
+            to_agent: Target agent name to delegate to
+            include_sdk_definition: Whether to include SDK definition in result
+
+        Returns:
+            SDKDelegationValidation with validation result and SDK compatibility.
+
+        Example:
+            validation = coordinator.validate_sdk_delegation("security-agent", "test-agent")
+            if validation.allowed and validation.sdk_compatible:
+                # Safe to spawn via SDK Task tool
+                sdk_client.execute_task(validation.sdk_definition, ...)
+            else:
+                # Handle blocked delegation
+                logger.warning(f"Delegation blocked: {validation.reason}")
+        """
+        current_depth = self._get_current_depth()
+        remaining_depth = self.MAX_DELEGATION_DEPTH - current_depth
+
+        # Check delegation depth
+        if current_depth >= self.MAX_DELEGATION_DEPTH:
+            return SDKDelegationValidation(
+                allowed=False,
+                delegate_to=None,
+                reason=f"Max delegation depth ({self.MAX_DELEGATION_DEPTH}) reached",
+                current_depth=current_depth,
+                remaining_depth=0,
+                sdk_compatible=False,
+            )
+
+        # Check if target agent is already active
+        if to_agent in self.active_agents:
+            return SDKDelegationValidation(
+                allowed=False,
+                delegate_to=None,
+                reason=f"Target agent {to_agent} is already active",
+                current_depth=current_depth,
+                remaining_depth=remaining_depth,
+                sdk_compatible=False,
+            )
+
+        # Check blocked delegations
+        if from_agent and (from_agent, to_agent) in self.blocked_delegations:
+            return SDKDelegationValidation(
+                allowed=False,
+                delegate_to=None,
+                reason=f"Delegation from {from_agent} to {to_agent} is blocked",
+                current_depth=current_depth,
+                remaining_depth=remaining_depth,
+                sdk_compatible=False,
+                blocked_pair=(from_agent, to_agent),
+            )
+
+        # Check circular delegation
+        if from_agent and self.detect_circular_delegation(from_agent, to_agent):
+            return SDKDelegationValidation(
+                allowed=False,
+                delegate_to=None,
+                reason=f"Circular delegation detected: {from_agent} -> {to_agent}",
+                current_depth=current_depth,
+                remaining_depth=remaining_depth,
+                sdk_compatible=False,
+                cycle_detected=True,
+            )
+
+        # Check if target agent exists
+        agent = self.registry.get_agent(to_agent)
+        if not agent:
+            return SDKDelegationValidation(
+                allowed=False,
+                delegate_to=None,
+                reason=f"Target agent {to_agent} not found in registry",
+                current_depth=current_depth,
+                remaining_depth=remaining_depth,
+                sdk_compatible=False,
+            )
+
+        # Get SDK definition if requested
+        sdk_definition = None
+        sdk_compatible = True
+
+        if include_sdk_definition:
+            try:
+                sdk_definition = self._get_sdk_definition(to_agent)
+            except Exception as e:
+                self.logger.warning(f"Failed to get SDK definition for {to_agent}: {e}")
+                sdk_compatible = False
+
+        return SDKDelegationValidation(
+            allowed=True,
+            delegate_to=to_agent,
+            reason=f"Delegation to {to_agent} allowed (depth {current_depth + 1}/{self.MAX_DELEGATION_DEPTH})",
+            current_depth=current_depth,
+            remaining_depth=remaining_depth - 1,
+            sdk_compatible=sdk_compatible,
+            sdk_definition=sdk_definition,
+        )
+
+    def _get_sdk_definition(self, agent_name: str) -> SDKAgentDefinition | None:
+        """
+        Get SDK definition for an agent.
+
+        Args:
+            agent_name: Name of agent
+
+        Returns:
+            SDKAgentDefinition or None
+        """
+        # Import adapter lazily to avoid circular imports
+        from ..SDK.adapter import AgentToSDKAdapter
+
+        agent = self.registry.get_agent(agent_name)
+        if not agent:
+            return None
+
+        adapter = AgentToSDKAdapter(self.registry)
+        return adapter.to_agent_definition(agent)

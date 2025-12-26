@@ -3,13 +3,53 @@ Agent Selector for SuperClaude Framework
 
 This module provides intelligent agent selection based on context,
 keywords, and task requirements.
+
+SDK Integration:
+    The select_for_sdk() method provides SDK-compatible agent selection
+    with SDKAgentDefinition conversion and routing decisions.
 """
+
+from __future__ import annotations
 
 import logging
 import re
-from typing import Any
+from dataclasses import dataclass, field
+from typing import TYPE_CHECKING, Any
 
 from .registry import AgentRegistry
+
+if TYPE_CHECKING:
+    from ..SDK.adapter import SDKAgentDefinition
+
+
+@dataclass
+class SDKSelectionResult:
+    """Result of SDK-compatible agent selection.
+
+    Contains the selected agent, SDK definition, confidence score,
+    and routing decision information.
+    """
+
+    agent_name: str
+    """Name of the selected agent."""
+
+    confidence: float
+    """Confidence score (0.0 to 1.0)."""
+
+    use_sdk: bool
+    """Whether to route through SDK (vs fallback to legacy execution)."""
+
+    sdk_definition: SDKAgentDefinition | None = None
+    """SDK-compatible agent definition, if SDK routing is recommended."""
+
+    ranked_alternatives: list[tuple[str, float]] = field(default_factory=list)
+    """Top 5 alternative agents with scores."""
+
+    reason: str = ""
+    """Human-readable explanation of selection decision."""
+
+    capability_tier: str = "heuristic-wrapper"
+    """Agent's capability tier (strategist, heuristic-wrapper, etc.)."""
 
 
 class AgentSelector:
@@ -490,3 +530,104 @@ class AgentSelector:
         }
 
         return explanation
+
+    def select_for_sdk(
+        self,
+        context: Any,
+        category_hint: str | None = None,
+        exclude_agents: list[str] | None = None,
+        min_confidence_for_sdk: float = 0.5,
+    ) -> SDKSelectionResult:
+        """
+        Select agent with SDK-compatible output for Claude Agent SDK integration.
+
+        This method extends select_agent() by:
+        1. Converting the selected agent to SDKAgentDefinition format
+        2. Making a routing decision (SDK vs legacy execution)
+        3. Providing ranked alternatives for multi-agent scenarios
+
+        Args:
+            context: Task context (string or dict with 'task', 'description', 'files')
+            category_hint: Optional category preference
+            exclude_agents: Optional list of agents to exclude
+            min_confidence_for_sdk: Minimum confidence to recommend SDK routing
+
+        Returns:
+            SDKSelectionResult with agent selection and SDK routing decision.
+
+        Example:
+            result = selector.select_for_sdk({"task": "Fix auth bug"})
+            if result.use_sdk and result.sdk_definition:
+                # Use Claude Agent SDK
+                sdk_client.execute(result.sdk_definition, ...)
+            else:
+                # Fallback to legacy execution
+                legacy_execute(result.agent_name, ...)
+        """
+        # Use existing selection logic
+        scores = self.select_agent(context, category_hint, exclude_agents)
+
+        if not scores:
+            # No suitable agent found
+            return SDKSelectionResult(
+                agent_name=self.default_agent,
+                confidence=0.0,
+                use_sdk=False,
+                reason="No suitable agent found, using default",
+            )
+
+        # Get top agent
+        top_agent_name, top_score = scores[0]
+
+        # Get agent config for tier info
+        config = self.registry.get_agent_config(top_agent_name) or {}
+        capability_tier = config.get("capability_tier", "heuristic-wrapper")
+
+        # Determine if SDK routing is recommended
+        use_sdk = top_score >= min_confidence_for_sdk
+
+        # Build reason string
+        if use_sdk:
+            reason = f"Selected {top_agent_name} with confidence {top_score:.2f} (>= {min_confidence_for_sdk})"
+        else:
+            reason = f"Low confidence {top_score:.2f} (< {min_confidence_for_sdk}), recommend legacy execution"
+
+        # Convert to SDK definition if SDK routing is recommended
+        sdk_definition = None
+        if use_sdk:
+            try:
+                sdk_definition = self._convert_to_sdk_definition(top_agent_name)
+            except Exception as e:
+                self.logger.warning(f"Failed to convert to SDK definition: {e}")
+                use_sdk = False
+                reason += f" (SDK conversion failed: {e})"
+
+        return SDKSelectionResult(
+            agent_name=top_agent_name,
+            confidence=top_score,
+            use_sdk=use_sdk,
+            sdk_definition=sdk_definition,
+            ranked_alternatives=scores[1:6],  # Top 5 alternatives
+            reason=reason,
+            capability_tier=capability_tier,
+        )
+
+    def _convert_to_sdk_definition(self, agent_name: str) -> SDKAgentDefinition | None:
+        """
+        Convert agent to SDK definition format.
+
+        Args:
+            agent_name: Name of agent to convert
+
+        Returns:
+            SDKAgentDefinition or None if conversion fails
+        """
+        # Import adapter lazily to avoid circular imports
+        from ..SDK.adapter import AgentToSDKAdapter
+
+        agent = self.registry.get_agent(agent_name)
+        if not agent:
+            return None
+
+        adapter = AgentToSDKAdapter(self.registry)
+        return adapter.to_agent_definition(agent)
