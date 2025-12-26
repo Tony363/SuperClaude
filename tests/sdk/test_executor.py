@@ -337,9 +337,7 @@ class TestSDKExecutorGates:
         assert result.routing_decision == "no_selector"
 
     @pytest.mark.asyncio
-    async def test_gate_low_confidence(
-        self, enabled_config, mock_client
-    ):
+    async def test_gate_low_confidence(self, enabled_config, mock_client):
         """Test low confidence triggers fallback."""
         low_confidence_selector = MockSelector(use_sdk=True, confidence=0.3)
         executor = SDKExecutor(
@@ -355,9 +353,7 @@ class TestSDKExecutorGates:
         assert result.routing_decision == "low_confidence"
 
     @pytest.mark.asyncio
-    async def test_gate_selection_declined(
-        self, enabled_config, mock_client
-    ):
+    async def test_gate_selection_declined(self, enabled_config, mock_client):
         """Test selection declined triggers fallback."""
         declined_selector = MockSelector(use_sdk=False, confidence=0.8)
         executor = SDKExecutor(
@@ -389,10 +385,12 @@ class TestSDKExecutorExecution:
     async def test_successful_execution(self, enabled_config):
         """Test successful SDK execution."""
         client = MockSDKClient(sdk_available=True)
-        client.set_messages([
-            MockSDKMessage("text", "Processing..."),
-            MockSDKMessage("result", "Final result"),
-        ])
+        client.set_messages(
+            [
+                MockSDKMessage("text", "Processing..."),
+                MockSDKMessage("result", "Final result"),
+            ]
+        )
         selector = MockSelector(use_sdk=True, confidence=0.8)
 
         executor = SDKExecutor(

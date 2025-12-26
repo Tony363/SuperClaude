@@ -78,7 +78,9 @@ def create_sdk_improver(
         enhanced_task = build_repair_prompt(
             original_task=original_task,
             improvements=improvements,
-            previous_score=quality_assessment.overall_score if quality_assessment else 0,
+            previous_score=quality_assessment.overall_score
+            if quality_assessment
+            else 0,
             iteration=context.get("iteration", 0),
         )
 

@@ -1890,8 +1890,7 @@ class QualityScorer:
             has_evidence = evidence_data.get("has_execution_evidence", False)
             if not has_evidence:
                 evidence_issues.append(
-                    "NO_EXECUTION_EVIDENCE: "
-                    "Expected file changes, commands, or tests"
+                    "NO_EXECUTION_EVIDENCE: Expected file changes, commands, or tests"
                 )
 
         # Add evidence issues to improvements_needed (at the front for priority)

@@ -64,7 +64,9 @@ class TestBuildRepairPrompt:
         result = build_repair_prompt("Task", ["Fix it"])
 
         assert "evidence" in result.lower()
-        assert "file modifications" in result.lower() or "test results" in result.lower()
+        assert (
+            "file modifications" in result.lower() or "test results" in result.lower()
+        )
 
 
 class TestCreateSDKLoopContext:
