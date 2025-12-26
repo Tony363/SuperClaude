@@ -600,7 +600,7 @@ class TestTerminationReasonEnum:
 
     def test_all_reasons_have_string_values(self):
         """All termination reasons have string values."""
-        for reason in TerminationReason:
+        for reason in list(TerminationReason):
             assert isinstance(reason.value, str)
             assert len(reason.value) > 0
 
@@ -608,7 +608,7 @@ class TestTerminationReasonEnum:
         """Termination reasons can be used in JSON-like structures."""
         import json
 
-        for reason in TerminationReason:
+        for reason in list(TerminationReason):
             # Should not raise
             json.dumps({"reason": reason.value})
 
