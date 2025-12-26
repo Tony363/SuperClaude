@@ -2,16 +2,27 @@
 Execution facade for SuperClaude Commands.
 
 Thin orchestration layer that composes services and routes
-between Skills and legacy execution paths.
+between SDK, Skills, and legacy execution paths.
+
+Execution priority:
+1. SDK Executor (if enabled and command allowed)
+2. Skills Runtime (if enabled and command allowed)
+3. Legacy Python handlers (fallback)
 """
 
+from __future__ import annotations
+
+import asyncio
 import logging
 import os
 from collections.abc import Awaitable, Callable
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from .context import CommandContext
 from .routing import CommandRouter, ExecutionPlan, RuntimeMode
+
+if TYPE_CHECKING:
+    from ...SDK.executor import SDKExecutor
 
 logger = logging.getLogger(__name__)
 
@@ -28,8 +39,13 @@ class ExecutionFacade:
     Facade for command execution.
 
     Composes routing, consensus, artifacts, and telemetry
-    into a single orchestration layer. Routes between Skills
-    and legacy execution paths based on configuration.
+    into a single orchestration layer. Routes between SDK,
+    Skills, and legacy execution paths based on configuration.
+
+    Execution priority:
+    1. SDK Executor - if configured and command allowed
+    2. Skills Runtime - if enabled and command allowed
+    3. Legacy handlers - fallback
     """
 
     def __init__(
@@ -37,6 +53,7 @@ class ExecutionFacade:
         router: CommandRouter,
         telemetry_client: Any | None = None,
         allowlist: set[str] | None = None,
+        sdk_executor: SDKExecutor | None = None,
     ):
         """
         Initialize execution facade.
@@ -45,10 +62,12 @@ class ExecutionFacade:
             router: CommandRouter for routing decisions
             telemetry_client: Optional telemetry client for events
             allowlist: Optional set of commands to route through facade
+            sdk_executor: Optional SDK executor for Claude Agent SDK execution
         """
         self.router = router
         self.telemetry = telemetry_client
         self._allowlist = allowlist or self._load_allowlist()
+        self.sdk_executor = sdk_executor
 
     def _load_allowlist(self) -> set[str]:
         """
@@ -95,17 +114,23 @@ class ExecutionFacade:
         context: CommandContext,
         legacy_executor: Callable[[CommandContext], Awaitable[dict[str, Any]]]
         | None = None,
+        force_sdk: bool = False,
+        disable_sdk: bool = False,
     ) -> dict[str, Any]:
         """
         Execute command via facade orchestration.
 
-        Routes to Skills or legacy execution based on ExecutionPlan.
-        Legacy execution requires a legacy_executor callable.
+        Execution priority:
+        1. SDK Executor (if configured and gates pass)
+        2. Skills Runtime (if enabled and command allowed)
+        3. Legacy handlers (fallback)
 
         Args:
             context: Command execution context
             legacy_executor: Callable for legacy execution path
                             (REQUIRED when plan is LEGACY)
+            force_sdk: Force SDK execution (for testing)
+            disable_sdk: Disable SDK execution (for safety)
 
         Returns:
             Command output dictionary
@@ -121,7 +146,27 @@ class ExecutionFacade:
         # Record routing decision in telemetry
         self._record_routing_event(context, plan)
 
-        # Route based on plan
+        # Try SDK first (if configured)
+        if self.sdk_executor is not None:
+            sdk_result = await self.sdk_executor.execute(
+                context=context,
+                force_sdk=force_sdk,
+                disable_sdk=disable_sdk,
+            )
+
+            # Record SDK routing decision
+            self._record_sdk_routing_event(context, sdk_result)
+
+            if not sdk_result.should_fallback:
+                # SDK succeeded - return its output
+                return sdk_result.output
+
+            # SDK requested fallback - continue to Skills/Legacy
+            logger.debug(
+                f"SDK fallback for {command_name}: {sdk_result.fallback_reason}"
+            )
+
+        # Route based on plan (Skills or Legacy)
         if plan.runtime_mode == RuntimeMode.SKILLS:
             return await self._execute_via_skills(context, plan)
         else:
@@ -161,8 +206,9 @@ class ExecutionFacade:
                 "flags": context.command.flags,
             }
 
-            # Execute via skills runtime
-            result = self.router.skills_runtime.execute_command(
+            # Execute via skills runtime (wrapped in thread to avoid blocking)
+            result = await asyncio.to_thread(
+                self.router.skills_runtime.execute_command,
                 plan.command_name,
                 args,
                 context,
@@ -291,3 +337,29 @@ class ExecutionFacade:
             self.telemetry.record_event("execution.completed", payload)
         except Exception as exc:
             logger.debug(f"Failed to record execution event: {exc}")
+
+    def _record_sdk_routing_event(
+        self,
+        context: CommandContext,
+        sdk_result: Any,
+    ) -> None:
+        """Record SDK routing decision in telemetry."""
+        if not self.telemetry:
+            return
+
+        try:
+            payload = {
+                "command": context.command.name,
+                "runtime_mode": "sdk",
+                "session_id": context.session_id,
+                "routing_decision": sdk_result.routing_decision,
+                "should_fallback": sdk_result.should_fallback,
+                "agent_used": sdk_result.agent_used,
+                "confidence": sdk_result.confidence,
+            }
+            if sdk_result.fallback_reason:
+                payload["fallback_reason"] = sdk_result.fallback_reason
+
+            self.telemetry.record_event("execution.sdk_routed", payload)
+        except Exception as exc:
+            logger.debug(f"Failed to record SDK routing event: {exc}")

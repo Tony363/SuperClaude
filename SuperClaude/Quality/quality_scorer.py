@@ -7,6 +7,7 @@ automatic iteration until quality thresholds are met.
 
 import logging
 import re
+import time
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -91,6 +92,7 @@ class IterationTermination:
     OSCILLATION = "score_oscillation"
     ERROR = "improver_error"
     HUMAN_ESCALATION = "requires_human_review"
+    TIMEOUT = "timeout"  # Wall-clock timeout exceeded
 
 
 @dataclass(frozen=True)
@@ -493,6 +495,8 @@ class QualityScorer:
         improver_func: Callable,
         max_iterations: int | None = None,
         min_improvement: float | None = None,
+        timeout_seconds: float | None = None,
+        time_provider: Callable[[], float] | None = None,
     ) -> tuple[Any, QualityAssessment, list[IterationResult]]:
         """
         Run agentic loop to iteratively improve output quality.
@@ -501,6 +505,7 @@ class QualityScorer:
         - Hard max iteration cap (HARD_MAX_ITERATIONS) cannot be overridden
         - Oscillation detection prevents infinite back-and-forth
         - Stagnation detection stops when no meaningful progress
+        - Wall-clock timeout (best-effort, cannot interrupt running calls)
         - All termination reasons are logged for debugging
 
         Args:
@@ -509,9 +514,18 @@ class QualityScorer:
             improver_func: Function to improve output
             max_iterations: Maximum iterations (default: MAX_ITERATIONS, capped at HARD_MAX_ITERATIONS)
             min_improvement: Minimum improvement to continue (default: MIN_IMPROVEMENT)
+            timeout_seconds: Wall-clock timeout in seconds (best-effort, see note below)
+            time_provider: Callable returning monotonic time (default: time.monotonic).
+                          Inject for deterministic testing.
 
         Returns:
             Tuple of (final_output, final_assessment, iteration_history)
+
+        Note:
+            Wall-clock timeout is best-effort. The loop will not start new iterations
+            after the budget is exceeded, but cannot interrupt a running evaluate()
+            or improver_func() call. Overall wall time may exceed timeout_seconds if
+            those calls run long.
         """
         # P0 SAFETY: Enforce hard maximum - never exceed this regardless of input
         requested_max = max_iterations or self.MAX_ITERATIONS
@@ -524,6 +538,15 @@ class QualityScorer:
 
         min_improv = min_improvement or self.MIN_IMPROVEMENT
 
+        # Timeout setup
+        _time = time_provider or time.monotonic
+        loop_start = _time()
+        deadline = loop_start + timeout_seconds if timeout_seconds else None
+
+        def timed_out() -> bool:
+            """Check if wall-clock timeout exceeded."""
+            return deadline is not None and _time() >= deadline
+
         current_output = initial_output
         iteration_results: list[IterationResult] = []
         previous_score = 0.0
@@ -533,12 +556,42 @@ class QualityScorer:
         )  # Default if loop completes
 
         for iteration in range(max_iter):
-            start_time = datetime.now()
+            iter_start_time = datetime.now()
+
+            # TIMEOUT CHECK 1: Before starting iteration
+            if timed_out():
+                termination_reason = IterationTermination.TIMEOUT
+                self.logger.warning(
+                    f"Timeout at start of iteration {iteration}: "
+                    f"elapsed={_time() - loop_start:.1f}s, limit={timeout_seconds}s"
+                )
+                # Don't record this as a completed iteration
+                break
 
             # Evaluate current quality
             assessment = self.evaluate(current_output, context, iteration=iteration)
             current_score = assessment.overall_score
             score_history.append(current_score)
+
+            # TIMEOUT CHECK 2: After scoring (scoring might be slow)
+            if timed_out():
+                termination_reason = IterationTermination.TIMEOUT
+                self.logger.warning(
+                    f"Timeout after scoring iteration {iteration}: "
+                    f"score={current_score:.1f}, elapsed={_time() - loop_start:.1f}s"
+                )
+                # Record this as a completed iteration (we did score it)
+                result = IterationResult(
+                    iteration=iteration,
+                    input_quality=previous_score,
+                    output_quality=current_score,
+                    improvements_applied=[],
+                    time_taken=(datetime.now() - iter_start_time).total_seconds(),
+                    success=False,
+                    termination_reason=termination_reason,
+                )
+                iteration_results.append(result)
+                break
 
             # Check if quality threshold is met
             if assessment.passed:
@@ -551,7 +604,7 @@ class QualityScorer:
                     input_quality=previous_score,
                     output_quality=current_score,
                     improvements_applied=[],
-                    time_taken=(datetime.now() - start_time).total_seconds(),
+                    time_taken=(datetime.now() - iter_start_time).total_seconds(),
                     success=True,
                     termination_reason=termination_reason,
                 )
@@ -569,7 +622,7 @@ class QualityScorer:
                     input_quality=previous_score,
                     output_quality=current_score,
                     improvements_applied=[],
-                    time_taken=(datetime.now() - start_time).total_seconds(),
+                    time_taken=(datetime.now() - iter_start_time).total_seconds(),
                     success=False,
                     termination_reason=termination_reason,
                 )
@@ -587,7 +640,7 @@ class QualityScorer:
                     input_quality=previous_score,
                     output_quality=current_score,
                     improvements_applied=[],
-                    time_taken=(datetime.now() - start_time).total_seconds(),
+                    time_taken=(datetime.now() - iter_start_time).total_seconds(),
                     success=False,
                     termination_reason=termination_reason,
                 )
@@ -607,7 +660,7 @@ class QualityScorer:
                         input_quality=previous_score,
                         output_quality=current_score,
                         improvements_applied=[],
-                        time_taken=(datetime.now() - start_time).total_seconds(),
+                        time_taken=(datetime.now() - iter_start_time).total_seconds(),
                         success=False,
                         termination_reason=termination_reason,
                     )
@@ -629,12 +682,33 @@ class QualityScorer:
             try:
                 improved_output = improver_func(current_output, improvements_context)
 
+                # TIMEOUT CHECK 3: After improver returns, before overwriting
+                if timed_out():
+                    termination_reason = IterationTermination.TIMEOUT
+                    self.logger.warning(
+                        f"Timeout after improver at iteration {iteration}: "
+                        f"elapsed={_time() - loop_start:.1f}s"
+                    )
+                    # Record iteration but DON'T use improved_output
+                    # Return current_output (last safe state)
+                    result = IterationResult(
+                        iteration=iteration,
+                        input_quality=current_score,
+                        output_quality=current_score,  # Use current, not improved
+                        improvements_applied=assessment.improvements_needed[:5],
+                        time_taken=(datetime.now() - iter_start_time).total_seconds(),
+                        success=False,
+                        termination_reason=termination_reason,
+                    )
+                    iteration_results.append(result)
+                    break
+
                 result = IterationResult(
                     iteration=iteration,
                     input_quality=current_score,
                     output_quality=0.0,  # Will be updated in next iteration
                     improvements_applied=assessment.improvements_needed[:5],  # Top 5
-                    time_taken=(datetime.now() - start_time).total_seconds(),
+                    time_taken=(datetime.now() - iter_start_time).total_seconds(),
                     success=False,
                     termination_reason="",
                 )
@@ -651,7 +725,7 @@ class QualityScorer:
                     input_quality=current_score,
                     output_quality=current_score,
                     improvements_applied=[],
-                    time_taken=(datetime.now() - start_time).total_seconds(),
+                    time_taken=(datetime.now() - iter_start_time).total_seconds(),
                     success=False,
                     termination_reason=termination_reason,
                 )
@@ -1669,3 +1743,159 @@ class QualityScorer:
         """Reset assessment and iteration history."""
         self.iteration_history.clear()
         self.assessment_history.clear()
+
+    def evaluate_sdk_execution(
+        self,
+        record: dict[str, Any],
+        context: dict[str, Any],
+        iteration: int = 0,
+    ) -> QualityAssessment:
+        """
+        Evaluate SDK execution result with evidence-based grounding.
+
+        This method is the single source of truth for scoring SDK executions.
+        It unwraps the execution record, applies base evaluation, then applies
+        deterministic signals from collected evidence.
+
+        Args:
+            record: SDK execution record containing:
+                - result: The final output payload (dict or str)
+                - success: Whether execution succeeded
+                - evidence: Evidence snapshot from hooks (dict)
+                - errors: Optional error information
+                - agent_used: Name of agent that executed
+                - confidence: Agent selection confidence
+            context: Evaluation context (may include expectations)
+            iteration: Current iteration number
+
+        Returns:
+            QualityAssessment with deterministic grounding from evidence.
+        """
+        # Extract payload for generic evaluation
+        payload = record.get("result") or record.get("output") or {}
+
+        # Run base evaluation on the payload
+        assessment = self.evaluate(
+            output=payload,
+            context=context,
+            iteration=iteration,
+        )
+
+        # Extract evidence and convert to deterministic signals
+        evidence_data = record.get("evidence", {})
+        signals = self._signals_from_sdk_evidence(evidence_data)
+
+        # Apply deterministic caps/boosts
+        adjusted_score, signal_details = self.apply_deterministic_signals(
+            assessment.overall_score, signals
+        )
+
+        # Update assessment with adjusted score
+        assessment.overall_score = adjusted_score
+        assessment.passed = adjusted_score >= self.thresholds.production_ready
+        assessment.band = self.thresholds.classify(adjusted_score)
+
+        # Attach SDK-specific metadata
+        assessment.metadata["sdk_execution"] = {
+            "agent_used": record.get("agent_used"),
+            "confidence": record.get("confidence", 0.0),
+            "success": record.get("success", False),
+            "evidence_summary": {
+                "has_file_modifications": evidence_data.get(
+                    "has_file_modifications", False
+                ),
+                "has_execution_evidence": evidence_data.get(
+                    "has_execution_evidence", False
+                ),
+                "tool_count": evidence_data.get("tool_count", 0),
+                "files_written": evidence_data.get("files_written", 0),
+                "files_edited": evidence_data.get("files_edited", 0),
+                "tests_run": evidence_data.get("tests_run", False),
+            },
+        }
+        assessment.metadata["deterministic_signals"] = signal_details
+        assessment.metadata["signals_grounded"] = True
+
+        # Check evidence expectations if defined (opt-in strictness)
+        self._apply_evidence_expectations(assessment, evidence_data, context)
+
+        return assessment
+
+    def _signals_from_sdk_evidence(
+        self, evidence_data: dict[str, Any]
+    ) -> DeterministicSignals:
+        """
+        Convert SDK evidence snapshot to DeterministicSignals.
+
+        Args:
+            evidence_data: Evidence dict from hooks (already serialized).
+
+        Returns:
+            DeterministicSignals for quality scoring.
+        """
+        return DeterministicSignals(
+            tests_passed=(
+                evidence_data.get("test_failed", 0) == 0
+                and evidence_data.get("tests_run", False)
+            ),
+            tests_total=(
+                evidence_data.get("test_passed", 0)
+                + evidence_data.get("test_failed", 0)
+            ),
+            tests_failed=evidence_data.get("test_failed", 0),
+            test_coverage=evidence_data.get("test_coverage", 0.0),
+        )
+
+    def _apply_evidence_expectations(
+        self,
+        assessment: QualityAssessment,
+        evidence_data: dict[str, Any],
+        context: dict[str, Any],
+    ) -> None:
+        """
+        Apply evidence expectation checks (opt-in strictness).
+
+        Only adds evidence-related issues when expectations are explicitly
+        enabled in the context. This prevents penalizing read-only or
+        advisory commands that don't produce file changes.
+
+        Args:
+            assessment: Quality assessment to update.
+            evidence_data: Evidence snapshot from hooks.
+            context: Context with optional expectations.
+        """
+        # Check if expectations are enabled (opt-in)
+        expects_file_changes = context.get("expects_file_changes", False)
+        expects_tests = context.get("expects_tests", False)
+        expects_execution_evidence = context.get("expects_execution_evidence", False)
+
+        evidence_issues: list[str] = []
+
+        # Check file changes expectation
+        if expects_file_changes:
+            has_modifications = evidence_data.get("has_file_modifications", False)
+            if not has_modifications:
+                evidence_issues.append(
+                    "MISSING_FILE_CHANGES: No file modifications detected"
+                )
+
+        # Check test execution expectation
+        if expects_tests:
+            tests_run = evidence_data.get("tests_run", False)
+            if not tests_run:
+                evidence_issues.append("NO_TESTS_RUN: Test execution was expected")
+
+        # Check general execution evidence expectation
+        if expects_execution_evidence:
+            has_evidence = evidence_data.get("has_execution_evidence", False)
+            if not has_evidence:
+                evidence_issues.append(
+                    "NO_EXECUTION_EVIDENCE: Expected file changes, commands, or tests"
+                )
+
+        # Add evidence issues to improvements_needed (at the front for priority)
+        if evidence_issues:
+            assessment.improvements_needed = (
+                evidence_issues + assessment.improvements_needed
+            )
+            assessment.metadata["evidence_expectations_failed"] = evidence_issues
