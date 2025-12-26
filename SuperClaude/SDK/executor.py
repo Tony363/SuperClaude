@@ -21,7 +21,7 @@ import os
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
-from .client import SDKMessage, SDKOptions, SuperClaudeSDKClient
+from .client import SDKMessage, SuperClaudeSDKClient
 from .hooks import CompositeHooks, QualityHooks, create_quality_hooks
 from .types import TerminationReason
 

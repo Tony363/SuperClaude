@@ -17,10 +17,9 @@ Tier 1 (must-have, stable, high ROI):
 
 from __future__ import annotations
 
-import asyncio
 from dataclasses import dataclass, field
 from typing import Any
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -30,7 +29,6 @@ from SuperClaude.SDK.executor import (
     SDKExecutorConfig,
 )
 from SuperClaude.SDK.types import TerminationReason
-
 
 # =============================================================================
 # Test Fixtures and Mocks

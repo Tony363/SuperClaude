@@ -554,7 +554,6 @@ class QualityScorer:
         termination_reason = (
             IterationTermination.MAX_ITERATIONS
         )  # Default if loop completes
-        last_assessment: QualityAssessment | None = None  # Track for timeout case
 
         for iteration in range(max_iter):
             iter_start_time = datetime.now()
@@ -571,7 +570,6 @@ class QualityScorer:
 
             # Evaluate current quality
             assessment = self.evaluate(current_output, context, iteration=iteration)
-            last_assessment = assessment  # Track for potential timeout
             current_score = assessment.overall_score
             score_history.append(current_score)
 

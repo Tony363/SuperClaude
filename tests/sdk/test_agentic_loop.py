@@ -331,8 +331,6 @@ class TestAgenticLoopTimeout:
 
     def test_timeout_at_loop_start_no_iterations_recorded(self, scorer):
         """Timeout at start of first iteration records no iterations."""
-        from SuperClaude.Quality.quality_scorer import IterationTermination
-
         initial_output = {"data": "initial"}
         context = {}
 

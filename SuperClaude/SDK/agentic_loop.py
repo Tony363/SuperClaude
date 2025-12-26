@@ -85,7 +85,7 @@ def create_sdk_improver(
         # Execute via SDK (sync wrapper for async executor)
         # Use asyncio.run only if not already in an event loop
         try:
-            loop = asyncio.get_running_loop()
+            asyncio.get_running_loop()  # Check if loop exists
             # Already in async context - need to use run_in_executor
             # This shouldn't happen in normal flow, but handle gracefully
             import concurrent.futures
@@ -127,7 +127,7 @@ async def _execute_sdk_async(
     """
     # Build a minimal CommandContext-like object for the executor
     # The executor needs context.command.name at minimum
-    from ..Commands.execution.context import CommandContext
+    # (We create a mock instead of importing CommandContext to avoid circular deps)
 
     # Create a mock command context with the enhanced task
     # In practice, the facade would provide a real context
