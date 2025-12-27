@@ -8,6 +8,30 @@ personas: [architect, frontend, backend, security, qa-specialist, project-manage
 requires_evidence: true
 aliases: [task, spawn]
 flags:
+  - name: loop
+    description: >
+      Enable iterative improvement loop with quality-driven termination.
+      Executes implementation, assesses quality, and iterates until threshold met.
+      Maximum 5 iterations (safety cap). Integrates PAL MCP review within iterations.
+    type: integer
+    default: 3
+    guardrails:
+      - HARD_MAX_ITERATIONS = 5 (cannot be overridden)
+      - Oscillation detection (stops if scores alternate up/down)
+      - Stagnation detection (stops if scores plateau)
+      - Minimum improvement threshold (5 points per iteration)
+  - name: pal-review
+    description: >
+      Enable PAL MCP code review within loop iterations (requires --loop).
+      Invokes mcp__pal__codereview after each iteration to guide improvements.
+    type: boolean
+    default: true
+  - name: quality-threshold
+    description: >
+      Quality score threshold to meet for loop termination (0-100).
+      Loop stops when this score is achieved.
+    type: float
+    default: 70.0
   - name: fast-codex
     description: >
       Skip multi-persona orchestration and route through the Codex implementer path
@@ -59,6 +83,44 @@ flags:
 **Usage**: Type this in Claude Code conversation to activate implementation behavioral mode with coordinated expertise and systematic development approach.
 
 **Note**: This command consolidates former `/sc:task` and `/sc:spawn` commands. Use `--orchestrate` for complex multi-domain operations requiring intelligent task breakdown.
+
+### Agentic Loop Mode (`--loop`)
+
+Enable iterative improvement with quality-driven termination. The loop:
+
+1. **Execute**: Run implementation via sc-implement skill
+2. **Assess**: Evaluate quality using evidence_gate.py (target: 70+)
+3. **Review**: Invoke PAL MCP codereview for improvement guidance
+4. **Iterate**: Re-execute with improvements until threshold met
+5. **Terminate**: Stop when quality met or safety limit reached
+
+**Safety Mechanisms (P0 - Cannot be bypassed):**
+- `HARD_MAX_ITERATIONS = 5` - Even `--loop 100` caps at 5
+- Oscillation detection - Stops if scores alternate up/down
+- Stagnation detection - Stops if scores plateau
+- Minimum improvement - Stops if < 5 point gain per iteration
+
+**Termination Reasons:**
+- `quality_threshold_met` - Success! Score >= threshold
+- `max_iterations_reached` - Safety cap hit
+- `oscillation` - Scores alternating (stuck)
+- `stagnation` - Scores not improving
+- `insufficient_improvement` - Gains too small
+
+**Example**
+```
+/sc:implement user authentication API --loop
+# Iterates until quality >= 70, max 3 iterations
+
+/sc:implement payment system --loop 5 --quality-threshold 85
+# Up to 5 iterations targeting 85+ quality
+
+/sc:implement feature X --loop --pal-review
+# Each iteration includes PAL MCP code review
+```
+
+**Loop Entry Point**: `.claude/skills/sc-implement/scripts/loop_entry.py`
+**Orchestrator**: `core/loop_orchestrator.py`
 
 ### Quick Codex Flow (`--fast-codex`)
 - Prefer for low-risk or repetitive edits where rapid Codex execution is desired.
