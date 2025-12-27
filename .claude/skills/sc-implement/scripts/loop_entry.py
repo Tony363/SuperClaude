@@ -184,7 +184,7 @@ def main():
             json.dumps(
                 {
                     "error": "No context provided",
-                    "usage": "python loop_entry.py '{\"task\": \"...\", \"max_iterations\": 3}'",
+                    "usage": 'python loop_entry.py \'{"task": "...", "max_iterations": 3}\'',
                     "signal": create_signal_only_response({}),
                 },
                 indent=2,

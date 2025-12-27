@@ -47,8 +47,7 @@ def detect_oscillation(
     # Oscillation = alternating directions
     if len(directions) >= 2:
         is_oscillating = all(
-            directions[i] != directions[i + 1]
-            for i in range(len(directions) - 1)
+            directions[i] != directions[i + 1] for i in range(len(directions) - 1)
         )
         return is_oscillating
 

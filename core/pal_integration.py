@@ -204,8 +204,7 @@ def _detect_pattern(score_history: list[float]) -> str:
 
     if len(directions) >= 2:
         alternating = all(
-            directions[i] != directions[i + 1]
-            for i in range(len(directions) - 1)
+            directions[i] != directions[i + 1] for i in range(len(directions) - 1)
         )
         if alternating:
             return "oscillating"

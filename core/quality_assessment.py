@@ -241,7 +241,9 @@ class QualityAssessor:
         )
 
 
-def assess_quality(context: dict[str, Any], threshold: float = 70.0) -> QualityAssessment:
+def assess_quality(
+    context: dict[str, Any], threshold: float = 70.0
+) -> QualityAssessment:
     """
     Convenience function for quality assessment.
 

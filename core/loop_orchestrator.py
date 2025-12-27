@@ -274,9 +274,7 @@ class LoopOrchestrator:
         pal_signal: dict[str, Any] | None = None,
     ) -> None:
         """Record an iteration result."""
-        input_quality = (
-            self.score_history[-2] if len(self.score_history) >= 2 else 0.0
-        )
+        input_quality = self.score_history[-2] if len(self.score_history) >= 2 else 0.0
         output_quality = assessment.overall_score
 
         self.iteration_history.append(
@@ -357,7 +355,9 @@ def create_skill_invoker_signal(context: dict[str, Any]) -> dict[str, Any]:
             "task": context.get("task", ""),
             "improvements_needed": context.get("improvements_needed", []),
             "iteration": context.get("iteration", 0),
-            "focus": "remediation" if context.get("iteration", 0) > 0 else "implementation",
+            "focus": "remediation"
+            if context.get("iteration", 0) > 0
+            else "implementation",
         },
         "collect": ["changes", "tests", "lint", "changed_files"],
         "context": context,

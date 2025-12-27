@@ -15,6 +15,7 @@ class TerminationReason(Enum):
 
     Ported from archived quality_scorer.py lines 85-96.
     """
+
     QUALITY_MET = "quality_threshold_met"
     MAX_ITERATIONS = "max_iterations_reached"
     INSUFFICIENT_IMPROVEMENT = "insufficient_improvement"
@@ -41,6 +42,7 @@ class LoopConfig:
         pal_review_enabled: Enable PAL MCP review within loop iterations
         pal_model: Model to use for PAL reviews
     """
+
     max_iterations: int = 3
     hard_max_iterations: int = 5  # P0 SAFETY: Cannot be overridden
     min_improvement: float = 5.0
@@ -71,6 +73,7 @@ class QualityAssessment:
         band: Quality band (excellent/good/acceptable/poor/failing)
         metadata: Additional context from evidence collection
     """
+
     overall_score: float
     passed: bool
     threshold: float = 70.0
@@ -96,6 +99,7 @@ class IterationResult:
         pal_review: Results from PAL MCP review (if performed)
         changed_files: List of files modified in this iteration
     """
+
     iteration: int
     input_quality: float
     output_quality: float
@@ -120,6 +124,7 @@ class LoopResult:
         total_iterations: Number of iterations executed
         total_time: Total wall-clock time for all iterations
     """
+
     final_output: dict[str, Any]
     final_assessment: QualityAssessment
     iteration_history: list[IterationResult]
