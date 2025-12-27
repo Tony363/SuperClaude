@@ -8,9 +8,9 @@
   <img src="https://img.shields.io/badge/license-MIT-lightgrey" alt="License">
 </p>
 
-**A pure prompts/config meta-framework for Claude Code that provides 130+ specialized agent personas, structured commands, and MCP integration guides.**
+**A config-first meta-framework for Claude Code that provides 130+ specialized agent personas, structured commands, and MCP integration guides.**
 
-SuperClaude transforms Claude Code into a powerful development platform with specialized agent prompts that Claude Code loads and uses directly. No Python runtime required - just markdown and YAML configuration files.
+SuperClaude transforms Claude Code into a powerful development platform with specialized agent prompts that Claude Code loads and uses directly. The core interface is markdown and YAML configuration files, with optional Python orchestration for advanced workflows.
 
 ---
 
@@ -47,26 +47,26 @@ SuperClaude is a meta-prompt framework that enhances Claude Code with:
 
 ## Key Features
 
-### Pure Prompts/Config Architecture
+### Config-First Architecture
 
-SuperClaude v6.0.0 is a **pure prompts and configuration framework**:
+SuperClaude v6.0.0 is a **config-first hybrid framework**:
 
-- **No Python Runtime**: Claude Code loads and uses prompts directly
 - **Markdown Agent Personas**: Each agent is a self-contained markdown file
 - **YAML Configuration**: Agent registry, command index, quality thresholds
+- **Optional Python Orchestration**: Loop orchestration and quality gates for advanced workflows
 - **Portable**: Works with any Claude Code instance
 - **Extensible**: Add agents by creating markdown files
 
-### Why Pure Config?
+### Why Config-First?
 
 | Benefit | Description |
 |---------|-------------|
-| **Simplicity** | No Python runtime, just markdown/YAML files |
+| **Simplicity** | Core interface is markdown/YAML files |
 | **Portability** | Works with any Claude Code instance |
 | **Extensibility** | Add agents by creating markdown files |
-| **Maintainability** | No code to maintain, just prompts to refine |
+| **Maintainability** | Prompts are easy to refine and version |
 | **Version Control** | Easy to diff and review prompt changes |
-| **No Security Risks** | No dynamic code loading vulnerabilities |
+| **Optional Power** | Python orchestration available when needed |
 
 ### Specialized Agent System
 
@@ -361,7 +361,7 @@ Each skill follows a standard structure:
 - `SKILL.md` = The interface Claude reads to understand when/how to invoke a tool
 - `scripts/*.py` = Backend implementations executed by the host system
 
-This follows standard agentic patterns. The "pure prompts/config" architecture refers to the AI-facing interface (`SKILL.md` files).
+This follows standard agentic patterns. The config-first architecture means the AI-facing interface (`SKILL.md` files) is pure configuration, while optional Python orchestration handles complex workflows.
 
 ### Using Skills
 

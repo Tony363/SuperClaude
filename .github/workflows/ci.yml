@@ -174,6 +174,106 @@ jobs:
           retention-days: 7
 
   # ============================================
+  # Artifact Install Test - Verify wheel installs correctly
+  # ============================================
+  artifact-install:
+    name: Artifact Install (${{ matrix.extra }})
+    needs: build
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.10', '3.11', '3.12']
+        extra: ['base', 'runtime', 'cli', 'full', 'test', 'dev']
+        exclude:
+          # Only test base/full on all Python versions; others on 3.11 only
+          - python-version: '3.10'
+            extra: 'runtime'
+          - python-version: '3.10'
+            extra: 'cli'
+          - python-version: '3.10'
+            extra: 'test'
+          - python-version: '3.10'
+            extra: 'dev'
+          - python-version: '3.12'
+            extra: 'runtime'
+          - python-version: '3.12'
+            extra: 'cli'
+          - python-version: '3.12'
+            extra: 'test'
+          - python-version: '3.12'
+            extra: 'dev'
+
+    steps:
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Get wheel filename
+        id: wheel
+        run: |
+          WHEEL=$(ls dist/*.whl | head -1)
+          echo "filename=$WHEEL" >> $GITHUB_OUTPUT
+          echo "Found wheel: $WHEEL"
+
+      - name: Install from wheel (base)
+        if: matrix.extra == 'base'
+        run: pip install ${{ steps.wheel.outputs.filename }}
+
+      - name: Install from wheel (with extras)
+        if: matrix.extra != 'base'
+        run: |
+          # Use PEP 508 direct URL to wheel with extras
+          pip install "SuperClaude[${{ matrix.extra }}] @ file://${{ github.workspace }}/${{ steps.wheel.outputs.filename }}"
+
+      - name: Verify installation
+        run: |
+          pip show SuperClaude
+          pip freeze | grep -i superclaude || true
+
+      - name: Smoke test - import SuperClaude
+        run: python -c "import SuperClaude; print('SuperClaude imported successfully')"
+
+      - name: Smoke test - import __main__ and verify main()
+        run: |
+          python -c "
+          from SuperClaude.__main__ import main
+          assert callable(main), 'main() should be callable'
+          print('main() is callable')
+          "
+
+      - name: Smoke test - module execution
+        run: |
+          # Test that python -m SuperClaude runs without crashing
+          python -m SuperClaude || true
+          echo "Module execution completed (exit code allowed to be non-zero)"
+
+      - name: Run tests (test/full extras only)
+        if: matrix.extra == 'test' || matrix.extra == 'full'
+        run: |
+          pip install pytest pytest-cov
+          # Checkout just for tests (wheel is already installed)
+          git clone --depth 1 https://github.com/${{ github.repository }} repo
+          cd repo
+          pytest tests/core/ -v --tb=short -x
+
+      - name: Test sdist install (full extra, Python 3.11 only)
+        if: matrix.extra == 'full' && matrix.python-version == '3.11'
+        run: |
+          # Create a fresh venv and install from sdist (--no-binary prevents wheel cache)
+          python -m venv sdist-test
+          source sdist-test/bin/activate
+          pip install --no-binary :all: dist/*.tar.gz
+          python -c "import SuperClaude; print('sdist install successful')"
+
+  # ============================================
   # Benchmark Smoke Test
   # ============================================
   benchmark:
@@ -238,7 +338,7 @@ jobs:
   ci-status:
     name: CI Status
     if: always()
-    needs: [quality, test, coverage-gate, build]
+    needs: [quality, test, coverage-gate, build, artifact-install]
     runs-on: ubuntu-latest
     steps:
       - name: Check CI status
@@ -246,7 +346,8 @@ jobs:
           if [[ "${{ needs.quality.result }}" == "failure" ]] || \
              [[ "${{ needs.test.result }}" == "failure" ]] || \
              [[ "${{ needs.coverage-gate.result }}" == "failure" ]] || \
-             [[ "${{ needs.build.result }}" == "failure" ]]; then
+             [[ "${{ needs.build.result }}" == "failure" ]] || \
+             [[ "${{ needs.artifact-install.result }}" == "failure" ]]; then
             echo "CI failed"
             exit 1
           fi

@@ -96,8 +96,19 @@ class QualityAssessor:
 
         Returns:
             Result from evidence_gate
+
+        Security Notes:
+            - Command uses shell=False with list arguments (prevents shell injection)
+            - Executable is sys.executable (current Python interpreter, not user-controlled)
+            - Script path comes from _find_evidence_gate() which only returns paths
+              within the package directory structure (not user-controllable)
+            - Evidence data is JSON-serialized and passed as a single argument
+            - 30-second timeout prevents resource exhaustion
+            - Output is captured but not logged (prevents secret leakage)
         """
         try:
+            # Security: Fixed command structure with no user-controlled components
+            # in the command itself. Evidence data is passed as JSON argument.
             result = subprocess.run(
                 [sys.executable, str(self.evidence_gate_path), json.dumps(evidence)],
                 capture_output=True,

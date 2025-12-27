@@ -36,18 +36,31 @@ import sys
 from pathlib import Path
 from typing import Any
 
-# Add core to path
+# Add core module to Python path for imports.
+#
+# Security Note:
+#   This path traversal uses __file__.parents[4] which resolves relative to
+#   this script's fixed location within the package structure:
+#     .claude/skills/sc-implement/scripts/loop_entry.py -> (4 levels up) -> project root
+#
+#   This is NOT user-controllable input - it's a static path derived from the
+#   script's installation location. The traversal depth is hardcoded based on
+#   the known directory structure. If the script is moved, imports will fail
+#   gracefully (ImportError caught below) rather than importing from unexpected
+#   locations.
+#
+#   Risk: Low - Path is compile-time constant, not runtime user input.
+#   Mitigation: ImportError handling provides graceful degradation.
 sys.path.insert(0, str(Path(__file__).parents[4]))
 
 try:
-    from core.loop_orchestrator import LoopOrchestrator, create_skill_invoker_signal
+    from core.loop_orchestrator import LoopOrchestrator
     from core.types import LoopConfig
 except ImportError:
     # Fallback for when core module is not available
     # This provides a graceful degradation
     LoopOrchestrator = None
     LoopConfig = None
-    create_skill_invoker_signal = None
 
 
 def parse_context(raw_context: str) -> dict[str, Any]:

@@ -9,7 +9,7 @@ authors = [
     {name = "NomenAK", email = "anton.knoery@gmail.com"},
     {name = "Mithun Gowda B", email = "mithungowda.b7411@gmail.com"}
 ]
-description = "SuperClaude Framework - Pure prompts/config meta-framework for Claude Code with 130+ specialized agent personas"
+description = "SuperClaude Framework - Config-first meta-framework for Claude Code with 130+ specialized agent personas"
 readme = "README.md"
 license = {text = "MIT"}
 requires-python = ">=3.10"
@@ -22,7 +22,11 @@ classifiers = [
     "Environment :: Console",
 ]
 keywords = ["claude", "ai", "framework", "mcp", "agents", "prompts", "claude-code", "meta-framework"]
-# No Python dependencies - pure config/prompts package
+# No required dependencies - config-first architecture
+# Use optional dependency groups for Python functionality:
+#   pip install .[runtime]  - Loop orchestration
+#   pip install .[cli]      - Legacy CLI
+#   pip install .[full]     - All features
 dependencies = []
 
 [project.urls]
@@ -35,9 +39,35 @@ GitHub = "https://github.com/SuperClaude-Org/SuperClaude_Framework"
 # No CLI scripts - Claude Code loads configs directly
 
 [project.optional-dependencies]
+# Runtime dependencies for loop orchestration
+runtime = [
+    "pyyaml>=6.0",
+    "aiofiles>=23.0",
+]
+# CLI dependencies for legacy command-line interface
+cli = [
+    "rich>=13.0",
+    "click>=8.1",
+    "python-dotenv>=1.0",
+]
+# Full installation with all optional dependencies
+full = [
+    "pyyaml>=6.0",
+    "aiofiles>=23.0",
+    "rich>=13.0",
+    "click>=8.1",
+    "python-dotenv>=1.0",
+    "watchdog>=3.0",
+    "gitpython>=3.1",
+    "jinja2>=3.1",
+    "jsonschema>=4.0",
+]
+# Development dependencies
 dev = [
     "pyyaml>=6.0",
+    "ruff>=0.1.0",
 ]
+# Test dependencies
 test = [
     "pytest>=7.0",
     "pytest-cov>=4.0",
