@@ -1,0 +1,122 @@
+# SuperClaude Framework Agent Configuration
+# Version: 6.0.0-alpha
+
+agents:
+  core:
+    count: 15
+    directory: SuperClaude/Agents/core
+    cache_ttl: 3600
+    priority_order:
+      - general-purpose
+      - root-cause-analyst
+      - refactoring-expert
+      - technical-writer
+      - performance-engineer
+      - system-architect
+      - backend-architect
+      - frontend-architect
+      - python-expert
+      - security-engineer
+      - devops-architect
+      - quality-engineer
+      - requirements-analyst
+      - learning-guide
+
+  extended:
+    count: 116
+    directory: SuperClaude/Agents/extended
+    categories:
+      01-core-development:
+        count: 11
+        priority: high
+      02-language-specialists:
+        count: 23
+        priority: high
+      03-infrastructure:
+        count: 12
+        priority: medium
+      04-quality-security:
+        count: 12
+        priority: high
+      05-data-ai:
+        count: 12
+        priority: medium
+      06-developer-experience:
+        count: 10
+        priority: medium
+      07-specialized-domains:
+        count: 11
+        priority: low
+      08-business-product:
+        count: 11
+        priority: low
+      09-meta-orchestration:
+        count: 8
+        priority: high
+      10-research-analysis:
+        count: 6
+        priority: low
+
+# Selection Configuration
+selection:
+  algorithm: weighted-match
+  factors:
+    - domain_match: 0.3
+    - keyword_match: 0.2
+    - file_pattern_match: 0.2
+    - language_match: 0.15
+    - framework_match: 0.15
+
+  thresholds:
+    minimum_score: 0.6
+    confidence_level: 0.8
+
+  strategies:
+    delegate:
+      search_extended: true
+      prefer_specialists: true
+      max_candidates: 5
+
+    delegate-core:
+      search_extended: false
+      prefer_generalists: true
+      max_candidates: 3
+
+    delegate-extended:
+      search_extended: true
+      prefer_specialists: true
+      exclude_core: true
+      max_candidates: 7
+
+# Coordination Configuration
+coordination:
+  strategies:
+    - hierarchical
+    - consensus
+    - pipeline
+    - parallel
+    - adaptive
+    - swarm
+
+  conflict_resolution:
+    method: priority-based
+    fallback: consensus
+
+  delegation:
+    max_depth: 5
+    timeout: 300
+    retry_limit: 3
+
+# Cache Configuration
+cache:
+  lru:
+    maxsize: 128
+    ttl: 3600
+
+  memory:
+    provider: unified_store
+    checkpoint_interval: 1800
+
+  disk:
+    directory: .cache/agents
+    max_size: 100MB

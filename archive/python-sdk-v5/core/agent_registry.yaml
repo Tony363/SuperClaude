@@ -1,0 +1,492 @@
+# SuperClaude Unified Agent Registry
+# All 131 agents (15 core + 116 extended) in a single searchable registry
+# Version: 1.0.0
+
+registry:
+  # Core Agents (Quick Access - Priority 1)
+  core:
+    - id: general-purpose
+      name: General Purpose Agent
+      path: general-purpose
+      priority: 1
+      domains: [general, exploration, unknown]
+      languages: [any]
+      keywords: [explore, find, discover, unknown, general]
+      description: "Unknown scope exploration and general tasks"
+
+    - id: root-cause-analyst
+      name: Root Cause Analyst
+      path: root-cause-analyst
+      priority: 1
+      domains: [debugging, analysis]
+      languages: [any]
+      keywords: [debug, error, bug, issue, problem, investigate]
+      file_patterns: ["*.log", "*.err"]
+      description: "Systematic debugging and root cause analysis"
+
+    - id: refactoring-expert
+      name: Refactoring Expert
+      path: refactoring-expert
+      priority: 1
+      domains: [refactoring, code-quality]
+      languages: [any]
+      keywords: [refactor, clean, improve, optimize, restructure]
+      description: "Code improvements and clean code principles"
+
+    - id: quality-engineer
+      name: Quality Engineer
+      path: quality-engineer
+      priority: 1
+      domains: [testing, quality]
+      languages: [any]
+      keywords: [test, quality, coverage, qa, validation]
+      file_patterns: ["*.test.*", "*.spec.*", "test_*.py"]
+      description: "Testing strategies and quality assurance"
+
+    - id: technical-writer
+      name: Technical Writer
+      path: technical-writer
+      priority: 1
+      domains: [documentation]
+      languages: [any]
+      keywords: [document, docs, readme, api, documentation]
+      file_patterns: ["*.md", "*.rst", "*.adoc"]
+      description: "Clear technical documentation"
+
+    - id: frontend-architect
+      name: Frontend Architect
+      path: frontend-architect
+      priority: 1
+      domains: [frontend, ui, ux]
+      languages: [javascript, typescript, react, vue, angular]
+      keywords: [ui, frontend, component, design, accessibility]
+      file_patterns: ["*.jsx", "*.tsx", "*.vue", "*.svelte"]
+      description: "Accessible, performant user interfaces"
+
+    - id: backend-architect
+      name: Backend Architect
+      path: backend-architect
+      priority: 1
+      domains: [backend, api, server]
+      languages: [any]
+      keywords: [api, backend, server, database, microservice]
+      file_patterns: ["*.controller.*", "*.service.*", "*.model.*"]
+      description: "Reliable backend systems and APIs"
+
+    - id: security-engineer
+      name: Security Engineer
+      path: security-engineer
+      priority: 1
+      domains: [security]
+      languages: [any]
+      keywords: [security, vulnerability, auth, encryption, secure]
+      description: "Security vulnerabilities and compliance"
+
+    - id: performance-engineer
+      name: Performance Engineer
+      path: performance-engineer
+      priority: 1
+      domains: [performance]
+      languages: [any]
+      keywords: [performance, speed, optimize, latency, throughput]
+      description: "Performance optimization and bottleneck elimination"
+
+    - id: system-architect
+      name: System Architect
+      path: system-architect
+      priority: 1
+      domains: [architecture, design]
+      languages: [any]
+      keywords: [architecture, design, system, scalability, patterns]
+      description: "Scalable system architecture design"
+
+    - id: requirements-analyst
+      name: Requirements Analyst
+      path: requirements-analyst
+      priority: 1
+      domains: [requirements, analysis]
+      languages: [any]
+      keywords: [requirements, specification, scope, analysis, user-story]
+      description: "Transform ideas into concrete specifications"
+
+    - id: socratic-mentor
+      name: Socratic Mentor
+      path: socratic-mentor
+      priority: 1
+      domains: [education, learning]
+      languages: [any]
+      keywords: [learn, teach, explain, understand, mentor]
+      description: "Educational guide using Socratic method"
+
+    - id: python-expert
+      name: Python Expert
+      path: python-expert
+      priority: 1
+      domains: [python]
+      languages: [python]
+      keywords: [python, django, flask, pandas, numpy]
+      file_patterns: ["*.py", "requirements.txt", "setup.py"]
+      description: "Production-ready Python following best practices"
+
+    - id: devops-architect
+      name: DevOps Architect
+      path: devops-architect
+      priority: 1
+      domains: [devops, infrastructure]
+      languages: [yaml, bash, terraform]
+      keywords: [devops, ci, cd, pipeline, deployment, docker, kubernetes]
+      file_patterns: ["*.yml", "*.yaml", "Dockerfile", "*.tf"]
+      description: "Infrastructure automation and deployment"
+
+    - id: learning-guide
+      name: Learning Guide
+      path: learning-guide
+      priority: 1
+      domains: [education]
+      languages: [any]
+      keywords: [learn, tutorial, guide, example, practice]
+      description: "Progressive learning through examples"
+
+  # Extended Agents - Core Development (Priority 2)
+  extended_core_development:
+    - id: api-designer
+      name: API Designer
+      path: Extended/01-core-development/api-designer
+      priority: 2
+      domains: [api, rest, graphql]
+      languages: [any]
+      keywords: [api, rest, graphql, endpoint, swagger, openapi]
+      file_patterns: ["*.swagger.*", "*.openapi.*", "*.graphql"]
+      description: "RESTful and GraphQL API design expert"
+
+    - id: mobile-developer
+      name: Mobile Developer
+      path: Extended/01-core-development/mobile-developer
+      priority: 2
+      domains: [mobile]
+      languages: [swift, kotlin, react-native, flutter]
+      keywords: [mobile, ios, android, app, react-native, flutter]
+      file_patterns: ["*.swift", "*.kt", "*.dart"]
+      description: "Cross-platform mobile development"
+
+    - id: microservices-architect
+      name: Microservices Architect
+      path: Extended/01-core-development/microservices-architect
+      priority: 2
+      domains: [microservices, distributed]
+      languages: [any]
+      keywords: [microservice, distributed, service-mesh, saga, event-driven]
+      description: "Distributed systems and microservices patterns"
+
+    - id: ui-designer
+      name: UI Designer
+      path: Extended/01-core-development/ui-designer
+      priority: 2
+      domains: [ui, ux, design]
+      languages: [css, html, javascript]
+      keywords: [ui, ux, design, figma, sketch, wireframe]
+      file_patterns: ["*.css", "*.scss", "*.sass"]
+      description: "User interface and experience design"
+
+  # Extended Agents - Language Specialists (Priority 2)
+  extended_language_specialists:
+    - id: typescript-pro
+      name: TypeScript Pro
+      path: Extended/02-language-specialists/typescript-pro
+      priority: 2
+      domains: [typescript]
+      languages: [typescript]
+      keywords: [typescript, types, interface, generics, ts]
+      file_patterns: ["*.ts", "*.tsx", "tsconfig.json"]
+      description: "Advanced TypeScript patterns and type gymnastics"
+
+    - id: rust-engineer
+      name: Rust Engineer
+      path: Extended/02-language-specialists/rust-engineer
+      priority: 2
+      domains: [rust, systems]
+      languages: [rust]
+      keywords: [rust, cargo, lifetime, ownership, unsafe]
+      file_patterns: ["*.rs", "Cargo.toml", "Cargo.lock"]
+      description: "Memory-safe systems programming in Rust"
+
+    - id: golang-pro
+      name: Go Pro
+      path: Extended/02-language-specialists/golang-pro
+      priority: 2
+      domains: [go, microservices]
+      languages: [go]
+      keywords: [golang, go, goroutine, channel, concurrency]
+      file_patterns: ["*.go", "go.mod", "go.sum"]
+      description: "Concurrent Go programming and microservices"
+
+    - id: react-specialist
+      name: React Specialist
+      path: Extended/02-language-specialists/react-specialist
+      priority: 2
+      domains: [react, frontend]
+      languages: [javascript, typescript]
+      keywords: [react, hooks, jsx, redux, next]
+      file_patterns: ["*.jsx", "*.tsx"]
+      imports: ["react", "react-dom", "@/components"]
+      description: "Modern React patterns and performance"
+
+    - id: vue-expert
+      name: Vue Expert
+      path: Extended/02-language-specialists/vue-expert
+      priority: 2
+      domains: [vue, frontend]
+      languages: [javascript, typescript]
+      keywords: [vue, vuex, nuxt, composition-api, vue3]
+      file_patterns: ["*.vue"]
+      imports: ["vue", "@vue", "vuex"]
+      description: "Vue 3 and Composition API expertise"
+
+    - id: angular-architect
+      name: Angular Architect
+      path: Extended/02-language-specialists/angular-architect
+      priority: 2
+      domains: [angular, enterprise]
+      languages: [typescript]
+      keywords: [angular, rxjs, ngrx, dependency-injection]
+      file_patterns: ["*.component.ts", "*.service.ts", "*.module.ts"]
+      imports: ["@angular/core", "@angular/common"]
+      description: "Enterprise Angular patterns"
+
+    - id: nextjs-developer
+      name: Next.js Developer
+      path: Extended/02-language-specialists/nextjs-developer
+      priority: 2
+      domains: [nextjs, fullstack]
+      languages: [javascript, typescript]
+      keywords: [nextjs, ssr, ssg, vercel, react]
+      file_patterns: ["next.config.js", "pages/*.tsx", "app/*.tsx"]
+      imports: ["next", "next/router", "next/image"]
+      description: "Full-stack Next.js with SSR/SSG"
+
+    - id: spring-boot-engineer
+      name: Spring Boot Engineer
+      path: Extended/02-language-specialists/spring-boot-engineer
+      priority: 2
+      domains: [java, spring]
+      languages: [java]
+      keywords: [spring, boot, java, jpa, hibernate]
+      file_patterns: ["*.java", "pom.xml", "build.gradle"]
+      imports: ["org.springframework", "javax.persistence"]
+      description: "Java Spring Boot microservices"
+
+    - id: rails-expert
+      name: Rails Expert
+      path: Extended/02-language-specialists/rails-expert
+      priority: 2
+      domains: [ruby, rails]
+      languages: [ruby]
+      keywords: [rails, ruby, activerecord, mvc, gem]
+      file_patterns: ["*.rb", "Gemfile", "config/routes.rb"]
+      imports: ["rails", "activerecord"]
+      description: "Ruby on Rails rapid development"
+
+    - id: django-developer
+      name: Django Developer
+      path: Extended/02-language-specialists/django-developer
+      priority: 2
+      domains: [python, django]
+      languages: [python]
+      keywords: [django, python, orm, drf, celery]
+      file_patterns: ["models.py", "views.py", "urls.py", "settings.py"]
+      imports: ["django", "rest_framework"]
+      description: "Django web framework expertise"
+
+    - id: dotnet-core-expert
+      name: .NET Core Expert
+      path: Extended/02-language-specialists/dotnet-core-expert
+      priority: 2
+      domains: [csharp, dotnet]
+      languages: [csharp]
+      keywords: [dotnet, csharp, aspnet, core, ef-core]
+      file_patterns: ["*.cs", "*.csproj", "*.sln"]
+      imports: ["Microsoft.AspNetCore", "System.Linq"]
+      description: "Modern .NET Core development"
+
+  # Extended Agents - Infrastructure (Priority 2)
+  extended_infrastructure:
+    - id: kubernetes-specialist
+      name: Kubernetes Specialist
+      path: Extended/03-infrastructure/kubernetes-specialist
+      priority: 2
+      domains: [kubernetes, containers]
+      languages: [yaml]
+      keywords: [kubernetes, k8s, helm, pod, deployment, service]
+      file_patterns: ["*.yaml", "*.yml", "Chart.yaml", "values.yaml"]
+      description: "Kubernetes orchestration and Helm charts"
+
+    - id: terraform-engineer
+      name: Terraform Engineer
+      path: Extended/03-infrastructure/terraform-engineer
+      priority: 2
+      domains: [terraform, iac]
+      languages: [hcl]
+      keywords: [terraform, iac, aws, gcp, azure, infrastructure]
+      file_patterns: ["*.tf", "*.tfvars", "terraform.tfstate"]
+      description: "Infrastructure as Code with Terraform"
+
+    - id: cloud-architect
+      name: Cloud Architect
+      path: Extended/03-infrastructure/cloud-architect
+      priority: 2
+      domains: [cloud, aws, gcp, azure]
+      languages: [any]
+      keywords: [aws, gcp, azure, cloud, lambda, s3, ec2]
+      description: "Multi-cloud architecture and services"
+
+    - id: sre-engineer
+      name: SRE Engineer
+      path: Extended/03-infrastructure/sre-engineer
+      priority: 2
+      domains: [sre, monitoring]
+      languages: [any]
+      keywords: [sre, monitoring, observability, prometheus, grafana]
+      description: "Site reliability and observability"
+
+  # Extended Agents - Quality & Security (Priority 2)
+  extended_quality_security:
+    - id: security-auditor
+      name: Security Auditor
+      path: Extended/04-quality-security/security-auditor
+      priority: 2
+      domains: [security, audit]
+      languages: [any]
+      keywords: [audit, vulnerability, pentest, owasp, cve]
+      description: "Security vulnerability assessment"
+
+    - id: qa-expert
+      name: QA Expert
+      path: Extended/04-quality-security/qa-expert
+      priority: 2
+      domains: [testing, qa]
+      languages: [any]
+      keywords: [qa, test, selenium, cypress, e2e]
+      file_patterns: ["*.spec.*", "*.test.*", "*.e2e.*"]
+      description: "Test automation frameworks"
+
+    - id: code-reviewer
+      name: Code Reviewer
+      path: Extended/04-quality-security/code-reviewer
+      priority: 2
+      domains: [review, quality]
+      languages: [any]
+      keywords: [review, pr, code-review, lint, quality]
+      description: "Code review and quality guardian"
+
+    - id: accessibility-tester
+      name: Accessibility Tester
+      path: Extended/04-quality-security/accessibility-tester
+      priority: 2
+      domains: [accessibility, a11y]
+      languages: [html, javascript]
+      keywords: [accessibility, a11y, wcag, aria, screen-reader]
+      description: "WCAG compliance and accessibility"
+
+  # Extended Agents - Data & AI (Priority 2)
+  extended_data_ai:
+    - id: ml-engineer
+      name: ML Engineer
+      path: Extended/05-data-ai/ml-engineer
+      priority: 2
+      domains: [ml, ai, data-science]
+      languages: [python]
+      keywords: [ml, machine-learning, tensorflow, pytorch, sklearn]
+      file_patterns: ["*.ipynb", "model.py", "train.py"]
+      imports: ["tensorflow", "torch", "sklearn", "pandas", "numpy"]
+      description: "Machine learning model development"
+
+    - id: llm-architect
+      name: LLM Architect
+      path: Extended/05-data-ai/llm-architect
+      priority: 2
+      domains: [llm, ai, nlp]
+      languages: [python]
+      keywords: [llm, gpt, bert, transformer, langchain, prompt]
+      imports: ["transformers", "langchain", "openai", "anthropic"]
+      description: "Large language model architecture"
+
+    - id: data-engineer
+      name: Data Engineer
+      path: Extended/05-data-ai/data-engineer
+      priority: 2
+      domains: [data, etl, pipeline]
+      languages: [python, sql]
+      keywords: [etl, pipeline, spark, airflow, kafka, data]
+      file_patterns: ["*.sql", "*.dag.py"]
+      imports: ["pyspark", "airflow", "kafka"]
+      description: "Data pipeline architecture"
+
+    - id: database-optimizer
+      name: Database Optimizer
+      path: Extended/05-data-ai/database-optimizer
+      priority: 2
+      domains: [database, sql, performance]
+      languages: [sql]
+      keywords: [database, query, index, optimization, sql]
+      file_patterns: ["*.sql", "migrations/*.sql"]
+      description: "Query performance and database optimization"
+
+  # Extended Agents - Specialized Domains (Priority 3)
+  extended_specialized:
+    - id: blockchain-developer
+      name: Blockchain Developer
+      path: Extended/07-specialized-domains/blockchain-developer
+      priority: 3
+      domains: [blockchain, web3, crypto]
+      languages: [solidity, rust, javascript]
+      keywords: [blockchain, web3, smart-contract, defi, ethereum, solana]
+      file_patterns: ["*.sol", "hardhat.config.js", "truffle-config.js"]
+      imports: ["ethers", "web3", "@solana/web3.js"]
+      description: "Smart contracts and DeFi development"
+
+    - id: game-developer
+      name: Game Developer
+      path: Extended/07-specialized-domains/game-developer
+      priority: 3
+      domains: [gaming, graphics]
+      languages: [cpp, csharp, javascript]
+      keywords: [game, unity, unreal, godot, physics, graphics]
+      file_patterns: ["*.unity", "*.uasset", "*.gdscript"]
+      description: "Game engines and physics"
+
+    - id: iot-engineer
+      name: IoT Engineer
+      path: Extended/07-specialized-domains/iot-engineer
+      priority: 3
+      domains: [iot, embedded]
+      languages: [c, cpp, python]
+      keywords: [iot, embedded, arduino, raspberry, sensor, mqtt]
+      file_patterns: ["*.ino", "*.cpp"]
+      description: "Embedded systems and IoT sensors"
+
+    - id: fintech-engineer
+      name: FinTech Engineer
+      path: Extended/07-specialized-domains/fintech-engineer
+      priority: 3
+      domains: [finance, fintech]
+      languages: [any]
+      keywords: [fintech, payment, banking, trading, finance]
+      description: "Financial systems and payments"
+
+# Agent Selection Configuration
+selection:
+  # Default priority weighting
+  priority_weights:
+    1: 1.0  # Core agents - highest priority
+    2: 0.7  # Extended common - medium priority
+    3: 0.5  # Extended specialized - lower priority
+
+  # Confidence thresholds
+  confidence_thresholds:
+    strong_match: 0.8   # File pattern + keyword match
+    medium_match: 0.6   # Keyword or domain match
+    weak_match: 0.4     # Partial keyword match
+
+  # Maximum suggestions to show
+  max_suggestions: 5
+  default_suggestions: 3

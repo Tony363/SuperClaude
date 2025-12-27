@@ -38,14 +38,22 @@ GitHub = "https://github.com/SuperClaude-Org/SuperClaude_Framework"
 dev = [
     "pyyaml>=6.0",
 ]
+test = [
+    "pytest>=7.0",
+    "pytest-cov>=4.0",
+    "pytest-asyncio>=0.21.0",
+    "pyyaml>=6.0",
+    "aiofiles>=23.0",
+    "jsonschema>=4.0",
+]
 
 [tool.setuptools]
 include-package-data = true
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["agents*", "commands*", "config*", "mcp*"]
-exclude = ["tests*", "archive*", ".git*"]
+include = ["SuperClaude*", "agents*", "commands*", "config*", "mcp*", "core*", "setup*"]
+exclude = ["tests*", ".git*"]
 
 [tool.setuptools.package-data]
 "*" = ["*.md", "*.yaml", "*.yml", "*.json"]
