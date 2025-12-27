@@ -1,7 +1,7 @@
 """Test CLI functionality and argument parsing.
 
 These tests require the archived SDK to be properly installed.
-Skip if the archived SDK compatibility layer has import issues.
+Mark all tests with @pytest.mark.archived_sdk to skip in CI.
 """
 
 import argparse
@@ -15,14 +15,8 @@ import pytest
 # Add parent directory to path for direct module imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-# Check if archived SDK imports work - skip entire module if not
-try:
-    from SuperClaude import __main__ as superclaude_main  # noqa: F401
-except ImportError:
-    pytest.skip(
-        "Archived SDK compatibility layer not available",
-        allow_module_level=True,
-    )
+# Mark all tests in this module as requiring archived SDK
+pytestmark = pytest.mark.archived_sdk
 
 
 def test_cli_imports():

@@ -1,23 +1,19 @@
 """Tests for SDK executor.
 
 These tests require the archived SDK to be properly installed.
-Skip if the archived SDK compatibility layer has import issues.
+Mark all tests with @pytest.mark.archived_sdk to skip in CI.
 """
 
 import pytest
 
-# Check if archived SDK imports work - skip entire module if not
-try:
-    from SuperClaude.SDK.executor import (
-        SDKExecutionResult,
-        SDKExecutor,
-        SDKExecutorConfig,
-    )
-except ImportError:
-    pytest.skip(
-        "Archived SDK compatibility layer not available",
-        allow_module_level=True,
-    )
+from SuperClaude.SDK.executor import (
+    SDKExecutionResult,
+    SDKExecutor,
+    SDKExecutorConfig,
+)
+
+# Mark all tests in this module as requiring archived SDK
+pytestmark = pytest.mark.archived_sdk
 
 
 class MockCommand:

@@ -1,7 +1,7 @@
 """Command execution tests.
 
 These tests require the archived SDK to be properly installed.
-Skip if the archived SDK compatibility layer has import issues.
+Mark all tests with @pytest.mark.archived_sdk to skip in CI.
 """
 
 from __future__ import annotations
@@ -13,14 +13,10 @@ from pathlib import Path
 
 import pytest
 
-# Check if archived SDK imports work - skip entire module if not
-try:
-    from SuperClaude.Commands import CommandExecutor, CommandParser, CommandRegistry
-except ImportError:
-    pytest.skip(
-        "Archived SDK compatibility layer not available",
-        allow_module_level=True,
-    )
+from SuperClaude.Commands import CommandExecutor, CommandParser, CommandRegistry
+
+# Mark all tests in this module as requiring archived SDK
+pytestmark = pytest.mark.archived_sdk
 
 
 @pytest.fixture

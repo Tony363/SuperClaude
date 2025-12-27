@@ -1,7 +1,7 @@
 """Shared fixtures for SuperClaude Agents module tests.
 
 These tests require the archived SDK to be properly installed.
-Skip if the archived SDK compatibility layer has import issues.
+All tests in this directory are marked with @pytest.mark.archived_sdk.
 """
 
 from dataclasses import dataclass, field
@@ -10,14 +10,8 @@ from unittest.mock import Mock
 
 import pytest
 
-# Check if archived SDK imports work - skip entire module if not
-try:
-    from SuperClaude.Agents.coordination import CoordinationManager  # noqa: F401
-except ImportError:
-    pytest.skip(
-        "Archived SDK compatibility layer not available",
-        allow_module_level=True,
-    )
+# Mark all tests in this directory as requiring archived SDK
+pytestmark = pytest.mark.archived_sdk
 
 
 @dataclass

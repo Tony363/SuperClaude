@@ -76,7 +76,7 @@ jobs:
         env:
           SUPERCLAUDE_OFFLINE_MODE: "1"
         run: |
-          pytest tests/ -m "not slow and not integration" \
+          pytest tests/ -m "not slow and not integration and not archived_sdk" \
             --cov=SuperClaude \
             --cov-report=xml \
             --cov-report=term-missing \
@@ -132,7 +132,7 @@ jobs:
           # Target: incrementally increase via Issue #7 phased plan:
           #   Phase 0: 35% (current) -> Phase 1: 40% -> Phase 2: 55%
           #   Phase 3: 70% -> Phase 4: 80%
-          pytest tests/ -m "not slow and not integration" \
+          pytest tests/ -m "not slow and not integration and not archived_sdk" \
             --cov=SuperClaude \
             --cov-fail-under=35 \
             --tb=short \

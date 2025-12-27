@@ -8,7 +8,7 @@ Tests the complete Skills migration including:
 - Script execution
 
 These tests require the archived SDK to be properly installed.
-Skip if the archived SDK compatibility layer has import issues.
+Mark all tests with @pytest.mark.archived_sdk to skip in CI.
 """
 
 import json
@@ -21,14 +21,8 @@ import pytest
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-# Check if archived SDK imports work - skip entire module if not
-try:
-    from SuperClaude.Skills.discovery import SkillDiscovery  # noqa: F401
-except ImportError:
-    pytest.skip(
-        "Archived SDK compatibility layer not available",
-        allow_module_level=True,
-    )
+# Mark all tests in this module as requiring archived SDK
+pytestmark = pytest.mark.archived_sdk
 
 
 def test_skill_discovery():

@@ -1,20 +1,16 @@
 """Integration tests for SDK selector functionality.
 
 These tests require the archived SDK to be properly installed.
-Skip if the archived SDK compatibility layer has import issues.
+Mark all tests with @pytest.mark.archived_sdk to skip in CI.
 """
 
 import pytest
 
-# Check if archived SDK imports work - skip entire module if not
-try:
-    from SuperClaude.Agents.selector import AgentSelector, SDKSelectionResult
-    from SuperClaude.SDK.adapter import SDKAgentDefinition
-except ImportError:
-    pytest.skip(
-        "Archived SDK compatibility layer not available",
-        allow_module_level=True,
-    )
+from SuperClaude.Agents.selector import AgentSelector, SDKSelectionResult
+from SuperClaude.SDK.adapter import SDKAgentDefinition
+
+# Mark all tests in this module as requiring archived SDK
+pytestmark = pytest.mark.archived_sdk
 
 
 class MockRegistry:

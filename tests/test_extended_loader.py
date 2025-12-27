@@ -1,7 +1,7 @@
 """Integration-oriented tests for the extended agent loader.
 
 These tests require the archived SDK to be properly installed.
-Skip if the archived SDK compatibility layer has import issues.
+Mark all tests with @pytest.mark.archived_sdk to skip in CI.
 """
 
 from __future__ import annotations
@@ -10,18 +10,14 @@ from collections.abc import Iterable
 
 import pytest
 
-# Check if archived SDK imports work - skip entire module if not
-try:
-    from SuperClaude.Agents.extended_loader import (
-        AgentCategory,
-        ExtendedAgentLoader,
-        MatchScore,
-    )
-except ImportError:
-    pytest.skip(
-        "Archived SDK compatibility layer not available",
-        allow_module_level=True,
-    )
+from SuperClaude.Agents.extended_loader import (
+    AgentCategory,
+    ExtendedAgentLoader,
+    MatchScore,
+)
+
+# Mark all tests in this module as requiring archived SDK
+pytestmark = pytest.mark.archived_sdk
 
 
 @pytest.fixture

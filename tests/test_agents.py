@@ -1,7 +1,7 @@
 """End-to-end agent orchestration tests without mocks.
 
 These tests require the archived SDK to be properly installed.
-Skip if the archived SDK compatibility layer has import issues.
+Mark all tests with @pytest.mark.archived_sdk to skip in CI.
 """
 
 from __future__ import annotations
@@ -11,19 +11,15 @@ from pathlib import Path
 
 import pytest
 
-# Check if archived SDK imports work - skip entire module if not
-try:
-    from SuperClaude.Agents.extended_loader import ExtendedAgentLoader
-    from SuperClaude.Agents.registry import AgentRegistry
-    from SuperClaude.Agents.selector import AgentSelector
-    from SuperClaude.Commands import CommandExecutor
-    from SuperClaude.Commands.parser import CommandParser
-    from SuperClaude.Commands.registry import CommandRegistry
-except ImportError:
-    pytest.skip(
-        "Archived SDK compatibility layer not available",
-        allow_module_level=True,
-    )
+from SuperClaude.Agents.extended_loader import ExtendedAgentLoader
+from SuperClaude.Agents.registry import AgentRegistry
+from SuperClaude.Agents.selector import AgentSelector
+from SuperClaude.Commands import CommandExecutor
+from SuperClaude.Commands.parser import CommandParser
+from SuperClaude.Commands.registry import CommandRegistry
+
+# Mark all tests in this module as requiring archived SDK
+pytestmark = pytest.mark.archived_sdk
 
 
 @pytest.fixture(scope="module")

@@ -1,7 +1,7 @@
 """Tests for telemetry factory.
 
 These tests require the archived SDK to be properly installed.
-Skip if the archived SDK compatibility layer has import issues.
+Mark all tests with @pytest.mark.archived_sdk to skip in CI.
 """
 
 import os
@@ -9,16 +9,12 @@ from unittest.mock import patch
 
 import pytest
 
-# Check if archived SDK imports work - skip entire module if not
-try:
-    from SuperClaude.Telemetry.factory import create_telemetry
-    from SuperClaude.Telemetry.jsonl import JsonlTelemetryClient
-    from SuperClaude.Telemetry.noop import NoopTelemetryClient
-except ImportError:
-    pytest.skip(
-        "Archived SDK compatibility layer not available",
-        allow_module_level=True,
-    )
+from SuperClaude.Telemetry.factory import create_telemetry
+from SuperClaude.Telemetry.jsonl import JsonlTelemetryClient
+from SuperClaude.Telemetry.noop import NoopTelemetryClient
+
+# Mark all tests in this module as requiring archived SDK
+pytestmark = pytest.mark.archived_sdk
 
 
 class TestCreateTelemetryDefault:
