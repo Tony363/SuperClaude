@@ -28,9 +28,9 @@ def test_version_format():
     from SuperClaude import __version__
 
     semver_pattern = re.compile(r"^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$")
-    assert semver_pattern.match(
-        __version__
-    ), f"Version '{__version__}' does not follow semantic versioning with optional pre-release"
+    assert semver_pattern.match(__version__), (
+        f"Version '{__version__}' does not follow semantic versioning with optional pre-release"
+    )
 
 
 def test_version_consistency():
@@ -93,9 +93,9 @@ def test_version_current():
     from SuperClaude import __version__
 
     expected_version = "6.0.0-alpha"
-    assert (
-        __version__ == expected_version
-    ), f"Expected version {expected_version}, got {__version__}"
+    assert __version__ == expected_version, (
+        f"Expected version {expected_version}, got {__version__}"
+    )
 
 
 if __name__ == "__main__":
