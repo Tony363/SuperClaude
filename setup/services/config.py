@@ -8,7 +8,6 @@ from typing import Any
 
 # Handle jsonschema import - if not available, use basic validation
 try:
-    import jsonschema
     from jsonschema import ValidationError, validate
 
     JSONSCHEMA_AVAILABLE = True

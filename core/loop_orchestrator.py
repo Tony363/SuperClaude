@@ -107,7 +107,7 @@ class LoopOrchestrator:
             # 1. Execute skill (delegated to Claude Code)
             try:
                 output = skill_invoker(current_context)
-            except Exception as e:
+            except Exception:
                 termination_reason = TerminationReason.ERROR
                 self._record_iteration(
                     iteration=iteration,
