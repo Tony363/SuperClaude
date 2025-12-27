@@ -1,6 +1,5 @@
 """Tests for core/termination.py - Loop termination detection."""
 
-
 from core.termination import (
     check_insufficient_improvement,
     detect_oscillation,

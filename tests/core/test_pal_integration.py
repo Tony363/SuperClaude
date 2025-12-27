@@ -1,6 +1,5 @@
 """Tests for core/pal_integration.py - PAL MCP integration."""
 
-
 from core.pal_integration import (
     PALReviewSignal,
     _detect_pattern,
@@ -302,8 +301,7 @@ class TestIncorporatePalFeedback:
         context = {"improvements_needed": [f"Issue {i}" for i in range(8)]}
         feedback = {
             "issues_found": [
-                {"severity": "critical", "description": f"Critical {i}"}
-                for i in range(5)
+                {"severity": "critical", "description": f"Critical {i}"} for i in range(5)
             ]
         }
         result = incorporate_pal_feedback(context, feedback)

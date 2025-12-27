@@ -48,6 +48,7 @@ class TestLoopOrchestratorRun:
             }
 
         with patch.object(orchestrator, "assessor") as mock_assessor:
+
             def mock_assess(ctx):
                 from core.types import QualityAssessment
 
@@ -85,6 +86,7 @@ class TestLoopOrchestratorRun:
             }
 
         with patch.object(orchestrator, "assessor") as mock_assessor:
+
             def mock_assess(ctx):
                 from core.types import QualityAssessment
 
@@ -114,6 +116,7 @@ class TestLoopOrchestratorRun:
         score_index = [0]
 
         with patch.object(orchestrator, "assessor") as mock_assessor:
+
             def mock_assess(ctx):
                 from core.types import QualityAssessment
 
@@ -148,6 +151,7 @@ class TestLoopOrchestratorRun:
         score_index = [0]
 
         with patch.object(orchestrator, "assessor") as mock_assessor:
+
             def mock_assess(ctx):
                 from core.types import QualityAssessment
 
@@ -185,6 +189,7 @@ class TestLoopOrchestratorRun:
         score_index = [0]
 
         with patch.object(orchestrator, "assessor") as mock_assessor:
+
             def mock_assess(ctx):
                 from core.types import QualityAssessment
 
@@ -242,6 +247,7 @@ class TestLoopOrchestratorRun:
             }
 
         with patch.object(orchestrator, "assessor") as mock_assessor:
+
             def mock_assess(ctx):
                 from core.types import QualityAssessment
 
@@ -275,6 +281,7 @@ class TestLoopOrchestratorRun:
             }
 
         with patch.object(orchestrator, "assessor") as mock_assessor:
+
             def mock_assess(ctx):
                 from core.types import QualityAssessment
 
@@ -303,6 +310,7 @@ class TestLoopOrchestratorRun:
             }
 
         with patch.object(orchestrator, "assessor") as mock_assessor:
+
             def mock_assess(ctx):
                 from core.types import QualityAssessment
 

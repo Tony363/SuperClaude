@@ -1,6 +1,5 @@
 """Tests for core/types.py - Loop orchestration data types."""
 
-
 from core.types import (
     IterationResult,
     LoopConfig,
