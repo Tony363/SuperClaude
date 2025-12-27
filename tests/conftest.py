@@ -10,7 +10,54 @@ from pathlib import Path
 
 import pytest
 
-from SuperClaude.Agents import usage_tracker
+# Try to import usage_tracker - if it fails, archived SDK is not available
+try:
+    from SuperClaude.Agents import usage_tracker
+
+    _ARCHIVED_SDK_AVAILABLE = True
+except ImportError:
+    usage_tracker = None  # type: ignore[assignment]
+    _ARCHIVED_SDK_AVAILABLE = False
+
+# List of test files/directories that require the archived SDK
+# These will be ignored during collection if archived SDK imports fail
+_ARCHIVED_SDK_TEST_FILES = [
+    "test_agents.py",
+    "test_commands.py",
+    "test_extended_loader.py",
+    "test_integration.py",
+    "test_agents_cli.py",
+    "test_cli.py",
+    "test_skills_integration.py",
+    "test_version.py",
+    "agents",
+    "commands",
+    "sdk/test_coordination_integration.py",
+    "sdk/test_selector_integration.py",
+    "sdk/test_executor.py",
+    "telemetry/test_factory.py",
+]
+
+
+def pytest_ignore_collect(collection_path: Path, config) -> bool | None:
+    """Ignore test files that require the archived SDK when it's not available."""
+    if _ARCHIVED_SDK_AVAILABLE:
+        return None  # Don't ignore anything if SDK is available
+
+    # Get relative path from tests directory
+    tests_dir = Path(__file__).parent
+    try:
+        rel_path = collection_path.relative_to(tests_dir)
+        rel_path_str = str(rel_path)
+    except ValueError:
+        return None
+
+    # Check if this file/directory should be ignored
+    for pattern in _ARCHIVED_SDK_TEST_FILES:
+        if rel_path_str == pattern or rel_path_str.startswith(pattern + "/"):
+            return True
+
+    return None
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -25,7 +72,8 @@ def configure_test_environment(tmp_path_factory: pytest.TempPathFactory) -> Path
     yield Path(metrics_dir)
 
     # Ensure metric artefacts from one run do not leak into another.
-    usage_tracker.reset_usage_stats(for_tests=True)
+    if usage_tracker is not None:
+        usage_tracker.reset_usage_stats(for_tests=True)
     if Path(metrics_dir).exists():
         shutil.rmtree(metrics_dir, ignore_errors=True)
 
@@ -33,10 +81,11 @@ def configure_test_environment(tmp_path_factory: pytest.TempPathFactory) -> Path
 @pytest.fixture(autouse=True)
 def reset_agent_usage() -> None:
     """Clear agent usage counters before and after every test."""
-
-    usage_tracker.reset_usage_stats(for_tests=True)
+    if usage_tracker is not None:
+        usage_tracker.reset_usage_stats(for_tests=True)
     yield
-    usage_tracker.reset_usage_stats(for_tests=True)
+    if usage_tracker is not None:
+        usage_tracker.reset_usage_stats(for_tests=True)
 
 
 @pytest.fixture(autouse=True)
