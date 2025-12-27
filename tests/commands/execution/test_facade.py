@@ -163,9 +163,7 @@ class TestExecutionFacadeExecute:
     """Tests for execute() method."""
 
     @pytest.mark.asyncio
-    async def test_execute_via_skills(
-        self, env_isolation, mock_skills_runtime, telemetry_capture
-    ):
+    async def test_execute_via_skills(self, env_isolation, mock_skills_runtime, telemetry_capture):
         """Execute command via skills runtime."""
         # Setup
         resolver = MagicMock()
@@ -263,9 +261,7 @@ class TestExecutionFacadeExecute:
             await facade.execute(context, legacy_executor=None)
 
     @pytest.mark.asyncio
-    async def test_execute_skills_runtime_unavailable(
-        self, env_isolation, telemetry_capture
-    ):
+    async def test_execute_skills_runtime_unavailable(self, env_isolation, telemetry_capture):
         """Return error when skills runtime not available."""
         router = MagicMock(spec=CommandRouter)
         router.skills_runtime = None  # No runtime
@@ -327,9 +323,7 @@ class TestExecutionFacadeExecute:
         assert completed_events[0]["payload"]["success"] is False
 
     @pytest.mark.asyncio
-    async def test_execute_records_telemetry_events(
-        self, env_isolation, telemetry_capture
-    ):
+    async def test_execute_records_telemetry_events(self, env_isolation, telemetry_capture):
         """Verify telemetry events are recorded."""
         router = MagicMock(spec=CommandRouter)
         router.skills_runtime = None

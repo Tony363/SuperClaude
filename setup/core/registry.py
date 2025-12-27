@@ -85,11 +85,7 @@ class ComponentRegistry:
 
             # Find all Component subclasses in the module
             for name, obj in inspect.getmembers(module):
-                if (
-                    inspect.isclass(obj)
-                    and issubclass(obj, Component)
-                    and obj is not Component
-                ):
+                if inspect.isclass(obj) and issubclass(obj, Component) and obj is not Component:
                     # Create instance to get metadata
                     try:
                         instance = obj()
@@ -100,9 +96,7 @@ class ComponentRegistry:
                         self.component_instances[component_name] = instance
 
                     except Exception as e:
-                        self.logger.warning(
-                            f"Could not instantiate component {name}: {e}"
-                        )
+                        self.logger.warning(f"Could not instantiate component {name}: {e}")
 
         except Exception as e:
             self.logger.warning(f"Could not load component module {module_name}: {e}")
@@ -152,9 +146,7 @@ class ComponentRegistry:
                 try:
                     return component_class(install_dir)
                 except Exception as e:
-                    self.logger.error(
-                        f"Error creating component instance {component_name}: {e}"
-                    )
+                    self.logger.error(f"Error creating component instance {component_name}: {e}")
                     return None
 
         return self.component_instances.get(component_name)
@@ -280,9 +272,7 @@ class ComponentRegistry:
         for name, deps in self.dependency_graph.items():
             missing_deps = deps - all_components
             if missing_deps:
-                errors.append(
-                    f"Component {name} has missing dependencies: {missing_deps}"
-                )
+                errors.append(f"Component {name} has missing dependencies: {missing_deps}")
 
         # Check for circular dependencies
         for name in all_components:
@@ -313,9 +303,7 @@ class ComponentRegistry:
                     components.append(name)
             except Exception as e:
                 # Skip components that fail metadata retrieval
-                self.logger.debug(
-                    f"Skipping component {name} due to metadata error: {e}"
-                )
+                self.logger.debug(f"Skipping component {name} due to metadata error: {e}")
                 continue
 
         return components
@@ -352,9 +340,7 @@ class ComponentRegistry:
 
             if not current_level:
                 # This shouldn't happen if dependency graph is valid
-                raise ValueError(
-                    "Circular dependency detected in installation order calculation"
-                )
+                raise ValueError("Circular dependency detected in installation order calculation")
 
             levels.append(current_level)
             remaining -= set(current_level)
@@ -414,8 +400,6 @@ class ComponentRegistry:
         return {
             "total_components": len(self.component_classes),
             "categories": categories,
-            "dependency_graph": {
-                name: list(deps) for name, deps in self.dependency_graph.items()
-            },
+            "dependency_graph": {name: list(deps) for name, deps in self.dependency_graph.items()},
             "validation_errors": self.validate_dependency_graph(),
         }

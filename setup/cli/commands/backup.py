@@ -58,13 +58,9 @@ Examples:
     # Backup operations (mutually exclusive)
     operation_group = parser.add_mutually_exclusive_group(required=True)
 
-    operation_group.add_argument(
-        "--create", action="store_true", help="Create a new backup"
-    )
+    operation_group.add_argument("--create", action="store_true", help="Create a new backup")
 
-    operation_group.add_argument(
-        "--list", action="store_true", help="List available backups"
-    )
+    operation_group.add_argument("--list", action="store_true", help="List available backups")
 
     operation_group.add_argument(
         "--restore",
@@ -77,9 +73,7 @@ Examples:
         "--info", type=str, help="Show information about a specific backup file"
     )
 
-    operation_group.add_argument(
-        "--cleanup", action="store_true", help="Clean up old backup files"
-    )
+    operation_group.add_argument("--cleanup", action="store_true", help="Clean up old backup files")
 
     # Backup options
     parser.add_argument(
@@ -112,9 +106,7 @@ Examples:
         help="Number of backups to keep during cleanup (default: 5)",
     )
 
-    parser.add_argument(
-        "--older-than", type=int, help="Remove backups older than N days"
-    )
+    parser.add_argument("--older-than", type=int, help="Remove backups older than N days")
 
     return parser
 
@@ -217,11 +209,7 @@ def display_backup_list(backups: list[dict[str, Any]]) -> None:
     for backup in backups:
         name = backup["path"].name
         size = format_size(backup["size"]) if backup["size"] > 0 else "unknown"
-        created = (
-            backup["created"].strftime("%Y-%m-%d %H:%M")
-            if backup["created"]
-            else "unknown"
-        )
+        created = backup["created"].strftime("%Y-%m-%d %H:%M") if backup["created"] else "unknown"
         files = str(backup.get("files", "unknown"))
 
         print(f"{name:<30} {size:<10} {created:<20} {files:<8}")
@@ -302,9 +290,7 @@ def create_backup(args: argparse.Namespace) -> bool:
             # Add metadata file
             import tempfile
 
-            with tempfile.NamedTemporaryFile(
-                mode="w", suffix=".json", delete=False
-            ) as temp_file:
+            with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as temp_file:
                 json.dump(metadata, temp_file, indent=2)
                 temp_file.flush()
                 tar.add(temp_file.name, arcname="backup_metadata.json")
@@ -429,11 +415,7 @@ def interactive_restore_selection(backups: list[dict[str, Any]]) -> Path | None:
     for backup in backups:
         name = backup["path"].name
         size = format_size(backup["size"]) if backup["size"] > 0 else "unknown"
-        created = (
-            backup["created"].strftime("%Y-%m-%d %H:%M")
-            if backup["created"]
-            else "unknown"
-        )
+        created = backup["created"].strftime("%Y-%m-%d %H:%M") if backup["created"] else "unknown"
         backup_options.append(f"{name} ({size}, {created})")
 
     menu = Menu("Select backup:", backup_options)
@@ -567,9 +549,7 @@ def run(args: argparse.Namespace) -> int:
 
                 if info["metadata"]:
                     metadata = info["metadata"]
-                    print(
-                        f"Framework Version: {metadata.get('framework_version', 'unknown')}"
-                    )
+                    print(f"Framework Version: {metadata.get('framework_version', 'unknown')}")
                     if metadata.get("components"):
                         print("Components:")
                         for comp, ver in metadata["components"].items():

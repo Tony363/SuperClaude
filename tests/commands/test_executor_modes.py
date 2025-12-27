@@ -328,9 +328,7 @@ class TestApplyFastCodexMode:
         sample_context.fast_codex_active = False
         # Metadata must have flags list with fast-codex entry for it to be supported
         sample_context.metadata = MagicMock()
-        sample_context.metadata.flags = [
-            {"name": "fast-codex", "description": "Enable fast codex"}
-        ]
+        sample_context.metadata.flags = [{"name": "fast-codex", "description": "Enable fast codex"}]
         sample_context.metadata.personas = ["implementer"]
         # Add logger attribute (code references self.logger but module uses logger)
         executor.logger = MagicMock()
@@ -382,9 +380,7 @@ class TestAutoDelegationStrategies:
             executor._apply_auto_delegation(sample_context)
 
         delegation = sample_context.results.get("delegation", {})
-        assert delegation.get("strategy") in {"extended", "auto"} or delegation.get(
-            "error"
-        )
+        assert delegation.get("strategy") in {"extended", "auto"} or delegation.get("error")
 
     def test_delegate_debug_strategy(self, executor, sample_context):
         """delegate-debug flag sets debug strategy."""
@@ -404,9 +400,7 @@ class TestAutoDelegationStrategies:
             executor._apply_auto_delegation(sample_context)
 
         delegation = sample_context.results.get("delegation", {})
-        assert delegation.get("strategy") in {"debug", "auto"} or delegation.get(
-            "error"
-        )
+        assert delegation.get("strategy") in {"debug", "auto"} or delegation.get("error")
 
     def test_delegate_refactor_strategy(self, executor, sample_context):
         """delegate-refactor flag sets refactor strategy."""
@@ -426,9 +420,7 @@ class TestAutoDelegationStrategies:
             executor._apply_auto_delegation(sample_context)
 
         delegation = sample_context.results.get("delegation", {})
-        assert delegation.get("strategy") in {"refactor", "auto"} or delegation.get(
-            "error"
-        )
+        assert delegation.get("strategy") in {"refactor", "auto"} or delegation.get("error")
 
     def test_delegate_search_strategy(self, executor, sample_context):
         """delegate-search flag sets search strategy."""
@@ -448,9 +440,7 @@ class TestAutoDelegationStrategies:
             executor._apply_auto_delegation(sample_context)
 
         delegation = sample_context.results.get("delegation", {})
-        assert delegation.get("strategy") in {"search", "auto"} or delegation.get(
-            "error"
-        )
+        assert delegation.get("strategy") in {"search", "auto"} or delegation.get("error")
 
 
 class TestAutoDelegationSelection:
@@ -626,6 +616,5 @@ class TestModeResultsTracking:
         executor._apply_auto_delegation(sample_context)
 
         assert (
-            "delegated_agents" in sample_context.results
-            or "delegation" in sample_context.results
+            "delegated_agents" in sample_context.results or "delegation" in sample_context.results
         )

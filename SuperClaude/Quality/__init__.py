@@ -27,4 +27,5 @@ __all__ = [
 def __getattr__(name: str):
     """Lazy import pattern."""
     from Quality import __getattr__ as quality_getattr
+
     return quality_getattr(name)

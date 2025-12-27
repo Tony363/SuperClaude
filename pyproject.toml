@@ -57,3 +57,28 @@ exclude = ["tests*", ".git*"]
 
 [tool.setuptools.package-data]
 "*" = ["*.md", "*.yaml", "*.yml", "*.json"]
+
+# Ruff configuration
+[tool.ruff]
+target-version = "py310"
+line-length = 100
+
+# Exclude archived legacy code from linting
+exclude = [
+    "archive/",
+    ".git",
+    ".venv",
+    "__pycache__",
+    "build",
+    "dist",
+]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I"]
+# Ignore line length - many legitimate long lines in CLI output with color codes
+ignore = ["E501"]
+
+[tool.ruff.lint.per-file-ignores]
+# SuperClaude compatibility layer intentionally uses sys.path.insert() before imports
+# and wildcard imports for re-exporting archived SDK modules
+"SuperClaude/**/*.py" = ["E402", "F403", "F401"]

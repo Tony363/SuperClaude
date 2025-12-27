@@ -105,9 +105,7 @@ class MockSDKClient:
 class MockSelector:
     """Mock agent selector for deterministic testing."""
 
-    def __init__(
-        self, selection: MockSDKSelection | None = None, selections: list | None = None
-    ):
+    def __init__(self, selection: MockSDKSelection | None = None, selections: list | None = None):
         """Initialize with scripted selections.
 
         Args:
@@ -231,9 +229,7 @@ class TestSuiteA_RoutingAndFallback:
     async def test_a5_low_confidence_triggers_fallback(self):
         """A5: SDK selection confidence below threshold → fallback."""
         # Setup: confidence below threshold
-        config = SDKExecutorConfig(
-            enabled=True, allowlist={"test"}, confidence_threshold=0.7
-        )
+        config = SDKExecutorConfig(enabled=True, allowlist={"test"}, confidence_threshold=0.7)
         client = MockSDKClient()
         selector = MockSelector(MockSDKSelection("test-agent", 0.5, use_sdk=True))
 
@@ -271,9 +267,7 @@ class TestSuiteA_RoutingAndFallback:
     async def test_force_sdk_bypasses_gates(self):
         """force_sdk=True bypasses enabled/allowlist/confidence gates."""
         # Setup: everything disabled
-        config = SDKExecutorConfig(
-            enabled=False, allowlist=set(), confidence_threshold=0.99
-        )
+        config = SDKExecutorConfig(enabled=False, allowlist=set(), confidence_threshold=0.99)
         client = MockSDKClient([[{"type": "result", "content": "Forced!"}]])
         selector = MockSelector(MockSDKSelection("forced-agent", 0.1))
 

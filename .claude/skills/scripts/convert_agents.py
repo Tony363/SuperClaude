@@ -192,9 +192,7 @@ Works with other agents for:
     return skill_content
 
 
-def convert_agent_file(
-    source_path: Path, target_dir: Path, dry_run: bool = False
-) -> bool:
+def convert_agent_file(source_path: Path, target_dir: Path, dry_run: bool = False) -> bool:
     """Convert a single agent file to SKILL.md format."""
     try:
         # Read source file
@@ -215,9 +213,7 @@ def convert_agent_file(
         category = source_path.parent.name
 
         # Generate SKILL.md content
-        skill_content = generate_skill_md(
-            name, description, tools, summary, checklist, category
-        )
+        skill_content = generate_skill_md(name, description, tools, summary, checklist, category)
 
         # Create target directory
         skill_dir = target_dir / f"agent-{name}"

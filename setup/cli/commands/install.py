@@ -57,9 +57,7 @@ Examples:
 
     # Installation mode options
 
-    parser.add_argument(
-        "--components", type=str, nargs="+", help="Specific components to install"
-    )
+    parser.add_argument("--components", type=str, nargs="+", help="Specific components to install")
 
     # Installation options
     parser.add_argument("--no-backup", action="store_true", help="Skip backup creation")
@@ -86,9 +84,7 @@ Examples:
     return parser
 
 
-def validate_system_requirements(
-    validator: Validator, component_names: list[str]
-) -> bool:
+def validate_system_requirements(validator: Validator, component_names: list[str]) -> bool:
     """Validate system requirements"""
     logger = get_logger()
 
@@ -100,9 +96,7 @@ def validate_system_requirements(
         requirements = config_manager.get_requirements_for_components(component_names)
 
         # Validate requirements
-        success, errors = validator.validate_component_requirements(
-            component_names, requirements
-        )
+        success, errors = validator.validate_component_requirements(component_names, requirements)
 
         if success:
             logger.success("All system requirements met")
@@ -114,9 +108,7 @@ def validate_system_requirements(
 
             # Provide additional guidance
             print(f"\n{Colors.CYAN}💡 Installation Help:{Colors.RESET}")
-            print(
-                "  Run 'SuperClaude install --diagnose' for detailed system diagnostics"
-            )
+            print("  Run 'SuperClaude install --diagnose' for detailed system diagnostics")
             print("  and step-by-step installation instructions.")
 
             return False
@@ -142,9 +134,7 @@ def get_components_to_install(
     return interactive_component_selection(registry, config_manager)
 
 
-def collect_api_keys_for_servers(
-    selected_servers: list[str], mcp_instance
-) -> dict[str, str]:
+def collect_api_keys_for_servers(selected_servers: list[str], mcp_instance) -> dict[str, str]:
     """
     Collect API keys for servers that require them
 
@@ -206,9 +196,7 @@ def select_mcp_servers(registry: ComponentRegistry) -> list[str]:
                     ordered_keys.append(key)
         else:
             ordered_keys = [
-                key
-                for key, info in mcp_servers.items()
-                if not info.get("required", False)
+                key for key, info in mcp_servers.items() if not info.get("required", False)
             ]
 
         if not ordered_keys:
@@ -221,9 +209,7 @@ def select_mcp_servers(registry: ComponentRegistry) -> list[str]:
             server_info = mcp_servers[server_key]
             description = server_info.get("description", "")
             api_key_note = (
-                " (requires API key)"
-                if server_info.get("requires_api_key", False)
-                else ""
+                " (requires API key)" if server_info.get("requires_api_key", False) else ""
             )
             server_options.append(f"{server_key} - {description}{api_key_note}")
 
@@ -248,9 +234,7 @@ def select_mcp_servers(registry: ComponentRegistry) -> list[str]:
             server_options.append("Skip MCP Server installation")
             skip_index = len(server_options) - 1
 
-            menu = Menu(
-                "Select MCP servers to configure:", server_options, multi_select=True
-            )
+            menu = Menu("Select MCP servers to configure:", server_options, multi_select=True)
             selections = menu.display()
         else:
             selections = []
@@ -274,9 +258,7 @@ def select_mcp_servers(registry: ComponentRegistry) -> list[str]:
         if selected_servers:
             logger.info(f"Selected MCP servers: {', '.join(selected_servers)}")
 
-            collected_keys = collect_api_keys_for_servers(
-                selected_servers, mcp_instance
-            )
+            collected_keys = collect_api_keys_for_servers(selected_servers, mcp_instance)
 
             if collected_keys:
                 setup_environment_variables(collected_keys)
@@ -316,27 +298,23 @@ def select_framework_components(
 
         # Add MCP documentation option
         if selected_mcp_servers:
-            mcp_docs_desc = f"MCP documentation for {', '.join(selected_mcp_servers)} (auto-selected)"
+            mcp_docs_desc = (
+                f"MCP documentation for {', '.join(selected_mcp_servers)} (auto-selected)"
+            )
             component_options.append(f"mcp_docs - {mcp_docs_desc}")
             auto_selected_mcp_docs = True
         else:
-            component_options.append(
-                "mcp_docs - MCP server documentation (none selected)"
-            )
+            component_options.append("mcp_docs - MCP server documentation (none selected)")
             auto_selected_mcp_docs = False
 
         print(
             f"\n{Colors.CYAN}{Colors.BRIGHT}═══════════════════════════════════════════════════{Colors.RESET}"
         )
-        print(
-            f"{Colors.CYAN}{Colors.BRIGHT}Stage 2: Framework Component Selection{Colors.RESET}"
-        )
+        print(f"{Colors.CYAN}{Colors.BRIGHT}Stage 2: Framework Component Selection{Colors.RESET}")
         print(
             f"{Colors.CYAN}{Colors.BRIGHT}═══════════════════════════════════════════════════{Colors.RESET}"
         )
-        print(
-            f"\n{Colors.BLUE}Select SuperClaude framework components to install:{Colors.RESET}"
-        )
+        print(f"\n{Colors.BLUE}Select SuperClaude framework components to install:{Colors.RESET}")
 
         menu = Menu(
             "Select components (Core is recommended):",
@@ -401,9 +379,7 @@ def interactive_component_selection(
         # Store selected MCP servers for components to use
         if not hasattr(config_manager, "_installation_context"):
             config_manager._installation_context = {}
-        config_manager._installation_context["selected_mcp_servers"] = (
-            selected_mcp_servers
-        )
+        config_manager._installation_context["selected_mcp_servers"] = selected_mcp_servers
 
         return selected_components
 
@@ -437,9 +413,7 @@ def display_installation_plan(
 
                 # Get size estimate if component supports it
                 try:
-                    instance = registry.get_component_instance(
-                        component_name, install_dir
-                    )
+                    instance = registry.get_component_instance(component_name, install_dir)
                     if instance and hasattr(instance, "get_size_estimate"):
                         size = instance.get_size_estimate()
                         total_size += size
@@ -449,9 +423,7 @@ def display_installation_plan(
                 print(f"  {i}. {component_name} - Unknown component")
 
         if total_size > 0:
-            print(
-                f"\n{Colors.BLUE}Estimated size:{Colors.RESET} {format_size(total_size)}"
-            )
+            print(f"\n{Colors.BLUE}Estimated size:{Colors.RESET} {format_size(total_size)}")
 
         print()
 
@@ -510,9 +482,7 @@ def run_system_diagnostics(validator: Validator) -> None:
     print(f"\n{Colors.BLUE}Next steps:{Colors.RESET}")
     if all_passed:
         print("  1. Run 'SuperClaude install' to proceed with installation")
-        print(
-            "  2. Choose your preferred installation mode (quick, minimal, or custom)"
-        )
+        print("  2. Choose your preferred installation mode (quick, minimal, or custom)")
     else:
         print("  1. Install missing dependencies using the commands above")
         print("  2. Restart your terminal after installing tools")
@@ -537,9 +507,7 @@ def perform_installation(
         registry.discover_components()
 
         # Create component instances
-        component_instances = registry.create_component_instances(
-            components, args.install_dir
-        )
+        component_instances = registry.create_component_instances(components, args.install_dir)
 
         if not component_instances:
             logger.error("No valid component instances created")
@@ -552,9 +520,7 @@ def perform_installation(
         ordered_components = registry.resolve_dependencies(components)
 
         # Setup progress tracking
-        progress = ProgressBar(
-            total=len(ordered_components), prefix="Installing: ", suffix=""
-        )
+        progress = ProgressBar(total=len(ordered_components), prefix="Installing: ", suffix="")
 
         # Install components
         logger.info(f"Installing {len(ordered_components)} components...")
@@ -563,9 +529,9 @@ def perform_installation(
             "force": args.force,
             "backup": not args.no_backup,
             "dry_run": args.dry_run,
-            "selected_mcp_servers": getattr(
-                config_manager, "_installation_context", {}
-            ).get("selected_mcp_servers", []),
+            "selected_mcp_servers": getattr(config_manager, "_installation_context", {}).get(
+                "selected_mcp_servers", []
+            ),
             "memory_profile": getattr(args, "memory_profile", "minimal"),
         }
 
@@ -585,9 +551,7 @@ def perform_installation(
         duration = time.time() - start_time
 
         if success:
-            logger.success(
-                f"Installation completed successfully in {duration:.1f} seconds"
-            )
+            logger.success(f"Installation completed successfully in {duration:.1f} seconds")
 
             # Show summary
             summary = installer.get_installation_summary()
@@ -598,9 +562,7 @@ def perform_installation(
                 logger.info(f"Backup created: {summary['backup_path']}")
 
         else:
-            logger.error(
-                f"Installation completed with errors in {duration:.1f} seconds"
-            )
+            logger.error(f"Installation completed with errors in {duration:.1f} seconds")
 
             summary = installer.get_installation_summary()
             if summary["failed"]:
@@ -728,16 +690,12 @@ def run(args: argparse.Namespace) -> int:
                 logger.error("System requirements not met. Use --force to override.")
                 return 1
             else:
-                logger.warning(
-                    "System requirements not met, but continuing due to --force flag"
-                )
+                logger.warning("System requirements not met, but continuing due to --force flag")
 
         # Check for existing installation
         if args.install_dir.exists() and not args.force:
             if not args.dry_run:
-                logger.warning(
-                    f"Installation directory already exists: {args.install_dir}"
-                )
+                logger.warning(f"Installation directory already exists: {args.install_dir}")
                 if not args.yes and not confirm(
                     "Continue and update existing installation?", default=False
                 ):
@@ -749,9 +707,7 @@ def run(args: argparse.Namespace) -> int:
             display_installation_plan(components, registry, args.install_dir)
 
             if not args.dry_run:
-                if not args.yes and not confirm(
-                    "Proceed with installation?", default=True
-                ):
+                if not args.yes and not confirm("Proceed with installation?", default=True):
                     logger.info("Installation cancelled by user")
                     return 0
 

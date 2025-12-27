@@ -64,9 +64,7 @@ class TestBuildRepairPrompt:
         result = build_repair_prompt("Task", ["Fix it"])
 
         assert "evidence" in result.lower()
-        assert (
-            "file modifications" in result.lower() or "test results" in result.lower()
-        )
+        assert "file modifications" in result.lower() or "test results" in result.lower()
 
 
 class TestCreateSDKLoopContext:
@@ -254,9 +252,7 @@ class TestEvaluateSDKExecution:
 
         # Should not have evidence expectation failures
         assert "evidence_expectations_failed" not in assessment.metadata
-        assert not any(
-            "MISSING_FILE_CHANGES" in imp for imp in assessment.improvements_needed
-        )
+        assert not any("MISSING_FILE_CHANGES" in imp for imp in assessment.improvements_needed)
 
     def test_evidence_expectations_checked_when_enabled(self, scorer):
         """Test that evidence expectations are checked when opt-in."""

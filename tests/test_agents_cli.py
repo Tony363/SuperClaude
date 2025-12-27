@@ -151,9 +151,7 @@ class TestCmdListAgents:
         from SuperClaude.Agents.cli import cmd_list_agents
 
         # Make get_agents_by_category raise ValueError
-        mock_extended_loader.get_agents_by_category.side_effect = ValueError(
-            "Invalid category"
-        )
+        mock_extended_loader.get_agents_by_category.side_effect = ValueError("Invalid category")
 
         # This should handle the error gracefully
         cmd_list_agents(mock_extended_loader, category="invalid-category")
@@ -407,8 +405,8 @@ class TestMainFunction:
             patch("SuperClaude.Agents.cli.ExtendedAgentLoader") as mock_loader_class,
         ):
             mock_loader_class.return_value._agent_metadata = {}
-            mock_loader_class.return_value.get_agents_by_category.side_effect = (
-                Exception("Test error")
+            mock_loader_class.return_value.get_agents_by_category.side_effect = Exception(
+                "Test error"
             )
             # Should not raise, should handle gracefully
             try:

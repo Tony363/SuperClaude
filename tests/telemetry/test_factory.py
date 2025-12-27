@@ -47,9 +47,7 @@ class TestCreateTelemetryEnvironment:
     def test_metrics_dir_from_env(self, tmp_path):
         """SUPERCLAUDE_METRICS_DIR env var sets directory."""
         custom_dir = tmp_path / "custom"
-        with patch.dict(
-            os.environ, {"SUPERCLAUDE_METRICS_DIR": str(custom_dir)}, clear=True
-        ):
+        with patch.dict(os.environ, {"SUPERCLAUDE_METRICS_DIR": str(custom_dir)}, clear=True):
             client = create_telemetry()
             assert isinstance(client, JsonlTelemetryClient)
             assert client.metrics_dir == custom_dir

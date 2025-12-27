@@ -43,9 +43,7 @@ def test_agent_selector_suggests_specialist(agent_registry: AgentRegistry) -> No
 
     assert scores
     top_agents = {name for name, _ in scores[:3]}
-    assert {"refactoring-expert", "python-expert", "general-purpose"}.intersection(
-        top_agents
-    )
+    assert {"refactoring-expert", "python-expert", "general-purpose"}.intersection(top_agents)
 
 
 class _DummyRegistry:
@@ -107,9 +105,7 @@ def test_agent_selector_respects_default_exclusion_when_no_candidates():
     )
 
     selector = AgentSelector(registry)
-    scores = selector.select_agent(
-        "documentation task", exclude_agents=["general-purpose"]
-    )
+    scores = selector.select_agent("documentation task", exclude_agents=["general-purpose"])
 
     assert scores == []
 
@@ -124,7 +120,9 @@ def command_executor(tmp_path: Path) -> CommandExecutor:
 
 
 def test_delegate_flag_executes_real_agent(command_executor: CommandExecutor) -> None:
-    command = "/sc:implement improve modularity --delegate --keywords python,refactor --languages python"
+    command = (
+        "/sc:implement improve modularity --delegate --keywords python,refactor --languages python"
+    )
     result = asyncio.run(command_executor.execute(command))
 
     delegation = result.output.get("delegation") or {}

@@ -15,5 +15,6 @@ from __main__ import *
 
 if __name__ == "__main__":
     import __main__ as archived_main
-    if hasattr(archived_main, 'main'):
+
+    if hasattr(archived_main, "main"):
         archived_main.main()

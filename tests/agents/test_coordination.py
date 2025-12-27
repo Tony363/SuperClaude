@@ -96,9 +96,7 @@ class TestCircularDelegation:
         coordination_manager.active_agents.add("agent-a")
 
         # Try to detect circular delegation to same agent
-        is_circular = coordination_manager.detect_circular_delegation(
-            "agent-a", "agent-a"
-        )
+        is_circular = coordination_manager.detect_circular_delegation("agent-a", "agent-a")
 
         assert is_circular is True
 
@@ -115,9 +113,7 @@ class TestCircularDelegation:
         coordination_manager.active_agents.update(["agent-a", "agent-b"])
 
         # Try to delegate back to agent-a (B -> A would create cycle)
-        is_circular = coordination_manager.detect_circular_delegation(
-            "agent-b", "agent-a"
-        )
+        is_circular = coordination_manager.detect_circular_delegation("agent-b", "agent-a")
 
         assert is_circular is True
 
@@ -144,9 +140,7 @@ class TestCircularDelegation:
         coordination_manager.blocked_delegations.add(("agent-a", "agent-b"))
 
         # Try to execute with that pattern
-        coordination_manager.active_agents.discard(
-            "agent-b"
-        )  # Ensure agent-b is not active
+        coordination_manager.active_agents.discard("agent-b")  # Ensure agent-b is not active
         ctx = ExecutionContext(
             agent_name="agent-a", task="task", start_time=datetime.now(), depth=0
         )
@@ -164,9 +158,7 @@ class TestDelegationChain:
         """Test that get_delegation_chain() returns correct chain."""
         # Add execution contexts
         for i, name in enumerate(["alpha", "beta", "gamma"]):
-            ctx = ExecutionContext(
-                agent_name=name, task="task", start_time=datetime.now(), depth=i
-            )
+            ctx = ExecutionContext(agent_name=name, task="task", start_time=datetime.now(), depth=i)
             coordination_manager.execution_stack.append(ctx)
 
         chain = coordination_manager.get_delegation_chain()
@@ -331,9 +323,7 @@ class TestContextEnhancement:
 
     def test_context_enhanced_with_coordination_info(self, coordination_manager):
         """Test that context is enhanced with coordination metadata."""
-        ctx = ExecutionContext(
-            agent_name="test", task="task", start_time=datetime.now(), depth=1
-        )
+        ctx = ExecutionContext(agent_name="test", task="task", start_time=datetime.now(), depth=1)
 
         enhanced = coordination_manager._enhance_context({"task": "test"}, ctx)
 
@@ -350,14 +340,10 @@ class TestAgentExecution:
         # Mark agent as active
         coordination_manager.active_agents.add("test-agent")
 
-        result = coordination_manager.execute_with_delegation(
-            "test-agent", {"task": "test"}
-        )
+        result = coordination_manager.execute_with_delegation("test-agent", {"task": "test"})
 
         assert result["success"] is False
-        assert "blocked" in result.get("error", "").lower() or result.get(
-            "delegation_blocked"
-        )
+        assert "blocked" in result.get("error", "").lower() or result.get("delegation_blocked")
 
 
 class TestDelegationGraph:

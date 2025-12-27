@@ -53,9 +53,7 @@ class TelemetryCapture:
         tags: dict[str, str] | None = None,
     ) -> None:
         """Increment a counter."""
-        self.metrics.append(
-            {"name": name, "value": value, "kind": "increment", "tags": tags}
-        )
+        self.metrics.append({"name": name, "value": value, "kind": "increment", "tags": tags})
 
     def flush(self) -> None:
         """Flush (no-op for testing)."""

@@ -205,16 +205,12 @@ class TestEnsureConsensus:
     @pytest.mark.asyncio
     async def test_ensure_consensus_basic(self, executor_with_mocks, sample_context):
         """Ensure consensus returns result dict."""
-        result = await executor_with_mocks._ensure_consensus(
-            sample_context, {"output": "test"}
-        )
+        result = await executor_with_mocks._ensure_consensus(sample_context, {"output": "test"})
 
         assert isinstance(result, dict)
 
     @pytest.mark.asyncio
-    async def test_ensure_consensus_with_enforce(
-        self, executor_with_mocks, sample_context
-    ):
+    async def test_ensure_consensus_with_enforce(self, executor_with_mocks, sample_context):
         """Ensure consensus respects enforce flag."""
         result = await executor_with_mocks._ensure_consensus(
             sample_context, {"output": "test"}, enforce=True
@@ -223,9 +219,7 @@ class TestEnsureConsensus:
         assert isinstance(result, dict)
 
     @pytest.mark.asyncio
-    async def test_ensure_consensus_with_think_level(
-        self, executor_with_mocks, sample_context
-    ):
+    async def test_ensure_consensus_with_think_level(self, executor_with_mocks, sample_context):
         """Ensure consensus accepts think_level parameter."""
         result = await executor_with_mocks._ensure_consensus(
             sample_context, {"output": "test"}, think_level=3
@@ -234,9 +228,7 @@ class TestEnsureConsensus:
         assert isinstance(result, dict)
 
     @pytest.mark.asyncio
-    async def test_ensure_consensus_with_task_type(
-        self, executor_with_mocks, sample_context
-    ):
+    async def test_ensure_consensus_with_task_type(self, executor_with_mocks, sample_context):
         """Ensure consensus accepts task_type parameter."""
         result = await executor_with_mocks._ensure_consensus(
             sample_context, {"output": "test"}, task_type="review"
@@ -257,9 +249,7 @@ class TestEnsureConsensus:
         assert mock_consensus_facade is not None
 
     @pytest.mark.asyncio
-    async def test_ensure_consensus_handles_exception(
-        self, executor_with_mocks, sample_context
-    ):
+    async def test_ensure_consensus_handles_exception(self, executor_with_mocks, sample_context):
         """Ensure consensus handles exceptions gracefully."""
         # Set up facade to raise
         executor_with_mocks.consensus_facade = MagicMock()
@@ -268,9 +258,7 @@ class TestEnsureConsensus:
         )
 
         # Should not raise, should handle gracefully
-        result = await executor_with_mocks._ensure_consensus(
-            sample_context, {"output": "test"}
-        )
+        result = await executor_with_mocks._ensure_consensus(sample_context, {"output": "test"})
 
         # Returns some result even on failure
         assert isinstance(result, dict)

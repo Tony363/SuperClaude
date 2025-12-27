@@ -88,9 +88,7 @@ class CLAUDEMdService:
 
         return user_content
 
-    def organize_imports_by_category(
-        self, files_by_category: dict[str, list[str]]
-    ) -> str:
+    def organize_imports_by_category(self, files_by_category: dict[str, list[str]]) -> str:
         """
         Organize imports into categorized sections
 
@@ -155,9 +153,7 @@ class CLAUDEMdService:
             user_content = self.extract_user_content(existing_content)
 
             # Parse existing framework imports by category
-            existing_framework_imports = self._parse_existing_framework_imports(
-                existing_content
-            )
+            existing_framework_imports = self._parse_existing_framework_imports(existing_content)
 
             # Add new files to the specified category
             if category not in existing_framework_imports:
@@ -173,9 +169,7 @@ class CLAUDEMdService:
                 new_content_parts.append("")  # Add blank line before framework section
 
             # Add organized framework imports
-            framework_section = self.organize_imports_by_category(
-                existing_framework_imports
-            )
+            framework_section = self.organize_imports_by_category(existing_framework_imports)
             if framework_section:
                 new_content_parts.append(framework_section)
 
@@ -285,9 +279,7 @@ The SuperClaude framework components will be automatically imported below.
 
             existing_content = self.read_existing_content()
             user_content = self.extract_user_content(existing_content)
-            existing_framework_imports = self._parse_existing_framework_imports(
-                existing_content
-            )
+            existing_framework_imports = self._parse_existing_framework_imports(existing_content)
 
             # Remove files from all categories
             removed_any = False
@@ -298,9 +290,7 @@ The SuperClaude framework components will be automatically imported below.
                         removed_any = True
 
             # Remove empty categories
-            existing_framework_imports = {
-                k: v for k, v in existing_framework_imports.items() if v
-            }
+            existing_framework_imports = {k: v for k, v in existing_framework_imports.items() if v}
 
             if not removed_any:
                 return True  # Nothing was removed
@@ -312,9 +302,7 @@ The SuperClaude framework components will be automatically imported below.
                 new_content_parts.append(user_content)
                 new_content_parts.append("")
 
-            framework_section = self.organize_imports_by_category(
-                existing_framework_imports
-            )
+            framework_section = self.organize_imports_by_category(existing_framework_imports)
             if framework_section:
                 new_content_parts.append(framework_section)
 

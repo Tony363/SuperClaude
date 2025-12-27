@@ -205,9 +205,7 @@ AGENTS = [
 ]
 
 
-def calculate_match_score(
-    context: dict[str, Any], metadata: AgentMetadata
-) -> MatchScore:
+def calculate_match_score(context: dict[str, Any], metadata: AgentMetadata) -> MatchScore:
     """
     Calculate detailed match score for an agent.
 
@@ -305,9 +303,7 @@ def calculate_match_score(
                     break
 
         if metadata.file_patterns:
-            file_pattern_score = min(
-                file_pattern_score / len(metadata.file_patterns), 1.0
-            )
+            file_pattern_score = min(file_pattern_score / len(metadata.file_patterns), 1.0)
         if matched_patterns:
             matched_criteria.append(f"files: {', '.join(matched_patterns[:3])}")
 
@@ -393,9 +389,7 @@ def select_agent(context: dict[str, Any], top_n: int = 3) -> dict[str, Any]:
 def main():
     """Main entry point for script execution."""
     if len(sys.argv) < 2:
-        print(
-            json.dumps({"error": "No context provided. Pass JSON as first argument."})
-        )
+        print(json.dumps({"error": "No context provided. Pass JSON as first argument."}))
         sys.exit(1)
 
     try:

@@ -33,9 +33,7 @@ except ImportError:
             elif expected_type == "string" and not isinstance(instance, str):
                 raise ValidationError(f"Expected string, got {type(instance).__name__}")
             elif expected_type == "integer" and not isinstance(instance, int):
-                raise ValidationError(
-                    f"Expected integer, got {type(instance).__name__}"
-                )
+                raise ValidationError(f"Expected integer, got {type(instance).__name__}")
         # Skip detailed validation if jsonschema not available
 
 
@@ -198,9 +196,7 @@ class ConfigService:
             return self._requirements_cache
 
         if not self.requirements_file.exists():
-            raise FileNotFoundError(
-                f"Requirements config not found: {self.requirements_file}"
-            )
+            raise FileNotFoundError(f"Requirements config not found: {self.requirements_file}")
 
         try:
             with open(self.requirements_file) as f:
@@ -289,9 +285,7 @@ class ConfigService:
         """
         return self.load_requirements()
 
-    def get_requirements_for_components(
-        self, component_names: list[str]
-    ) -> dict[str, Any]:
+    def get_requirements_for_components(self, component_names: list[str]) -> dict[str, Any]:
         """
         Get consolidated requirements for specific components
 
@@ -331,9 +325,7 @@ class ConfigService:
 
             for tool in required_tools:
                 if tool in requirements.get("external_tools", {}):
-                    result["external_tools"][tool] = requirements["external_tools"][
-                        tool
-                    ]
+                    result["external_tools"][tool] = requirements["external_tools"][tool]
 
         return result
 

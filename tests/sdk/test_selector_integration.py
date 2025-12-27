@@ -180,9 +180,7 @@ class TestSelectForSDK:
 
     def test_select_for_sdk_includes_alternatives(self, selector):
         """Test that alternatives are included in result."""
-        result = selector.select_for_sdk(
-            {"task": "security vulnerability in auth code"}
-        )
+        result = selector.select_for_sdk({"task": "security vulnerability in auth code"})
 
         assert isinstance(result.ranked_alternatives, list)
         # Should have alternatives (possibly empty if only one good match)
@@ -232,9 +230,7 @@ class TestSelectForSDK:
 
         assert result.reason is not None
         assert len(result.reason) > 0
-        assert (
-            "confidence" in result.reason.lower() or "select" in result.reason.lower()
-        )
+        assert "confidence" in result.reason.lower() or "select" in result.reason.lower()
 
 
 class TestSDKSelectionResultDataclass:

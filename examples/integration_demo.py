@@ -57,9 +57,7 @@ class SuperClaudeOrchestrator:
         for i, match in enumerate(matches, 1):
             agent = self.loader._agent_metadata.get(match.agent_id)
             if agent:
-                print(
-                    f"  {i}. {agent.name} ({match.confidence}, score: {match.total_score:.3f})"
-                )
+                print(f"  {i}. {agent.name} ({match.confidence}, score: {match.total_score:.3f})")
 
         if matches:
             best = matches[0]
@@ -201,9 +199,7 @@ class SuperClaudeOrchestrator:
             for i, match in enumerate(matches, 1):
                 agent_meta = self.loader._agent_metadata.get(match.agent_id)
                 if agent_meta:
-                    print(
-                        f"     {i}. {agent_meta.name} (score: {match.total_score:.3f})"
-                    )
+                    print(f"     {i}. {agent_meta.name} (score: {match.total_score:.3f})")
             print()
 
     def show_performance_metrics(self):

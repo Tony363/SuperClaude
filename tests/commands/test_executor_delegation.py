@@ -196,11 +196,7 @@ class TestBuildDelegationContext:
         context_dict = executor._build_delegation_context(sample_context)
 
         assert isinstance(context_dict, dict)
-        assert (
-            "task" in context_dict
-            or "description" in context_dict
-            or len(context_dict) > 0
-        )
+        assert "task" in context_dict or "description" in context_dict or len(context_dict) > 0
 
     def test_build_context_includes_task_text(self, executor, sample_context):
         """Delegation context includes task text."""
@@ -292,16 +288,12 @@ class TestApplyAutoDelegation:
 
     def test_apply_delegation_deduplicates(self, executor, sample_context):
         """Apply delegation removes duplicates."""
-        sample_context.command.parameters = {
-            "delegate": ["architect", "architect", "reviewer"]
-        }
+        sample_context.command.parameters = {"delegate": ["architect", "architect", "reviewer"]}
 
         executor._apply_auto_delegation(sample_context)
 
         # Should have unique agents
-        assert len(sample_context.delegated_agents) == len(
-            set(sample_context.delegated_agents)
-        )
+        assert len(sample_context.delegated_agents) == len(set(sample_context.delegated_agents))
 
 
 class TestDelegationContextAttribute:

@@ -205,9 +205,7 @@ class TestEvaluateQualityGate:
     ):
         """_evaluate_quality_gate calls quality_scorer.evaluate."""
         executor.quality_scorer = mock_quality_scorer
-        mock_quality_scorer.evaluate.return_value = make_assessment(
-            overall_score=85.0, passed=True
-        )
+        mock_quality_scorer.evaluate.return_value = make_assessment(overall_score=85.0, passed=True)
 
         result = executor._evaluate_quality_gate(
             sample_context,
@@ -266,9 +264,7 @@ class TestEvaluateQualityGate:
     ):
         """_evaluate_quality_gate passes changed files to evaluation context."""
         executor.quality_scorer = mock_quality_scorer
-        mock_quality_scorer.evaluate.return_value = make_assessment(
-            overall_score=90.0, passed=True
-        )
+        mock_quality_scorer.evaluate.return_value = make_assessment(overall_score=90.0, passed=True)
 
         executor._evaluate_quality_gate(
             sample_context,
@@ -313,9 +309,7 @@ class TestQualityLoopImprover:
             "_run_quality_remediation_iteration",
             side_effect=Exception("remediation failed"),
         ):
-            result = executor._quality_loop_improver(
-                sample_context, current_output, loop_context
-            )
+            result = executor._quality_loop_improver(sample_context, current_output, loop_context)
 
             # Should return current output on failure
             assert result == current_output
@@ -331,15 +325,10 @@ class TestQualityLoopImprover:
             "_run_quality_remediation_iteration",
             side_effect=Exception("remediation error"),
         ):
-            executor._quality_loop_improver(
-                sample_context, {"output": True}, loop_context
-            )
+            executor._quality_loop_improver(sample_context, {"output": True}, loop_context)
 
             assert "quality_loop_warnings" in sample_context.results
-            assert (
-                "remediation error"
-                in sample_context.results["quality_loop_warnings"][0]
-            )
+            assert "remediation error" in sample_context.results["quality_loop_warnings"][0]
 
 
 class TestRunQualityRemediationIteration:
@@ -384,9 +373,7 @@ class TestRunQualityRemediationIteration:
         sample_context.agents = []
 
         with patch.object(executor, "_prepare_remediation_agents"):  # noqa: SIM117
-            with patch.object(
-                executor, "_run_agent_pipeline", return_value={}
-            ) as mock_pipeline:
+            with patch.object(executor, "_run_agent_pipeline", return_value={}) as mock_pipeline:
                 with patch.object(executor, "_derive_change_plan", return_value=[]):
                     with patch.object(
                         executor,
@@ -542,76 +529,56 @@ class TestPrepareRemediationAgents:
 class TestShouldAutoTriggerQualityLoop:
     """Tests for _should_auto_trigger_quality_loop method."""
 
-    def test_should_auto_trigger_false_when_not_plan_only(
-        self, executor, sample_context
-    ):
+    def test_should_auto_trigger_false_when_not_plan_only(self, executor, sample_context):
         """_should_auto_trigger_quality_loop returns False when not plan-only."""
         result = executor._should_auto_trigger_quality_loop(sample_context, "applied")
         assert result is False
 
-    def test_should_auto_trigger_false_when_loop_already_enabled(
-        self, executor, sample_context
-    ):
+    def test_should_auto_trigger_false_when_loop_already_enabled(self, executor, sample_context):
         """_should_auto_trigger_quality_loop returns False when loop already enabled."""
         sample_context.loop_enabled = True
         result = executor._should_auto_trigger_quality_loop(sample_context, "plan-only")
         assert result is False
 
-    def test_should_auto_trigger_false_without_safe_apply(
-        self, executor, sample_context
-    ):
+    def test_should_auto_trigger_false_without_safe_apply(self, executor, sample_context):
         """_should_auto_trigger_quality_loop returns False without safe apply."""
         sample_context.loop_enabled = False
         sample_context.command.flags = {}
 
         with patch.object(executor, "_safe_apply_requested", return_value=False):
-            result = executor._should_auto_trigger_quality_loop(
-                sample_context, "plan-only"
-            )
+            result = executor._should_auto_trigger_quality_loop(sample_context, "plan-only")
 
         assert result is False
 
-    def test_should_auto_trigger_false_when_files_changed(
-        self, executor, sample_context
-    ):
+    def test_should_auto_trigger_false_when_files_changed(self, executor, sample_context):
         """_should_auto_trigger_quality_loop returns False when files changed."""
         sample_context.loop_enabled = False
         sample_context.results["changed_files"] = ["file.py"]
 
         with patch.object(executor, "_safe_apply_requested", return_value=True):
-            result = executor._should_auto_trigger_quality_loop(
-                sample_context, "plan-only"
-            )
+            result = executor._should_auto_trigger_quality_loop(sample_context, "plan-only")
 
         assert result is False
 
-    def test_should_auto_trigger_true_with_safe_apply_snapshots(
-        self, executor, sample_context
-    ):
+    def test_should_auto_trigger_true_with_safe_apply_snapshots(self, executor, sample_context):
         """_should_auto_trigger_quality_loop returns True with safe_apply_snapshots."""
         sample_context.loop_enabled = False
         sample_context.results["safe_apply_snapshots"] = {"dir": "/tmp/snap"}
         sample_context.results["changed_files"] = []
 
         with patch.object(executor, "_safe_apply_requested", return_value=True):
-            result = executor._should_auto_trigger_quality_loop(
-                sample_context, "plan-only"
-            )
+            result = executor._should_auto_trigger_quality_loop(sample_context, "plan-only")
 
         assert result is True
 
-    def test_should_auto_trigger_true_with_safe_apply_directory(
-        self, executor, sample_context
-    ):
+    def test_should_auto_trigger_true_with_safe_apply_directory(self, executor, sample_context):
         """_should_auto_trigger_quality_loop returns True with safe_apply_directory."""
         sample_context.loop_enabled = False
         sample_context.results["safe_apply_directory"] = "/tmp/safe"
         sample_context.results["changed_files"] = []
 
         with patch.object(executor, "_safe_apply_requested", return_value=True):
-            result = executor._should_auto_trigger_quality_loop(
-                sample_context, "plan-only"
-            )
+            result = executor._should_auto_trigger_quality_loop(sample_context, "plan-only")
 
         assert result is True
 

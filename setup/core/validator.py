@@ -80,7 +80,9 @@ class Validator:
 
         try:
             # Get current Python version
-            current_version = f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
+            current_version = (
+                f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
+            )
 
             # Check minimum version
             if version.parse(current_version) < version.parse(min_version):
@@ -93,9 +95,7 @@ class Validator:
                 return result
 
             # Check maximum version if specified
-            if max_version and version.parse(current_version) > version.parse(
-                max_version
-            ):
+            if max_version and version.parse(current_version) > version.parse(max_version):
                 result = (
                     False,
                     f"Python version {current_version} exceeds maximum supported {max_version}",
@@ -163,9 +163,7 @@ class Validator:
                 return result_tuple
 
             # Check maximum version if specified
-            if max_version and version.parse(current_version) > version.parse(
-                max_version
-            ):
+            if max_version and version.parse(current_version) > version.parse(max_version):
                 result_tuple = (
                     False,
                     f"Node.js version {current_version} exceeds maximum supported {max_version}",
@@ -233,9 +231,7 @@ class Validator:
             current_version = version_match.group(1)
 
             # Check minimum version if specified
-            if min_version and version.parse(current_version) < version.parse(
-                min_version
-            ):
+            if min_version and version.parse(current_version) < version.parse(min_version):
                 result_tuple = (
                     False,
                     f"Claude CLI {min_version}+ required, found {current_version}",
@@ -409,9 +405,7 @@ class Validator:
             self.validation_cache[cache_key] = result
             return result
 
-    def validate_requirements(
-        self, requirements: dict[str, Any]
-    ) -> tuple[bool, list[str]]:
+    def validate_requirements(self, requirements: dict[str, Any]) -> tuple[bool, list[str]]:
         """
         Validate all system requirements
 
@@ -435,17 +429,13 @@ class Validator:
         # Check Node.js requirements
         if "node" in requirements:
             node_req = requirements["node"]
-            success, message = self.check_node(
-                node_req["min_version"], node_req.get("max_version")
-            )
+            success, message = self.check_node(node_req["min_version"], node_req.get("max_version"))
             if not success:
                 errors.append(f"Node.js: {message}")
 
         # Check disk space
         if "disk_space_mb" in requirements:
-            success, message = self.check_disk_space(
-                Path.home(), requirements["disk_space_mb"]
-            )
+            success, message = self.check_disk_space(Path.home(), requirements["disk_space_mb"])
             if not success:
                 errors.append(f"Disk space: {message}")
 
@@ -655,9 +645,7 @@ class Validator:
         }
         if not claude_success:
             diagnostics["issues"].append("Claude CLI not found")
-            diagnostics["recommendations"].append(
-                self.get_installation_help("claude_cli")
-            )
+            diagnostics["recommendations"].append(self.get_installation_help("claude_cli"))
 
         # Check disk space
         disk_success, disk_msg = self.check_disk_space(Path.home())

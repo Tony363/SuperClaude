@@ -61,14 +61,10 @@ Examples:
         help="Check for available updates without installing",
     )
 
-    parser.add_argument(
-        "--components", type=str, nargs="+", help="Specific components to update"
-    )
+    parser.add_argument("--components", type=str, nargs="+", help="Specific components to update")
 
     # Backup options
-    parser.add_argument(
-        "--backup", action="store_true", help="Create backup before update"
-    )
+    parser.add_argument("--backup", action="store_true", help="Create backup before update")
 
     parser.add_argument("--no-backup", action="store_true", help="Skip backup creation")
 
@@ -158,9 +154,7 @@ def get_components_to_update(
     # Explicit components specified
     if args.components:
         # Validate that specified components are installed
-        invalid_components = [
-            c for c in args.components if c not in installed_components
-        ]
+        invalid_components = [c for c in args.components if c not in installed_components]
         if invalid_components:
             logger.error(f"Components not installed: {invalid_components}")
             return None
@@ -181,9 +175,7 @@ def get_components_to_update(
     return []
 
 
-def collect_api_keys_for_servers(
-    selected_servers: list[str], mcp_instance
-) -> dict[str, str]:
+def collect_api_keys_for_servers(selected_servers: list[str], mcp_instance) -> dict[str, str]:
     """
     Collect API keys for servers that require them during update
 
@@ -256,9 +248,7 @@ def interactive_update_selection(
     elif choice == 0:  # Update all
         return component_names
     elif choice == 1:  # Select individual
-        component_menu = Menu(
-            "Select components to update:", update_options, multi_select=True
-        )
+        component_menu = Menu("Select components to update:", update_options, multi_select=True)
         selections = component_menu.display()
 
         if not selections:
@@ -305,9 +295,7 @@ def perform_update(
         installer = Installer(args.install_dir, dry_run=args.dry_run)
 
         # Create component instances
-        component_instances = registry.create_component_instances(
-            components, args.install_dir
-        )
+        component_instances = registry.create_component_instances(components, args.install_dir)
 
         if not component_instances:
             logger.error("No valid component instances created")
@@ -322,9 +310,7 @@ def perform_update(
                 all_server_keys = list(mcp_instance.mcp_servers.keys())
 
                 # Collect API keys for any servers that require them
-                collected_api_keys = collect_api_keys_for_servers(
-                    all_server_keys, mcp_instance
-                )
+                collected_api_keys = collect_api_keys_for_servers(all_server_keys, mcp_instance)
 
                 # Set up environment variables if any keys were collected
                 if collected_api_keys:
@@ -462,9 +448,7 @@ def run(args: argparse.Namespace) -> int:
             return 0
 
         # Get components to update
-        components = get_components_to_update(
-            args, installed_components, available_updates
-        )
+        components = get_components_to_update(args, installed_components, available_updates)
         if components is None:
             logger.info("Update cancelled by user")
             return 0

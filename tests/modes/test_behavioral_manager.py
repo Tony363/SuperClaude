@@ -224,9 +224,7 @@ class TestBehavioralModeManagerDetection:
         for keyword in ["todo", "task", "plan", "schedule", "workflow"]:
             context = {"prompt": f"Help me with {keyword}"}
             detected = manager.detect_mode_from_context(context)
-            assert detected == BehavioralMode.TASK_MANAGEMENT, (
-                f"Failed for keyword: {keyword}"
-            )
+            assert detected == BehavioralMode.TASK_MANAGEMENT, f"Failed for keyword: {keyword}"
 
     def test_detect_efficiency_need_large_context(self):
         """Large context (>10000 chars) triggers TOKEN_EFFICIENCY."""

@@ -18,14 +18,10 @@ class TestDeriveChangePlan:
 
         assert result == []
 
-    def test_derive_change_plan_extracts_proposed_changes(
-        self, executor, sample_context
-    ):
+    def test_derive_change_plan_extracts_proposed_changes(self, executor, sample_context):
         """_derive_change_plan extracts from proposed_changes key."""
         sample_context.agent_outputs = {
-            "implementer": {
-                "proposed_changes": [{"path": "src/file.py", "content": "# code"}]
-            }
+            "implementer": {"proposed_changes": [{"path": "src/file.py", "content": "# code"}]}
         }
 
         result = executor._derive_change_plan(sample_context, {})
@@ -34,15 +30,11 @@ class TestDeriveChangePlan:
         assert result[0]["path"] == "src/file.py"
         assert result[0]["content"] == "# code"
 
-    def test_derive_change_plan_extracts_generated_files(
-        self, executor, sample_context
-    ):
+    def test_derive_change_plan_extracts_generated_files(self, executor, sample_context):
         """_derive_change_plan extracts from generated_files key."""
         sample_context.agent_outputs = {
             "implementer": {
-                "generated_files": [
-                    {"path": "tests/test.py", "content": "def test(): pass"}
-                ]
+                "generated_files": [{"path": "tests/test.py", "content": "def test(): pass"}]
             }
         }
 
@@ -76,9 +68,7 @@ class TestDeriveChangePlan:
     def test_derive_change_plan_merges_multiple_agents(self, executor, sample_context):
         """_derive_change_plan merges changes from multiple agents."""
         sample_context.agent_outputs = {
-            "implementer": {
-                "proposed_changes": [{"path": "file1.py", "content": "code1"}]
-            },
+            "implementer": {"proposed_changes": [{"path": "file1.py", "content": "code1"}]},
             "reviewer": {"changes": [{"path": "file2.py", "content": "code2"}]},
         }
 
@@ -247,9 +237,7 @@ class TestApplyChangePlan:
         }
 
         with patch.object(executor, "_safe_apply_requested", return_value=False):  # noqa: SIM117
-            with patch.object(
-                executor, "_ensure_worktree_manager", return_value=mock_manager
-            ):
+            with patch.object(executor, "_ensure_worktree_manager", return_value=mock_manager):
                 result = executor._apply_change_plan(sample_context, change_plan)
 
         assert result["applied"] == ["file.py"]

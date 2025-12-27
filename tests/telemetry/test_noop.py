@@ -80,9 +80,7 @@ class TestNoopTelemetryClientProtocol:
         client.record_event(name="event", payload={}, tags={"a": "b"})
 
         client.record_metric(name="metric", value=1, kind=MetricType.COUNTER)
-        client.record_metric(
-            name="metric", value=1, kind=MetricType.GAUGE, tags={"a": "b"}
-        )
+        client.record_metric(name="metric", value=1, kind=MetricType.GAUGE, tags={"a": "b"})
 
         client.increment(name="counter")
         client.increment(name="counter", value=5)

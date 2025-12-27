@@ -17,6 +17,13 @@ Architecture:
 import time
 from typing import Any, Callable
 
+from .pal_integration import PALReviewSignal, incorporate_pal_feedback
+from .quality_assessment import QualityAssessor
+from .termination import (
+    check_insufficient_improvement,
+    detect_oscillation,
+    detect_stagnation,
+)
 from .types import (
     IterationResult,
     LoopConfig,
@@ -24,13 +31,6 @@ from .types import (
     QualityAssessment,
     TerminationReason,
 )
-from .termination import (
-    detect_oscillation,
-    detect_stagnation,
-    check_insufficient_improvement,
-)
-from .quality_assessment import QualityAssessor
-from .pal_integration import PALReviewSignal, incorporate_pal_feedback
 
 
 class LoopOrchestrator:
@@ -192,10 +192,7 @@ class LoopOrchestrator:
 
             # 5. Generate PAL review signal (if enabled and not last iteration)
             pal_signal = None
-            if (
-                self.config.pal_review_enabled
-                and iteration < self.config.max_iterations - 1
-            ):
+            if self.config.pal_review_enabled and iteration < self.config.max_iterations - 1:
                 pal_signal = PALReviewSignal.generate_review_signal(
                     iteration=iteration,
                     changed_files=changed_files,
@@ -355,9 +352,7 @@ def create_skill_invoker_signal(context: dict[str, Any]) -> dict[str, Any]:
             "task": context.get("task", ""),
             "improvements_needed": context.get("improvements_needed", []),
             "iteration": context.get("iteration", 0),
-            "focus": "remediation"
-            if context.get("iteration", 0) > 0
-            else "implementation",
+            "focus": "remediation" if context.get("iteration", 0) > 0 else "implementation",
         },
         "collect": ["changes", "tests", "lint", "changed_files"],
         "context": context,

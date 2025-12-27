@@ -100,9 +100,7 @@ def test_preload_top_agents_uses_access_patterns(
 
     assert loaded_count == 3
     assert stats["cached_agents"] == 3
-    assert {"general-purpose", "technical-writer", "performance-engineer"}.issubset(
-        top_agents
-    )
+    assert {"general-purpose", "technical-writer", "performance-engineer"}.issubset(top_agents)
 
 
 def test_explain_selection_returns_breakdown(
@@ -130,8 +128,6 @@ def test_explain_selection_handles_missing_metadata(
     extended_loader: ExtendedAgentLoader,
 ) -> None:
     extended_loader._agent_metadata.pop("general-purpose", None)
-    explanation = extended_loader.explain_selection(
-        "general-purpose", {"task": "triage"}
-    )
+    explanation = extended_loader.explain_selection("general-purpose", {"task": "triage"})
 
     assert explanation == {"error": "Agent not found: general-purpose"}

@@ -74,9 +74,7 @@ class CoreComponent(Component):
             selected_files = sorted(all_files)
             self.logger.debug("Using full memory profile for core component")
         else:
-            minimal_files = [
-                fname for fname in self.MINIMAL_FILES if fname in all_files
-            ]
+            minimal_files = [fname for fname in self.MINIMAL_FILES if fname in all_files]
             missing = [fname for fname in self.MINIMAL_FILES if fname not in all_files]
             if missing:
                 self.logger.warning(
@@ -113,9 +111,7 @@ class CoreComponent(Component):
                         f".json.corrupted.{datetime.now().strftime('%Y%m%d_%H%M%S')}"
                     )
                     shutil.move(str(metadata_file), str(backup_path))
-                    self.logger.info(
-                        f"Corrupted metadata backed up to: {backup_path.name}"
-                    )
+                    self.logger.info(f"Corrupted metadata backed up to: {backup_path.name}")
 
             # Update metadata with framework configuration
             metadata_mods = self.get_metadata_modifications()
@@ -138,9 +134,7 @@ class CoreComponent(Component):
 
             # Migrate any existing SuperClaude data from settings.json
             if self.settings_manager.migrate_superclaude_data():
-                self.logger.info(
-                    "Migrated existing SuperClaude data from settings.json"
-                )
+                self.logger.info("Migrated existing SuperClaude data from settings.json")
 
         except Exception as e:
             self.logger.error(f"Failed to update metadata: {e}")
@@ -163,9 +157,7 @@ class CoreComponent(Component):
             manager.add_imports(self.component_files, category="Core Framework")
             self.logger.info("Updated CLAUDE.md with core framework imports")
         except Exception as e:
-            self.logger.warning(
-                f"Failed to update CLAUDE.md with core framework imports: {e}"
-            )
+            self.logger.warning(f"Failed to update CLAUDE.md with core framework imports: {e}")
             # Don't fail the whole installation for this
 
         return True
@@ -200,9 +192,7 @@ class CoreComponent(Component):
             except Exception as e:
                 self.logger.warning(f"Could not update metadata: {e}")
 
-            self.logger.info(
-                f"✓ Core component uninstalled ({removed_count} files removed)"
-            )
+            self.logger.info(f"✓ Core component uninstalled ({removed_count} files removed)")
             return True
 
         except Exception as e:
@@ -226,9 +216,7 @@ class CoreComponent(Component):
                 self.logger.info(f"Core component already at version {target_version}")
                 return True
 
-            self.logger.info(
-                f"Updating core component from {current_version} to {target_version}"
-            )
+            self.logger.info(f"Updating core component from {current_version} to {target_version}")
 
             # Create backup of existing files
             backup_files = []
@@ -251,9 +239,7 @@ class CoreComponent(Component):
                     except Exception:
                         pass  # Ignore cleanup errors
 
-                self.logger.info(
-                    f"✓ Core component updated to version {target_version}"
-                )
+                self.logger.info(f"✓ Core component updated to version {target_version}")
             else:
                 # Restore from backup on failure
                 self.logger.warning("Update failed, restoring from backup...")

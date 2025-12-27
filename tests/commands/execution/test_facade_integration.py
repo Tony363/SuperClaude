@@ -55,9 +55,7 @@ class TestFacadeIntegrationWithExecutor:
         # Initial commit
         readme = workspace / "README.md"
         readme.write_text("# Integration Test\n")
-        subprocess.run(
-            ["git", "add", "."], cwd=workspace, check=True, capture_output=True
-        )
+        subprocess.run(["git", "add", "."], cwd=workspace, check=True, capture_output=True)
         subprocess.run(
             ["git", "commit", "-m", "Initial"],
             cwd=workspace,
@@ -84,9 +82,7 @@ class TestFacadeIntegrationWithExecutor:
         # But the initialization should not raise
         assert hasattr(executor, "execution_facade")
 
-    def test_facade_disabled_routes_to_legacy(
-        self, executor, integration_workspace, monkeypatch
-    ):
+    def test_facade_disabled_routes_to_legacy(self, executor, integration_workspace, monkeypatch):
         """Commands route to legacy path when facade disabled."""
         # Ensure disabled
         monkeypatch.delenv(DECOMPOSED_ENV_VAR, raising=False)
@@ -105,9 +101,7 @@ class TestFacadeIntegrationWithExecutor:
         # Need to reinitialize to pick up env changes
         registry = CommandRegistry()
         parser = CommandParser()
-        new_executor = CommandExecutor(
-            registry, parser, repo_root=integration_workspace
-        )
+        new_executor = CommandExecutor(registry, parser, repo_root=integration_workspace)
 
         if new_executor.execution_facade:
             assert new_executor.execution_facade.should_handle("analyze") is True

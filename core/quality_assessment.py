@@ -50,12 +50,7 @@ class QualityAssessor:
             / "scripts"
             / "evidence_gate.py",
             # From project root
-            Path.cwd()
-            / ".claude"
-            / "skills"
-            / "sc-implement"
-            / "scripts"
-            / "evidence_gate.py",
+            Path.cwd() / ".claude" / "skills" / "sc-implement" / "scripts" / "evidence_gate.py",
         ]
 
         for path in possible_paths:
@@ -241,9 +236,7 @@ class QualityAssessor:
         )
 
 
-def assess_quality(
-    context: dict[str, Any], threshold: float = 70.0
-) -> QualityAssessment:
+def assess_quality(context: dict[str, Any], threshold: float = 70.0) -> QualityAssessment:
     """
     Convenience function for quality assessment.
 

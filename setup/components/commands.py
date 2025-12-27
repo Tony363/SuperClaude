@@ -102,9 +102,7 @@ class CommandsComponent(Component):
                         self.logger.warning(f"Could not remove old {filename}")
 
             if old_removed_count > 0:
-                self.logger.info(
-                    f"Also removed {old_removed_count} commands from old location"
-                )
+                self.logger.info(f"Also removed {old_removed_count} commands from old location")
 
             removed_count += old_removed_count
 
@@ -122,9 +120,7 @@ class CommandsComponent(Component):
                             remaining_files = list(parent_commands_dir.iterdir())
                             if not remaining_files:
                                 parent_commands_dir.rmdir()
-                                self.logger.debug(
-                                    "Removed empty parent commands directory"
-                                )
+                                self.logger.debug("Removed empty parent commands directory")
             except Exception as e:
                 self.logger.warning(f"Could not remove commands directory: {e}")
 
@@ -141,15 +137,11 @@ class CommandsComponent(Component):
             except Exception as e:
                 self.logger.warning(f"Could not update metadata: {e}")
 
-            self.logger.success(
-                f"Commands component uninstalled ({removed_count} files removed)"
-            )
+            self.logger.success(f"Commands component uninstalled ({removed_count} files removed)")
             return True
 
         except Exception as e:
-            self.logger.exception(
-                f"Unexpected error during commands uninstallation: {e}"
-            )
+            self.logger.exception(f"Unexpected error during commands uninstallation: {e}")
             return False
 
     def get_dependencies(self) -> list[str]:
@@ -166,9 +158,7 @@ class CommandsComponent(Component):
             target_version = self.get_metadata()["version"]
 
             if current_version == target_version:
-                self.logger.info(
-                    f"Commands component already at version {target_version}"
-                )
+                self.logger.info(f"Commands component already at version {target_version}")
                 return True
 
             self.logger.info(
@@ -199,9 +189,7 @@ class CommandsComponent(Component):
                     except Exception:
                         pass  # Ignore cleanup errors
 
-                self.logger.success(
-                    f"Commands component updated to version {target_version}"
-                )
+                self.logger.success(f"Commands component updated to version {target_version}")
             else:
                 # Restore from backup on failure
                 self.logger.warning("Update failed, restoring from backup...")
@@ -308,9 +296,7 @@ class CommandsComponent(Component):
 
                 # Ensure new directory exists
                 if not self.file_manager.ensure_directory(new_commands_dir):
-                    self.logger.error(
-                        f"Could not create sc commands directory: {new_commands_dir}"
-                    )
+                    self.logger.error(f"Could not create sc commands directory: {new_commands_dir}")
                     return
 
                 # Move files from old to new location
@@ -324,15 +310,11 @@ class CommandsComponent(Component):
                             # Remove old file
                             if self.file_manager.remove_file(old_file_path):
                                 migrated_count += 1
-                                self.logger.debug(
-                                    f"Migrated {filename} to sc/ subdirectory"
-                                )
+                                self.logger.debug(f"Migrated {filename} to sc/ subdirectory")
                             else:
                                 self.logger.warning(f"Could not remove old {filename}")
                         else:
-                            self.logger.warning(
-                                f"Could not copy {filename} to sc/ subdirectory"
-                            )
+                            self.logger.warning(f"Could not copy {filename} to sc/ subdirectory")
                     except Exception as e:
                         self.logger.warning(f"Error migrating {filename}: {e}")
 
@@ -340,26 +322,18 @@ class CommandsComponent(Component):
                     self.logger.success(
                         f"Successfully migrated {migrated_count} commands to /sc: namespace"
                     )
-                    self.logger.info(
-                        "Commands are now available as /sc:analyze, /sc:build, etc."
-                    )
+                    self.logger.info("Commands are now available as /sc:analyze, /sc:build, etc.")
 
                     # Try to remove old commands directory if empty
                     try:
                         if old_commands_dir.exists():
-                            remaining_files = [
-                                f for f in old_commands_dir.iterdir() if f.is_file()
-                            ]
+                            remaining_files = [f for f in old_commands_dir.iterdir() if f.is_file()]
                             if not remaining_files:
                                 # Only remove if no user files remain
                                 old_commands_dir.rmdir()
-                                self.logger.debug(
-                                    "Removed empty old commands directory"
-                                )
+                                self.logger.debug("Removed empty old commands directory")
                     except Exception as e:
-                        self.logger.debug(
-                            f"Could not remove old commands directory: {e}"
-                        )
+                        self.logger.debug(f"Could not remove old commands directory: {e}")
 
         except Exception as e:
             self.logger.warning(f"Error during command migration: {e}")

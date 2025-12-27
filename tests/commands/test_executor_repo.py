@@ -88,9 +88,7 @@ class TestSnapshotRepoChanges:
         parser = CommandParser()
         executor = CommandExecutor(registry, parser, repo_root=temp_repo)
 
-        with patch(
-            "subprocess.run", side_effect=subprocess.SubprocessError("git failed")
-        ):
+        with patch("subprocess.run", side_effect=subprocess.SubprocessError("git failed")):
             result = executor._snapshot_repo_changes()
 
         assert result == set()
@@ -218,9 +216,7 @@ class TestIsArtifactChange:
 
     def test_artifact_with_rename(self, executor):
         """Renamed file in Generated is detected."""
-        assert executor._is_artifact_change(
-            "R100\told.py\tSuperClaude/Generated/new.py"
-        )
+        assert executor._is_artifact_change("R100\told.py\tSuperClaude/Generated/new.py")
 
     def test_artifact_nested_generated(self, executor):
         """Nested Generated path is detected."""
@@ -650,9 +646,7 @@ class TestRunStaticValidation:
 
         result = executor._run_static_validation([valid_yaml])
 
-        yaml_errors = [
-            r for r in result if "yaml" in r.lower() and "error" in r.lower()
-        ]
+        yaml_errors = [r for r in result if "yaml" in r.lower() and "error" in r.lower()]
         assert len(yaml_errors) == 0
 
     def test_validate_invalid_yaml(self, executor, tmp_path):

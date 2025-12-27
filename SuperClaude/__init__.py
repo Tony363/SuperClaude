@@ -18,6 +18,7 @@ __license__ = "MIT"
 
 # Add archive to Python path for compatibility
 import sys
+
 _archive_path = Path(__file__).parent.parent / "archive" / "python-sdk-v5"
 if _archive_path.exists() and str(_archive_path) not in sys.path:
     sys.path.insert(0, str(_archive_path))

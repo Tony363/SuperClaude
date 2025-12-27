@@ -87,9 +87,7 @@ class MCPDocsComponent(Component):
                 return path
         return None
 
-    def validate_prerequisites(
-        self, installSubPath: Path | None = None
-    ) -> tuple[bool, list[str]]:
+    def validate_prerequisites(self, installSubPath: Path | None = None) -> tuple[bool, list[str]]:
         """No prerequisites for documentation."""
         return True, []
 

@@ -149,9 +149,7 @@ class TestValidateSDKDelegation:
 
     def test_validate_includes_sdk_definition(self, coordinator):
         """Test that SDK definition is included when requested."""
-        result = coordinator.validate_sdk_delegation(
-            None, "agent-a", include_sdk_definition=True
-        )
+        result = coordinator.validate_sdk_delegation(None, "agent-a", include_sdk_definition=True)
 
         assert result.allowed is True
         assert result.sdk_compatible is True
@@ -160,9 +158,7 @@ class TestValidateSDKDelegation:
 
     def test_validate_without_sdk_definition(self, coordinator):
         """Test validation without SDK definition."""
-        result = coordinator.validate_sdk_delegation(
-            None, "agent-a", include_sdk_definition=False
-        )
+        result = coordinator.validate_sdk_delegation(None, "agent-a", include_sdk_definition=False)
 
         assert result.allowed is True
         assert result.sdk_definition is None

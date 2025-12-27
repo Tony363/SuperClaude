@@ -116,9 +116,7 @@ class Installer:
             stat = shutil.disk_usage(self.install_dir.parent)
             free_mb = stat.free / (1024 * 1024)
             if free_mb < 500:
-                errors.append(
-                    f"Insufficient disk space: {free_mb:.1f}MB free (500MB required)"
-                )
+                errors.append(f"Insufficient disk space: {free_mb:.1f}MB free (500MB required)")
         except Exception as e:
             errors.append(f"Could not check disk space: {e}")
 
@@ -206,9 +204,7 @@ class Installer:
         component = self.components[component_name]
 
         # Skip if already installed and not in update mode
-        if component_name in self.installed_components and not config.get(
-            "update_mode"
-        ):
+        if component_name in self.installed_components and not config.get("update_mode"):
             return True
 
         # Check prerequisites
@@ -315,9 +311,7 @@ class Installer:
         else:
             self.logger.error("Some components failed validation. Check errors above.")
 
-    def update_components(
-        self, component_names: list[str], config: dict[str, Any]
-    ) -> bool:
+    def update_components(self, component_names: list[str], config: dict[str, Any]) -> bool:
         """Alias for update operation (uses install logic)"""
         config["update_mode"] = True
         return self.install_components(component_names, config)

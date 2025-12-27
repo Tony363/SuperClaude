@@ -456,8 +456,6 @@ class TestCreateQualityHooks:
         """Test evidence hooks are attached to quality hooks."""
         composite = create_quality_hooks(requires_evidence=True)
 
-        evidence_hook = next(
-            (h for h in composite.hooks if isinstance(h, EvidenceHooks)), None
-        )
+        evidence_hook = next((h for h in composite.hooks if isinstance(h, EvidenceHooks)), None)
         assert evidence_hook is not None
         assert evidence_hook._quality_hooks is not None

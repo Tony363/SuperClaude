@@ -235,9 +235,7 @@ def evaluate_evidence(evidence: dict[str, Any]) -> dict[str, Any]:
 def main():
     """Main entry point for script execution."""
     if len(sys.argv) < 2:
-        print(
-            json.dumps({"error": "No evidence provided. Pass JSON as first argument."})
-        )
+        print(json.dumps({"error": "No evidence provided. Pass JSON as first argument."}))
         sys.exit(1)
 
     try:
