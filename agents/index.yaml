@@ -1,0 +1,629 @@
+# SuperClaude Agent Registry
+# Version: 6.0.0
+#
+# This file defines all available agent personas for Claude Code.
+# Agents are selected based on task context matching against triggers and categories.
+
+version: "6.0.0"
+description: "SuperClaude meta-prompt framework - 130+ specialized agent personas"
+
+# Agent Selection Guidelines (Semantic, not algorithmic)
+#
+# Since SuperClaude is a pure prompts/config framework (no Python runtime),
+# agent selection is performed semantically by the LLM based on these priorities:
+#
+# 1. EXACT TRIGGER MATCH (Highest Priority)
+#    - If user's request contains a trigger keyword, prefer that agent
+#    - Example: "debug this error" → root-cause-analyst (has "debug", "error" triggers)
+#
+# 2. CATEGORY MATCH (High Priority)
+#    - Match based on domain context
+#    - Example: Working on React code → frontend-architect or react-specialist
+#
+# 3. CORE BEFORE EXTENDED
+#    - Prefer core agents (16) over extended agents (114) for common tasks
+#    - Extended agents are specialists for niche domains
+#
+# 4. FILE CONTEXT
+#    - Consider file types being edited
+#    - .py files → python-expert, .ts files → typescript-pro, etc.
+#
+# 5. FALLBACK
+#    - When uncertain, use general-purpose agent
+#    - Ask for clarification if multiple agents match equally
+selection:
+  type: semantic
+  priority_order:
+    - exact_trigger_match
+    - category_match
+    - core_over_extended
+    - file_context
+  fallback: general-purpose
+
+# Core agents - high-priority generalists
+core:
+  - name: general-purpose
+    file: core/general-purpose.md
+    triggers: [help, assist, general, default]
+    category: general
+    priority: 1
+
+  - name: root-cause-analyst
+    file: core/root-cause-analyst.md
+    triggers: [debug, bug, error, crash, issue, problem, investigate]
+    category: debugging
+    priority: 1
+
+  - name: refactoring-expert
+    file: core/refactoring-expert.md
+    triggers: [refactor, clean, improve code, restructure, simplify]
+    category: refactoring
+    priority: 1
+
+  - name: technical-writer
+    file: core/technical-writer.md
+    triggers: [document, docs, readme, explain, documentation]
+    category: documentation
+    priority: 1
+
+  - name: performance-engineer
+    file: core/performance-engineer.md
+    triggers: [performance, optimize, slow, speed, profiling, benchmark]
+    category: performance
+    priority: 1
+
+  - name: system-architect
+    file: core/system-architect.md
+    triggers: [architecture, design, system, structure, scalability]
+    category: architecture
+    priority: 1
+
+  - name: backend-architect
+    file: core/backend-architect.md
+    triggers: [backend, api, server, database, microservices]
+    category: backend
+    priority: 1
+
+  - name: frontend-architect
+    file: core/frontend-architect.md
+    triggers: [frontend, ui, ux, react, vue, angular, css]
+    category: frontend
+    priority: 1
+
+  - name: python-expert
+    file: core/python-expert.md
+    triggers: [python, django, flask, fastapi, pytest]
+    category: language
+    priority: 1
+
+  - name: security-engineer
+    file: core/security-engineer.md
+    triggers: [security, vulnerability, auth, authentication, authorization]
+    category: security
+    priority: 1
+
+  - name: devops-architect
+    file: core/devops-architect.md
+    triggers: [devops, ci, cd, pipeline, kubernetes, docker, deploy]
+    category: infrastructure
+    priority: 1
+
+  - name: quality-engineer
+    file: core/quality-engineer.md
+    triggers: [test, testing, qa, quality, coverage, tdd]
+    category: testing
+    priority: 1
+
+  - name: requirements-analyst
+    file: core/requirements-analyst.md
+    triggers: [requirements, spec, specification, user story, feature]
+    category: analysis
+    priority: 1
+
+  - name: learning-guide
+    file: core/learning-guide.md
+    triggers: [learn, teach, explain, tutorial, guide, understand]
+    category: education
+    priority: 1
+
+  - name: socratic-mentor
+    file: core/socratic-mentor.md
+    triggers: [mentor, coach, think, question, why]
+    category: education
+    priority: 2
+
+  - name: fullstack-developer
+    file: core/fullstack-developer.md
+    triggers: [fullstack, full stack, full-stack, frontend backend, api component, end-to-end]
+    category: development
+    priority: 1
+
+# Extended agents organized by category
+extended:
+  01-core-development:
+    description: "Core software development specialists"
+    priority: high
+    agents:
+      - name: api-designer
+        file: extended/01-core-development/api-designer.md
+        triggers: [api design, rest, graphql, openapi, swagger]
+
+      - name: backend-developer
+        file: extended/01-core-development/backend-developer.md
+        triggers: [backend, server, api endpoint, database]
+
+      - name: electron-pro
+        file: extended/01-core-development/electron-pro.md
+        triggers: [electron, desktop app, cross-platform]
+
+      - name: fullstack-developer
+        file: extended/01-core-development/fullstack-developer.md
+        triggers: [fullstack, full stack, frontend backend]
+
+      - name: graphql-architect
+        file: extended/01-core-development/graphql-architect.md
+        triggers: [graphql, schema, resolver, apollo]
+
+      - name: microservices-architect
+        file: extended/01-core-development/microservices-architect.md
+        triggers: [microservices, distributed, service mesh]
+
+      - name: mobile-developer
+        file: extended/01-core-development/mobile-developer.md
+        triggers: [mobile, ios, android, react native]
+
+      - name: ui-designer
+        file: extended/01-core-development/ui-designer.md
+        triggers: [ui, ux, design, wireframe, figma]
+
+      - name: websocket-engineer
+        file: extended/01-core-development/websocket-engineer.md
+        triggers: [websocket, realtime, socket, live]
+
+      - name: wordpress-master
+        file: extended/01-core-development/wordpress-master.md
+        triggers: [wordpress, php, cms, theme, plugin]
+
+  02-language-specialists:
+    description: "Programming language and framework experts"
+    priority: high
+    agents:
+      - name: angular-architect
+        file: extended/02-language-specialists/angular-architect.md
+        triggers: [angular, typescript, rxjs, ngrx]
+
+      - name: cpp-pro
+        file: extended/02-language-specialists/cpp-pro.md
+        triggers: [c++, cpp, systems, low-level]
+
+      - name: csharp-developer
+        file: extended/02-language-specialists/csharp-developer.md
+        triggers: [c#, csharp, .net, dotnet, unity]
+
+      - name: django-developer
+        file: extended/02-language-specialists/django-developer.md
+        triggers: [django, python web, orm, drf]
+
+      - name: dotnet-core-expert
+        file: extended/02-language-specialists/dotnet-core-expert.md
+        triggers: [.net core, asp.net, blazor]
+
+      - name: dotnet-framework-4.8-expert
+        file: extended/02-language-specialists/dotnet-framework-4.8-expert.md
+        triggers: [.net framework, legacy .net, 4.8]
+
+      - name: flutter-expert
+        file: extended/02-language-specialists/flutter-expert.md
+        triggers: [flutter, dart, mobile cross-platform]
+
+      - name: golang-pro
+        file: extended/02-language-specialists/golang-pro.md
+        triggers: [go, golang, goroutines, channels]
+
+      - name: java-architect
+        file: extended/02-language-specialists/java-architect.md
+        triggers: [java, jvm, spring, maven, gradle]
+
+      - name: javascript-pro
+        file: extended/02-language-specialists/javascript-pro.md
+        triggers: [javascript, js, node, nodejs, npm]
+
+      - name: kotlin-specialist
+        file: extended/02-language-specialists/kotlin-specialist.md
+        triggers: [kotlin, android, coroutines]
+
+      - name: laravel-specialist
+        file: extended/02-language-specialists/laravel-specialist.md
+        triggers: [laravel, php, eloquent, artisan]
+
+      - name: nextjs-developer
+        file: extended/02-language-specialists/nextjs-developer.md
+        triggers: [nextjs, next.js, react ssr, vercel]
+
+      - name: php-pro
+        file: extended/02-language-specialists/php-pro.md
+        triggers: [php, composer, symfony]
+
+      - name: python-pro
+        file: extended/02-language-specialists/python-pro.md
+        triggers: [python, pip, poetry, async python]
+
+      - name: rails-expert
+        file: extended/02-language-specialists/rails-expert.md
+        triggers: [rails, ruby, activerecord, rspec]
+
+      - name: react-specialist
+        file: extended/02-language-specialists/react-specialist.md
+        triggers: [react, hooks, redux, jsx]
+
+      - name: rust-engineer
+        file: extended/02-language-specialists/rust-engineer.md
+        triggers: [rust, cargo, ownership, borrow]
+
+      - name: spring-boot-engineer
+        file: extended/02-language-specialists/spring-boot-engineer.md
+        triggers: [spring boot, spring, java microservices]
+
+      - name: sql-pro
+        file: extended/02-language-specialists/sql-pro.md
+        triggers: [sql, database, query, joins, indexes]
+
+      - name: swift-expert
+        file: extended/02-language-specialists/swift-expert.md
+        triggers: [swift, ios, macos, xcode, swiftui]
+
+      - name: typescript-pro
+        file: extended/02-language-specialists/typescript-pro.md
+        triggers: [typescript, ts, types, generics]
+
+      - name: vue-expert
+        file: extended/02-language-specialists/vue-expert.md
+        triggers: [vue, vuex, nuxt, composition api]
+
+  03-infrastructure:
+    description: "Infrastructure and DevOps specialists"
+    priority: medium
+    agents:
+      - name: cloud-architect
+        file: extended/03-infrastructure/cloud-architect.md
+        triggers: [cloud, aws, azure, gcp, multi-cloud]
+
+      - name: database-administrator
+        file: extended/03-infrastructure/database-administrator.md
+        triggers: [dba, database admin, postgres, mysql, mongodb]
+
+      - name: deployment-engineer
+        file: extended/03-infrastructure/deployment-engineer.md
+        triggers: [deploy, deployment, release, rollout]
+
+      - name: devops-engineer
+        file: extended/03-infrastructure/devops-engineer.md
+        triggers: [devops, automation, infrastructure]
+
+      - name: devops-incident-responder
+        file: extended/03-infrastructure/devops-incident-responder.md
+        triggers: [incident, outage, pagerduty, on-call]
+
+      - name: kubernetes-specialist
+        file: extended/03-infrastructure/kubernetes-specialist.md
+        triggers: [kubernetes, k8s, helm, pods, containers]
+
+      - name: network-engineer
+        file: extended/03-infrastructure/network-engineer.md
+        triggers: [network, dns, tcp, load balancer, cdn]
+
+      - name: platform-engineer
+        file: extended/03-infrastructure/platform-engineer.md
+        triggers: [platform, internal developer, golden path]
+
+      - name: security-engineer
+        file: extended/03-infrastructure/security-engineer.md
+        triggers: [infra security, network security, firewall]
+
+      - name: sre-engineer
+        file: extended/03-infrastructure/sre-engineer.md
+        triggers: [sre, reliability, slo, sla, observability]
+
+      - name: terraform-engineer
+        file: extended/03-infrastructure/terraform-engineer.md
+        triggers: [terraform, iac, infrastructure as code]
+
+  04-quality-security:
+    description: "Quality assurance and security specialists"
+    priority: high
+    agents:
+      - name: accessibility-tester
+        file: extended/04-quality-security/accessibility-tester.md
+        triggers: [accessibility, a11y, wcag, screen reader]
+
+      - name: architect-reviewer
+        file: extended/04-quality-security/architect-reviewer.md
+        triggers: [architecture review, design review, adr]
+
+      - name: chaos-engineer
+        file: extended/04-quality-security/chaos-engineer.md
+        triggers: [chaos, resilience, fault injection, game day]
+
+      - name: code-reviewer
+        file: extended/04-quality-security/code-reviewer.md
+        triggers: [code review, pr review, pull request]
+
+      - name: compliance-auditor
+        file: extended/04-quality-security/compliance-auditor.md
+        triggers: [compliance, gdpr, hipaa, pci, sox, audit]
+
+      - name: debugger
+        file: extended/04-quality-security/debugger.md
+        triggers: [debug, debugger, breakpoint, trace]
+
+      - name: error-detective
+        file: extended/04-quality-security/error-detective.md
+        triggers: [error, exception, stack trace, crash]
+
+      - name: penetration-tester
+        file: extended/04-quality-security/penetration-tester.md
+        triggers: [pentest, penetration test, ethical hacking]
+
+      - name: performance-engineer
+        file: extended/04-quality-security/performance-engineer.md
+        triggers: [performance, load test, stress test, latency]
+
+      - name: qa-expert
+        file: extended/04-quality-security/qa-expert.md
+        triggers: [qa, quality assurance, test plan, test cases]
+
+      - name: security-auditor
+        file: extended/04-quality-security/security-auditor.md
+        triggers: [security audit, vulnerability scan, sast, dast]
+
+      - name: test-automator
+        file: extended/04-quality-security/test-automator.md
+        triggers: [test automation, selenium, cypress, playwright]
+
+  05-data-ai:
+    description: "Data science and AI/ML specialists"
+    priority: medium
+    agents:
+      - name: ai-engineer
+        file: extended/05-data-ai/ai-engineer.md
+        triggers: [ai, artificial intelligence, llm, gpt]
+
+      - name: data-analyst
+        file: extended/05-data-ai/data-analyst.md
+        triggers: [data analysis, analytics, bi, dashboard]
+
+      - name: data-engineer
+        file: extended/05-data-ai/data-engineer.md
+        triggers: [data pipeline, etl, data warehouse, spark]
+
+      - name: data-scientist
+        file: extended/05-data-ai/data-scientist.md
+        triggers: [data science, statistics, modeling, prediction]
+
+      - name: database-optimizer
+        file: extended/05-data-ai/database-optimizer.md
+        triggers: [query optimization, slow query, index, explain]
+
+      - name: llm-architect
+        file: extended/05-data-ai/llm-architect.md
+        triggers: [llm, large language model, prompt engineering]
+
+      - name: machine-learning-engineer
+        file: extended/05-data-ai/machine-learning-engineer.md
+        triggers: [machine learning, ml, model training]
+
+      - name: mlops-engineer
+        file: extended/05-data-ai/mlops-engineer.md
+        triggers: [mlops, model deployment, feature store]
+
+      - name: nlp-engineer
+        file: extended/05-data-ai/nlp-engineer.md
+        triggers: [nlp, natural language, text processing]
+
+      - name: postgres-pro
+        file: extended/05-data-ai/postgres-pro.md
+        triggers: [postgres, postgresql, pg]
+
+      - name: prompt-engineer
+        file: extended/05-data-ai/prompt-engineer.md
+        triggers: [prompt, prompting, chain of thought]
+
+  06-developer-experience:
+    description: "Developer tooling and productivity specialists"
+    priority: medium
+    agents:
+      - name: build-engineer
+        file: extended/06-developer-experience/build-engineer.md
+        triggers: [build, compilation, make, cmake, bazel]
+
+      - name: cli-developer
+        file: extended/06-developer-experience/cli-developer.md
+        triggers: [cli, command line, terminal, argparse, click]
+
+      - name: dependency-manager
+        file: extended/06-developer-experience/dependency-manager.md
+        triggers: [dependency, package, version, upgrade]
+
+      - name: documentation-engineer
+        file: extended/06-developer-experience/documentation-engineer.md
+        triggers: [docs, documentation, api docs, mkdocs]
+
+      - name: dx-optimizer
+        file: extended/06-developer-experience/dx-optimizer.md
+        triggers: [dx, developer experience, productivity]
+
+      - name: git-workflow-manager
+        file: extended/06-developer-experience/git-workflow-manager.md
+        triggers: [git, branch, merge, rebase, workflow]
+
+      - name: legacy-modernizer
+        file: extended/06-developer-experience/legacy-modernizer.md
+        triggers: [legacy, modernize, migrate, upgrade]
+
+      - name: mcp-developer
+        file: extended/06-developer-experience/mcp-developer.md
+        triggers: [mcp, model context protocol, tool]
+
+      - name: refactoring-specialist
+        file: extended/06-developer-experience/refactoring-specialist.md
+        triggers: [refactor, clean code, code smell]
+
+      - name: tooling-engineer
+        file: extended/06-developer-experience/tooling-engineer.md
+        triggers: [tooling, linter, formatter, ide]
+
+  07-specialized-domains:
+    description: "Industry and domain specialists"
+    priority: low
+    agents:
+      - name: api-documenter
+        file: extended/07-specialized-domains/api-documenter.md
+        triggers: [api docs, openapi, swagger docs]
+
+      - name: blockchain-developer
+        file: extended/07-specialized-domains/blockchain-developer.md
+        triggers: [blockchain, smart contract, web3, solidity]
+
+      - name: embedded-systems
+        file: extended/07-specialized-domains/embedded-systems.md
+        triggers: [embedded, microcontroller, firmware, rtos]
+
+      - name: fintech-engineer
+        file: extended/07-specialized-domains/fintech-engineer.md
+        triggers: [fintech, payments, banking, trading]
+
+      - name: game-developer
+        file: extended/07-specialized-domains/game-developer.md
+        triggers: [game, unity, unreal, game engine]
+
+      - name: iot-engineer
+        file: extended/07-specialized-domains/iot-engineer.md
+        triggers: [iot, sensors, mqtt, edge computing]
+
+      - name: mobile-app-developer
+        file: extended/07-specialized-domains/mobile-app-developer.md
+        triggers: [mobile app, app store, play store]
+
+      - name: payment-integration
+        file: extended/07-specialized-domains/payment-integration.md
+        triggers: [payment, stripe, paypal, checkout]
+
+      - name: quant-analyst
+        file: extended/07-specialized-domains/quant-analyst.md
+        triggers: [quant, quantitative, algorithmic trading]
+
+      - name: risk-manager
+        file: extended/07-specialized-domains/risk-manager.md
+        triggers: [risk, risk assessment, compliance]
+
+      - name: seo-specialist
+        file: extended/07-specialized-domains/seo-specialist.md
+        triggers: [seo, search engine, ranking, keywords]
+
+  08-business-product:
+    description: "Business and product specialists"
+    priority: low
+    agents:
+      - name: business-analyst
+        file: extended/08-business-product/business-analyst.md
+        triggers: [business analysis, requirements, brd]
+
+      - name: content-marketer
+        file: extended/08-business-product/content-marketer.md
+        triggers: [content, marketing, blog, copywriting]
+
+      - name: customer-success-manager
+        file: extended/08-business-product/customer-success-manager.md
+        triggers: [customer success, onboarding, retention]
+
+      - name: legal-advisor
+        file: extended/08-business-product/legal-advisor.md
+        triggers: [legal, terms of service, privacy policy]
+
+      - name: product-manager
+        file: extended/08-business-product/product-manager.md
+        triggers: [product, roadmap, feature, prioritization]
+
+      - name: project-manager
+        file: extended/08-business-product/project-manager.md
+        triggers: [project, timeline, milestone, gantt]
+
+      - name: sales-engineer
+        file: extended/08-business-product/sales-engineer.md
+        triggers: [sales, demo, poc, technical sales]
+
+      - name: scrum-master
+        file: extended/08-business-product/scrum-master.md
+        triggers: [scrum, agile, sprint, retrospective]
+
+      - name: technical-writer
+        file: extended/08-business-product/technical-writer.md
+        triggers: [technical writing, user manual, guide]
+
+      - name: ux-researcher
+        file: extended/08-business-product/ux-researcher.md
+        triggers: [ux research, user research, usability]
+
+  09-meta-orchestration:
+    description: "Multi-agent coordination and workflow orchestration"
+    priority: low
+    agents:
+      - name: agent-organizer
+        file: extended/09-meta-orchestration/agent-organizer.md
+        triggers: [organize agents, multi-agent, team assembly]
+
+      - name: context-manager
+        file: extended/09-meta-orchestration/context-manager.md
+        triggers: [context, state management, shared knowledge]
+
+      - name: error-coordinator
+        file: extended/09-meta-orchestration/error-coordinator.md
+        triggers: [error coordination, error handling, recovery]
+
+      - name: knowledge-synthesizer
+        file: extended/09-meta-orchestration/knowledge-synthesizer.md
+        triggers: [synthesize, knowledge synthesis, combine knowledge]
+
+      - name: multi-agent-coordinator
+        file: extended/09-meta-orchestration/multi-agent-coordinator.md
+        triggers: [coordinate agents, multi-agent coordination]
+
+      - name: performance-monitor
+        file: extended/09-meta-orchestration/performance-monitor.md
+        triggers: [agent performance, monitor agents, metrics]
+
+      - name: task-distributor
+        file: extended/09-meta-orchestration/task-distributor.md
+        triggers: [distribute tasks, task distribution, workload]
+
+      - name: workflow-orchestrator
+        file: extended/09-meta-orchestration/workflow-orchestrator.md
+        triggers: [workflow, orchestrate, pipeline, automation]
+
+  10-research-analysis:
+    description: "Research and competitive analysis specialists"
+    priority: low
+    agents:
+      - name: competitive-analyst
+        file: extended/10-research-analysis/competitive-analyst.md
+        triggers: [competitive analysis, competitor, market research]
+
+      - name: data-researcher
+        file: extended/10-research-analysis/data-researcher.md
+        triggers: [data research, data discovery, data mining]
+
+      - name: market-researcher
+        file: extended/10-research-analysis/market-researcher.md
+        triggers: [market research, market analysis, market trends]
+
+      - name: research-analyst
+        file: extended/10-research-analysis/research-analyst.md
+        triggers: [research, analysis, investigation]
+
+      - name: search-specialist
+        file: extended/10-research-analysis/search-specialist.md
+        triggers: [search, find, locate, discover]
+
+      - name: trend-analyst
+        file: extended/10-research-analysis/trend-analyst.md
+        triggers: [trends, trend analysis, forecasting]

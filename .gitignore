@@ -116,6 +116,11 @@ SuperClaude/Implementation/
 *.backup
 *.bak
 
+# Archived Python SDK (kept for reference but not needed for runtime)
+# The archive/ folder contains the deprecated Python SDK from v5.x
+# SuperClaude v6.0+ is pure prompts/config - no Python runtime needed
+archive/
+
 # Test fixtures (not needed in repo)
 .home/
 .fakehome/
