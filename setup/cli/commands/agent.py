@@ -76,9 +76,7 @@ Examples:
     )
 
     # Create subcommands for agent operations
-    agent_subparsers = parser.add_subparsers(
-        dest="agent_command", help="Agent operations"
-    )
+    agent_subparsers = parser.add_subparsers(dest="agent_command", help="Agent operations")
 
     # List command
     list_parser = agent_subparsers.add_parser("list", help="List available agents")
@@ -145,9 +143,7 @@ def run(args: argparse.Namespace) -> int:
 
 def list_agents(registry: "AgentRegistry", args: argparse.Namespace) -> int:
     """List available agents"""
-    agents = registry.list_agents(
-        category=args.category if hasattr(args, "category") else None
-    )
+    agents = registry.list_agents(category=args.category if hasattr(args, "category") else None)
 
     if not agents:
         display_warning("No agents found")
@@ -174,12 +170,8 @@ def list_agents(registry: "AgentRegistry", args: argparse.Namespace) -> int:
             print(f"    • {Colors.GREEN}{agent_name:<30}{Colors.RESET} {desc}")
 
     total = len(agents)
-    core_count = len(
-        [a for a in agents if registry.get_agent_config(a).get("category") == "core"]
-    )
-    print(
-        f"\n  Total: {total} agents ({core_count} core, {total - core_count} extended)"
-    )
+    core_count = len([a for a in agents if registry.get_agent_config(a).get("category") == "core"])
+    print(f"\n  Total: {total} agents ({core_count} core, {total - core_count} extended)")
 
     return 0
 
@@ -196,9 +188,7 @@ def show_agent_info(registry: "AgentRegistry", args: argparse.Namespace) -> int:
     print("-" * 40)
 
     # Basic info
-    print(
-        f"{Colors.YELLOW}Category:{Colors.RESET} {config.get('category', 'uncategorized')}"
-    )
+    print(f"{Colors.YELLOW}Category:{Colors.RESET} {config.get('category', 'uncategorized')}")
     print(
         f"{Colors.YELLOW}Description:{Colors.RESET} {config.get('description', 'No description')}"
     )
@@ -230,9 +220,7 @@ def show_agent_info(registry: "AgentRegistry", args: argparse.Namespace) -> int:
     return 0
 
 
-def run_agent(
-    selector: "AgentSelector", loader: "AgentLoader", args: argparse.Namespace
-) -> int:
+def run_agent(selector: "AgentSelector", loader: "AgentLoader", args: argparse.Namespace) -> int:
     """Execute an agent with a task"""
     # Build context
     files_arg = getattr(args, "files", None) or []
@@ -256,9 +244,7 @@ def run_agent(
             # Just show suggestions
             print(f"\n{Colors.CYAN}Agent Suggestions:{Colors.RESET}")
             for agent_name, score in scores[:5]:
-                print(
-                    f"  • {Colors.GREEN}{agent_name:<30}{Colors.RESET} (score: {score:.2f})"
-                )
+                print(f"  • {Colors.GREEN}{agent_name:<30}{Colors.RESET} (score: {score:.2f})")
             return 0
 
         agent_name = scores[0][0]

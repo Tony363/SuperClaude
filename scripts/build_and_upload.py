@@ -21,9 +21,7 @@ def run_command(cmd: list[str], description: str) -> tuple[bool, str]:
     """Run a command and return success status and output"""
     print(f"🔄 {description}...")
     try:
-        result = subprocess.run(
-            cmd, capture_output=True, text=True, cwd=PROJECT_ROOT, check=True
-        )
+        result = subprocess.run(cmd, capture_output=True, text=True, cwd=PROJECT_ROOT, check=True)
         print(f"✅ {description} completed successfully")
         return True, result.stdout
     except subprocess.CalledProcessError as e:
@@ -98,9 +96,7 @@ def validate_project_structure() -> bool:
 
 def build_package() -> bool:
     """Build the package"""
-    return run_command(
-        [sys.executable, "-m", "build"], "Building package distributions"
-    )[0]
+    return run_command([sys.executable, "-m", "build"], "Building package distributions")[0]
 
 
 def validate_distribution() -> bool:
@@ -207,12 +203,8 @@ def main():
     parser.add_argument(
         "--skip-build", action="store_true", help="Skip build step (use existing dist)"
     )
-    parser.add_argument(
-        "--skip-validation", action="store_true", help="Skip validation steps"
-    )
-    parser.add_argument(
-        "--clean", action="store_true", help="Only clean build artifacts"
-    )
+    parser.add_argument("--skip-validation", action="store_true", help="Skip validation steps")
+    parser.add_argument("--clean", action="store_true", help="Only clean build artifacts")
 
     args = parser.parse_args()
 
@@ -263,9 +255,7 @@ def main():
                 sys.exit(1)
     else:
         # Confirm production upload
-        response = input(
-            "🚨 Upload to production PyPI? This cannot be undone! (yes/no): "
-        )
+        response = input("🚨 Upload to production PyPI? This cannot be undone! (yes/no): ")
         if response.lower() != "yes":
             print("❌ Upload cancelled")
             sys.exit(1)

@@ -27,9 +27,7 @@ class FileService:
         self.copied_files: list[Path] = []
         self.created_dirs: list[Path] = []
 
-    def copy_file(
-        self, source: Path, target: Path, preserve_permissions: bool = True
-    ) -> bool:
+    def copy_file(self, source: Path, target: Path, preserve_permissions: bool = True) -> bool:
         """
         Copy single file with permission preservation
 
@@ -339,9 +337,7 @@ class FileService:
 
         return total_size
 
-    def find_files(
-        self, directory: Path, pattern: str = "*", recursive: bool = True
-    ) -> list[Path]:
+    def find_files(self, directory: Path, pattern: str = "*", recursive: bool = True) -> list[Path]:
         """
         Find files matching pattern
 
@@ -363,14 +359,10 @@ class FileService:
                 return list(directory.glob(pattern))
         except Exception as e:
             # File search failed; return empty list
-            logger.debug(
-                f"Error finding files in {directory} with pattern {pattern}: {e}"
-            )
+            logger.debug(f"Error finding files in {directory} with pattern {pattern}: {e}")
             return []
 
-    def backup_file(
-        self, file_path: Path, backup_suffix: str = ".backup"
-    ) -> Path | None:
+    def backup_file(self, file_path: Path, backup_suffix: str = ".backup") -> Path | None:
         """
         Create backup copy of file
 
@@ -433,9 +425,7 @@ class FileService:
                     directory.rmdir()
             except Exception as e:
                 # Best-effort cleanup; continue even if deletion fails
-                logger.debug(
-                    f"Could not remove directory during cleanup {directory}: {e}"
-                )
+                logger.debug(f"Could not remove directory during cleanup {directory}: {e}")
 
         self.copied_files.clear()
         self.created_dirs.clear()

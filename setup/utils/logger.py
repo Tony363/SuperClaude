@@ -219,9 +219,7 @@ class Logger:
         for key, value in info.items():
             self.info(f"{key}: {value}")
 
-    def log_operation_start(
-        self, operation: str, details: dict[str, Any] | None = None
-    ) -> None:
+    def log_operation_start(self, operation: str, details: dict[str, Any] | None = None) -> None:
         """Log start of operation"""
         self.section(f"Starting: {operation}")
         if details:
@@ -237,9 +235,7 @@ class Logger:
     ) -> None:
         """Log end of operation"""
         status = "SUCCESS" if success else "FAILED"
-        self.info(
-            f"Operation {operation} completed: {status} (Duration: {duration:.2f}s)"
-        )
+        self.info(f"Operation {operation} completed: {status} (Duration: {duration:.2f}s)")
 
         if details:
             for key, value in details.items():
@@ -254,9 +250,7 @@ class Logger:
             "runtime_seconds": runtime.total_seconds(),
             "log_counts": self.log_counts.copy(),
             "total_messages": sum(self.log_counts.values()),
-            "log_file": str(self.log_file)
-            if hasattr(self, "log_file") and self.log_file
-            else None,
+            "log_file": str(self.log_file) if hasattr(self, "log_file") and self.log_file else None,
             "has_errors": self.log_counts["error"] + self.log_counts["critical"] > 0,
         }
 

@@ -235,9 +235,7 @@ TODO: Complete this
         # Create 3 valid docs
         for i in range(3):
             doc = temp_generated_dir / "implement" / f"doc{i}.md"
-            doc.write_text(
-                f"# implement {i}\n\n## Summary\nContent here is sufficient."
-            )
+            doc.write_text(f"# implement {i}\n\n## Summary\nContent here is sufficient.")
 
         # Create 1 invalid doc (unreadable)
         bad_doc = temp_generated_dir / "implement" / "bad.md"

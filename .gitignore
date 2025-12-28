@@ -116,6 +116,12 @@ SuperClaude/Implementation/
 *.backup
 *.bak
 
+# Archived Python SDK (kept for test compatibility with v5.x tests)
+# The archive/ folder contains the deprecated Python SDK from v5.x
+# SuperClaude v6.0+ is pure prompts/config - archive needed for test imports
+# Note: archive/ is tracked because tests import from SuperClaude.* which
+# uses compatibility shims that delegate to archive/python-sdk-v5/
+
 # Test fixtures (not needed in repo)
 .home/
 .fakehome/

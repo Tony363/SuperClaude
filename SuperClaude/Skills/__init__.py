@@ -1,20 +1,14 @@
 """
-Skills System for SuperClaude Framework.
+SuperClaude Skills compatibility module.
 
-Provides Agent Skills format support with bidirectional adapter
-between SKILL.md files and Python CommandMetadata registry.
+Re-exports skills modules from the archived Python SDK.
 """
 
-from .adapter import SkillAdapter, SkillMetadata
-from .discovery import SkillDiscovery
-from .runtime import RuntimeConfig, SkillRuntime
+import sys
+from pathlib import Path
 
-__all__ = [
-    "SkillAdapter",
-    "SkillDiscovery",
-    "SkillMetadata",
-    "SkillRuntime",
-    "RuntimeConfig",
-]
+_archive_path = Path(__file__).parent.parent.parent / "archive" / "python-sdk-v5"
+if str(_archive_path) not in sys.path:
+    sys.path.insert(0, str(_archive_path))
 
-__version__ = "1.0.0"
+from Skills import *

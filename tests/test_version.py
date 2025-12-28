@@ -1,5 +1,8 @@
 """
 Test version handling and consistency across the framework.
+
+These tests require the archived SDK to be properly installed.
+Mark all tests with @pytest.mark.archived_sdk to skip in CI.
 """
 
 import json
@@ -12,6 +15,9 @@ import pytest
 
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
+
+# Mark all tests in this module as requiring archived SDK
+pytestmark = pytest.mark.archived_sdk
 
 
 def test_version_import():
@@ -80,9 +86,7 @@ def test_version_consistency():
         changelog_content = changelog.read_text()
         pattern = rf"^## \[{re.escape(package_version)}\]"
         if not re.search(pattern, changelog_content, re.MULTILINE):
-            soft_warnings.append(
-                f"CHANGELOG mismatch: heading '## [{package_version}]' not found"
-            )
+            soft_warnings.append(f"CHANGELOG mismatch: heading '## [{package_version}]' not found")
 
     for note in soft_warnings:
         warnings.warn(note)

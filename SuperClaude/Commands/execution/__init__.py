@@ -1,33 +1,12 @@
-"""
-Execution module for SuperClaude Commands.
+"""Commands execution compatibility module."""
 
-Contains decomposed command execution logic:
-- context: CommandContext and CommandResult dataclasses
-- routing: Command metadata resolution with Skills integration
-- agents: Agent loading, pipeline, and orchestration
-- repo_ops: Git snapshot, diff, and apply operations
-- quality: Quality loop, test running, and evidence gating
-- consensus: Consensus policies and enforcement
-- artifacts: Artifact recording and management
-"""
+from __future__ import annotations
 
-from .artifacts import ArtifactsService
-from .consensus import ConsensusService, VoteType
-from .context import CommandContext, CommandResult
-from .facade import ExecutionFacade
-from .repo_ops import RepoAndWorktreeService
-from .routing import CommandMetadataResolver, CommandRouter, ExecutionPlan, RuntimeMode
+import sys
+from pathlib import Path
 
-__all__ = [
-    "ArtifactsService",
-    "CommandContext",
-    "CommandResult",
-    "CommandMetadataResolver",
-    "CommandRouter",
-    "ConsensusService",
-    "ExecutionFacade",
-    "ExecutionPlan",
-    "RepoAndWorktreeService",
-    "RuntimeMode",
-    "VoteType",
-]
+_archive_path = Path(__file__).parent.parent.parent.parent / "archive" / "python-sdk-v5"
+if str(_archive_path) not in sys.path:
+    sys.path.insert(0, str(_archive_path))
+
+from Commands.execution import *

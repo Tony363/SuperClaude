@@ -2,13 +2,27 @@
 
 This module tests the UnifiedStore class which provides SQLite-backed
 persistence for session memories and symbol metadata.
+
+Note: These tests require the archived Python SDK. They will be skipped
+if the archive is not available.
 """
 
 import concurrent.futures
 from pathlib import Path
 from unittest.mock import patch
 
-from SuperClaude.Core.unified_store import SymbolInfo, UnifiedStore
+import pytest
+
+try:
+    from SuperClaude.Core.unified_store import SymbolInfo, UnifiedStore
+
+    _SKIP_REASON = None
+except ImportError as e:
+    _SKIP_REASON = f"UnifiedStore not available (archived SDK required): {e}"
+    SymbolInfo = None
+    UnifiedStore = None
+
+pytestmark = pytest.mark.skipif(_SKIP_REASON is not None, reason=_SKIP_REASON or "")
 
 
 class TestMemoryOperations:

@@ -35,9 +35,7 @@ class TestJsonlTelemetryClientBasics:
     def test_record_metric_includes_all_fields(self, tmp_path):
         """Metrics include timestamp, session_id, metric name, value, type."""
         client = JsonlTelemetryClient(metrics_dir=tmp_path, buffer_size=1)
-        client.record_metric(
-            "test.metric", 42.5, MetricType.GAUGE, tags={"env": "test"}
-        )
+        client.record_metric("test.metric", 42.5, MetricType.GAUGE, tags={"env": "test"})
         client.flush()
 
         metrics_file = tmp_path / "metrics.jsonl"
@@ -82,9 +80,7 @@ class TestJsonlTelemetryClientBuffering:
 
     def test_auto_flush_triggers_at_buffer_size(self, tmp_path):
         """Buffer flushes automatically when buffer_size reached."""
-        client = JsonlTelemetryClient(
-            metrics_dir=tmp_path, buffer_size=3, auto_flush=True
-        )
+        client = JsonlTelemetryClient(metrics_dir=tmp_path, buffer_size=3, auto_flush=True)
 
         # Record 2 events - should not flush yet
         client.record_event("event1", {})
@@ -192,9 +188,7 @@ class TestJsonlTelemetryClientThreadSafety:
             for i in range(events_per_thread):
                 client.record_event(f"thread_{thread_id}", {"index": i})
 
-        threads = [
-            threading.Thread(target=write_events, args=(i,)) for i in range(num_threads)
-        ]
+        threads = [threading.Thread(target=write_events, args=(i,)) for i in range(num_threads)]
 
         for t in threads:
             t.start()
@@ -298,9 +292,7 @@ class TestJsonlTelemetryClientEdgeCases:
     def test_event_with_tags(self, tmp_path):
         """Events can include optional tags."""
         client = JsonlTelemetryClient(metrics_dir=tmp_path, buffer_size=1)
-        client.record_event(
-            "tagged", {"data": 1}, tags={"env": "prod", "service": "api"}
-        )
+        client.record_event("tagged", {"data": 1}, tags={"env": "prod", "service": "api"})
         client.flush()
 
         events_file = tmp_path / "events.jsonl"

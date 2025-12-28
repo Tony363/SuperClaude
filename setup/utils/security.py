@@ -77,9 +77,7 @@ class SecurityValidator:
 
     # Combined dangerous patterns for backward compatibility
     # This maintains compatibility with existing code while providing the new categorized approach
-    DANGEROUS_PATTERNS = (
-        TRAVERSAL_PATTERNS + UNIX_SYSTEM_PATTERNS + WINDOWS_SYSTEM_PATTERNS
-    )
+    DANGEROUS_PATTERNS = TRAVERSAL_PATTERNS + UNIX_SYSTEM_PATTERNS + WINDOWS_SYSTEM_PATTERNS
 
     # Dangerous filename patterns
     DANGEROUS_FILENAMES = [
@@ -129,9 +127,7 @@ class SecurityValidator:
     MAX_FILENAME_LENGTH = 255
 
     @classmethod
-    def validate_path(
-        cls, path: Path, base_dir: Path | None = None
-    ) -> tuple[bool, str]:
+    def validate_path(cls, path: Path, base_dir: Path | None = None) -> tuple[bool, str]:
         """
         Validate path for security issues with enhanced cross-platform support
 
@@ -492,9 +488,7 @@ class SecurityValidator:
 
         # Special handling for Claude installation directory
         claude_patterns = [".claude", ".claude" + os.sep, ".claude\\", ".claude/"]
-        is_claude_dir = any(
-            abs_target_str.endswith(pattern) for pattern in claude_patterns
-        )
+        is_claude_dir = any(abs_target_str.endswith(pattern) for pattern in claude_patterns)
 
         if is_claude_dir:
             try:
@@ -530,27 +524,21 @@ class SecurityValidator:
                                 # Path is valid - within user's home directory
                             except ValueError:
                                 # Path is outside user's home directory
-                                current_user = os.environ.get(
-                                    "USERNAME", home_path.name
-                                )
+                                current_user = os.environ.get("USERNAME", home_path.name)
                                 errors.append(
                                     f"Installation must be in current user's directory ({current_user})"
                                 )
                                 return False, errors
 
                     # Check permissions
-                    has_perms, missing = cls.check_permissions(
-                        target_dir, {"read", "write"}
-                    )
+                    has_perms, missing = cls.check_permissions(target_dir, {"read", "write"})
                     if not has_perms:
                         if os.name == "nt":
                             errors.append(
                                 f"Insufficient permissions for Windows installation: {missing}. Try running as administrator or check folder permissions."
                             )
                         else:
-                            errors.append(
-                                f"Insufficient permissions: missing {missing}"
-                            )
+                            errors.append(f"Insufficient permissions: missing {missing}")
 
                     # Log successful validation for audit trail
                     cls._log_security_decision(
@@ -604,9 +592,7 @@ class SecurityValidator:
                     f"Insufficient Windows permissions: {missing}. Try running as administrator or check folder security settings in Properties > Security."
                 )
             else:
-                errors.append(
-                    f"Insufficient permissions: {missing}. Try: chmod 755 {target_dir}"
-                )
+                errors.append(f"Insufficient permissions: {missing}. Try: chmod 755 {target_dir}")
 
         # Check if it's a system directory with enhanced messages
         system_dirs = [
@@ -728,9 +714,7 @@ class SecurityValidator:
         return path_str
 
     @classmethod
-    def _get_user_friendly_error_message(
-        cls, error_type: str, pattern: str, path: Path
-    ) -> str:
+    def _get_user_friendly_error_message(cls, error_type: str, pattern: str, path: Path) -> str:
         """
         Generate user-friendly error messages with actionable suggestions
 

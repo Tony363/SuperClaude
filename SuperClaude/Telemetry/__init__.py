@@ -1,19 +1,14 @@
 """
-Telemetry module for SuperClaude Framework.
+SuperClaude Telemetry compatibility module.
 
-Provides monitoring, metrics, and event tracking for commands,
-agents, quality scoring, and skills execution.
+Re-exports telemetry modules from the archived Python SDK.
 """
 
-from .factory import create_telemetry
-from .interfaces import MetricType, TelemetryClient
-from .jsonl import JsonlTelemetryClient
-from .noop import NoopTelemetryClient
+import sys
+from pathlib import Path
 
-__all__ = [
-    "TelemetryClient",
-    "MetricType",
-    "JsonlTelemetryClient",
-    "NoopTelemetryClient",
-    "create_telemetry",
-]
+_archive_path = Path(__file__).parent.parent.parent / "archive" / "python-sdk-v5"
+if str(_archive_path) not in sys.path:
+    sys.path.insert(0, str(_archive_path))
+
+from Telemetry import *

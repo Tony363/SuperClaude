@@ -288,9 +288,7 @@ class TestApplyExecutionFlags:
 
         assert context.loop_enabled is True
 
-    def test_apply_execution_flags_sets_consensus_forced(
-        self, executor, sample_metadata
-    ):
+    def test_apply_execution_flags_sets_consensus_forced(self, executor, sample_metadata):
         """_apply_execution_flags sets consensus_forced on context."""
         parsed = ParsedCommand(
             name="implement",
@@ -312,9 +310,7 @@ class TestExecuteCommandLogic:
     """Tests for _execute_command_logic dispatch."""
 
     @pytest.mark.asyncio
-    async def test_execute_command_logic_routes_implement(
-        self, executor, sample_metadata
-    ):
+    async def test_execute_command_logic_routes_implement(self, executor, sample_metadata):
         """_execute_command_logic routes to _execute_implement."""
         parsed = ParsedCommand(
             name="implement",
@@ -331,9 +327,7 @@ class TestExecuteCommandLogic:
         context.agent_instances = {}
         context.agent_outputs = {}
 
-        with patch.object(
-            executor, "_execute_implement", new_callable=AsyncMock
-        ) as mock:
+        with patch.object(executor, "_execute_implement", new_callable=AsyncMock) as mock:
             mock.return_value = {"status": "success"}
             result = await executor._execute_command_logic(context)
 
@@ -341,9 +335,7 @@ class TestExecuteCommandLogic:
             assert result == {"status": "success"}
 
     @pytest.mark.asyncio
-    async def test_execute_command_logic_routes_analyze(
-        self, executor, sample_metadata
-    ):
+    async def test_execute_command_logic_routes_analyze(self, executor, sample_metadata):
         """_execute_command_logic routes to _execute_analyze."""
         parsed = ParsedCommand(
             name="analyze",
@@ -431,9 +423,7 @@ class TestExecuteCommandLogic:
             mock.assert_called_once_with(context)
 
     @pytest.mark.asyncio
-    async def test_execute_command_logic_routes_workflow(
-        self, executor, sample_metadata
-    ):
+    async def test_execute_command_logic_routes_workflow(self, executor, sample_metadata):
         """_execute_command_logic routes to _execute_workflow."""
         parsed = ParsedCommand(
             name="workflow",
@@ -448,18 +438,14 @@ class TestExecuteCommandLogic:
         )
         context.results = {}
 
-        with patch.object(
-            executor, "_execute_workflow", new_callable=AsyncMock
-        ) as mock:
+        with patch.object(executor, "_execute_workflow", new_callable=AsyncMock) as mock:
             mock.return_value = {"workflow": "executed"}
             await executor._execute_command_logic(context)
 
             mock.assert_called_once_with(context)
 
     @pytest.mark.asyncio
-    async def test_execute_command_logic_routes_generic(
-        self, executor, sample_metadata
-    ):
+    async def test_execute_command_logic_routes_generic(self, executor, sample_metadata):
         """_execute_command_logic routes unknown commands to _execute_generic."""
         parsed = ParsedCommand(
             name="custom",
@@ -507,9 +493,7 @@ class TestExecute:
             )
         )
 
-        with patch.object(
-            executor, "_execute_command_logic", new_callable=AsyncMock
-        ) as mock_logic:
+        with patch.object(executor, "_execute_command_logic", new_callable=AsyncMock) as mock_logic:
             mock_logic.return_value = {"status": "done"}
             with patch.object(executor, "_snapshot_repo_changes") as mock_snap:
                 mock_snap.return_value = {}
@@ -537,9 +521,7 @@ class TestExecuteChain:
             return CommandResult(success=True, command_name=cmd, output=cmd)
 
         with patch.object(executor, "execute", side_effect=mock_execute):
-            results = await executor.execute_chain(
-                ["/sc:first", "/sc:second", "/sc:third"]
-            )
+            results = await executor.execute_chain(["/sc:first", "/sc:second", "/sc:third"])
 
             assert len(results) == 3
             assert call_order == ["/sc:first", "/sc:second", "/sc:third"]
@@ -557,9 +539,7 @@ class TestExecuteChain:
             return CommandResult(success=True, command_name=cmd, output="ok")
 
         with patch.object(executor, "execute", side_effect=mock_execute):
-            results = await executor.execute_chain(
-                ["/sc:first", "/sc:second", "/sc:third"]
-            )
+            results = await executor.execute_chain(["/sc:first", "/sc:second", "/sc:third"])
 
             # Should stop after second command fails
             assert len(results) == 2
@@ -590,9 +570,7 @@ class TestExecuteParallel:
             return CommandResult(success=True, command_name=cmd, output=cmd)
 
         with patch.object(executor, "execute", side_effect=mock_execute):
-            results = await executor.execute_parallel(
-                ["/sc:cmd1", "/sc:cmd2", "/sc:cmd3"]
-            )
+            results = await executor.execute_parallel(["/sc:cmd1", "/sc:cmd2", "/sc:cmd3"])
 
             assert len(results) == 3
             # All commands should complete
@@ -607,9 +585,7 @@ class TestExecuteParallel:
             return CommandResult(success=True, command_name=cmd, output="ok")
 
         with patch.object(executor, "execute", side_effect=mock_execute):
-            results = await executor.execute_parallel(
-                ["/sc:pass1", "/sc:fail", "/sc:pass2"]
-            )
+            results = await executor.execute_parallel(["/sc:pass1", "/sc:fail", "/sc:pass2"])
 
             assert len(results) == 3
             # Find results by command name

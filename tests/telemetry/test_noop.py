@@ -80,9 +80,7 @@ class TestNoopTelemetryClientProtocol:
         client.record_event(name="event", payload={}, tags={"a": "b"})
 
         client.record_metric(name="metric", value=1, kind=MetricType.COUNTER)
-        client.record_metric(
-            name="metric", value=1, kind=MetricType.GAUGE, tags={"a": "b"}
-        )
+        client.record_metric(name="metric", value=1, kind=MetricType.GAUGE, tags={"a": "b"})
 
         client.increment(name="counter")
         client.increment(name="counter", value=5)
@@ -119,11 +117,18 @@ class TestNoopTelemetryClientReturnValues:
         """All methods return None."""
         client = NoopTelemetryClient()
 
-        assert client.record_event("event", {}) is None
-        assert client.record_metric("metric", 1, MetricType.COUNTER) is None
-        assert client.increment("counter") is None
-        assert client.flush() is None
-        assert client.close() is None
+        # Call methods and store results to avoid side-effects in asserts
+        event_result = client.record_event("event", {})
+        metric_result = client.record_metric("metric", 1, MetricType.COUNTER)
+        increment_result = client.increment("counter")
+        flush_result = client.flush()
+        close_result = client.close()
+
+        assert event_result is None
+        assert metric_result is None
+        assert increment_result is None
+        assert flush_result is None
+        assert close_result is None
 
 
 class TestNoopTelemetryClientMultipleCalls:

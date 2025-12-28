@@ -145,9 +145,7 @@ class UpdateChecker:
         """
         # Check pipx first
         try:
-            result = subprocess.run(
-                ["pipx", "list"], capture_output=True, text=True, timeout=2
-            )
+            result = subprocess.run(["pipx", "list"], capture_output=True, text=True, timeout=2)
             if "SuperClaude" in result.stdout or "superclaude" in result.stdout:
                 return "pipx"
         except (subprocess.SubprocessError, FileNotFoundError, OSError) as e:
@@ -207,18 +205,12 @@ class UpdateChecker:
         update_cmd = self.get_update_command()
 
         # Display banner
-        print(
-            f"\n{Colors.CYAN}╔════════════════════════════════════════════════╗{Colors.RESET}"
-        )
+        print(f"\n{Colors.CYAN}╔════════════════════════════════════════════════╗{Colors.RESET}")
         print(
             f"{Colors.CYAN}║{Colors.YELLOW}  🚀 Update Available: {self.current_version} → {latest}        {Colors.CYAN}║{Colors.RESET}"
         )
-        print(
-            f"{Colors.CYAN}║{Colors.GREEN}  Run: {update_cmd:<30} {Colors.CYAN}║{Colors.RESET}"
-        )
-        print(
-            f"{Colors.CYAN}╚════════════════════════════════════════════════╝{Colors.RESET}\n"
-        )
+        print(f"{Colors.CYAN}║{Colors.GREEN}  Run: {update_cmd:<30} {Colors.CYAN}║{Colors.RESET}")
+        print(f"{Colors.CYAN}╚════════════════════════════════════════════════╝{Colors.RESET}\n")
 
         if auto_update:
             return True
@@ -230,9 +222,7 @@ class UpdateChecker:
         # Prompt user
         try:
             response = (
-                input(
-                    f"{Colors.YELLOW}Would you like to update now? (y/N): {Colors.RESET}"
-                )
+                input(f"{Colors.YELLOW}Would you like to update now? (y/N): {Colors.RESET}")
                 .strip()
                 .lower()
             )

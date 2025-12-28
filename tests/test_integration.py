@@ -1,4 +1,8 @@
-"""Scenario-style tests that exercise multiple commands end-to-end."""
+"""Scenario-style tests that exercise multiple commands end-to-end.
+
+These tests require the archived SDK to be properly installed.
+Mark all tests with @pytest.mark.archived_sdk to skip in CI.
+"""
 
 from __future__ import annotations
 
@@ -7,6 +11,9 @@ from pathlib import Path
 import pytest
 
 from SuperClaude.Commands import CommandExecutor, CommandParser, CommandRegistry
+
+# Mark all tests in this module as requiring archived SDK
+pytestmark = pytest.mark.archived_sdk
 
 
 @pytest.fixture
@@ -17,9 +24,7 @@ def integration_workspace(tmp_path, monkeypatch):
     monkeypatch.setenv("SUPERCLAUDE_OFFLINE_MODE", "1")
     monkeypatch.setenv("SC_NETWORK_MODE", "offline")
     monkeypatch.setenv("PYENV_DISABLE_REHASH", "1")
-    monkeypatch.setenv(
-        "SUPERCLAUDE_METRICS_DIR", str(workspace / ".superclaude_metrics")
-    )
+    monkeypatch.setenv("SUPERCLAUDE_METRICS_DIR", str(workspace / ".superclaude_metrics"))
 
     registry = CommandRegistry()
     parser = CommandParser(registry=registry)
@@ -33,9 +38,7 @@ async def test_workflow_command_integration_journey(integration_workspace):
     executor, workspace = integration_workspace
 
     prd_path = workspace / "workflow-spec.md"
-    prd_path.write_text(
-        "# Feature Rollout\n\n## Goals\n- deliver value\n", encoding="utf-8"
-    )
+    prd_path.write_text("# Feature Rollout\n\n## Goals\n- deliver value\n", encoding="utf-8")
 
     result = await executor.execute(
         f"/sc:workflow {prd_path.name} --strategy agile --depth deep --parallel"

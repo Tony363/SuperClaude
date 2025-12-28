@@ -35,9 +35,7 @@ def main() -> None:
     registry.discover_agents(force=True)
     registry_summary = _build_registry_summary(registry)
 
-    report_path = usage_tracker.write_markdown_report(
-        registry_summary, output_path=args.output
-    )
+    report_path = usage_tracker.write_markdown_report(registry_summary, output_path=args.output)
     print(f"Wrote agent usage report to {report_path}")
 
 

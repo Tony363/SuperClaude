@@ -72,9 +72,7 @@ class MCPComponent(Component):
             "category": "integration",
         }
 
-    def validate_prerequisites(
-        self, installSubPath: Path | None = None
-    ) -> tuple[bool, list[str]]:
+    def validate_prerequisites(self, installSubPath: Path | None = None) -> tuple[bool, list[str]]:
         """No prerequisites needed - native MCP tools are built into Claude Code."""
         return True, []
 

@@ -1,4 +1,8 @@
-"""Test CLI functionality and argument parsing."""
+"""Test CLI functionality and argument parsing.
+
+These tests require the archived SDK to be properly installed.
+Mark all tests with @pytest.mark.archived_sdk to skip in CI.
+"""
 
 import argparse
 import os
@@ -10,6 +14,9 @@ import pytest
 
 # Add parent directory to path for direct module imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
+
+# Mark all tests in this module as requiring archived SDK
+pytestmark = pytest.mark.archived_sdk
 
 
 def test_cli_imports():
@@ -183,9 +190,7 @@ def test_main_invokes_stub_operation(monkeypatch):
             self.calls = 0
 
         def register_parser(self, subparsers, global_parser):
-            parser = subparsers.add_parser(
-                "install", help="stub install", parents=[global_parser]
-            )
+            parser = subparsers.add_parser("install", help="stub install", parents=[global_parser])
             parser.add_argument("--flag", action="store_true", help="stub flag")
 
         def run(self, args):
@@ -196,15 +201,11 @@ def test_main_invokes_stub_operation(monkeypatch):
 
     stub_module = StubModule()
 
-    monkeypatch.setattr(
-        cli, "get_operation_modules", lambda: {"install": "Install SuperClaude"}
-    )
+    monkeypatch.setattr(cli, "get_operation_modules", lambda: {"install": "Install SuperClaude"})
     monkeypatch.setattr(cli, "load_operation_module", lambda name: stub_module)
     monkeypatch.setattr(cli, "setup_global_environment", lambda args: None)
     monkeypatch.setattr(cli, "get_logger", lambda: None)
-    monkeypatch.setattr(
-        sys, "argv", ["SuperClaude", "install", "--no-update-check", "--flag"]
-    )
+    monkeypatch.setattr(sys, "argv", ["SuperClaude", "install", "--no-update-check", "--flag"])
 
     exit_code = cli.main()
 

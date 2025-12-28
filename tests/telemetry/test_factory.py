@@ -1,4 +1,8 @@
-"""Tests for telemetry factory."""
+"""Tests for telemetry factory.
+
+These tests require the archived SDK to be properly installed.
+Mark all tests with @pytest.mark.archived_sdk to skip in CI.
+"""
 
 import os
 from unittest.mock import patch
@@ -8,6 +12,9 @@ import pytest
 from SuperClaude.Telemetry.factory import create_telemetry
 from SuperClaude.Telemetry.jsonl import JsonlTelemetryClient
 from SuperClaude.Telemetry.noop import NoopTelemetryClient
+
+# Mark all tests in this module as requiring archived SDK
+pytestmark = pytest.mark.archived_sdk
 
 
 class TestCreateTelemetryDefault:
@@ -47,9 +54,7 @@ class TestCreateTelemetryEnvironment:
     def test_metrics_dir_from_env(self, tmp_path):
         """SUPERCLAUDE_METRICS_DIR env var sets directory."""
         custom_dir = tmp_path / "custom"
-        with patch.dict(
-            os.environ, {"SUPERCLAUDE_METRICS_DIR": str(custom_dir)}, clear=True
-        ):
+        with patch.dict(os.environ, {"SUPERCLAUDE_METRICS_DIR": str(custom_dir)}, clear=True):
             client = create_telemetry()
             assert isinstance(client, JsonlTelemetryClient)
             assert client.metrics_dir == custom_dir

@@ -1,3 +1,9 @@
+"""Command execution tests.
+
+These tests require the archived SDK to be properly installed.
+Mark all tests with @pytest.mark.archived_sdk to skip in CI.
+"""
+
 from __future__ import annotations
 
 import asyncio
@@ -8,6 +14,9 @@ from pathlib import Path
 import pytest
 
 from SuperClaude.Commands import CommandExecutor, CommandParser, CommandRegistry
+
+# Mark all tests in this module as requiring archived SDK
+pytestmark = pytest.mark.archived_sdk
 
 
 @pytest.fixture
@@ -51,9 +60,7 @@ def test_executor_accepts_explicit_repo_root(tmp_path, monkeypatch):
 
     assert executor.repo_root == target_repo.resolve()
     assert os.environ.get("SUPERCLAUDE_REPO_ROOT") == str(target_repo.resolve())
-    assert os.environ.get("SUPERCLAUDE_METRICS_DIR") == str(
-        target_repo / ".superclaude_metrics"
-    )
+    assert os.environ.get("SUPERCLAUDE_METRICS_DIR") == str(target_repo / ".superclaude_metrics")
 
     # Clean up environment variables set by CommandExecutor to prevent test pollution
     # CommandExecutor.setdefault() modifies global os.environ directly
@@ -107,9 +114,7 @@ def test_workflow_command_generates_steps(executor, command_workspace):
     )
 
     result = asyncio.run(
-        executor.execute(
-            f"/sc:workflow {prd_path.name} --strategy agile --depth deep --parallel"
-        )
+        executor.execute(f"/sc:workflow {prd_path.name} --strategy agile --depth deep --parallel")
     )
 
     assert result.success is True
@@ -121,9 +126,7 @@ def test_workflow_command_generates_steps(executor, command_workspace):
 
 @pytest.mark.integration
 def test_git_status_summarizes_repository(executor, command_workspace):
-    subprocess.run(
-        ["git", "init"], cwd=command_workspace, check=True, stdout=subprocess.PIPE
-    )
+    subprocess.run(["git", "init"], cwd=command_workspace, check=True, stdout=subprocess.PIPE)
     subprocess.run(
         ["git", "config", "user.name", "Test Runner"],
         cwd=command_workspace,

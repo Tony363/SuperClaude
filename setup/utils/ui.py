@@ -88,9 +88,7 @@ class ProgressBar:
         percent = min(100, (current / self.total) * 100) if self.total > 0 else 100
 
         # Calculate filled and empty portions
-        filled_width = (
-            int(self.width * current / self.total) if self.total > 0 else self.width
-        )
+        filled_width = int(self.width * current / self.total) if self.total > 0 else self.width
         filled = "█" * filled_width
         empty = "░" * (self.width - filled_width)
 
@@ -197,9 +195,7 @@ class Menu:
                 f"\n{Colors.BLUE}Enter numbers separated by commas (e.g., 1,3,5) or 'all' for all options:{Colors.RESET}"
             )
         else:
-            print(
-                f"\n{Colors.BLUE}Enter your choice (1-{len(self.options)}):{Colors.RESET}"
-            )
+            print(f"\n{Colors.BLUE}Enter your choice (1-{len(self.options)}):{Colors.RESET}")
 
         while True:
             try:
@@ -343,17 +339,13 @@ def display_table(headers: list[str], rows: list[list[str]], title: str = "") ->
         print()
 
     # Display headers
-    header_line = " | ".join(
-        f"{header:<{col_widths[i]}}" for i, header in enumerate(headers)
-    )
+    header_line = " | ".join(f"{header:<{col_widths[i]}}" for i, header in enumerate(headers))
     print(f"{Colors.YELLOW}{header_line}{Colors.RESET}")
     print("-" * len(header_line))
 
     # Display rows
     for row in rows:
-        row_line = " | ".join(
-            f"{cell!s:<{col_widths[i]}}" for i, cell in enumerate(row)
-        )
+        row_line = " | ".join(f"{cell!s:<{col_widths[i]}}" for i, cell in enumerate(row))
         print(row_line)
 
     print()
@@ -373,21 +365,15 @@ def prompt_api_key(service_name: str, env_var_name: str) -> str | None:
     print(
         f"{Colors.BLUE}[API KEY] {service_name} requires: {Colors.BRIGHT}{env_var_name}{Colors.RESET}"
     )
-    print(
-        f"{Colors.WHITE}Visit the service documentation to obtain your API key{Colors.RESET}"
-    )
-    print(
-        f"{Colors.YELLOW}Press Enter to skip (you can set this manually later){Colors.RESET}"
-    )
+    print(f"{Colors.WHITE}Visit the service documentation to obtain your API key{Colors.RESET}")
+    print(f"{Colors.YELLOW}Press Enter to skip (you can set this manually later){Colors.RESET}")
 
     try:
         # Use getpass for hidden input
         api_key = getpass.getpass(f"Enter {env_var_name}: ").strip()
 
         if not api_key:
-            print(
-                f"{Colors.YELLOW}[SKIPPED] {env_var_name} - set manually later{Colors.RESET}"
-            )
+            print(f"{Colors.YELLOW}[SKIPPED] {env_var_name} - set manually later{Colors.RESET}")
             return None
 
         # Basic validation (non-empty, reasonable length)

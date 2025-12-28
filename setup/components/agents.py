@@ -116,9 +116,7 @@ class AgentsComponent(Component):
             except Exception as e:
                 self.logger.warning(f"Could not update metadata: {e}")
 
-            self.logger.success(
-                f"Agents component uninstalled ({removed_count} agents removed)"
-            )
+            self.logger.success(f"Agents component uninstalled ({removed_count} agents removed)")
             return True
 
         except Exception as e:
@@ -139,9 +137,7 @@ class AgentsComponent(Component):
             target_version = self.get_metadata()["version"]
 
             if current_version == target_version:
-                self.logger.info(
-                    f"Agents component already at version {target_version}"
-                )
+                self.logger.info(f"Agents component already at version {target_version}")
                 return True
 
             self.logger.info(
@@ -160,18 +156,15 @@ class AgentsComponent(Component):
 
             # Perform installation (will overwrite existing files)
             if self._install(config):
-                self.logger.success(
-                    f"Agents component updated to version {target_version}"
-                )
+                self.logger.success(f"Agents component updated to version {target_version}")
                 return True
             else:
                 # Restore backups on failure
                 self.logger.error("Agents update failed, restoring backups...")
                 for backup_path in backup_files:
                     try:
-                        original_path = (
-                            self.install_component_subdir
-                            / backup_path.name.replace(".backup", "")
+                        original_path = self.install_component_subdir / backup_path.name.replace(
+                            ".backup", ""
                         )
                         self.file_manager.copy_file(backup_path, original_path)
                         self.logger.debug(f"Restored {original_path.name}")
@@ -223,9 +216,7 @@ class AgentsComponent(Component):
 
         # Check if agents directory exists
         if not self.install_component_subdir.exists():
-            errors.append(
-                f"Agents directory not found: {self.install_component_subdir}"
-            )
+            errors.append(f"Agents directory not found: {self.install_component_subdir}")
             return False, errors
 
         # Check if all agent files exist

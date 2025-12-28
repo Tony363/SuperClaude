@@ -16,9 +16,7 @@ from ..utils.security import SecurityValidator
 class Component(ABC):
     """Base class for all installable components"""
 
-    def __init__(
-        self, install_dir: Path | None = None, component_subdir: Path = Path("")
-    ):
+    def __init__(self, install_dir: Path | None = None, component_subdir: Path = Path("")):
         """
         Initialize component with installation directory
 
@@ -50,9 +48,7 @@ class Component(ABC):
         """
         pass
 
-    def validate_prerequisites(
-        self, installSubPath: Path | None = None
-    ) -> tuple[bool, list[str]]:
+    def validate_prerequisites(self, installSubPath: Path | None = None) -> tuple[bool, list[str]]:
         """
         Check prerequisites for this component
 
@@ -78,9 +74,7 @@ class Component(ABC):
             errors.append(f"Missing component files: {missing_files}")
 
         # Check write permissions to install directory
-        has_perms, missing = SecurityValidator.check_permissions(
-            self.install_dir, {"write"}
-        )
+        has_perms, missing = SecurityValidator.check_permissions(self.install_dir, {"write"})
         if not has_perms:
             errors.append(f"No write permissions to {self.install_dir}: {missing}")
 
@@ -102,9 +96,7 @@ class Component(ABC):
             errors.extend(security_errors)
 
         if not self.file_manager.ensure_directory(self.install_component_subdir):
-            errors.append(
-                f"Could not create install directory: {self.install_component_subdir}"
-            )
+            errors.append(f"Could not create install directory: {self.install_component_subdir}")
 
         return len(errors) == 0, errors
 
@@ -182,9 +174,7 @@ class Component(ABC):
             )
             return False
 
-        self.logger.success(
-            f"{self!r} component installed successfully ({success_count} files)"
-        )
+        self.logger.success(f"{self!r} component installed successfully ({success_count} files)")
 
         return self._post_install()
 
@@ -247,11 +237,7 @@ class Component(ABC):
                 with open(metadata_file) as f:
                     metadata = json.load(f)
                 component_name = self.get_metadata()["name"]
-                version = (
-                    metadata.get("components", {})
-                    .get(component_name, {})
-                    .get("version")
-                )
+                version = metadata.get("components", {}).get(component_name, {}).get("version")
                 self.logger.debug(f"Found version: {version}")
                 return version
             except Exception as e:
@@ -302,9 +288,7 @@ class Component(ABC):
                 if source.is_file():
                     total_size += source.stat().st_size
                 elif source.is_dir():
-                    total_size += sum(
-                        f.stat().st_size for f in source.rglob("*") if f.is_file()
-                    )
+                    total_size += sum(f.stat().st_size for f in source.rglob("*") if f.is_file())
         return total_size
 
     def _discover_component_files(self) -> list[str]:
@@ -367,9 +351,7 @@ class Component(ABC):
             # Sort for consistent ordering
             files.sort()
 
-            self.logger.debug(
-                f"Discovered {len(files)} {extension} files in {directory}"
-            )
+            self.logger.debug(f"Discovered {len(files)} {extension} files in {directory}")
             if files:
                 self.logger.debug(f"Files found: {files}")
 

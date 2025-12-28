@@ -8,14 +8,31 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from SuperClaude.Commands.execution.context import CommandContext
-from SuperClaude.Commands.execution.routing import (
-    CommandMetadataResolver,
-    CommandRouter,
-)
-from SuperClaude.Commands.parser import ParsedCommand
-from SuperClaude.Commands.registry import CommandMetadata, CommandRegistry
-from SuperClaude.Modes.behavioral_manager import BehavioralMode
+# Mark all tests in this directory as requiring archived SDK
+pytestmark = pytest.mark.archived_sdk
+
+# Guard imports that require archived SDK
+_ARCHIVED_SDK_AVAILABLE = False
+try:
+    from SuperClaude.Commands.execution.context import CommandContext
+    from SuperClaude.Commands.execution.routing import (
+        CommandMetadataResolver,
+        CommandRouter,
+    )
+    from SuperClaude.Commands.parser import ParsedCommand
+    from SuperClaude.Commands.registry import CommandMetadata, CommandRegistry
+    from SuperClaude.Modes.behavioral_manager import BehavioralMode
+
+    _ARCHIVED_SDK_AVAILABLE = True
+except ImportError:
+    # Provide minimal stubs so module loads without error
+    CommandContext = None  # type: ignore[misc, assignment]
+    CommandMetadataResolver = None  # type: ignore[misc, assignment]
+    CommandRouter = None  # type: ignore[misc, assignment]
+    ParsedCommand = None  # type: ignore[misc, assignment]
+    CommandMetadata = None  # type: ignore[misc, assignment]
+    CommandRegistry = None  # type: ignore[misc, assignment]
+    BehavioralMode = None  # type: ignore[misc, assignment]
 
 
 @dataclass
@@ -53,9 +70,7 @@ class TelemetryCapture:
         tags: dict[str, str] | None = None,
     ) -> None:
         """Increment a counter."""
-        self.metrics.append(
-            {"name": name, "value": value, "kind": "increment", "tags": tags}
-        )
+        self.metrics.append({"name": name, "value": value, "kind": "increment", "tags": tags})
 
     def flush(self) -> None:
         """Flush (no-op for testing)."""
@@ -127,6 +142,8 @@ def env_isolation(monkeypatch):
 @pytest.fixture
 def mock_registry():
     """Create a mock CommandRegistry."""
+    if not _ARCHIVED_SDK_AVAILABLE:
+        pytest.skip("Archived SDK not available")
     registry = MagicMock(spec=CommandRegistry)
     registry.list_commands.return_value = ["analyze", "implement", "build"]
     registry.get_command.return_value = None
@@ -136,6 +153,8 @@ def mock_registry():
 @pytest.fixture
 def sample_command_metadata():
     """Create sample CommandMetadata for testing."""
+    if not _ARCHIVED_SDK_AVAILABLE:
+        pytest.skip("Archived SDK not available")
     return CommandMetadata(
         name="analyze",
         description="Analyze code",
@@ -153,6 +172,8 @@ def sample_command_metadata():
 @pytest.fixture
 def evidence_command_metadata():
     """Create CommandMetadata that requires evidence."""
+    if not _ARCHIVED_SDK_AVAILABLE:
+        pytest.skip("Archived SDK not available")
     return CommandMetadata(
         name="implement",
         description="Implement code changes",
@@ -189,6 +210,8 @@ def mock_skills_runtime():
 @pytest.fixture
 def resolver(mock_registry, mock_skills_runtime):
     """Create a CommandMetadataResolver with mocks."""
+    if not _ARCHIVED_SDK_AVAILABLE:
+        pytest.skip("Archived SDK not available")
     return CommandMetadataResolver(
         registry=mock_registry,
         skills_runtime=mock_skills_runtime,
@@ -199,6 +222,8 @@ def resolver(mock_registry, mock_skills_runtime):
 @pytest.fixture
 def router(resolver, mock_skills_runtime):
     """Create a CommandRouter with mocks."""
+    if not _ARCHIVED_SDK_AVAILABLE:
+        pytest.skip("Archived SDK not available")
     return CommandRouter(
         resolver=resolver,
         skills_runtime=mock_skills_runtime,
@@ -208,6 +233,8 @@ def router(resolver, mock_skills_runtime):
 @pytest.fixture
 def sample_parsed_command():
     """Create a sample ParsedCommand."""
+    if not _ARCHIVED_SDK_AVAILABLE:
+        pytest.skip("Archived SDK not available")
     return ParsedCommand(
         name="analyze",
         raw_string="/sc:analyze src/",
@@ -221,6 +248,8 @@ def sample_parsed_command():
 @pytest.fixture
 def sample_command_context(sample_parsed_command, sample_command_metadata):
     """Create a sample CommandContext."""
+    if not _ARCHIVED_SDK_AVAILABLE:
+        pytest.skip("Archived SDK not available")
     return CommandContext(
         command=sample_parsed_command,
         metadata=sample_command_metadata,

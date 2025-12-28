@@ -367,9 +367,7 @@ class TestThreadSafety:
                 store.record_event(session_id, f"event-{i}", {"thread": session_id})
             results.append(session_id)
 
-        threads = [
-            threading.Thread(target=worker, args=(f"thread-{i}",)) for i in range(5)
-        ]
+        threads = [threading.Thread(target=worker, args=(f"thread-{i}",)) for i in range(5)]
 
         for t in threads:
             t.start()

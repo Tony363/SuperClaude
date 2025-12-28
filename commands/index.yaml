@@ -1,0 +1,155 @@
+# SuperClaude Command Registry
+# Version: 6.0.0
+#
+# Commands are invoked via /sc:<command> prefix in Claude Code.
+# Each command is a structured workflow template.
+
+version: "6.0.0"
+description: "SuperClaude command templates for structured workflows"
+
+# Command prefix configuration
+prefix: "/sc:"
+
+# Available commands
+commands:
+  - name: analyze
+    prefix: /sc:analyze
+    file: analyze.md
+    description: "Comprehensive code analysis, quality assessment, and issue diagnosis"
+    aliases: [analyse, check, inspect]
+    flags:
+      - "--deep: Deep analysis with cross-file tracing"
+      - "--security: Focus on security vulnerabilities"
+      - "--performance: Focus on performance issues"
+      - "--quality: Focus on code quality metrics"
+
+  - name: implement
+    prefix: /sc:implement
+    file: implement.md
+    description: "Feature implementation with quality gates"
+    aliases: [build, create, develop]
+    flags:
+      - "--loop: Enable iterative improvement loop"
+      - "--pal-review: Use PAL MCP for code review"
+      - "--consensus: Multi-model consensus validation"
+      - "--agent=NAME: Use specific agent persona"
+
+  - name: test
+    prefix: /sc:test
+    file: test.md
+    description: "Test execution, coverage analysis, and QA workflows"
+    aliases: [verify, check]
+    flags:
+      - "--coverage: Generate coverage report"
+      - "--unit: Run unit tests only"
+      - "--integration: Run integration tests"
+      - "--e2e: Run end-to-end tests"
+
+  - name: design
+    prefix: /sc:design
+    file: design.md
+    description: "Architecture and system design workflows"
+    aliases: [architect, plan]
+    flags:
+      - "--diagram: Generate architecture diagrams"
+      - "--adr: Create Architecture Decision Record"
+      - "--review: Architecture review mode"
+
+  - name: document
+    prefix: /sc:document
+    file: document.md
+    description: "Documentation generation and maintenance"
+    aliases: [docs, readme]
+    flags:
+      - "--api: Generate API documentation"
+      - "--readme: Update README"
+      - "--guide: Create user guide"
+      - "--changelog: Generate changelog"
+
+  - name: improve
+    prefix: /sc:improve
+    file: improve.md
+    description: "Code improvement, refactoring, and enhancement"
+    aliases: [refactor, enhance, optimize]
+    flags:
+      - "--performance: Performance optimization"
+      - "--readability: Improve code readability"
+      - "--security: Security hardening"
+
+  - name: explain
+    prefix: /sc:explain
+    file: explain.md
+    description: "Code explanation and learning support"
+    aliases: [teach, learn, understand]
+    flags:
+      - "--verbose: Detailed explanation"
+      - "--simple: Simplified explanation"
+      - "--diagram: Include visual explanation"
+
+  - name: brainstorm
+    prefix: /sc:brainstorm
+    file: brainstorm.md
+    description: "Creative ideation and problem-solving"
+    aliases: [ideate, explore]
+    flags:
+      - "--divergent: Maximize idea diversity"
+      - "--constraints: Define constraints first"
+
+  - name: estimate
+    prefix: /sc:estimate
+    file: estimate.md
+    description: "Effort and complexity estimation"
+    aliases: [scope, size]
+    flags:
+      - "--breakdown: Task breakdown"
+      - "--risks: Include risk assessment"
+
+  - name: build
+    prefix: /sc:build
+    file: build.md
+    description: "Build, compile, and package workflows"
+    aliases: [compile, package]
+    flags:
+      - "--watch: Watch mode"
+      - "--production: Production build"
+      - "--docker: Docker build"
+
+  - name: git
+    prefix: /sc:git
+    file: git.md
+    description: "Git workflow and version control operations"
+    aliases: [commit, branch]
+    flags:
+      - "--commit: Create commit"
+      - "--pr: Create pull request"
+      - "--branch: Branch operations"
+
+  - name: workflow
+    prefix: /sc:workflow
+    file: workflow.md
+    description: "Multi-step workflow orchestration"
+    aliases: [pipeline, sequence]
+    flags:
+      - "--spec=FILE: Use specification file"
+      - "--parallel: Enable parallel execution"
+
+# MCP Integration for commands
+mcp_integration:
+  pal:
+    codereview: "Used by /sc:implement --pal-review"
+    consensus: "Used by /sc:implement --consensus"
+    debug: "Used by /sc:analyze --deep"
+    precommit: "Used by /sc:git --commit"
+
+  rube:
+    tools: "Available for /sc:workflow automation"
+
+  linkup:
+    search: "Available for /sc:brainstorm research"
+
+# Quality gates
+quality_gates:
+  default_threshold: 70
+  require_tests: true
+  require_docs: false
+  max_iterations: 5

@@ -15,9 +15,7 @@ class TestRenderDefaultEvidenceDocument:
             "warnings": [],
         }
 
-        result = executor._render_default_evidence_document(
-            sample_context, agent_result
-        )
+        result = executor._render_default_evidence_document(sample_context, agent_result)
 
         assert isinstance(result, str)
         assert len(result) > 0
@@ -27,9 +25,7 @@ class TestRenderDefaultEvidenceDocument:
         sample_context.command.name = "implement"
         agent_result = {"notes": [], "warnings": []}
 
-        result = executor._render_default_evidence_document(
-            sample_context, agent_result
-        )
+        result = executor._render_default_evidence_document(sample_context, agent_result)
 
         assert "Implementation Evidence" in result or "implement" in result
 
@@ -38,9 +34,7 @@ class TestRenderDefaultEvidenceDocument:
         sample_context.session_id = "test-session-123"
         agent_result = {"notes": [], "warnings": []}
 
-        result = executor._render_default_evidence_document(
-            sample_context, agent_result
-        )
+        result = executor._render_default_evidence_document(sample_context, agent_result)
 
         assert "test-session-123" in result
 
@@ -51,9 +45,7 @@ class TestRenderDefaultEvidenceDocument:
             "warnings": [],
         }
 
-        result = executor._render_default_evidence_document(
-            sample_context, agent_result
-        )
+        result = executor._render_default_evidence_document(sample_context, agent_result)
 
         assert "Important note here" in result
 
@@ -64,9 +56,7 @@ class TestRenderDefaultEvidenceDocument:
             "warnings": ["Warning message"],
         }
 
-        result = executor._render_default_evidence_document(
-            sample_context, agent_result
-        )
+        result = executor._render_default_evidence_document(sample_context, agent_result)
 
         assert "Warning message" in result
 
@@ -75,9 +65,7 @@ class TestRenderDefaultEvidenceDocument:
         sample_context.results = {"primary_summary": "Summary text here"}
         agent_result = {"notes": [], "warnings": []}
 
-        result = executor._render_default_evidence_document(
-            sample_context, agent_result
-        )
+        result = executor._render_default_evidence_document(sample_context, agent_result)
 
         assert "Summary text here" in result or "Summary" in result
 
@@ -86,9 +74,7 @@ class TestRenderDefaultEvidenceDocument:
         sample_context.results = {"agent_operations": ["Op 1", "Op 2"]}
         agent_result = {"notes": [], "warnings": []}
 
-        result = executor._render_default_evidence_document(
-            sample_context, agent_result
-        )
+        result = executor._render_default_evidence_document(sample_context, agent_result)
 
         assert "Op 1" in result or "Planned" in result
 
@@ -96,9 +82,7 @@ class TestRenderDefaultEvidenceDocument:
         """Evidence document includes timestamp."""
         agent_result = {"notes": [], "warnings": []}
 
-        result = executor._render_default_evidence_document(
-            sample_context, agent_result
-        )
+        result = executor._render_default_evidence_document(sample_context, agent_result)
 
         assert "generated" in result.lower()
 
@@ -106,9 +90,7 @@ class TestRenderDefaultEvidenceDocument:
         """Handles empty agent result."""
         agent_result = {}
 
-        result = executor._render_default_evidence_document(
-            sample_context, agent_result
-        )
+        result = executor._render_default_evidence_document(sample_context, agent_result)
 
         assert isinstance(result, str)
 
@@ -124,9 +106,7 @@ class TestRenderDefaultEvidenceDocument:
         )
         agent_result = {"notes": [], "warnings": []}
 
-        result = executor._render_default_evidence_document(
-            sample_context, agent_result
-        )
+        result = executor._render_default_evidence_document(sample_context, agent_result)
 
         assert "user" in result or "auth" in result or "Implementation" in result
 

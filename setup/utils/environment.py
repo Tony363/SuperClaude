@@ -131,18 +131,14 @@ def setup_environment_variables(api_keys: dict[str, str]) -> bool:
 
             if os.name == "nt":  # Windows
                 # Use setx for persistent user variable
-                result = subprocess.run(
-                    ["setx", env_var, value], capture_output=True, text=True
-                )
+                result = subprocess.run(["setx", env_var, value], capture_output=True, text=True)
                 if result.returncode != 0:
                     display_warning(
                         f"Could not set {env_var} persistently: {result.stderr.strip()}"
                     )
                     success = False
                 else:
-                    logger.info(
-                        f"Windows environment variable {env_var} set persistently"
-                    )
+                    logger.info(f"Windows environment variable {env_var} set persistently")
             else:  # Unix-like systems
                 shell_config = detect_shell_config()
 
@@ -171,9 +167,7 @@ def setup_environment_variables(api_keys: dict[str, str]) -> bool:
                     display_warning(f"Could not update {shell_config.name}: {e}")
                     success = False
 
-            logger.info(
-                f"Environment variable {env_var} configured for current session"
-            )
+            logger.info(f"Environment variable {env_var} configured for current session")
 
         except Exception as e:
             logger.error(f"Failed to set {env_var}: {e}")
@@ -186,13 +180,9 @@ def setup_environment_variables(api_keys: dict[str, str]) -> bool:
 
         display_success("Environment variables configured successfully")
         if os.name != "nt":
-            display_info(
-                "Restart your terminal or run 'source ~/.bashrc' to apply changes"
-            )
+            display_info("Restart your terminal or run 'source ~/.bashrc' to apply changes")
         else:
-            display_info(
-                "New environment variables will be available in new terminal sessions"
-            )
+            display_info("New environment variables will be available in new terminal sessions")
     else:
         display_warning("Some environment variables could not be set persistently")
         display_info("You can set them manually or check the logs for details")
@@ -319,9 +309,7 @@ def cleanup_environment_variables(
                 )
                 if result.returncode != 0:
                     # Variable might not exist in registry, which is fine
-                    logger.debug(
-                        f"Registry deletion for {env_var}: {result.stderr.strip()}"
-                    )
+                    logger.debug(f"Registry deletion for {env_var}: {result.stderr.strip()}")
                 else:
                     logger.info(f"Removed {env_var} from Windows registry")
             else:  # Unix-like systems
@@ -340,9 +328,7 @@ def cleanup_environment_variables(
 
         display_success("Environment variables removed successfully")
         if os.name != "nt":
-            display_info(
-                "Restart your terminal or source your shell config to apply changes"
-            )
+            display_info("Restart your terminal or source your shell config to apply changes")
         else:
             display_info("Changes will take effect in new terminal sessions")
     else:
@@ -375,9 +361,7 @@ def _create_restore_script(env_vars: dict[str, str]) -> Path | None:
                 for env_var, value in env_vars.items():
                     f.write(f'export {env_var}="{value}"\n')
                     if shell_config:
-                        f.write(
-                            f"echo 'export {env_var}=\"{value}\"' >> {shell_config}\n"
-                        )
+                        f.write(f"echo 'export {env_var}=\"{value}\"' >> {shell_config}\n")
                 f.write("\necho 'Environment variables restored'\n")
 
             # Make script executable
@@ -427,9 +411,7 @@ def _remove_env_var_from_shell_config(shell_config: Path, env_var: str) -> bool:
         return False
 
 
-def create_env_file(
-    api_keys: dict[str, str], env_file_path: Path | None = None
-) -> bool:
+def create_env_file(api_keys: dict[str, str], env_file_path: Path | None = None) -> bool:
     """
     Create a .env file with the API keys (alternative to shell config)
 

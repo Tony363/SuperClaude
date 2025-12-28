@@ -1,22 +1,14 @@
 """
-Behavioral Modes System for SuperClaude Framework
+SuperClaude Modes compatibility module.
 
-Provides different operational modes that change how the framework behaves,
-from exploratory brainstorming to ultra-efficient token compression.
+Re-exports modes modules from the archived Python SDK.
 """
 
-from .behavioral_manager import (
-    BehavioralMode,
-    BehavioralModeManager,
-    ModeConfiguration,
-    ModeTransition,
-)
+import sys
+from pathlib import Path
 
-__all__ = [
-    "BehavioralMode",
-    "BehavioralModeManager",
-    "ModeConfiguration",
-    "ModeTransition",
-]
+_archive_path = Path(__file__).parent.parent.parent / "archive" / "python-sdk-v5"
+if str(_archive_path) not in sys.path:
+    sys.path.insert(0, str(_archive_path))
 
-__version__ = "1.0.0"
+from Modes import *

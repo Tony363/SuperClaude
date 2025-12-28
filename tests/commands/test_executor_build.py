@@ -40,9 +40,7 @@ class TestPlanBuildPipeline:
 
     def test_plan_detects_setup_py(self, command_workspace):
         """Pipeline detects setup.py."""
-        (command_workspace / "setup.py").write_text(
-            "from setuptools import setup\nsetup()\n"
-        )
+        (command_workspace / "setup.py").write_text("from setuptools import setup\nsetup()\n")
 
         registry = CommandRegistry()
         parser = CommandParser()

@@ -123,9 +123,7 @@ class TestCommandMetadataResolver:
         mock_skill = MagicMock()
         mock_skills_runtime.get_skill.return_value = mock_skill
         mock_skills_runtime.adapter = MagicMock()
-        mock_skills_runtime.adapter.to_command_metadata.return_value = (
-            sample_command_metadata
-        )
+        mock_skills_runtime.adapter.to_command_metadata.return_value = sample_command_metadata
 
         resolver = CommandMetadataResolver(
             registry=mock_registry,
@@ -197,9 +195,7 @@ class TestCommandMetadataResolver:
 
         assert resolver.can_execute_via_skills("analyze") is False
 
-    def test_can_execute_via_skills_with_script(
-        self, mock_registry, mock_skills_runtime, tmp_path
-    ):
+    def test_can_execute_via_skills_with_script(self, mock_registry, mock_skills_runtime, tmp_path):
         """Return True when execute script exists."""
         skill = MagicMock()
         skill.skill_dir = str(tmp_path)
@@ -261,9 +257,7 @@ class TestCommandRouter:
         )
         assert router.should_use_skills("analyze") is False
 
-    def test_should_use_skills_delegates_to_resolver(
-        self, resolver, mock_skills_runtime
-    ):
+    def test_should_use_skills_delegates_to_resolver(self, resolver, mock_skills_runtime):
         """Delegate to resolver.can_execute_via_skills."""
         router = CommandRouter(
             resolver=resolver,
@@ -303,9 +297,7 @@ class TestCommandRouter:
 
         assert router.get_runtime_mode("analyze") == "python"
 
-    def test_plan_legacy_mode(
-        self, resolver, mock_skills_runtime, sample_command_metadata
-    ):
+    def test_plan_legacy_mode(self, resolver, mock_skills_runtime, sample_command_metadata):
         """Create LEGACY plan when skill not available."""
         mock_skills_runtime.get_skill.return_value = None
         resolver.registry.get_command.return_value = sample_command_metadata
@@ -329,9 +321,7 @@ class TestCommandRouter:
         skill.skill_dir = str(tmp_path)
         mock_skills_runtime.get_skill.return_value = skill
         mock_skills_runtime.adapter = MagicMock()
-        mock_skills_runtime.adapter.to_command_metadata.return_value = (
-            sample_command_metadata
-        )
+        mock_skills_runtime.adapter.to_command_metadata.return_value = sample_command_metadata
         resolver.skills_runtime = mock_skills_runtime
 
         scripts_dir = tmp_path / "scripts"

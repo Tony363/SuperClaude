@@ -82,9 +82,7 @@ def example_category_filtering():
     print(f"Task: {context['task']}\n")
 
     # Filter to infrastructure category
-    matches = loader.select_agent(
-        context, category_hint=AgentCategory.INFRASTRUCTURE, top_n=3
-    )
+    matches = loader.select_agent(context, category_hint=AgentCategory.INFRASTRUCTURE, top_n=3)
 
     print("Infrastructure Agents:\n")
 

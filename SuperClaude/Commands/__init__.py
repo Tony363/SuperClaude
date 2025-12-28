@@ -1,22 +1,16 @@
 """
-Command System for SuperClaude Framework.
+SuperClaude Commands compatibility module.
 
-Provides automatic discovery, parsing, and execution of /sc: commands
-with full agent and MCP server integration.
+Re-exports command modules from the archived Python SDK.
 """
 
-from .command_executor import CommandContext, CommandExecutor, CommandResult
-from .parser import CommandParser, ParsedCommand
-from .registry import CommandMetadata, CommandRegistry
+import sys
+from pathlib import Path
 
-__all__ = [
-    "CommandContext",
-    "CommandExecutor",
-    "CommandMetadata",
-    "CommandParser",
-    "CommandRegistry",
-    "CommandResult",
-    "ParsedCommand",
-]
+# Ensure archive is in path
+_archive_path = Path(__file__).parent.parent.parent / "archive" / "python-sdk-v5"
+if str(_archive_path) not in sys.path:
+    sys.path.insert(0, str(_archive_path))
 
-__version__ = "1.0.0"
+# Re-export from archived Commands package
+from Commands import *

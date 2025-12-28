@@ -6,15 +6,23 @@ Tests the complete Skills migration including:
 - Adapter conversions
 - Runtime configuration
 - Script execution
+
+These tests require the archived SDK to be properly installed.
+Mark all tests with @pytest.mark.archived_sdk to skip in CI.
 """
 
 import json
 import sys
 from pathlib import Path
 
+import pytest
+
 # Add project root to path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
+
+# Mark all tests in this module as requiring archived SDK
+pytestmark = pytest.mark.archived_sdk
 
 
 def test_skill_discovery():
@@ -122,12 +130,7 @@ def test_select_agent_script():
     import subprocess
 
     script_path = (
-        project_root
-        / ".claude"
-        / "skills"
-        / "sc-implement"
-        / "scripts"
-        / "select_agent.py"
+        project_root / ".claude" / "skills" / "sc-implement" / "scripts" / "select_agent.py"
     )
 
     if not script_path.exists():
@@ -166,12 +169,7 @@ def test_evidence_gate_script():
     import subprocess
 
     script_path = (
-        project_root
-        / ".claude"
-        / "skills"
-        / "sc-implement"
-        / "scripts"
-        / "evidence_gate.py"
+        project_root / ".claude" / "skills" / "sc-implement" / "scripts" / "evidence_gate.py"
     )
 
     if not script_path.exists():
@@ -209,9 +207,7 @@ def test_evidence_gate_script():
     if result.returncode == 0:
         output = json.loads(result.stdout)
         assert output.get("passed") is True, "Evidence gate should pass"
-        print(
-            f"✓ Evidence gate: score={output.get('score')}, status={output.get('status')}"
-        )
+        print(f"✓ Evidence gate: score={output.get('score')}, status={output.get('status')}")
     else:
         print(f"⚠ Evidence gate script failed: {result.stderr}")
 

@@ -261,11 +261,7 @@ class TestAttachPlanOnlyGuidance:
         executor._attach_plan_only_guidance(sample_context, output)
 
         # Should add guidance to output
-        assert (
-            "plan_only_guidance" in output
-            or "guidance" in output
-            or isinstance(output, dict)
-        )
+        assert "plan_only_guidance" in output or "guidance" in output or isinstance(output, dict)
 
     def test_attach_guidance_empty_change_plan(self, executor, sample_context):
         """Handles empty change plan."""

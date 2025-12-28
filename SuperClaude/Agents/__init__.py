@@ -1,64 +1,42 @@
 """
-SuperClaude Agent System
+SuperClaude Agents compatibility module.
 
-A modular agent framework for specialized task execution with
-context-aware selection and delegation capabilities.
-
-Features:
-- 130+ agents across core and extended categories
-- Intelligent agent selection with multi-criteria scoring
-- Lazy loading with LRU cache optimization
-- 10 specialized categories
-- Performance-optimized with access pattern tracking
+Re-exports agent-related modules from the archived Python SDK.
 """
 
-from .base import BaseAgent
+import sys
+from pathlib import Path
 
-# Import core agents
-from .core import (
-    GeneralPurposeAgent,
-    LearningGuide,
-    PerformanceEngineer,
-    RefactoringExpert,
-    RootCauseAnalyst,
-    TechnicalWriter,
+# Ensure archive is in path
+_archive_path = Path(__file__).parent.parent.parent / "archive" / "python-sdk-v5"
+if str(_archive_path) not in sys.path:
+    sys.path.insert(0, str(_archive_path))
+
+# Import and re-export from archive
+from usage_tracker import (
+    classify_agents,
+    export_json,
+    get_top_agents,
+    get_usage_snapshot,
+    record_execution,
+    record_load,
+    record_plan_only,
+    reset_usage_stats,
+    write_markdown_report,
 )
 
-# Extended agent system
-from .extended_loader import (
-    AgentCategory,
-    AgentMetadata,
-    ExtendedAgentLoader,
-    MatchScore,
-)
-from .generic import GenericMarkdownAgent
-from .loader import AgentLoader
-from .parser import AgentMarkdownParser
-from .registry import AgentRegistry
-from .selector import AgentSelector
+# Re-export usage_tracker module itself
+from . import usage_tracker
 
 __all__ = [
-    # Base classes
-    "BaseAgent",
-    # System components
-    "AgentRegistry",
-    "AgentSelector",
-    "AgentLoader",
-    "AgentMarkdownParser",
-    "GenericMarkdownAgent",
-    # Extended agent system
-    "ExtendedAgentLoader",
-    "AgentCategory",
-    "AgentMetadata",
-    "MatchScore",
-    # Core agents
-    "GeneralPurposeAgent",
-    "RootCauseAnalyst",
-    "RefactoringExpert",
-    "TechnicalWriter",
-    "PerformanceEngineer",
-    "LearningGuide",
+    "classify_agents",
+    "export_json",
+    "get_top_agents",
+    "get_usage_snapshot",
+    "record_execution",
+    "record_load",
+    "record_plan_only",
+    "reset_usage_stats",
+    "usage_tracker",
+    "write_markdown_report",
 ]
-
-# Version information
-__version__ = "6.0.0-alpha"

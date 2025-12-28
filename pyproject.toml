@@ -4,32 +4,30 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "SuperClaude"
-version = "6.0.0-alpha"
+version = "6.0.0"
 authors = [
     {name = "NomenAK", email = "anton.knoery@gmail.com"},
     {name = "Mithun Gowda B", email = "mithungowda.b7411@gmail.com"}
 ]
-description = "SuperClaude Framework Management Hub - AI-enhanced development framework for Claude Code"
+description = "SuperClaude Framework - Config-first meta-framework for Claude Code with 130+ specialized agent personas"
 readme = "README.md"
 license = {text = "MIT"}
 requires-python = ">=3.10"
 classifiers = [
-    "Development Status :: 4 - Beta",
+    "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",
-"Operating System :: OS Independent",
-    "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",
-    "Programming Language :: Python :: 3.12",
-    "Topic :: Software Development :: Libraries :: Python Modules",
-    "Topic :: Software Development :: Code Generators",
+    "Operating System :: OS Independent",
+    "Topic :: Software Development :: Libraries",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
     "Environment :: Console",
 ]
-keywords = ["claude", "ai", "automation", "framework", "mcp", "agents", "development", "code-generation", "assistant"]
-dependencies = [
-    "setuptools>=45.0.0",
-]
+keywords = ["claude", "ai", "framework", "mcp", "agents", "prompts", "claude-code", "meta-framework"]
+# No required dependencies - config-first architecture
+# Use optional dependency groups for Python functionality:
+#   pip install .[runtime]  - Loop orchestration
+#   pip install .[cli]      - Legacy CLI
+#   pip install .[full]     - All features
+dependencies = []
 
 [project.urls]
 Homepage = "https://github.com/SuperClaude-Org/SuperClaude_Framework"
@@ -38,28 +36,45 @@ GitHub = "https://github.com/SuperClaude-Org/SuperClaude_Framework"
 "Mithun Gowda B" = "https://github.com/mithun50"
 "NomenAK" = "https://github.com/NomenAK"
 
-[project.scripts]
-SuperClaude = "SuperClaude.__main__:main"
-superclaude = "SuperClaude.__main__:main"
+# No CLI scripts - Claude Code loads configs directly
 
 [project.optional-dependencies]
-dev = [
-    "pytest>=6.0",
-    "pytest-cov>=2.0",
-    "black>=22.0",
-    "flake8>=4.0",
-    "mypy>=0.900",
-    "pyyaml>=6.0"
+# Runtime dependencies for loop orchestration
+runtime = [
+    "pyyaml>=6.0",
+    "aiofiles>=23.0",
 ]
+# CLI dependencies for legacy command-line interface
+cli = [
+    "rich>=13.0",
+    "click>=8.1",
+    "python-dotenv>=1.0",
+]
+# Full installation with all optional dependencies
+full = [
+    "pyyaml>=6.0",
+    "aiofiles>=23.0",
+    "rich>=13.0",
+    "click>=8.1",
+    "python-dotenv>=1.0",
+    "watchdog>=3.0",
+    "gitpython>=3.1",
+    "jinja2>=3.1",
+    "jsonschema>=4.0",
+]
+# Development dependencies
+dev = [
+    "pyyaml>=6.0",
+    "ruff>=0.1.0",
+]
+# Test dependencies
 test = [
-    "pytest>=6.0",
-    "pytest-cov>=2.0",
+    "pytest>=7.0",
+    "pytest-cov>=4.0",
     "pytest-asyncio>=0.21.0",
     "pyyaml>=6.0",
-    "rich>=10.0",
-]
-sdk = [
-    "claude-agent-sdk>=0.1.0",
+    "aiofiles>=23.0",
+    "jsonschema>=4.0",
 ]
 
 [tool.setuptools]
@@ -67,166 +82,33 @@ include-package-data = true
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["SuperClaude*", "setup*"]
-exclude = ["tests*", "*.tests*", "*.tests", ".git*", ".venv*", "*.egg-info*"]
+include = ["SuperClaude*", "agents*", "commands*", "config*", "mcp*", "core*", "setup*"]
+exclude = ["tests*", ".git*"]
 
 [tool.setuptools.package-data]
-"setup" = ["data/*.json", "data/*.yaml", "data/*.yml", "components/*.py", "**/*.py"]
-"SuperClaude" = ["*.md", "*.txt", "**/*.md", "**/*.txt", "**/*.json", "**/*.yaml", "**/*.yml"]
+"*" = ["*.md", "*.yaml", "*.yml", "*.json"]
 
-[tool.black]
-line-length = 88
-target-version = ["py310"]
-include = '\.pyi?$'
-extend-exclude = '''
-/(
-  # directories
-  \.eggs
-  | \.git
-  | \.hg
-  | \.mypy_cache
-  | \.tox
-  | \.venv
-  | build
-  | dist
-)/
-'''
-
-[tool.mypy]
-python_version = "3.10"
-warn_return_any = true
-warn_unused_configs = true
-disallow_untyped_defs = true
-disallow_incomplete_defs = true
-check_untyped_defs = true
-disallow_untyped_decorators = true
-no_implicit_optional = true
-warn_redundant_casts = true
-warn_unused_ignores = true
-warn_no_return = true
-warn_unreachable = true
-
-[tool.pytest.ini_options]
-testpaths = ["tests"]
-python_files = ["test_*.py", "*_test.py"]
-python_classes = ["Test*"]
-python_functions = ["test_*"]
-addopts = "-v --tb=short --strict-markers"
-markers = [
-    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
-    "integration: marks tests as integration tests"
-]
-
-[tool.coverage.run]
-source = ["SuperClaude", "setup"]
-omit = [
-    "*/tests/*",
-    "*/test_*",
-    "*/__pycache__/*",
-    "*/.*"
-]
-
-[tool.coverage.report]
-exclude_lines = [
-    "pragma: no cover",
-    "def __repr__",
-    "if self.debug:",
-    "if settings.DEBUG",
-    "raise AssertionError", 
-    "raise NotImplementedError",
-    "if 0:",
-    "if __name__ == .__main__.:"
-]
-show_missing = true
-
-# Ruff - Fast Python linter (replaces Flake8, isort)
+# Ruff configuration
 [tool.ruff]
 target-version = "py310"
-line-length = 88
+line-length = 100
+
+# Exclude archived legacy code from linting
 exclude = [
-    ".eggs",
+    "archive/",
     ".git",
-    ".mypy_cache",
-    ".ruff_cache",
-    ".tox",
     ".venv",
+    "__pycache__",
     "build",
     "dist",
-    "__pycache__",
 ]
 
 [tool.ruff.lint]
-select = [
-    "E",      # pycodestyle errors
-    "F",      # Pyflakes
-    "W",      # pycodestyle warnings
-    "I",      # isort
-    "UP",     # pyupgrade
-    "B",      # flake8-bugbear
-    "C4",     # flake8-comprehensions
-    "SIM",    # flake8-simplify
-    "S",      # flake8-bandit (security)
-    "RUF",    # Ruff-specific rules
-]
-ignore = [
-    "E501",   # Line too long (handled by formatter)
-    "S101",   # Use of assert (OK in tests)
-    "S603",   # subprocess without shell=True (intentional)
-    "S607",   # Starting process with partial path (intentional)
-    # Less critical rules - can be addressed incrementally
-    "SIM102", # Nested if statements (style preference)
-    "SIM105", # Use contextlib.suppress (style preference)
-    "SIM103", # Return condition directly (style preference)
-    "S110",   # Try-except-pass (can be intentional)
-    "S112",   # Try-except-continue (can be intentional)
-    "S324",   # sha1 usage (OK for non-security hashing)
-    "S108",   # Temp file usage (false positives in tests)
-    "RUF012", # ClassVar annotations (requires significant changes)
-    "RUF001", # Ambiguous unicode (false positives)
-    "RUF005", # List concatenation style (preference)
-    "B007",   # Unused loop variable (use _ convention)
-    "E741",   # Ambiguous variable name
-    # E722 (bare except) REMOVED - Issue #10: all bare excepts fixed
-    "B904",   # Raise from (good practice, not critical)
-    "B028",   # stacklevel in warnings (not critical)
-    "B027",   # Empty method in abstract class
-    "B019",   # lru_cache on methods
-    "RUF059", # Unused function parameter (legacy signatures)
-    "RUF013", # Implicit Optional (legacy code)
-    "RUF003", # Ambiguous unicode comment
-    "RUF002", # Ambiguous unicode docstring
-    "RUF022", # __all__ not sorted
-    "RUF034", # Useless if-else
-    "SIM118", # Use key in dict
-    "SIM108", # Ternary operator
-    "SIM115", # Context manager for files
-    "SIM201", # Negate comparison
-    "E712",   # Comparison to True/False
-    "E402",   # Import not at top (intentional ordering)
-    "S310",   # Audit URL open
-    "S105",   # Hardcoded password (false positives in tests)
-    "UP022",  # Replace stdout/stderr capture
-    "C401",   # Unnecessary generator
-    "C405",   # Unnecessary literal set
-]
+select = ["E", "F", "W", "I"]
+# Ignore line length - many legitimate long lines in CLI output with color codes
+ignore = ["E501"]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/*" = ["S101", "S105", "S106"]  # Allow asserts and hardcoded passwords in tests
-"setup/*" = ["S603", "S607"]          # Allow subprocess in setup scripts
-"setup/utils/ui.py" = ["S605"]        # Shell clear command is safe
-"setup/cli/__init__.py" = ["F403"]    # Star imports in __init__ for public API
-"SuperClaude/MCP/__init__.py" = ["F401"]  # Re-exports for public API
-"SuperClaude/Agents/core/*.py" = ["F811"]  # Method overrides in agent classes
-"SuperClaude/Modes/*.py" = ["F402"]   # Variable shadowing for field iteration
-"setup/services/config.py" = ["F401"] # Optional import check pattern
-
-[tool.ruff.format]
-quote-style = "double"
-indent-style = "space"
-skip-magic-trailing-comma = false
-line-ending = "auto"
-
-# Bandit security scanner configuration
-[tool.bandit]
-exclude_dirs = ["tests", "benchmarks", ".venv"]
-skips = ["B101"]  # Skip assert warnings
+# SuperClaude compatibility layer intentionally uses sys.path.insert() before imports
+# and wildcard imports for re-exporting archived SDK modules
+"SuperClaude/**/*.py" = ["E402", "F403", "F401"]

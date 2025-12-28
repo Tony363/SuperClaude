@@ -43,9 +43,7 @@ class SettingsService:
         except (OSError, json.JSONDecodeError) as e:
             raise ValueError(f"Could not load settings from {self.settings_file}: {e}")
 
-    def save_settings(
-        self, settings: dict[str, Any], create_backup: bool = True
-    ) -> None:
+    def save_settings(self, settings: dict[str, Any], create_backup: bool = True) -> None:
         """
         Save settings to settings.json with optional backup
 
@@ -155,9 +153,7 @@ class SettingsService:
         self.save_metadata(merged_metadata)
 
         # Remove SuperClaude fields from settings
-        clean_settings = {
-            k: v for k, v in settings.items() if k not in superclaude_fields
-        }
+        clean_settings = {k: v for k, v in settings.items() if k not in superclaude_fields}
 
         # Save cleaned settings
         self.save_settings(clean_settings, create_backup=True)
@@ -177,9 +173,7 @@ class SettingsService:
         existing = self.load_settings()
         return self._deep_merge(existing, modifications)
 
-    def update_settings(
-        self, modifications: dict[str, Any], create_backup: bool = True
-    ) -> None:
+    def update_settings(self, modifications: dict[str, Any], create_backup: bool = True) -> None:
         """
         Update settings with modifications
 
@@ -211,9 +205,7 @@ class SettingsService:
         except (KeyError, TypeError):
             return default
 
-    def set_setting(
-        self, key_path: str, value: Any, create_backup: bool = True
-    ) -> None:
+    def set_setting(self, key_path: str, value: Any, create_backup: bool = True) -> None:
         """
         Set setting value using dot-notation path
 
@@ -396,9 +388,7 @@ class SettingsService:
         except (KeyError, TypeError):
             return default
 
-    def _deep_merge(
-        self, base: dict[str, Any], overlay: dict[str, Any]
-    ) -> dict[str, Any]:
+    def _deep_merge(self, base: dict[str, Any], overlay: dict[str, Any]) -> dict[str, Any]:
         """
         Deep merge two dictionaries
 
@@ -412,11 +402,7 @@ class SettingsService:
         result = copy.deepcopy(base)
 
         for key, value in overlay.items():
-            if (
-                key in result
-                and isinstance(result[key], dict)
-                and isinstance(value, dict)
-            ):
+            if key in result and isinstance(result[key], dict) and isinstance(value, dict):
                 result[key] = self._deep_merge(result[key], value)
             else:
                 result[key] = copy.deepcopy(value)

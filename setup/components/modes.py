@@ -45,9 +45,7 @@ class ModesComponent(Component):
             selected_files = sorted(all_files)
             self.logger.debug("Using full memory profile for modes component")
         else:
-            minimal_files = [
-                fname for fname in self.MINIMAL_FILES if fname in all_files
-            ]
+            minimal_files = [fname for fname in self.MINIMAL_FILES if fname in all_files]
             missing = [fname for fname in self.MINIMAL_FILES if fname not in all_files]
             if missing:
                 self.logger.warning(
@@ -94,9 +92,7 @@ class ModesComponent(Component):
             )
             return False
 
-        self.logger.success(
-            f"Modes component installed successfully ({success_count} mode files)"
-        )
+        self.logger.success(f"Modes component installed successfully ({success_count} mode files)")
 
         return self._post_install()
 
@@ -134,9 +130,7 @@ class ModesComponent(Component):
                 manager.add_imports(self.component_files, category="Behavioral Modes")
                 self.logger.info("Updated CLAUDE.md with mode imports")
             except Exception as e:
-                self.logger.warning(
-                    f"Failed to update CLAUDE.md with mode imports: {e}"
-                )
+                self.logger.warning(f"Failed to update CLAUDE.md with mode imports: {e}")
                 # Don't fail the whole installation for this
 
             return True
@@ -202,9 +196,7 @@ class ModesComponent(Component):
             except Exception as e:
                 self.logger.warning(f"Could not update settings.json: {e}")
 
-            self.logger.success(
-                f"Modes component uninstalled ({removed_count} files removed)"
-            )
+            self.logger.success(f"Modes component uninstalled ({removed_count} files removed)")
             return True
 
         except Exception as e:

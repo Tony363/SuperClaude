@@ -192,9 +192,7 @@ class TestExecuteParallel:
     """Tests for execute_parallel method."""
 
     @pytest.mark.asyncio
-    async def test_execute_parallel_multiple_commands(
-        self, executor_with_mocks, registry
-    ):
+    async def test_execute_parallel_multiple_commands(self, executor_with_mocks, registry):
         """Execute parallel runs commands concurrently."""
         registry.register_command(
             CommandMetadata(

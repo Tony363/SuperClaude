@@ -39,7 +39,7 @@ SuperClaude Framework prioritizes security through secure-by-design principles, 
 ### What to Include
 
 **Essential Information:**
-- SuperClaude version: `SuperClaude --version`
+- SuperClaude version: Check `pyproject.toml` or run `pip show SuperClaude`
 - Operating system and version
 - Python version: `python3 --version`
 - Claude Code version: `claude --version`

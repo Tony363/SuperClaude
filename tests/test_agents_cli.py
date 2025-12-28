@@ -5,6 +5,9 @@ including command functions and argument parsing.
 
 NOTE: This file tests SuperClaude/Agents/cli.py (agent system CLI),
 NOT SuperClaude/__main__.py (installer CLI) which is tested in test_cli.py.
+
+These tests require the archived SDK to be properly installed.
+Mark all tests with @pytest.mark.archived_sdk to skip in CI.
 """
 
 from dataclasses import dataclass, field
@@ -12,6 +15,9 @@ from typing import Any
 from unittest.mock import Mock, patch
 
 import pytest
+
+# Mark all tests in this module as requiring archived SDK
+pytestmark = pytest.mark.archived_sdk
 
 
 @dataclass
@@ -151,9 +157,7 @@ class TestCmdListAgents:
         from SuperClaude.Agents.cli import cmd_list_agents
 
         # Make get_agents_by_category raise ValueError
-        mock_extended_loader.get_agents_by_category.side_effect = ValueError(
-            "Invalid category"
-        )
+        mock_extended_loader.get_agents_by_category.side_effect = ValueError("Invalid category")
 
         # This should handle the error gracefully
         cmd_list_agents(mock_extended_loader, category="invalid-category")
@@ -407,8 +411,8 @@ class TestMainFunction:
             patch("SuperClaude.Agents.cli.ExtendedAgentLoader") as mock_loader_class,
         ):
             mock_loader_class.return_value._agent_metadata = {}
-            mock_loader_class.return_value.get_agents_by_category.side_effect = (
-                Exception("Test error")
+            mock_loader_class.return_value.get_agents_by_category.side_effect = Exception(
+                "Test error"
             )
             # Should not raise, should handle gracefully
             try:

@@ -1,4 +1,8 @@
-"""Tests for SDK executor."""
+"""Tests for SDK executor.
+
+These tests require the archived SDK to be properly installed.
+Mark all tests with @pytest.mark.archived_sdk to skip in CI.
+"""
 
 import pytest
 
@@ -7,6 +11,9 @@ from SuperClaude.SDK.executor import (
     SDKExecutor,
     SDKExecutorConfig,
 )
+
+# Mark all tests in this module as requiring archived SDK
+pytestmark = pytest.mark.archived_sdk
 
 
 class MockCommand:

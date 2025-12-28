@@ -82,9 +82,7 @@ class CleanCommand:
                     backup_path = file_path.with_suffix(f"{file_path.suffix}.corrupted")
                     shutil.move(str(file_path), str(backup_path))
                     self.cleaned_items.append(f"Corrupted: {file_path.name}")
-                    display_warning(
-                        f"  Cleaned corrupted: {file_path.name} (moved to .corrupted)"
-                    )
+                    display_warning(f"  Cleaned corrupted: {file_path.name} (moved to .corrupted)")
                 else:
                     display_info(f"  [DRY RUN] Would clean corrupted: {file_path.name}")
 
@@ -111,19 +109,13 @@ class CleanCommand:
                 continue
 
             try:
-                size = sum(
-                    f.stat().st_size for f in cache_dir.rglob("*") if f.is_file()
-                )
+                size = sum(f.stat().st_size for f in cache_dir.rglob("*") if f.is_file())
                 size_mb = size / (1024 * 1024)
 
                 if not self.dry_run:
                     shutil.rmtree(cache_dir)
-                    self.cleaned_items.append(
-                        f"Cache: {cache_dir.name} ({size_mb:.1f} MB)"
-                    )
-                    display_success(
-                        f"  Cleaned cache: {cache_dir.name} ({size_mb:.1f} MB freed)"
-                    )
+                    self.cleaned_items.append(f"Cache: {cache_dir.name} ({size_mb:.1f} MB)")
+                    display_success(f"  Cleaned cache: {cache_dir.name} ({size_mb:.1f} MB freed)")
                 else:
                     display_info(
                         f"  [DRY RUN] Would clean cache: {cache_dir.name} ({size_mb:.1f} MB)"
@@ -160,12 +152,8 @@ class CleanCommand:
                 if not self.dry_run:
                     for log_file in old_logs:
                         log_file.unlink()
-                    self.cleaned_items.append(
-                        f"Logs: {len(old_logs)} files ({size_mb:.1f} MB)"
-                    )
-                    display_success(
-                        f"  Cleaned {len(old_logs)} log files ({size_mb:.1f} MB freed)"
-                    )
+                    self.cleaned_items.append(f"Logs: {len(old_logs)} files ({size_mb:.1f} MB)")
+                    display_success(f"  Cleaned {len(old_logs)} log files ({size_mb:.1f} MB freed)")
                 else:
                     display_info(
                         f"  [DRY RUN] Would clean {len(old_logs)} log files ({size_mb:.1f} MB)"
@@ -195,9 +183,7 @@ class CleanCommand:
             total_size = 0
             for wt in worktrees:
                 if wt.is_dir():
-                    total_size += sum(
-                        f.stat().st_size for f in wt.rglob("*") if f.is_file()
-                    )
+                    total_size += sum(f.stat().st_size for f in wt.rglob("*") if f.is_file())
 
             size_mb = total_size / (1024 * 1024)
 
@@ -214,17 +200,11 @@ class CleanCommand:
                         )
                     except (subprocess.SubprocessError, OSError) as e:
                         # Fallback to direct removal if git command fails
-                        self.logger.debug(
-                            f"Git worktree remove failed, using fallback: {e}"
-                        )
+                        self.logger.debug(f"Git worktree remove failed, using fallback: {e}")
                         shutil.rmtree(wt, ignore_errors=True)
 
-                self.cleaned_items.append(
-                    f"Worktrees: {len(worktrees)} ({size_mb:.1f} MB)"
-                )
-                display_success(
-                    f"  Cleaned {len(worktrees)} worktrees ({size_mb:.1f} MB freed)"
-                )
+                self.cleaned_items.append(f"Worktrees: {len(worktrees)} ({size_mb:.1f} MB)")
+                display_success(f"  Cleaned {len(worktrees)} worktrees ({size_mb:.1f} MB freed)")
             else:
                 display_info(
                     f"  [DRY RUN] Would clean {len(worktrees)} worktrees ({size_mb:.1f} MB)"
@@ -252,9 +232,7 @@ class CleanCommand:
             if path.exists():
                 display_success(f"  ✓ {path.name} exists")
             else:
-                display_warning(
-                    f"  ⚠ {path.name} missing (will be created on next install)"
-                )
+                display_warning(f"  ⚠ {path.name} missing (will be created on next install)")
                 valid = False
 
         return valid
@@ -367,13 +345,9 @@ Examples:
     clean_group.add_argument(
         "--metadata", action="store_true", help="Clean metadata and settings files"
     )
-    clean_group.add_argument(
-        "--cache", action="store_true", help="Clean cache directories"
-    )
+    clean_group.add_argument("--cache", action="store_true", help="Clean cache directories")
     clean_group.add_argument("--logs", action="store_true", help="Clean log files")
-    clean_group.add_argument(
-        "--worktrees", action="store_true", help="Clean git worktrees"
-    )
+    clean_group.add_argument("--worktrees", action="store_true", help="Clean git worktrees")
 
     # Options
     options_group = parser.add_argument_group("options")
