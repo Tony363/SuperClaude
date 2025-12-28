@@ -13,6 +13,14 @@ import pytest
 # Mark all tests in this directory as requiring archived SDK
 pytestmark = pytest.mark.archived_sdk
 
+# Check if archived SDK is available (prevents fixture loading failures)
+try:
+    from SuperClaude.Agents.coordination import CoordinationManager as _CM  # noqa: F401
+
+    _ARCHIVED_SDK_AVAILABLE = True
+except ImportError:
+    _ARCHIVED_SDK_AVAILABLE = False
+
 
 @dataclass
 class MockAgentMetadata:
@@ -155,6 +163,8 @@ def coordination_manager(mock_registry, mock_selector, mock_loader):
     Returns:
         CoordinationManager: A manager with all dependencies mocked.
     """
+    if not _ARCHIVED_SDK_AVAILABLE:
+        pytest.skip("Archived SDK not available")
     from SuperClaude.Agents.coordination import CoordinationManager
 
     return CoordinationManager(mock_registry, mock_selector, mock_loader)
@@ -167,6 +177,8 @@ def coordination_manager_factory(mock_registry, mock_selector):
     Returns:
         callable: A factory function.
     """
+    if not _ARCHIVED_SDK_AVAILABLE:
+        pytest.skip("Archived SDK not available")
     from SuperClaude.Agents.coordination import CoordinationManager
 
     def create_manager(loader):

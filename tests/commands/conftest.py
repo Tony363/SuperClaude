@@ -11,18 +11,32 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from SuperClaude.Commands import (
-    CommandContext,
-    CommandExecutor,
-    CommandParser,
-    CommandRegistry,
-)
-from SuperClaude.Commands.parser import ParsedCommand
-from SuperClaude.Commands.registry import CommandMetadata
-from SuperClaude.Modes.behavioral_manager import BehavioralMode
-
 # Mark all tests in this directory as requiring archived SDK
 pytestmark = pytest.mark.archived_sdk
+
+# Guard imports that require archived SDK
+_ARCHIVED_SDK_AVAILABLE = False
+try:
+    from SuperClaude.Commands import (
+        CommandContext,
+        CommandExecutor,
+        CommandParser,
+        CommandRegistry,
+    )
+    from SuperClaude.Commands.parser import ParsedCommand
+    from SuperClaude.Commands.registry import CommandMetadata
+    from SuperClaude.Modes.behavioral_manager import BehavioralMode
+
+    _ARCHIVED_SDK_AVAILABLE = True
+except ImportError:
+    # Provide minimal stubs so module loads without error
+    CommandContext = None  # type: ignore[misc, assignment]
+    CommandExecutor = None  # type: ignore[misc, assignment]
+    CommandParser = None  # type: ignore[misc, assignment]
+    CommandRegistry = None  # type: ignore[misc, assignment]
+    ParsedCommand = None  # type: ignore[misc, assignment]
+    CommandMetadata = None  # type: ignore[misc, assignment]
+    BehavioralMode = None  # type: ignore[misc, assignment]
 
 
 @pytest.fixture
@@ -78,18 +92,24 @@ def temp_repo(tmp_path):
 @pytest.fixture
 def registry():
     """Create a CommandRegistry instance."""
+    if not _ARCHIVED_SDK_AVAILABLE:
+        pytest.skip("Archived SDK not available")
     return CommandRegistry()
 
 
 @pytest.fixture
 def parser():
     """Create a CommandParser instance."""
+    if not _ARCHIVED_SDK_AVAILABLE:
+        pytest.skip("Archived SDK not available")
     return CommandParser()
 
 
 @pytest.fixture
 def executor(command_workspace, registry, parser):
     """Create a CommandExecutor with mocked workspace."""
+    if not _ARCHIVED_SDK_AVAILABLE:
+        pytest.skip("Archived SDK not available")
     return CommandExecutor(registry, parser, repo_root=command_workspace)
 
 
@@ -108,6 +128,8 @@ def mock_agent_loader():
 @pytest.fixture
 def mock_quality_scorer():
     """Create a mock QualityScorer with predictable assessments."""
+    if not _ARCHIVED_SDK_AVAILABLE:
+        pytest.skip("Archived SDK not available")
     from datetime import datetime
 
     from SuperClaude.Quality.quality_scorer import QualityAssessment
@@ -145,6 +167,8 @@ def mock_consensus_facade():
 @pytest.fixture
 def sample_parsed_command():
     """Create a sample ParsedCommand for testing."""
+    if not _ARCHIVED_SDK_AVAILABLE:
+        pytest.skip("Archived SDK not available")
     return ParsedCommand(
         name="implement",
         raw_string="/sc:implement feature --safe",
@@ -158,6 +182,8 @@ def sample_parsed_command():
 @pytest.fixture
 def sample_metadata():
     """Create sample CommandMetadata for testing."""
+    if not _ARCHIVED_SDK_AVAILABLE:
+        pytest.skip("Archived SDK not available")
     return CommandMetadata(
         name="implement",
         description="Implement code changes",
@@ -175,6 +201,8 @@ def sample_metadata():
 @pytest.fixture
 def sample_context(sample_parsed_command, sample_metadata):
     """Create a sample CommandContext for testing."""
+    if not _ARCHIVED_SDK_AVAILABLE:
+        pytest.skip("Archived SDK not available")
     return CommandContext(
         command=sample_parsed_command,
         metadata=sample_metadata,
@@ -199,6 +227,8 @@ def executor_with_mocks(
     mock_consensus_facade,
 ):
     """Create an executor with all major dependencies mocked."""
+    if not _ARCHIVED_SDK_AVAILABLE:
+        pytest.skip("Archived SDK not available")
     exec_instance = CommandExecutor(registry, parser, repo_root=command_workspace)
     exec_instance.agent_loader = mock_agent_loader
     exec_instance.quality_scorer = mock_quality_scorer

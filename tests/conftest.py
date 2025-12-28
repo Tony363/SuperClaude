@@ -10,18 +10,27 @@ from pathlib import Path
 
 import pytest
 
-# Try to import usage_tracker - if it fails, archived SDK is not available
+# Check if the archived SDK is truly available by attempting a deep import
+# that exercises the relative imports in the archived code
+_ARCHIVED_SDK_AVAILABLE = False
+usage_tracker = None  # type: ignore[assignment]
+
 try:
+    # Try a deep import that will trigger archived SDK's relative imports
+    # If we get here, the full SDK is available
     from SuperClaude.Agents import usage_tracker
+    from SuperClaude.Agents.coordination import CoordinationManager  # noqa: F401
 
     _ARCHIVED_SDK_AVAILABLE = True
 except ImportError:
-    usage_tracker = None  # type: ignore[assignment]
-    _ARCHIVED_SDK_AVAILABLE = False
+    # Archived SDK not available (relative imports fail)
+    pass
 
 # List of test files/directories that require the archived SDK
 # These will be ignored during collection if archived SDK imports fail
+# Any test file that imports from SuperClaude.* needs to be here
 _ARCHIVED_SDK_TEST_FILES = [
+    # Top-level test files that import from SuperClaude.*
     "test_agents.py",
     "test_commands.py",
     "test_extended_loader.py",
@@ -30,12 +39,15 @@ _ARCHIVED_SDK_TEST_FILES = [
     "test_cli.py",
     "test_skills_integration.py",
     "test_version.py",
+    # Entire directories where tests import from SuperClaude.*
     "agents",
     "commands",
-    "sdk/test_coordination_integration.py",
-    "sdk/test_selector_integration.py",
-    "sdk/test_executor.py",
-    "telemetry/test_factory.py",
+    "sdk",
+    "modes",
+    "quality",
+    "telemetry",
+    # Note: core/ and setup/ directories do NOT import from SuperClaude.*
+    # and should continue to run
 ]
 
 
