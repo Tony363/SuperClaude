@@ -102,10 +102,10 @@ jobs:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
   # ============================================
-  # Coverage Gate - Incrementally targeting 80%
+  # Coverage Gate - Core module 90% threshold
   # ============================================
   coverage-gate:
-    name: Coverage Gate (35%)
+    name: Coverage Gate (core 90%)
     needs: test
     runs-on: ubuntu-latest
     steps:
@@ -129,14 +129,13 @@ jobs:
           SUPERCLAUDE_OFFLINE_MODE: "1"
         run: |
           # Coverage threshold for core module (v6 orchestration logic)
-          # SuperClaude/* modules are thin shims, so we measure core/ instead
-          # Target: incrementally increase via Issue #7 phased plan:
-          #   Phase 0: 35% (current) -> Phase 1: 40% -> Phase 2: 55%
-          #   Phase 3: 70% -> Phase 4: 80%
-          pytest tests/core/ tests/setup/ -m "not slow and not integration and not archived_sdk" \
+          # SuperClaude/* modules are thin shims to archived SDK - not measured
+          # setup/* is installation CLI - large codebase, tested separately
+          # Only core/* is measured: loop orchestrator, quality gates, types
+          # Current core/ coverage: ~95% (achieved in v6.0.0 development)
+          pytest tests/core/ -m "not slow and not integration and not archived_sdk" \
             --cov=core \
-            --cov=setup \
-            --cov-fail-under=35 \
+            --cov-fail-under=90 \
             --tb=short \
             -q
 
