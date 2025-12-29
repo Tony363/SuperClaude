@@ -5,6 +5,7 @@ SuperClaude CI/CD Setup Generator
 Generates GitHub Actions workflows and pre-commit configuration
 from Jinja2 templates based on detected project type.
 """
+
 from __future__ import annotations
 
 import json
@@ -230,9 +231,7 @@ def get_templates_to_generate(lang: str, minimal: bool, full: bool) -> "list[tup
         templates.append((f"{lang}/ai-review.yml.j2", ".github/workflows/ai-review.yml"))
 
         # Pre-commit config
-        templates.append(
-            (f"{lang}/pre-commit-config.yaml.j2", ".pre-commit-config.yaml")
-        )
+        templates.append((f"{lang}/pre-commit-config.yaml.j2", ".pre-commit-config.yaml"))
 
     if full:
         # Publish workflow (if available for this language)

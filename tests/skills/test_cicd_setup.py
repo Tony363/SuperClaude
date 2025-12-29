@@ -144,7 +144,11 @@ class TestCheckConflicts:
 
         conflicts = check_conflicts(
             tmp_path,
-            [".github/workflows/ci.yml", ".github/workflows/security.yml", ".github/workflows/ai-review.yml"]
+            [
+                ".github/workflows/ci.yml",
+                ".github/workflows/security.yml",
+                ".github/workflows/ai-review.yml",
+            ],
         )
         assert len(conflicts) == 2
         assert ".github/workflows/ci.yml" in conflicts
