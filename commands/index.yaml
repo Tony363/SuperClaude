@@ -133,6 +133,18 @@ commands:
       - "--spec=FILE: Use specification file"
       - "--parallel: Enable parallel execution"
 
+  - name: cicd-setup
+    prefix: /sc:cicd-setup
+    file: cicd-setup.md
+    description: "Set up GitHub CI/CD workflows and pre-commit hooks"
+    aliases: [cicd-init, pipeline-setup, actions-setup]
+    flags:
+      - "--lang=LANG: Force project language (python, node, go, rust)"
+      - "--yes: Accept defaults, skip confirmation"
+      - "--force: Overwrite existing workflow files"
+      - "--minimal: Only essential CI workflow"
+      - "--full: All workflows including publish"
+
 # MCP Integration for commands
 mcp_integration:
   pal:
