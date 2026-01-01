@@ -88,8 +88,52 @@ This skill requires evidence. You MUST:
 /sc:implement "enterprise auth system" --orchestrate --strategy systematic --delegate
 ```
 
+## Loop Mode & Learning
+
+When using `--loop`, this skill integrates with the skill persistence layer for cross-session learning:
+
+### How Learning Works
+
+1. **Feedback Recording** - Each iteration's quality scores and improvements are persisted
+2. **Skill Extraction** - Successful patterns are extracted when quality threshold is met
+3. **Skill Retrieval** - Relevant learned skills are injected into subsequent tasks
+4. **Effectiveness Tracking** - Applied skills are tracked for success rate
+
+### Loop Flags
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--loop` | int | 3 | Enable iterative improvement (max 5) |
+| `--learn` | bool | true | Enable learning from this session |
+| `--auto-promote` | bool | false | Auto-promote high-quality skills |
+
+### Example with Learning
+
+```bash
+# Iterative implementation with learning
+/sc:implement auth flow --loop 3 --learn
+
+# View learned skills
+python scripts/skill_learn.py '{"command": "stats"}'
+
+# Retrieve relevant skills
+python scripts/skill_learn.py '{"command": "retrieve", "task": "auth"}'
+```
+
+### Learned Skills Location
+
+Promoted skills are stored in:
+```
+.claude/skills/learned/
+├── SKILL.md                    # Index
+├── learned-backend-auth/       # Example promoted skill
+│   ├── SKILL.md
+│   └── metadata.json
+```
+
 ## Resources
 
 - [PERSONAS.md](PERSONAS.md) - Available persona definitions
 - [scripts/select_agent.py](scripts/select_agent.py) - Agent selection logic
 - [scripts/evidence_gate.py](scripts/evidence_gate.py) - Evidence validation
+- [scripts/skill_learn.py](scripts/skill_learn.py) - Skill learning management

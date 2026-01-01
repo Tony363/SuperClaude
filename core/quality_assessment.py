@@ -5,11 +5,13 @@ Integrates with .claude/skills/sc-implement/scripts/evidence_gate.py
 to assess quality of code changes during loop iterations.
 """
 
+from __future__ import annotations
+
 import json
 import subprocess
 import sys
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 from .types import QualityAssessment
 
@@ -33,7 +35,7 @@ class QualityAssessor:
         self.threshold = threshold
         self.evidence_gate_path = self._find_evidence_gate()
 
-    def _find_evidence_gate(self) -> Path | None:
+    def _find_evidence_gate(self) -> Optional[Path]:
         """
         Locate the evidence_gate.py script.
 
