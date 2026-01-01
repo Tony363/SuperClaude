@@ -19,8 +19,6 @@ Usage:
 
 from __future__ import annotations
 
-import os
-import time
 import uuid
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
@@ -35,10 +33,8 @@ from .skill_persistence import (
     SkillStore,
 )
 from .types import (
-    IterationResult,
     LoopConfig,
     LoopResult,
-    QualityAssessment,
     TerminationReason,
 )
 
