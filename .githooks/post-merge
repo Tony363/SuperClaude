@@ -1,31 +1,39 @@
 #!/bin/bash
-# Post-merge hook: Clean up local branches that have been merged to main
-# and whose remote tracking branch has been deleted
+# post-merge hook: auto-delete merged local branches after git pull
+#
+# This hook runs after every successful merge (including git pull).
+# It cleans up local branches that:
+#   1. Are fully merged into the current branch
+#   2. Have had their remote tracking branch deleted (PR merged)
+#   3. Are NOT protected branches (main, master, develop)
 
-# Get the current branch
-current_branch=$(git symbolic-ref --short HEAD 2>/dev/null)
+set -e
 
-# Only run cleanup when on main branch
-if [ "$current_branch" != "main" ]; then
-    exit 0
-fi
+# Prune stale remote-tracking branches
+git fetch --prune origin 2>/dev/null || true
 
-echo "🧹 Cleaning up merged branches..."
+# Get protected branches (space-separated)
+PROTECTED="main master develop"
 
-# Prune remote tracking branches that no longer exist on origin
-git fetch --prune origin 2>/dev/null
+# Delete local branches whose remote is gone and are merged
+git branch --merged 2>/dev/null | grep -v "^\*" | while read -r branch; do
+  # Trim whitespace
+  branch=$(echo "$branch" | xargs)
 
-# Find and delete local branches whose upstream tracking branch is gone
-# These are branches that were merged and deleted on the remote
-gone_branches=$(git for-each-ref --format '%(refname:short) %(upstream:track)' refs/heads | awk '$2 == "[gone]" {print $1}')
+  # Skip empty
+  [ -z "$branch" ] && continue
 
-if [ -n "$gone_branches" ]; then
-    echo "Deleting local branches with deleted remotes:"
-    for branch in $gone_branches; do
-        echo "  - $branch"
-        git branch -D "$branch" 2>/dev/null
-    done
-    echo "✅ Cleanup complete!"
-else
-    echo "✅ No stale branches to clean up."
-fi
+  # Skip protected branches
+  for protected in $PROTECTED; do
+    [ "$branch" = "$protected" ] && continue 2
+  done
+
+  # Only delete if remote tracking branch is gone
+  if ! git show-ref --verify --quiet "refs/remotes/origin/$branch" 2>/dev/null; then
+    if git branch -d "$branch" 2>/dev/null; then
+      echo "Cleaned up merged branch: $branch"
+    fi
+  fi
+done
+
+exit 0
