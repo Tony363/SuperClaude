@@ -46,7 +46,7 @@ SuperClaude is a meta-prompt framework that enhances Claude Code with:
 - **13 Structured Commands**: analyze, implement, test, design, document, and more
 - **6 Framework Modes**: normal, brainstorming, introspection, task_management, token_efficiency, orchestration
 - **MCP Integration**: PAL (11 tools), Rube (500+ apps via Composio), LinkUp (web search)
-- **Quality-Driven Loop**: 8-dimension scoring with 8 termination conditions
+- **Quality-Driven Loop**: 9-dimension scoring with 8 termination conditions
 - **Core Orchestration**: Python layer for loop management, PAL integration, and skill learning
 - **Signal-Based Architecture**: Structured communication between components
 
