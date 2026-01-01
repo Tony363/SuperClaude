@@ -265,7 +265,13 @@ class LearningLoopOrchestrator(LoopOrchestrator):
     def _record_skill_effectiveness(self, result: LoopResult) -> None:
         """Record how effective the applied skills were."""
         final_quality = result.final_assessment.overall_score
-        quality_impact = final_quality - self._initial_quality
+        # Get initial quality from first iteration, or use 0 if no iterations
+        initial_quality = (
+            result.iteration_history[0].input_quality
+            if result.iteration_history
+            else 0.0
+        )
+        quality_impact = final_quality - initial_quality
         was_helpful = result.termination_reason == TerminationReason.QUALITY_MET
 
         for skill in self._applied_skills:
