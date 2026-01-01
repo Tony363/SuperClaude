@@ -14,8 +14,10 @@ Architecture:
 - Claude Code executes Skills and processes signals
 """
 
+from __future__ import annotations
+
 import time
-from typing import Any, Callable
+from typing import Any, Callable, Dict, Optional
 
 from .pal_integration import PALReviewSignal, incorporate_pal_feedback
 from .quality_assessment import QualityAssessor
@@ -53,7 +55,7 @@ class LoopOrchestrator:
     execute the sc-implement skill and return evidence.
     """
 
-    def __init__(self, config: LoopConfig | None = None):
+    def __init__(self, config: Optional[LoopConfig] = None):
         """
         Initialize the loop orchestrator.
 
@@ -268,7 +270,7 @@ class LoopOrchestrator:
         success: bool,
         termination: str,
         changed_files: list[str],
-        pal_signal: dict[str, Any] | None = None,
+        pal_signal: Optional[Dict[str, Any]] = None,
     ) -> None:
         """Record an iteration result."""
         input_quality = self.score_history[-2] if len(self.score_history) >= 2 else 0.0

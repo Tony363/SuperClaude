@@ -4,9 +4,11 @@ Core types for SuperClaude Loop Orchestration.
 Ported from archive/python-sdk-v5/Quality/quality_scorer.py
 """
 
+from __future__ import annotations
+
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any
+from typing import Any, Dict, Optional
 
 
 class TerminationReason(Enum):
@@ -49,7 +51,7 @@ class LoopConfig:
     quality_threshold: float = 70.0
     oscillation_window: int = 3
     stagnation_threshold: float = 2.0
-    timeout_seconds: float | None = None
+    timeout_seconds: Optional[float] = None
     pal_review_enabled: bool = True
     pal_model: str = "gpt-5"
 
@@ -107,7 +109,7 @@ class IterationResult:
     time_taken: float = 0.0
     success: bool = False
     termination_reason: str = ""
-    pal_review: dict[str, Any] | None = None
+    pal_review: Optional[Dict[str, Any]] = None
     changed_files: list[str] = field(default_factory=list)
 
 
