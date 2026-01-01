@@ -28,41 +28,41 @@ def ask_multi_skill_path(skill_root: Path) -> Path:
 
 def parse_skill_frontmatter(skill_path: Path) -> dict[str, Any]:
     """Parse YAML frontmatter from a skill file.
-    
+
     Args:
         skill_path: Path to the SKILL.md file
-        
+
     Returns:
         Dictionary of frontmatter key-value pairs
     """
     content = skill_path.read_text()
-    
+
     # Match YAML frontmatter between --- delimiters
     match = re.match(r"^---\n(.*?)\n---", content, re.DOTALL)
     if not match:
         return {}
-    
+
     return yaml.safe_load(match.group(1)) or {}
 
 
 def parse_skill_sections(skill_path: Path) -> dict[str, str]:
     """Parse markdown sections from a skill file.
-    
+
     Args:
         skill_path: Path to the SKILL.md file
-        
+
     Returns:
         Dictionary mapping section headers to their content
     """
     content = skill_path.read_text()
-    
+
     # Remove frontmatter
     content = re.sub(r"^---\n.*?\n---\n", "", content, flags=re.DOTALL)
-    
+
     sections = {}
     current_header = None
     current_content = []
-    
+
     for line in content.split("\n"):
         if line.startswith("## "):
             if current_header:
@@ -77,8 +77,8 @@ def parse_skill_sections(skill_path: Path) -> dict[str, str]:
             current_content = [line[2:].strip()]
         elif current_header:
             current_content.append(line)
-    
+
     if current_header:
         sections[current_header] = "\n".join(current_content).strip()
-    
+
     return sections
