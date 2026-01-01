@@ -300,14 +300,10 @@ def create_learning_invoker_signal(
         signal["learned_context"] = {
             "skills_applied": len(learned_skills),
             "patterns_to_follow": [
-                pattern
-                for skill in learned_skills
-                for pattern in skill.get("patterns", [])
+                pattern for skill in learned_skills for pattern in skill.get("patterns", [])
             ],
             "patterns_to_avoid": [
-                pattern
-                for skill in learned_skills
-                for pattern in skill.get("anti_patterns", [])
+                pattern for skill in learned_skills for pattern in skill.get("anti_patterns", [])
             ],
         }
 
@@ -315,6 +311,7 @@ def create_learning_invoker_signal(
 
 
 # --- CLI Entry Point ---
+
 
 def run_learning_loop(
     task: str,
@@ -381,6 +378,7 @@ def run_learning_loop(
 
 # --- Utility Functions ---
 
+
 def list_pending_skills() -> List[Dict[str, Any]]:
     """List skills pending promotion review."""
     store = SkillStore()
@@ -428,9 +426,7 @@ def get_skill_stats() -> Dict[str, Any]:
     """).fetchone()
 
     # Count feedback
-    feedback_count = conn.execute(
-        "SELECT COUNT(*) FROM iteration_feedback"
-    ).fetchone()[0]
+    feedback_count = conn.execute("SELECT COUNT(*) FROM iteration_feedback").fetchone()[0]
 
     # Count applications
     app_stats = conn.execute("""
@@ -448,7 +444,6 @@ def get_skill_stats() -> Dict[str, Any]:
         "total_applications": app_stats["total"] or 0,
         "helpful_applications": app_stats["helpful"] or 0,
         "success_rate": (
-            (app_stats["helpful"] or 0) / app_stats["total"]
-            if app_stats["total"] else 0
+            (app_stats["helpful"] or 0) / app_stats["total"] if app_stats["total"] else 0
         ),
     }

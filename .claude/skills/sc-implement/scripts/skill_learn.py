@@ -67,16 +67,18 @@ def handle_list(args: dict[str, Any]) -> dict[str, Any]:
     skills = []
     for row in rows:
         skill = store._row_to_skill(row)
-        skills.append({
-            "skill_id": skill.skill_id,
-            "name": skill.name,
-            "domain": skill.domain,
-            "quality_score": skill.quality_score,
-            "promoted": skill.promoted,
-            "patterns_count": len(skill.patterns),
-            "learned_at": skill.learned_at,
-            "source_session": skill.source_session[:8] if skill.source_session else "",
-        })
+        skills.append(
+            {
+                "skill_id": skill.skill_id,
+                "name": skill.name,
+                "domain": skill.domain,
+                "quality_score": skill.quality_score,
+                "promoted": skill.promoted,
+                "patterns_count": len(skill.patterns),
+                "learned_at": skill.learned_at,
+                "source_session": skill.source_session[:8] if skill.source_session else "",
+            }
+        )
 
     return {
         "success": True,
@@ -208,8 +210,9 @@ def handle_stats(args: dict[str, Any]) -> dict[str, Any]:
             "unhelpful": app_stats["unhelpful"] or 0,
             "success_rate": round(
                 (app_stats["helpful"] or 0) / app_stats["total_applications"]
-                if app_stats["total_applications"] else 0,
-                2
+                if app_stats["total_applications"]
+                else 0,
+                2,
             ),
             "avg_quality_impact": round(app_stats["avg_impact"] or 0, 2),
         },
@@ -249,17 +252,19 @@ def handle_retrieve(args: dict[str, Any]) -> dict[str, Any]:
 
     skills = []
     for skill, score in results:
-        skills.append({
-            "skill_id": skill.skill_id,
-            "name": skill.name,
-            "relevance": round(score, 2),
-            "quality_score": skill.quality_score,
-            "domain": skill.domain,
-            "promoted": skill.promoted,
-            "patterns": skill.patterns[:3],
-            "anti_patterns": skill.anti_patterns[:2],
-            "conditions": skill.applicability_conditions,
-        })
+        skills.append(
+            {
+                "skill_id": skill.skill_id,
+                "name": skill.name,
+                "relevance": round(score, 2),
+                "quality_score": skill.quality_score,
+                "domain": skill.domain,
+                "promoted": skill.promoted,
+                "patterns": skill.patterns[:3],
+                "anti_patterns": skill.anti_patterns[:2],
+                "conditions": skill.applicability_conditions,
+            }
+        )
 
     return {
         "success": True,
@@ -316,17 +321,19 @@ def handle_pending(args: dict[str, Any]) -> dict[str, Any]:
         can_promote, reason = gate.evaluate(skill)
         effectiveness = store.get_skill_effectiveness(skill.skill_id)
 
-        skills.append({
-            "skill_id": skill.skill_id,
-            "name": skill.name,
-            "quality_score": skill.quality_score,
-            "domain": skill.domain,
-            "can_promote": can_promote,
-            "reason": reason,
-            "applications": effectiveness["applications"],
-            "success_rate": round(effectiveness["success_rate"], 2),
-            "learned_at": skill.learned_at,
-        })
+        skills.append(
+            {
+                "skill_id": skill.skill_id,
+                "name": skill.name,
+                "quality_score": skill.quality_score,
+                "domain": skill.domain,
+                "can_promote": can_promote,
+                "reason": reason,
+                "applications": effectiveness["applications"],
+                "success_rate": round(effectiveness["success_rate"], 2),
+                "learned_at": skill.learned_at,
+            }
+        )
 
     return {
         "success": True,
@@ -364,6 +371,7 @@ def handle_delete(args: dict[str, Any]) -> dict[str, Any]:
         skill_dir = Path.home() / ".claude" / "skills" / "learned" / skill.skill_id
         if skill_dir.exists():
             import shutil
+
             shutil.rmtree(skill_dir)
 
     return {
@@ -388,49 +396,69 @@ HANDLERS = {
 def main():
     """Main entry point."""
     if len(sys.argv) < 2:
-        print(json.dumps({
-            "success": False,
-            "error": "Usage: skill_learn.py '{\"command\": \"...\", ...}'",
-            "available_commands": list(HANDLERS.keys()),
-        }))
+        print(
+            json.dumps(
+                {
+                    "success": False,
+                    "error": 'Usage: skill_learn.py \'{"command": "...", ...}\'',
+                    "available_commands": list(HANDLERS.keys()),
+                }
+            )
+        )
         sys.exit(1)
 
     try:
         args = json.loads(sys.argv[1])
     except json.JSONDecodeError as e:
-        print(json.dumps({
-            "success": False,
-            "error": f"Invalid JSON: {e}",
-        }))
+        print(
+            json.dumps(
+                {
+                    "success": False,
+                    "error": f"Invalid JSON: {e}",
+                }
+            )
+        )
         sys.exit(1)
 
     command = args.get("command")
     if not command:
-        print(json.dumps({
-            "success": False,
-            "error": "Missing 'command' field",
-            "available_commands": list(HANDLERS.keys()),
-        }))
+        print(
+            json.dumps(
+                {
+                    "success": False,
+                    "error": "Missing 'command' field",
+                    "available_commands": list(HANDLERS.keys()),
+                }
+            )
+        )
         sys.exit(1)
 
     handler = HANDLERS.get(command)
     if not handler:
-        print(json.dumps({
-            "success": False,
-            "error": f"Unknown command: {command}",
-            "available_commands": list(HANDLERS.keys()),
-        }))
+        print(
+            json.dumps(
+                {
+                    "success": False,
+                    "error": f"Unknown command: {command}",
+                    "available_commands": list(HANDLERS.keys()),
+                }
+            )
+        )
         sys.exit(1)
 
     try:
         result = handler(args)
         print(json.dumps(result, indent=2))
     except Exception as e:
-        print(json.dumps({
-            "success": False,
-            "error": str(e),
-            "command": command,
-        }))
+        print(
+            json.dumps(
+                {
+                    "success": False,
+                    "error": str(e),
+                    "command": command,
+                }
+            )
+        )
         sys.exit(1)
 
 

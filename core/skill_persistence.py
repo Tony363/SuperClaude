@@ -116,7 +116,7 @@ This skill applies when:
 - **Learned At**: {self.learned_at}
 - **Quality Score**: {self.quality_score}/100
 - **Iterations**: {self.iteration_count}
-- **Promoted**: {self.promoted} ({self.promotion_reason or 'pending'})
+- **Promoted**: {self.promoted} ({self.promotion_reason or "pending"})
 
 ## Integration
 
@@ -169,9 +169,7 @@ class SkillStore:
         """Get thread-local database connection with WAL mode for concurrency."""
         if not hasattr(_local, "connection") or _local.connection is None:
             _local.connection = sqlite3.connect(
-                str(self.db_path),
-                check_same_thread=False,
-                timeout=30.0
+                str(self.db_path), check_same_thread=False, timeout=30.0
             )
             _local.connection.row_factory = sqlite3.Row
             # Enable WAL mode for better concurrent access
@@ -260,7 +258,8 @@ class SkillStore:
         """Save or update a learned skill. Returns True on success."""
         conn = self._get_connection()
         try:
-            conn.execute("""
+            conn.execute(
+                """
                 INSERT OR REPLACE INTO learned_skills (
                     skill_id, name, description, triggers, domain,
                     source_session, source_repo, learned_at, patterns,
@@ -268,25 +267,27 @@ class SkillStore:
                     provenance, applicability_conditions, promoted,
                     promotion_reason, updated_at
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (
-                skill.skill_id,
-                skill.name,
-                skill.description,
-                json.dumps(skill.triggers),
-                skill.domain,
-                skill.source_session,
-                skill.source_repo,
-                skill.learned_at,
-                json.dumps(skill.patterns),
-                json.dumps(skill.anti_patterns),
-                skill.quality_score,
-                skill.iteration_count,
-                json.dumps(skill.provenance),
-                json.dumps(skill.applicability_conditions),
-                1 if skill.promoted else 0,
-                skill.promotion_reason,
-                datetime.now(timezone.utc).isoformat()
-            ))
+            """,
+                (
+                    skill.skill_id,
+                    skill.name,
+                    skill.description,
+                    json.dumps(skill.triggers),
+                    skill.domain,
+                    skill.source_session,
+                    skill.source_repo,
+                    skill.learned_at,
+                    json.dumps(skill.patterns),
+                    json.dumps(skill.anti_patterns),
+                    skill.quality_score,
+                    skill.iteration_count,
+                    json.dumps(skill.provenance),
+                    json.dumps(skill.applicability_conditions),
+                    1 if skill.promoted else 0,
+                    skill.promotion_reason,
+                    datetime.now(timezone.utc).isoformat(),
+                ),
+            )
             conn.commit()
             return True
         except sqlite3.Error as e:
@@ -297,8 +298,7 @@ class SkillStore:
         """Retrieve a skill by ID."""
         conn = self._get_connection()
         row = conn.execute(
-            "SELECT * FROM learned_skills WHERE skill_id = ?",
-            (skill_id,)
+            "SELECT * FROM learned_skills WHERE skill_id = ?", (skill_id,)
         ).fetchone()
         return self._row_to_skill(row) if row else None
 
@@ -314,8 +314,7 @@ class SkillStore:
         """Get skills matching a domain."""
         conn = self._get_connection()
         rows = conn.execute(
-            "SELECT * FROM learned_skills WHERE domain = ? ORDER BY quality_score DESC",
-            (domain,)
+            "SELECT * FROM learned_skills WHERE domain = ? ORDER BY quality_score DESC", (domain,)
         ).fetchall()
         return [self._row_to_skill(row) for row in rows]
 
@@ -324,7 +323,7 @@ class SkillStore:
         query: str,
         domain: Optional[str] = None,
         min_quality: float = 70.0,
-        promoted_only: bool = False
+        promoted_only: bool = False,
     ) -> List[LearnedSkill]:
         """Search skills by trigger keywords and filters."""
         conn = self._get_connection()
@@ -372,7 +371,7 @@ class SkillStore:
             provenance=json.loads(row["provenance"] or "{}"),
             applicability_conditions=json.loads(row["applicability_conditions"] or "[]"),
             promoted=bool(row["promoted"]),
-            promotion_reason=row["promotion_reason"] or ""
+            promotion_reason=row["promotion_reason"] or "",
         )
 
     # --- Iteration Feedback ---
@@ -381,31 +380,37 @@ class SkillStore:
         """Record iteration feedback for learning. Returns True on success."""
         conn = self._get_connection()
         try:
-            conn.execute("""
+            conn.execute(
+                """
                 INSERT INTO iteration_feedback (
                     session_id, iteration, quality_before, quality_after,
                     improvements_applied, improvements_needed, changed_files,
                     test_results, duration_seconds, success, termination_reason,
                     timestamp
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (
-                feedback.session_id,
-                feedback.iteration,
-                feedback.quality_before,
-                feedback.quality_after,
-                json.dumps(feedback.improvements_applied),
-                json.dumps(feedback.improvements_needed),
-                json.dumps(feedback.changed_files),
-                json.dumps(feedback.test_results),
-                feedback.duration_seconds,
-                1 if feedback.success else 0,
-                feedback.termination_reason,
-                feedback.timestamp
-            ))
+            """,
+                (
+                    feedback.session_id,
+                    feedback.iteration,
+                    feedback.quality_before,
+                    feedback.quality_after,
+                    json.dumps(feedback.improvements_applied),
+                    json.dumps(feedback.improvements_needed),
+                    json.dumps(feedback.changed_files),
+                    json.dumps(feedback.test_results),
+                    feedback.duration_seconds,
+                    1 if feedback.success else 0,
+                    feedback.termination_reason,
+                    feedback.timestamp,
+                ),
+            )
             conn.commit()
             return True
         except sqlite3.Error as e:
-            print(f"[SkillStore] Failed to save feedback for session {feedback.session_id}: {e}", file=sys.stderr)
+            print(
+                f"[SkillStore] Failed to save feedback for session {feedback.session_id}: {e}",
+                file=sys.stderr,
+            )
             return False
 
     def get_session_feedback(self, session_id: str) -> list[IterationFeedback]:
@@ -413,7 +418,7 @@ class SkillStore:
         conn = self._get_connection()
         rows = conn.execute(
             "SELECT * FROM iteration_feedback WHERE session_id = ? ORDER BY iteration",
-            (session_id,)
+            (session_id,),
         ).fetchall()
         return [
             IterationFeedback(
@@ -428,7 +433,7 @@ class SkillStore:
                 duration_seconds=row["duration_seconds"],
                 success=bool(row["success"]),
                 termination_reason=row["termination_reason"] or "",
-                timestamp=row["timestamp"] or ""
+                timestamp=row["timestamp"] or "",
             )
             for row in rows
         ]
@@ -441,34 +446,41 @@ class SkillStore:
         session_id: str,
         was_helpful: Optional[bool] = None,
         quality_impact: Optional[float] = None,
-        feedback: str = ""
+        feedback: str = "",
     ) -> bool:
         """Record when a skill was applied and its effectiveness. Returns True on success."""
         conn = self._get_connection()
         try:
-            conn.execute("""
+            conn.execute(
+                """
                 INSERT INTO skill_applications (
                     skill_id, session_id, applied_at, was_helpful,
                     quality_impact, feedback
                 ) VALUES (?, ?, ?, ?, ?, ?)
-            """, (
-                skill_id,
-                session_id,
-                datetime.now(timezone.utc).isoformat(),
-                1 if was_helpful else (0 if was_helpful is False else None),
-                quality_impact,
-                feedback
-            ))
+            """,
+                (
+                    skill_id,
+                    session_id,
+                    datetime.now(timezone.utc).isoformat(),
+                    1 if was_helpful else (0 if was_helpful is False else None),
+                    quality_impact,
+                    feedback,
+                ),
+            )
             conn.commit()
             return True
         except sqlite3.Error as e:
-            print(f"[SkillStore] Failed to record application for skill {skill_id}: {e}", file=sys.stderr)
+            print(
+                f"[SkillStore] Failed to record application for skill {skill_id}: {e}",
+                file=sys.stderr,
+            )
             return False
 
     def get_skill_effectiveness(self, skill_id: str) -> Dict[str, Any]:
         """Calculate skill effectiveness metrics."""
         conn = self._get_connection()
-        row = conn.execute("""
+        row = conn.execute(
+            """
             SELECT
                 COUNT(*) as applications,
                 SUM(CASE WHEN was_helpful = 1 THEN 1 ELSE 0 END) as helpful_count,
@@ -476,17 +488,18 @@ class SkillStore:
                 AVG(quality_impact) as avg_quality_impact
             FROM skill_applications
             WHERE skill_id = ?
-        """, (skill_id,)).fetchone()
+        """,
+            (skill_id,),
+        ).fetchone()
 
         return {
             "applications": row["applications"] or 0,
             "helpful_count": row["helpful_count"] or 0,
             "unhelpful_count": row["unhelpful_count"] or 0,
             "success_rate": (
-                (row["helpful_count"] or 0) / row["applications"]
-                if row["applications"] else 0
+                (row["helpful_count"] or 0) / row["applications"] if row["applications"] else 0
             ),
-            "avg_quality_impact": row["avg_quality_impact"] or 0.0
+            "avg_quality_impact": row["avg_quality_impact"] or 0.0,
         }
 
     def get_bulk_skill_effectiveness(self, skill_ids: List[str]) -> Dict[str, Dict[str, Any]]:
@@ -501,7 +514,8 @@ class SkillStore:
 
         conn = self._get_connection()
         placeholders = ",".join("?" for _ in skill_ids)
-        rows = conn.execute(f"""
+        rows = conn.execute(
+            f"""
             SELECT
                 skill_id,
                 COUNT(*) as applications,
@@ -511,7 +525,9 @@ class SkillStore:
             FROM skill_applications
             WHERE skill_id IN ({placeholders})
             GROUP BY skill_id
-        """, skill_ids).fetchall()
+        """,
+            skill_ids,
+        ).fetchall()
 
         results: Dict[str, Dict[str, Any]] = {}
         for row in rows:
@@ -522,7 +538,7 @@ class SkillStore:
                 "helpful_count": helpful,
                 "unhelpful_count": row["unhelpful_count"] or 0,
                 "success_rate": helpful / apps if apps else 0,
-                "avg_quality_impact": row["avg_quality_impact"] or 0.0
+                "avg_quality_impact": row["avg_quality_impact"] or 0.0,
             }
 
         # Fill in missing skill_ids with default values
@@ -533,7 +549,7 @@ class SkillStore:
                     "helpful_count": 0,
                     "unhelpful_count": 0,
                     "success_rate": 0,
-                    "avg_quality_impact": 0.0
+                    "avg_quality_impact": 0.0,
                 }
 
         return results
@@ -553,10 +569,7 @@ class SkillExtractor:
         self.store = store
 
     def extract_from_session(
-        self,
-        session_id: str,
-        repo_path: str = "",
-        domain: str = "general"
+        self, session_id: str, repo_path: str = "", domain: str = "general"
     ) -> Optional[LearnedSkill]:
         """
         Extract a learned skill from a completed session.
@@ -610,11 +623,11 @@ class SkillExtractor:
                     for f in feedback_list
                 ],
                 "total_duration": sum(f.duration_seconds for f in feedback_list),
-                "termination_reason": final_feedback.termination_reason
+                "termination_reason": final_feedback.termination_reason,
             },
             applicability_conditions=conditions,
             promoted=False,
-            promotion_reason=""
+            promotion_reason="",
         )
 
     def _extract_patterns(self, feedback_list: list[IterationFeedback]) -> list[str]:
@@ -702,10 +715,7 @@ class SkillExtractor:
             conditions.append(f"File types: {', '.join(sorted(extensions))}")
 
         # Analyze test presence
-        had_tests = any(
-            feedback.test_results.get("ran", False)
-            for feedback in feedback_list
-        )
+        had_tests = any(feedback.test_results.get("ran", False) for feedback in feedback_list)
         if had_tests:
             conditions.append("Project has test suite")
 
@@ -749,7 +759,7 @@ class SkillRetriever:
         file_paths: Optional[List[str]] = None,
         domain: Optional[str] = None,
         max_skills: int = 3,
-        promoted_only: bool = True
+        promoted_only: bool = True,
     ) -> List[Tuple[LearnedSkill, float]]:
         """
         Retrieve relevant skills for a task.
@@ -764,7 +774,7 @@ class SkillRetriever:
             query=" ".join(search_terms),
             domain=domain,
             min_quality=50.0,
-            promoted_only=promoted_only
+            promoted_only=promoted_only,
         )
 
         if not candidates:
@@ -787,11 +797,7 @@ class SkillRetriever:
 
         return scored[:max_skills]
 
-    def _extract_search_terms(
-        self,
-        task_description: str,
-        file_paths: Optional[List[str]]
-    ) -> set:
+    def _extract_search_terms(self, task_description: str, file_paths: Optional[List[str]]) -> set:
         """Extract search terms from task context."""
         terms = set()
 
@@ -820,7 +826,7 @@ class SkillRetriever:
         skill: LearnedSkill,
         search_terms: set,
         file_paths: Optional[List[str]],
-        effectiveness: Optional[Dict[str, Any]] = None
+        effectiveness: Optional[Dict[str, Any]] = None,
     ) -> float:
         """Score skill relevance to current context."""
         score = 0.0
@@ -959,16 +965,20 @@ class PromotionGate:
     def list_pending(self) -> List[LearnedSkill]:
         """List skills pending promotion review."""
         conn = self.store._get_connection()
-        rows = conn.execute("""
+        rows = conn.execute(
+            """
             SELECT * FROM learned_skills
             WHERE promoted = 0 AND quality_score >= ?
             ORDER BY quality_score DESC
-        """, (self.MIN_QUALITY_SCORE - 10,)).fetchall()
+        """,
+            (self.MIN_QUALITY_SCORE - 10,),
+        ).fetchall()
 
         return [self.store._row_to_skill(row) for row in rows]
 
 
 # --- Convenience Functions ---
+
 
 def get_default_store() -> SkillStore:
     """Get the default skill store instance."""
@@ -976,10 +986,7 @@ def get_default_store() -> SkillStore:
 
 
 def learn_from_session(
-    session_id: str,
-    repo_path: str = "",
-    domain: str = "general",
-    auto_promote: bool = False
+    session_id: str, repo_path: str = "", domain: str = "general", auto_promote: bool = False
 ) -> Optional[LearnedSkill]:
     """
     Convenience function to extract and optionally promote a skill from a session.
@@ -1012,9 +1019,7 @@ def learn_from_session(
 
 
 def retrieve_skills_for_task(
-    task_description: str,
-    file_paths: Optional[List[str]] = None,
-    domain: Optional[str] = None
+    task_description: str, file_paths: Optional[List[str]] = None, domain: Optional[str] = None
 ) -> List[LearnedSkill]:
     """
     Convenience function to retrieve relevant skills for a task.
@@ -1035,7 +1040,7 @@ def retrieve_skills_for_task(
         task_description=task_description,
         file_paths=file_paths,
         domain=domain,
-        promoted_only=False  # Include non-promoted for now
+        promoted_only=False,  # Include non-promoted for now
     )
 
     return [skill for skill, _score in results]
