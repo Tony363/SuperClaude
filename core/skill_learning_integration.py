@@ -267,9 +267,7 @@ class LearningLoopOrchestrator(LoopOrchestrator):
         final_quality = result.final_assessment.overall_score
         # Get initial quality from first iteration, or use 0 if no iterations
         initial_quality = (
-            result.iteration_history[0].input_quality
-            if result.iteration_history
-            else 0.0
+            result.iteration_history[0].input_quality if result.iteration_history else 0.0
         )
         quality_impact = final_quality - initial_quality
         was_helpful = result.termination_reason == TerminationReason.QUALITY_MET
