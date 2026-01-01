@@ -68,6 +68,26 @@ Key behaviors:
 # Guided merge with conflict resolution assistance
 ```
 
+## Auto Branch Cleanup
+
+SuperClaude includes automatic branch cleanup after PR merges.
+
+### Remote Branches (GitHub Setting)
+Enable in your GitHub repo: **Settings → General → Pull Requests → "Automatically delete head branches"**
+
+### Local Branches (Git Hook)
+A post-merge hook automatically deletes local branches after `git pull` when:
+- The branch is fully merged into main
+- The remote tracking branch was deleted (PR merged)
+- The branch is NOT protected (main, master, develop)
+
+**Setup (one-time):**
+```bash
+git config core.hooksPath .githooks
+```
+
+The hook is at `.githooks/post-merge` and runs automatically on every `git pull`.
+
 ## Boundaries
 
 **Will:**
