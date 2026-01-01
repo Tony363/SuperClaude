@@ -25,6 +25,7 @@ SuperClaude transforms Claude Code into a powerful development platform with spe
 - [Command System](#command-system)
 - [MCP Integrations](#mcp-integrations)
 - [Skills System](#skills-system)
+- [Quality System](#quality-system)
 - [Configuration](#configuration)
 - [Directory Structure](#directory-structure)
 - [Creating Custom Agents](#creating-custom-agents)
@@ -39,7 +40,7 @@ SuperClaude is a meta-prompt framework that enhances Claude Code with:
 - **130+ Specialized Agents**: 16 core + 114 extended agents across 10 categories
 - **127 Claude Skills**: Agent personas and command workflows in `.claude/skills/`
 - **13 Structured Commands**: analyze, implement, test, design, document, and more
-- **MCP Integration Guides**: Rube (500+ apps), PAL (consensus & code review), LinkUp (web search)
+- **MCP Integration Guides**: PAL (11 tools for consensus, code review, debugging), Rube (500+ apps), LinkUp (web search)
 - **Pure Config**: No Python runtime - Claude Code reads prompts directly
 - **Easy Extension**: Add new agents by creating markdown files
 
@@ -74,16 +75,16 @@ SuperClaude v6.0.0 is a **config-first hybrid framework**:
 
 | Category | Count | Examples |
 |----------|-------|----------|
-| Core Development | 16 | Fullstack Developer, API Designer, Backend Developer |
+| Core Development | 10 | API Designer, Backend Developer, Mobile Developer |
 | Language Specialists | 23 | Python Pro, TypeScript Pro, Rust Engineer |
-| Infrastructure | 11 | Cloud Architect, Kubernetes Specialist, SRE Engineer |
+| Infrastructure | 12 | Cloud Architect, Kubernetes Specialist, SRE Engineer |
 | Quality & Security | 12 | Code Reviewer, Security Auditor, Chaos Engineer |
-| Data & AI | 11 | Data Scientist, ML Engineer, LLM Architect |
+| Data & AI | 12 | Data Scientist, ML Engineer, LLM Architect |
 | Developer Experience | 10 | CLI Developer, DX Optimizer, Git Workflow Manager |
 | Specialized Domains | 11 | Blockchain Developer, IoT Engineer, Game Developer |
 | Business & Product | 10 | Product Manager, Scrum Master, UX Researcher |
-| Meta Orchestration | 8 | Agent Organizer, Context Manager, Workflow Coordinator |
-| Research & Analysis | 8 | Data Researcher, Competitive Analyst, Tech Scout |
+| Meta Orchestration | 8 | Agent Organizer, Context Manager, Workflow Orchestrator |
+| Research & Analysis | 6 | Data Researcher, Competitive Analyst, Trend Analyst |
 
 ### Command System
 
@@ -102,6 +103,7 @@ SuperClaude v6.0.0 is a **config-first hybrid framework**:
 /sc:git        - Git operations and workflows
 /sc:workflow   - Multi-step task orchestration
 /sc:estimate   - Effort estimation and planning
+/sc:cicd-setup - CI/CD workflow and pre-commit generation
 ```
 
 ---
@@ -110,22 +112,50 @@ SuperClaude v6.0.0 is a **config-first hybrid framework**:
 
 ### How SuperClaude Works
 
-```
-User Request
-    │
-    ▼
-┌─────────────────────────────────────────────────────────────┐
-│                    Claude Code (Runtime)                     │
-├─────────────────────────────────────────────────────────────┤
-│  Loads CLAUDE.md → Reads agents/index.yaml → Selects Agent  │
-│  Uses agent persona → Leverages MCP tools as needed          │
-└─────────────────────────────────────────────────────────────┘
-    │                           │                    │
-    ▼                           ▼                    ▼
-┌─────────┐              ┌──────────┐         ┌──────────────┐
-│ agents/ │              │ commands/│         │     mcp/     │
-│ *.md    │              │  *.md    │         │   guides     │
-└─────────┘              └──────────┘         └──────────────┘
+```mermaid
+flowchart TB
+    subgraph User["🧑‍💻 User Layer"]
+        REQ[User Request]
+    end
+
+    subgraph Runtime["⚡ Claude Code Runtime"]
+        CLAUDE["CLAUDE.md<br/>Master System Prompt"]
+        SELECT["Agent Selection<br/>Semantic Matching"]
+        EXEC["Task Execution"]
+    end
+
+    subgraph Config["📁 Configuration Layer"]
+        AGENTS[("agents/<br/>130+ Personas")]
+        COMMANDS[("commands/<br/>13 Templates")]
+        SKILLS[(".claude/skills/<br/>127 Skills")]
+    end
+
+    subgraph Quality["✅ Quality Gates"]
+        SCORE["Quality Scoring<br/>8 Dimensions"]
+        LOOP["Iterative Loop<br/>Max 5 Iterations"]
+    end
+
+    subgraph MCP["🔌 MCP Integrations"]
+        PAL["PAL MCP<br/>11 Tools"]
+        RUBE["Rube MCP<br/>500+ Apps"]
+        LINKUP["LinkUp<br/>Web Search"]
+    end
+
+    REQ --> CLAUDE
+    CLAUDE --> SELECT
+    SELECT --> AGENTS
+    SELECT --> COMMANDS
+    SELECT --> EXEC
+    EXEC --> SKILLS
+    EXEC --> Quality
+    SCORE --> LOOP
+    EXEC <--> MCP
+
+    style User fill:#e8f5e9
+    style Runtime fill:#e3f2fd
+    style Config fill:#fff3e0
+    style Quality fill:#fce4ec
+    style MCP fill:#f3e5f5
 ```
 
 ### File-Based Configuration
@@ -249,12 +279,43 @@ Specialized agents across 10 categories in `agents/extended/`:
 
 ### Agent Selection
 
-Agents are selected based on weighted matching:
+Agents are selected using semantic matching with weighted priorities:
+
+```mermaid
+flowchart TD
+    START["🎯 User Request"] --> PARSE["Parse Keywords & Context"]
+
+    PARSE --> TRIGGER{"Trigger<br/>Match?"}
+    TRIGGER -->|"✓ Yes"| CORE{"Core<br/>Agent?"}
+    TRIGGER -->|"✗ No"| FILE{"File<br/>Context?"}
+
+    CORE -->|"Yes"| USE_CORE["Load Core Agent<br/>(16 available)"]
+    CORE -->|"No"| USE_EXT["Load Extended Agent<br/>(114 available)"]
+
+    FILE -->|".py files"| PYTHON["🐍 Python Expert"]
+    FILE -->|".ts/.js"| TS["📘 TypeScript Pro"]
+    FILE -->|".go files"| GO["🔷 Golang Pro"]
+    FILE -->|".rs files"| RUST["🦀 Rust Engineer"]
+    FILE -->|"Other"| GENERAL["General Purpose"]
+
+    USE_CORE --> EXEC["⚡ Execute Task"]
+    USE_EXT --> EXEC
+    PYTHON --> EXEC
+    TS --> EXEC
+    GO --> EXEC
+    RUST --> EXEC
+    GENERAL --> EXEC
+
+    style START fill:#4caf50,color:#fff
+    style EXEC fill:#2196f3,color:#fff
+```
+
+**Selection Weights:**
 
 ```yaml
 selection:
   weights:
-    trigger_match: 0.35      # Keyword triggers
+    trigger_match: 0.35      # Keyword triggers (highest priority)
     category_match: 0.25     # Category alignment
     description_match: 0.20  # Description relevance
     tool_match: 0.20         # Required tool availability
@@ -282,52 +343,135 @@ flags: [--loop, --tests, --docs]
 [Structured implementation methodology...]
 ```
 
+### Command Execution Flow
+
+```mermaid
+sequenceDiagram
+    participant U as 👤 User
+    participant C as ⚡ Claude Code
+    participant CMD as 📋 Command Template
+    participant A as 🤖 Agent Persona
+    participant Q as ✅ Quality Gate
+
+    U->>C: /sc:implement feature --loop
+    C->>CMD: Load implement.md template
+    CMD->>A: Activate relevant personas
+
+    rect rgb(230, 245, 255)
+        note over A,Q: Iterative Improvement Loop (max 5)
+        loop Quality Target: 70+
+            A->>A: Execute implementation
+            A->>Q: Assess quality score
+            alt Score >= 70
+                Q-->>A: ✓ Pass - Exit loop
+            else Score < 70
+                Q-->>A: ↻ Iterate with improvements
+            end
+        end
+    end
+
+    A->>C: Return with evidence
+    C->>U: Implementation + quality report
+```
+
 ### Available Commands
 
 | Command | Description | Key Flags |
 |---------|-------------|-----------|
-| analyze | Static analysis and risk assessment | --security, --deep |
-| implement | Feature implementation | --loop, --tests |
-| test | Test generation and coverage | --coverage, --mutation |
-| design | Architecture and system design | --adr, --diagrams |
-| document | Documentation generation | --api, --user |
-| brainstorm | Creative ideation | --diverge, --converge |
-| explain | Educational explanations | --depth, --examples |
-| improve | Code improvement | --perf, --readability |
-| build | Build and compilation | --watch, --clean |
-| git | Git operations | --conventional, --rebase |
-| workflow | Multi-step orchestration | --parallel, --checkpoint |
+| analyze | Static analysis and risk assessment | --security, --deep, --performance |
+| implement | Feature implementation | --loop, --pal-review, --consensus |
+| test | Test generation and coverage | --coverage, --unit, --integration |
+| design | Architecture and system design | --adr, --diagram, --review |
+| document | Documentation generation | --api, --readme, --changelog |
+| brainstorm | Creative ideation | --divergent, --constraints |
+| explain | Educational explanations | --verbose, --simple, --diagram |
+| improve | Code improvement | --performance, --readability, --security |
+| build | Build and compilation | --watch, --production, --docker |
+| git | Git operations | --commit, --pr, --branch |
+| workflow | Multi-step orchestration | --spec, --parallel |
 | estimate | Effort estimation | --breakdown, --risks |
+| cicd-setup | CI/CD workflow generation | --lang, --minimal, --full |
 
 ---
 
 ## MCP Integrations
 
-SuperClaude includes integration guides for key MCP servers:
+SuperClaude integrates with powerful MCP servers for enhanced capabilities:
 
-### PAL MCP
+```mermaid
+flowchart TB
+    subgraph PAL["🧠 PAL MCP - 11 Collaborative Tools"]
+        direction LR
+        P1["chat"]
+        P2["thinkdeep"]
+        P3["planner"]
+        P4["consensus"]
+        P5["codereview"]
+        P6["precommit"]
+        P7["debug"]
+        P8["challenge"]
+        P9["apilookup"]
+        P10["listmodels"]
+        P11["clink"]
+    end
 
-Multi-model consensus and code review:
+    subgraph Rube["🔌 Rube MCP - 500+ App Integrations"]
+        direction LR
+        R1["SEARCH_TOOLS"]
+        R2["MULTI_EXECUTE"]
+        R3["CREATE_PLAN"]
+        R4["MANAGE_CONNECTIONS"]
+        R5["REMOTE_WORKBENCH"]
+    end
 
-- **chat** - General discussion with external models
-- **codereview** - Systematic code review
-- **consensus** - Multi-model decision making
-- **debug** - Deep debugging analysis
-- **precommit** - Pre-commit validation
+    subgraph LinkUp["🔍 LinkUp - Web Search"]
+        L1["Deep Web Search"]
+        L2["Sourced Answers"]
+    end
+
+    TASK["SuperClaude Task"] --> PAL
+    TASK --> Rube
+    TASK --> LinkUp
+
+    style PAL fill:#e3f2fd
+    style Rube fill:#fce4ec
+    style LinkUp fill:#e8f5e9
+```
+
+### PAL MCP (11 Tools)
+
+Collaborative intelligence for code review, debugging, and multi-model consensus:
+
+| Tool | Purpose |
+|------|---------|
+| `mcp__pal__chat` | General collaborative thinking with external models |
+| `mcp__pal__thinkdeep` | Multi-stage investigation and hypothesis testing |
+| `mcp__pal__planner` | Interactive sequential planning with revision |
+| `mcp__pal__consensus` | Multi-model decision making through structured debate |
+| `mcp__pal__codereview` | Systematic code review with expert validation |
+| `mcp__pal__precommit` | Git change validation before committing |
+| `mcp__pal__debug` | Systematic debugging and root cause analysis |
+| `mcp__pal__challenge` | Critical thinking when statements are challenged |
+| `mcp__pal__apilookup` | Current API/SDK documentation lookup |
+| `mcp__pal__listmodels` | List available AI models and capabilities |
+| `mcp__pal__clink` | Link to external AI CLIs (Gemini, Codex, etc.) |
 
 ### Rube MCP (Composio)
 
-500+ app integrations:
+500+ app integrations for workflow automation:
 
-- GitHub, GitLab, Bitbucket
-- Slack, Discord, Teams
-- Jira, Linear, Notion
-- Gmail, Calendar, Drive
-- And 490+ more
+| Category | Examples |
+|----------|----------|
+| **Development** | GitHub, GitLab, Bitbucket, Linear |
+| **Communication** | Slack, Discord, Teams, Email |
+| **Productivity** | Notion, Jira, Asana, Trello |
+| **Google Workspace** | Gmail, Calendar, Drive, Sheets |
+| **Microsoft** | Outlook, Teams, OneDrive |
+| **AI Tools** | Various AI services and APIs |
 
 ### LinkUp Search
 
-Web search capabilities for current information.
+Web search capabilities for real-time information and research.
 
 ---
 
@@ -335,12 +479,53 @@ Web search capabilities for current information.
 
 SuperClaude includes 127 Claude Code skills in `.claude/skills/`:
 
+```mermaid
+classDiagram
+    class Skill {
+        +name: string
+        +description: string
+        +SKILL.md: file
+    }
+
+    class AgentSkill {
+        +persona: markdown
+        +triggers: list
+        +category: string
+        114 skills
+    }
+
+    class CommandSkill {
+        +template: markdown
+        +flags: list
+        +scripts/: optional
+        13 skills
+    }
+
+    class ToolScript {
+        +run_tests.py
+        +evidence_gate.py
+        +select_agent.py
+    }
+
+    Skill <|-- AgentSkill
+    Skill <|-- CommandSkill
+    CommandSkill *-- ToolScript : optional
+
+    class ClaudeCode {
+        +reads SKILL.md
+        +invokes tools
+    }
+
+    ClaudeCode --> Skill : semantic selection
+    ClaudeCode --> ToolScript : executes
+```
+
 ### Skill Types
 
 | Type | Count | Purpose |
 |------|-------|---------|
-| Agent Skills (`agent-*`) | 120+ | Specialized personas for different domains |
-| Command Skills (`sc-*`) | 7 | Structured workflow implementations |
+| Agent Skills (`agent-*`) | 114 | Specialized personas for different domains |
+| Command Skills (`sc-*`) | 13 | Structured workflow implementations |
 
 ### Skill Architecture
 
@@ -372,24 +557,87 @@ Skills are invoked via:
 
 ---
 
+## Quality System
+
+SuperClaude uses an 8-dimension quality scoring system for iterative improvement:
+
+```mermaid
+flowchart LR
+    subgraph Dimensions["📊 Quality Dimensions"]
+        C["Correctness<br/>25%"]
+        CO["Completeness<br/>20%"]
+        P["Performance<br/>10%"]
+        M["Maintainability<br/>10%"]
+        S["Security<br/>10%"]
+        SC["Scalability<br/>10%"]
+        T["Testability<br/>10%"]
+        U["Usability<br/>5%"]
+    end
+
+    subgraph Thresholds["🎯 Score Thresholds"]
+        E["90+ Excellent<br/>Fast Track ✓"]
+        G["70-89 Good<br/>Approved ✓"]
+        A["50-69 Acceptable<br/>Iterate ↻"]
+        F["0-49 Poor<br/>Escalate ⚠"]
+    end
+
+    Dimensions -->|"Weighted<br/>Average"| Thresholds
+
+    style E fill:#4caf50,color:#fff
+    style G fill:#8bc34a
+    style A fill:#ffeb3b
+    style F fill:#f44336,color:#fff
+```
+
+### Quality Dimensions
+
+| Dimension | Weight | Description |
+|-----------|--------|-------------|
+| Correctness | 25% | Code works as intended, passes tests |
+| Completeness | 20% | All requirements addressed, edge cases handled |
+| Performance | 10% | Time/space complexity, resource efficiency |
+| Maintainability | 10% | Readability, modularity, naming conventions |
+| Security | 10% | Input validation, authentication, data protection |
+| Scalability | 10% | Architectural patterns, growth capability |
+| Testability | 10% | Unit/integration test coverage and quality |
+| Usability | 5% | UI consistency, error messages, accessibility |
+
+### Iterative Improvement
+
+When `--loop` is enabled:
+
+1. **Execute** - Run implementation
+2. **Assess** - Calculate quality score
+3. **Iterate** - If score < 70, improve and retry
+4. **Maximum** - 5 iterations before escalation
+
+---
+
 ## Configuration
 
 ### config/quality.yaml
 
-Quality thresholds and scoring:
+Quality dimensions and scoring configuration:
 
 ```yaml
-quality:
-  minimum_score: 0.7
-  stages:
-    - name: syntax
-      weight: 0.2
-    - name: security
-      weight: 0.3
-    - name: performance
-      weight: 0.25
-    - name: maintainability
-      weight: 0.25
+dimensions:
+  correctness:
+    weight: 0.25
+    description: Code works as intended
+  completeness:
+    weight: 0.20
+    description: All requirements addressed
+  performance:
+    weight: 0.10
+    description: Efficiency and optimization
+  # ... 5 more dimensions
+
+scoring:
+  thresholds:
+    excellent: 90
+    good: 70
+    acceptable: 50
+    poor: 30
 ```
 
 ### config/models.yaml
