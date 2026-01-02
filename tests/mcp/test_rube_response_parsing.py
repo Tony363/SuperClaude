@@ -7,13 +7,9 @@ Validates the signal→call→response→state pipeline for Rube tools:
 - mcp__rube__RUBE_MANAGE_CONNECTIONS
 """
 
-import pytest
 
 from tests.mcp.conftest import (
     FakeMCPResponse,
-    FakeMCPServer,
-    FakeRubeMultiExecuteResponse,
-    FakeRubeSearchToolsResponse,
 )
 
 

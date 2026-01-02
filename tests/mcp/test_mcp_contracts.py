@@ -7,15 +7,11 @@ Validates JSON schema / typed contracts for:
 These tests run without a model, without Claude; just parser + adapter validation.
 """
 
-import pytest
 
 from tests.mcp.conftest import (
     FakeMCPResponse,
     FakeMCPServer,
-    FakePALCodeReviewResponse,
-    FakePALDebugResponse,
     FakeRubeMultiExecuteResponse,
-    FakeRubeSearchToolsResponse,
 )
 
 

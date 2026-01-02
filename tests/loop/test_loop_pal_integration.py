@@ -8,17 +8,10 @@ Validates that PAL feedback is correctly:
 
 from unittest.mock import patch
 
-import pytest
-
 from core.loop_orchestrator import LoopOrchestrator
 from core.pal_integration import PALReviewSignal, incorporate_pal_feedback
 from core.types import LoopConfig, QualityAssessment, TerminationReason
-from tests.loop.conftest import FixtureAssessor, FixtureSkillInvoker
-from tests.mcp.conftest import (
-    FakeMCPServer,
-    FakePALCodeReviewResponse,
-    FakePALDebugResponse,
-)
+from tests.loop.conftest import FixtureAssessor
 
 
 class TestPALReviewSignalDuringLoop:
@@ -528,7 +521,7 @@ class TestE2EPALFeedbackPipeline:
 
         with patch.object(orchestrator, "assessor", assessor), \
              patch.object(orchestrator, "_record_iteration", patched_record):
-            result = orchestrator.run({"task": "test"}, invoker)
+            orchestrator.run({"task": "test"}, invoker)
 
         assert len(contexts_captured) == 3
 

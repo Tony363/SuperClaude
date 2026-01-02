@@ -11,17 +11,16 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Callable, Optional
 
 import pytest
 
-from core.types import LoopConfig, QualityAssessment, TerminationReason
+from core.types import LoopConfig, QualityAssessment
 
 # Import MCP fixtures for integration tests
 # Using direct import instead of pytest_plugins to avoid double-registration
 # when running tests across both directories
 try:
-    from tests.mcp.conftest import (
+    from tests.mcp.conftest import (  # noqa: F401
         FakeMCPServer,
         FakePALCodeReviewResponse,
         FakePALDebugResponse,

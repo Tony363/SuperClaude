@@ -13,7 +13,6 @@ from __future__ import annotations
 import json
 import logging
 import os
-from typing import Any, Optional
 
 import pytest
 
@@ -91,35 +90,6 @@ CANONICAL_RUBE_REQUESTS = {
         "toolkits": ["slack", "github"],
     },
 }
-
-
-def invoke_real_mcp(tool_name: str, request_body: dict) -> Optional[dict]:
-    """
-    Invoke a real MCP tool and return the response.
-
-    This is a placeholder that should be replaced with actual MCP invocation
-    logic when running live tests.
-
-    In a real implementation, this would:
-    1. Use Claude Code's MCP infrastructure
-    2. Handle authentication
-    3. Manage timeouts and retries
-
-    Returns:
-        The response dict from the MCP tool, or None if unavailable.
-    """
-    # Check if we're in a live test environment
-    if not os.environ.get("MCP_LIVE_TESTING_ENABLED"):
-        return None
-
-    # Placeholder - in production, this would invoke the actual MCP tool
-    # via Claude Code's infrastructure
-    #
-    # Example implementation outline:
-    # from claude_code.mcp import invoke_tool
-    # return invoke_tool(tool_name, request_body, timeout=30)
-    #
-    return None
 
 
 class TestContractHelpers:
@@ -430,20 +400,21 @@ class TestSchemaDocumentation:
             CANONICAL_PAL_REQUESTS["mcp__pal__codereview"],
         )
 
-        # This test serves as documentation of the expected schema
-        expected_schema = {
-            "success": bool,
-            "data": {
-                "issues_found": list,  # List of {severity, description}
-                "review_type": str,  # "quick", "full", "security"
-                "step_number": int,
-                "total_steps": int,
-                "next_step_required": bool,
-                "findings": str,
-                "confidence": str,  # "exploring" to "certain"
-                "relevant_files": list,
-            },
-        }
+        # This test serves as documentation of the expected schema.
+        # Schema definition kept inline as reference:
+        # {
+        #     "success": bool,
+        #     "data": {
+        #         "issues_found": list,  # List of {severity, description}
+        #         "review_type": str,  # "quick", "full", "security"
+        #         "step_number": int,
+        #         "total_steps": int,
+        #         "next_step_required": bool,
+        #         "findings": str,
+        #         "confidence": str,  # "exploring" to "certain"
+        #         "relevant_files": list,
+        #     },
+        # }
 
         # Verify structure matches documentation
         assert isinstance(response["success"], bool)
@@ -458,15 +429,15 @@ class TestSchemaDocumentation:
             CANONICAL_RUBE_REQUESTS["mcp__rube__RUBE_SEARCH_TOOLS"],
         )
 
-        # Expected schema documentation
-        expected_schema = {
-            "success": bool,
-            "data": {
-                "tools": list,  # List of {tool_slug, description, input_schema}
-                "session_id": str,
-                "total_tools": int,
-            },
-        }
+        # Expected schema documentation:
+        # {
+        #     "success": bool,
+        #     "data": {
+        #         "tools": list,  # List of {tool_slug, description, input_schema}
+        #         "session_id": str,
+        #         "total_tools": int,
+        #     },
+        # }
 
         # Verify structure
         assert isinstance(response["success"], bool)

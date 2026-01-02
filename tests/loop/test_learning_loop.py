@@ -8,7 +8,6 @@ This addresses P0-2: LearningLoopOrchestrator completely untested.
 
 from __future__ import annotations
 
-from typing import Any, Dict
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -16,7 +15,6 @@ import pytest
 from core.skill_learning_integration import LearningLoopOrchestrator
 from core.types import (
     LoopConfig,
-    LoopResult,
     TerminationReason,
 )
 from tests.loop.conftest import FixtureAssessor, FixtureSkillInvoker
@@ -212,7 +210,7 @@ class TestRecordAllFeedback:
 
     def test_feedback_saved_for_each_iteration(self, patched_skill_dependencies):
         """Feedback should be saved for every iteration in history."""
-        from core.types import IterationResult, QualityAssessment
+        from core.types import IterationResult
 
         orchestrator = LearningLoopOrchestrator()
         store = patched_skill_dependencies["store"]

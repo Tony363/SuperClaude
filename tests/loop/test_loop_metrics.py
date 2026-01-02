@@ -7,8 +7,6 @@ from __future__ import annotations
 
 from typing import Any, Dict
 
-import pytest
-
 from core.loop_orchestrator import LoopOrchestrator
 from core.metrics import InMemoryMetricsCollector
 from core.types import LoopConfig, QualityAssessment, TerminationReason

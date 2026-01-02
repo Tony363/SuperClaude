@@ -7,15 +7,9 @@ Validates the signal→call→response→state pipeline for PAL tools:
 - mcp__pal__consensus
 """
 
-import pytest
 
 from core.pal_integration import PALReviewSignal, incorporate_pal_feedback
 from core.types import QualityAssessment
-from tests.mcp.conftest import (
-    FakeMCPServer,
-    FakePALCodeReviewResponse,
-    FakePALDebugResponse,
-)
 
 
 class TestPALCodeReviewResponseParsing:

@@ -349,7 +349,8 @@ class TestRealWorldScenarios:
         final_window = scores[-4:-1]  # [61.0, 59.0, 64.0]
 
         # Up-down-up pattern might trigger oscillation
-        osc = detect_oscillation(final_window, window=3)
+        # Just verify the function runs without error on this edge case
+        detect_oscillation(final_window, window=3)
         # This is actually oscillating in the short term
 
 

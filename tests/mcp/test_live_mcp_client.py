@@ -7,6 +7,8 @@ requiring a live MCP server.
 
 from __future__ import annotations
 
+# Check if requests is available for tests that need to mock it
+import importlib.util
 import json
 import os
 import time
@@ -21,13 +23,7 @@ from tests.mcp.live_mcp_client import (
     invoke_real_mcp,
 )
 
-# Check if requests is available for tests that need to mock it
-try:
-    import requests
-
-    HAS_REQUESTS = True
-except ImportError:
-    HAS_REQUESTS = False
+HAS_REQUESTS = importlib.util.find_spec("requests") is not None
 
 requires_requests = pytest.mark.skipif(
     not HAS_REQUESTS,

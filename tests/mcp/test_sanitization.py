@@ -7,14 +7,9 @@ written to fixture files.
 from __future__ import annotations
 
 import json
-import tempfile
 from datetime import datetime, timedelta
-from pathlib import Path
-
-import pytest
 
 from tests.mcp.live_mcp_client import (
-    FixtureStalenessReport,
     _apply_global_sanitization,
     _sanitize_dict_strings,
     check_fixture_staleness,

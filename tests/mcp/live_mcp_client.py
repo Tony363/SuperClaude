@@ -29,10 +29,13 @@ from __future__ import annotations
 import json
 import logging
 import os
+import re
 import time
 from dataclasses import asdict, dataclass, field
+from datetime import datetime, timedelta
 from enum import Enum
-from typing import Any, Dict, Optional
+from pathlib import Path
+from typing import Any, Callable, Dict, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -304,9 +307,6 @@ def log_invocation_result(result: MCPInvocationResult, level: int = logging.INFO
 # Data Sanitization - Prevents sensitive data from being captured in fixtures
 # =============================================================================
 
-import re
-from typing import Callable
-
 # Registry for tool-specific sanitizers
 _TOOL_SANITIZERS: Dict[str, Callable[[Dict[str, Any]], Dict[str, Any]]] = {}
 
@@ -428,8 +428,6 @@ def capture_interaction(result: MCPInvocationResult) -> None:
     if not result.is_success:
         return  # Only capture successful interactions
 
-    from datetime import datetime
-
     # Build the raw capture entry
     raw_response = {
         "success": True,
@@ -489,10 +487,6 @@ def invoke_and_capture(
 # =============================================================================
 # Fixture Staleness Checking
 # =============================================================================
-
-from pathlib import Path
-from datetime import datetime, timedelta
-from dataclasses import dataclass
 
 
 @dataclass

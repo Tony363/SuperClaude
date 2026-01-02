@@ -10,11 +10,9 @@ Tests the core loop behavior without requiring actual Claude execution:
 import time
 from unittest.mock import patch
 
-import pytest
-
 from core.loop_orchestrator import LoopOrchestrator
 from core.types import LoopConfig, TerminationReason
-from tests.loop.conftest import FixtureAssessor, FixtureSkillInvoker
+from tests.loop.conftest import FixtureAssessor
 
 
 class TestLoopTerminationQualityMet:
@@ -223,7 +221,7 @@ class TestLoopScoreHistoryTracking:
         orchestrator = LoopOrchestrator(config)
 
         with patch.object(orchestrator, "assessor", assessor):
-            result = orchestrator.run({"task": "implement"}, fixture_skill_invoker)
+            orchestrator.run({"task": "implement"}, fixture_skill_invoker)
 
         # Should have scores for all iterations until quality met
         assert len(orchestrator.score_history) >= 2

@@ -7,8 +7,6 @@ from __future__ import annotations
 
 import logging
 
-import pytest
-
 from core.metrics import (
     InMemoryMetricsCollector,
     LoggingMetricsEmitter,
@@ -169,7 +167,9 @@ class TestMetricsProtocol:
     def test_lambda_as_emitter(self):
         """Lambda functions should work as emitters."""
         captured = []
-        emitter = lambda name, value, tags=None: captured.append((name, value, tags))
+
+        def emitter(name, value, tags=None):
+            captured.append((name, value, tags))
 
         emitter("test.metric", 42, {"tag": "value"})
 
