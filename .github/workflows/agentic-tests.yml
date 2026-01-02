@@ -101,13 +101,9 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Skip if testing specific skill
-        if: github.event.inputs.skill != '' && github.event.inputs.skill != matrix.skill
-        run: |
-          echo "Skipping ${{ matrix.skill }} - testing only ${{ github.event.inputs.skill }}"
-          exit 0
-
       - name: Test ${{ matrix.skill }} skill
+        # Skip if testing specific skill (use if: condition instead of exit 0)
+        if: github.event.inputs.skill == '' || github.event.inputs.skill == matrix.skill
         uses: anthropics/claude-code-action@v1
         id: skill_test
         with:
@@ -120,17 +116,27 @@ jobs:
             ${{ matrix.prompt }}
 
             Keep your response focused and concise.
-          allowed_tools: "Read"
-          max_turns: 3
+          claude_args: "--allowedTools Read --max-turns 3"
 
       - name: Validate response contains expected keywords
         id: validate
+        if: github.event.inputs.skill == '' || github.event.inputs.skill == matrix.skill
         continue-on-error: true
         run: |
-          RESPONSE="${{ steps.skill_test.outputs.response }}"
+          EXECUTION_FILE="${{ steps.skill_test.outputs.execution_file }}"
           KEYWORDS="${{ matrix.keywords }}"
 
           echo "=== Skill: ${{ matrix.skill }} ==="
+
+          # Parse execution file to extract response text
+          if [ -z "$EXECUTION_FILE" ] || [ ! -f "$EXECUTION_FILE" ]; then
+            echo "✗ No execution file found"
+            exit 1
+          fi
+
+          # Extract response content from execution JSON using jq
+          RESPONSE=$(jq -r '.result // .response // .content // empty' "$EXECUTION_FILE" 2>/dev/null || cat "$EXECUTION_FILE")
+
           echo "=== Response Preview ==="
           echo "${RESPONSE:0:500}..."
           echo ""
@@ -173,7 +179,7 @@ jobs:
           echo "Matched keywords:$MATCHED_KEYWORDS"
 
       - name: Retry on failure
-        if: steps.validate.outcome == 'failure'
+        if: steps.validate.outcome == 'failure' && (github.event.inputs.skill == '' || github.event.inputs.skill == matrix.skill)
         uses: anthropics/claude-code-action@v1
         id: skill_test_retry
         with:
@@ -186,16 +192,25 @@ jobs:
             ${{ matrix.prompt }}
 
             Keep your response focused and concise. Be direct.
-          allowed_tools: "Read"
-          max_turns: 3
+          claude_args: "--allowedTools Read --max-turns 3"
 
       - name: Validate retry response
-        if: steps.validate.outcome == 'failure'
+        if: steps.validate.outcome == 'failure' && (github.event.inputs.skill == '' || github.event.inputs.skill == matrix.skill)
         run: |
-          RESPONSE="${{ steps.skill_test_retry.outputs.response }}"
+          EXECUTION_FILE="${{ steps.skill_test_retry.outputs.execution_file }}"
           KEYWORDS="${{ matrix.keywords }}"
 
           echo "=== RETRY: Skill ${{ matrix.skill }} ==="
+
+          # Parse execution file to extract response text
+          if [ -z "$EXECUTION_FILE" ] || [ ! -f "$EXECUTION_FILE" ]; then
+            echo "✗ No execution file found in retry"
+            exit 1
+          fi
+
+          # Extract response content from execution JSON using jq
+          RESPONSE=$(jq -r '.result // .response // .content // empty' "$EXECUTION_FILE" 2>/dev/null || cat "$EXECUTION_FILE")
+
           echo "=== Response Preview ==="
           echo "${RESPONSE:0:500}..."
           echo ""

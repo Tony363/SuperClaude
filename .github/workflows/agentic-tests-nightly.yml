@@ -73,8 +73,23 @@ jobs:
             ${{ matrix.prompt }}
 
             Be thorough and demonstrate expertise.
-          allowed_tools: "Read"
-          max_turns: 5
+          claude_args: "--allowedTools Read --max-turns 5"
+
+      - name: Extract skill response
+        if: github.event.inputs.include_judge != 'false'
+        id: extract_response
+        run: |
+          EXECUTION_FILE="${{ steps.skill_response.outputs.execution_file }}"
+          if [ -n "$EXECUTION_FILE" ] && [ -f "$EXECUTION_FILE" ]; then
+            RESPONSE=$(jq -r '.result // .response // .content // empty' "$EXECUTION_FILE" 2>/dev/null || cat "$EXECUTION_FILE")
+            # Truncate for prompt (avoid token limits)
+            RESPONSE="${RESPONSE:0:4000}"
+            echo "response<<EOF" >> $GITHUB_OUTPUT
+            echo "$RESPONSE" >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+          else
+            echo "response=No response available" >> $GITHUB_OUTPUT
+          fi
 
       - name: LLM-as-a-Judge validation
         if: github.event.inputs.include_judge != 'false'
@@ -88,28 +103,34 @@ jobs:
             RUBRIC: ${{ matrix.rubric }}
 
             RESPONSE TO EVALUATE:
-            ${{ steps.skill_response.outputs.response }}
+            ${{ steps.extract_response.outputs.response }}
 
             Score each criterion and provide an overall verdict.
-            Format your response as:
-            VERDICT: [PASS or FAIL]
-            SCORE: [0-100]
-            REASONING: [One paragraph explanation]
-          max_turns: 1
+            Format your response EXACTLY as JSON:
+            {"verdict": "PASS" or "FAIL", "score": 0-100, "reasoning": "explanation"}
+          claude_args: "--max-turns 1"
 
       - name: Check judge verdict
         if: github.event.inputs.include_judge != 'false'
         run: |
-          VERDICT="${{ steps.judge.outputs.response }}"
+          EXECUTION_FILE="${{ steps.judge.outputs.execution_file }}"
           echo "=== LLM-as-a-Judge Result for ${{ matrix.skill }} ==="
-          echo "$VERDICT"
-          echo ""
 
-          if echo "$VERDICT" | grep -qi "VERDICT: FAIL"; then
-            echo "::warning::${{ matrix.skill }} failed LLM-as-a-Judge validation"
-            # Don't fail the job, just warn - this is for monitoring
+          if [ -n "$EXECUTION_FILE" ] && [ -f "$EXECUTION_FILE" ]; then
+            VERDICT=$(jq -r '.result // .response // .content // empty' "$EXECUTION_FILE" 2>/dev/null || cat "$EXECUTION_FILE")
+            echo "$VERDICT"
+            echo ""
+
+            # Try JSON parsing first, fallback to grep
+            if echo "$VERDICT" | jq -e '.verdict == "FAIL"' 2>/dev/null; then
+              echo "::warning::${{ matrix.skill }} failed LLM-as-a-Judge validation"
+            elif echo "$VERDICT" | grep -qi '"verdict".*:.*"FAIL"'; then
+              echo "::warning::${{ matrix.skill }} failed LLM-as-a-Judge validation"
+            else
+              echo "✅ ${{ matrix.skill }} passed LLM-as-a-Judge validation"
+            fi
           else
-            echo "✅ ${{ matrix.skill }} passed LLM-as-a-Judge validation"
+            echo "::warning::No judge response available for ${{ matrix.skill }}"
           fi
 
   # ============================================================
@@ -149,12 +170,18 @@ jobs:
           prompt: |
             Read .claude/skills/${{ matrix.skill }}/SKILL.md
             Then briefly demonstrate your core capability in 2-3 sentences.
-          allowed_tools: "Read"
-          max_turns: 2
+          claude_args: "--allowedTools Read --max-turns 2"
 
       - name: Validate response
         run: |
-          RESPONSE="${{ steps.smoke.outputs.response }}"
+          EXECUTION_FILE="${{ steps.smoke.outputs.execution_file }}"
+          if [ -z "$EXECUTION_FILE" ] || [ ! -f "$EXECUTION_FILE" ]; then
+            echo "✗ ${{ matrix.skill }} smoke test failed - no execution file"
+            exit 1
+          fi
+
+          RESPONSE=$(jq -r '.result // .response // .content // empty' "$EXECUTION_FILE" 2>/dev/null || cat "$EXECUTION_FILE")
+
           if [ -z "$RESPONSE" ] || [ ${#RESPONSE} -lt 30 ]; then
             echo "✗ ${{ matrix.skill }} smoke test failed - empty or too short response"
             exit 1
@@ -207,12 +234,16 @@ jobs:
           prompt: |
             Read .claude/skills/${{ matrix.skill }}/SKILL.md
             Describe your expertise in exactly 2 sentences.
-          allowed_tools: "Read"
-          max_turns: 1
+          claude_args: "--allowedTools Read --max-turns 1"
 
       - name: Validate
         run: |
-          RESPONSE="${{ steps.agent_test.outputs.response }}"
+          EXECUTION_FILE="${{ steps.agent_test.outputs.execution_file }}"
+          if [ -z "$EXECUTION_FILE" ] || [ ! -f "$EXECUTION_FILE" ]; then
+            echo "✗ ${{ matrix.skill }} failed - no execution file"
+            exit 1
+          fi
+          RESPONSE=$(jq -r '.result // .response // .content // empty' "$EXECUTION_FILE" 2>/dev/null || cat "$EXECUTION_FILE")
           [ -n "$RESPONSE" ] && [ ${#RESPONSE} -ge 20 ] && echo "✓ ${{ matrix.skill }} OK" || exit 1
 
   agent-skills-batch-2:
@@ -259,12 +290,16 @@ jobs:
           prompt: |
             Read .claude/skills/${{ matrix.skill }}/SKILL.md
             Describe your expertise in exactly 2 sentences.
-          allowed_tools: "Read"
-          max_turns: 1
+          claude_args: "--allowedTools Read --max-turns 1"
 
       - name: Validate
         run: |
-          RESPONSE="${{ steps.agent_test.outputs.response }}"
+          EXECUTION_FILE="${{ steps.agent_test.outputs.execution_file }}"
+          if [ -z "$EXECUTION_FILE" ] || [ ! -f "$EXECUTION_FILE" ]; then
+            echo "✗ ${{ matrix.skill }} failed - no execution file"
+            exit 1
+          fi
+          RESPONSE=$(jq -r '.result // .response // .content // empty' "$EXECUTION_FILE" 2>/dev/null || cat "$EXECUTION_FILE")
           [ -n "$RESPONSE" ] && [ ${#RESPONSE} -ge 20 ] && echo "✓ ${{ matrix.skill }} OK" || exit 1
 
   agent-skills-batch-3:
@@ -311,12 +346,16 @@ jobs:
           prompt: |
             Read .claude/skills/${{ matrix.skill }}/SKILL.md
             Describe your expertise in exactly 2 sentences.
-          allowed_tools: "Read"
-          max_turns: 1
+          claude_args: "--allowedTools Read --max-turns 1"
 
       - name: Validate
         run: |
-          RESPONSE="${{ steps.agent_test.outputs.response }}"
+          EXECUTION_FILE="${{ steps.agent_test.outputs.execution_file }}"
+          if [ -z "$EXECUTION_FILE" ] || [ ! -f "$EXECUTION_FILE" ]; then
+            echo "✗ ${{ matrix.skill }} failed - no execution file"
+            exit 1
+          fi
+          RESPONSE=$(jq -r '.result // .response // .content // empty' "$EXECUTION_FILE" 2>/dev/null || cat "$EXECUTION_FILE")
           [ -n "$RESPONSE" ] && [ ${#RESPONSE} -ge 20 ] && echo "✓ ${{ matrix.skill }} OK" || exit 1
 
   # ============================================================
@@ -354,7 +393,9 @@ jobs:
           fi
 
       - name: Fail if critical tests failed
-        if: needs.command-skills-smoke.result == 'failure'
+        if: needs.command-skills-smoke.result == 'failure' || needs.command-skills-deep.result == 'failure'
         run: |
           echo "Critical command skill tests failed!"
+          echo "  - Deep tests: ${{ needs.command-skills-deep.result }}"
+          echo "  - Smoke tests: ${{ needs.command-skills-smoke.result }}"
           exit 1
