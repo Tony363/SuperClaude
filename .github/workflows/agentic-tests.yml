@@ -1,0 +1,246 @@
+# Agentic Skill Tests - Tests SuperClaude skills using Claude Code
+# Runs on merge to main and can be triggered manually
+# Uses anthropics/claude-code-action@v1 for headless LLM testing
+#
+# Tier 2: Fast smoke tests (~2 min) for 13 command skills
+# See agentic-tests-nightly.yml for Tier 3 full regression suite
+
+name: Agentic Skill Tests
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.claude/skills/sc-*/**'
+      - '.github/workflows/agentic-tests.yml'
+  workflow_dispatch:
+    inputs:
+      skill:
+        description: 'Specific skill to test (leave empty for all)'
+        required: false
+        type: string
+
+concurrency:
+  group: agentic-tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test-command-skills:
+    name: Test ${{ matrix.skill }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Code Analysis & Quality
+          - skill: sc-analyze
+            prompt: "Analyze this Python function for potential issues: def divide(a, b): return a / b"
+            keywords: "division,zero,error,exception"
+
+          # Creative & Planning
+          - skill: sc-brainstorm
+            prompt: "Brainstorm 3 ideas for improving developer productivity"
+            keywords: "idea,option,approach,could"
+
+          # Build & Infrastructure
+          - skill: sc-build
+            prompt: "Explain the key steps to build a Python package for PyPI"
+            keywords: "setup,pyproject,build,wheel,dist"
+
+          - skill: sc-cicd-setup
+            prompt: "Describe a basic CI/CD pipeline for a Python project"
+            keywords: "github,actions,workflow,test,deploy"
+
+          # Architecture & Design
+          - skill: sc-design
+            prompt: "Design a simple REST API for a todo list application"
+            keywords: "endpoint,get,post,api,resource"
+
+          # Documentation
+          - skill: sc-document
+            prompt: "Write a docstring for this function: def calculate_area(length, width): return length * width"
+            keywords: "param,return,area,calculate"
+
+          # Estimation
+          - skill: sc-estimate
+            prompt: "Estimate the complexity of adding user authentication to a web app"
+            keywords: "complex,time,effort,consider"
+
+          # Explanation
+          - skill: sc-explain
+            prompt: "Explain what this code does: [x**2 for x in range(10) if x % 2 == 0]"
+            keywords: "list,comprehension,square,even"
+
+          # Git Operations
+          - skill: sc-git
+            prompt: "Describe the git workflow for implementing a new feature"
+            keywords: "branch,commit,pull,merge,request"
+
+          # Implementation
+          - skill: sc-implement
+            prompt: "Implement a Python function that checks if a string is a palindrome"
+            keywords: "def,palindrome,return,reverse"
+
+          # Code Improvement
+          - skill: sc-improve
+            prompt: "Suggest improvements for: def f(l): r=[]; for i in l: r.append(i*2); return r"
+            keywords: "comprehension,naming,readable,improve"
+
+          # Testing
+          - skill: sc-test
+            prompt: "Describe a testing strategy for a calculator class with add, subtract, multiply, divide methods"
+            keywords: "test,unit,edge,case,assert"
+
+          # Workflow Orchestration
+          - skill: sc-workflow
+            prompt: "Create a workflow for deploying a web application to production"
+            keywords: "step,deploy,test,stage,production"
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Skip if testing specific skill
+        if: github.event.inputs.skill != '' && github.event.inputs.skill != matrix.skill
+        run: |
+          echo "Skipping ${{ matrix.skill }} - testing only ${{ github.event.inputs.skill }}"
+          exit 0
+
+      - name: Test ${{ matrix.skill }} skill
+        uses: anthropics/claude-code-action@v1
+        id: skill_test
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          prompt: |
+            First, read the skill definition file to understand your role:
+            .claude/skills/${{ matrix.skill }}/SKILL.md
+
+            After reading and adopting that persona, respond to this prompt:
+            ${{ matrix.prompt }}
+
+            Keep your response focused and concise.
+          allowed_tools: "Read"
+          max_turns: 3
+
+      - name: Validate response contains expected keywords
+        id: validate
+        continue-on-error: true
+        run: |
+          RESPONSE="${{ steps.skill_test.outputs.response }}"
+          KEYWORDS="${{ matrix.keywords }}"
+
+          echo "=== Skill: ${{ matrix.skill }} ==="
+          echo "=== Response Preview ==="
+          echo "${RESPONSE:0:500}..."
+          echo ""
+
+          # Check if response is empty
+          if [ -z "$RESPONSE" ]; then
+            echo "✗ Empty response from skill test"
+            exit 1
+          fi
+
+          # Convert response to lowercase for case-insensitive matching
+          RESPONSE_LOWER=$(echo "$RESPONSE" | tr '[:upper:]' '[:lower:]')
+
+          # Check for at least one keyword match
+          IFS=',' read -ra KEYWORD_ARRAY <<< "$KEYWORDS"
+          FOUND=0
+          MATCHED_KEYWORDS=""
+          for keyword in "${KEYWORD_ARRAY[@]}"; do
+            if echo "$RESPONSE_LOWER" | grep -q "$keyword"; then
+              echo "✓ Found keyword: $keyword"
+              MATCHED_KEYWORDS="$MATCHED_KEYWORDS $keyword"
+              FOUND=1
+            fi
+          done
+
+          if [ $FOUND -eq 0 ]; then
+            echo "✗ No expected keywords found in response"
+            echo "Expected one of: $KEYWORDS"
+            exit 1
+          fi
+
+          # Check minimum response length
+          if [ ${#RESPONSE} -lt 50 ]; then
+            echo "✗ Response too short (${#RESPONSE} chars, minimum 50)"
+            exit 1
+          fi
+
+          echo ""
+          echo "=== Test Passed ==="
+          echo "Matched keywords:$MATCHED_KEYWORDS"
+
+      - name: Retry on failure
+        if: steps.validate.outcome == 'failure'
+        uses: anthropics/claude-code-action@v1
+        id: skill_test_retry
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          prompt: |
+            First, read the skill definition file to understand your role:
+            .claude/skills/${{ matrix.skill }}/SKILL.md
+
+            After reading and adopting that persona, respond to this prompt:
+            ${{ matrix.prompt }}
+
+            Keep your response focused and concise. Be direct.
+          allowed_tools: "Read"
+          max_turns: 3
+
+      - name: Validate retry response
+        if: steps.validate.outcome == 'failure'
+        run: |
+          RESPONSE="${{ steps.skill_test_retry.outputs.response }}"
+          KEYWORDS="${{ matrix.keywords }}"
+
+          echo "=== RETRY: Skill ${{ matrix.skill }} ==="
+          echo "=== Response Preview ==="
+          echo "${RESPONSE:0:500}..."
+          echo ""
+
+          if [ -z "$RESPONSE" ]; then
+            echo "✗ Empty response from retry"
+            exit 1
+          fi
+
+          RESPONSE_LOWER=$(echo "$RESPONSE" | tr '[:upper:]' '[:lower:]')
+
+          IFS=',' read -ra KEYWORD_ARRAY <<< "$KEYWORDS"
+          FOUND=0
+          for keyword in "${KEYWORD_ARRAY[@]}"; do
+            if echo "$RESPONSE_LOWER" | grep -q "$keyword"; then
+              echo "✓ Found keyword: $keyword"
+              FOUND=1
+            fi
+          done
+
+          if [ $FOUND -eq 0 ]; then
+            echo "✗ RETRY FAILED: No expected keywords found"
+            echo "Expected one of: $KEYWORDS"
+            exit 1
+          fi
+
+          if [ ${#RESPONSE} -lt 50 ]; then
+            echo "✗ RETRY FAILED: Response too short"
+            exit 1
+          fi
+
+          echo ""
+          echo "=== RETRY Test Passed ==="
+
+  summary:
+    name: Test Summary
+    runs-on: ubuntu-latest
+    needs: test-command-skills
+    if: always()
+    steps:
+      - name: Check test results
+        run: |
+          if [ "${{ needs.test-command-skills.result }}" == "success" ]; then
+            echo "✅ All skill tests passed!"
+          else
+            echo "❌ Some skill tests failed"
+            exit 1
+          fi
