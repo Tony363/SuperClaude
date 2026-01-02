@@ -153,9 +153,7 @@ class LearningLoopOrchestrator(LoopOrchestrator):
         # Retrieve and inject relevant skills
         if self.enable_learning:
             initial_context = self._inject_relevant_skills(initial_context)
-            self.metrics_emitter(
-                "learning.skills.applied.count", len(self._applied_skills)
-            )
+            self.metrics_emitter("learning.skills.applied.count", len(self._applied_skills))
             if self._applied_skills:
                 self.logger.info(
                     f"Injected {len(self._applied_skills)} relevant skills.",
@@ -336,9 +334,7 @@ class LearningLoopOrchestrator(LoopOrchestrator):
         if self.auto_promote:
             should_promote, reason = self.promotion_gate.evaluate(skill)
             if should_promote:
-                self.metrics_emitter(
-                    "learning.skills.promoted.count", 1, {"reason": "auto"}
-                )
+                self.metrics_emitter("learning.skills.promoted.count", 1, {"reason": "auto"})
                 self.logger.info(
                     "Auto-promoting skill.",
                     extra={

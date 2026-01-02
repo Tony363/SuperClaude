@@ -7,7 +7,6 @@ Validates the signal→call→response→state pipeline for PAL tools:
 - mcp__pal__consensus
 """
 
-
 from core.pal_integration import PALReviewSignal, incorporate_pal_feedback
 from core.types import QualityAssessment
 
@@ -62,9 +61,7 @@ class TestPALCodeReviewResponseParsing:
         assert "critical" in severities
         assert "high" in severities
 
-    def test_incorporate_codereview_feedback_critical_issues(
-        self, pal_codereview_with_issues
-    ):
+    def test_incorporate_codereview_feedback_critical_issues(self, pal_codereview_with_issues):
         """Critical and high severity issues should be prepended to improvements."""
         context = {"improvements_needed": ["Existing improvement"]}
         feedback = pal_codereview_with_issues.to_dict()["data"]
@@ -109,8 +106,7 @@ class TestPALCodeReviewResponseParsing:
         context = {"improvements_needed": [f"Issue {i}" for i in range(8)]}
         feedback = {
             "issues_found": [
-                {"severity": "critical", "description": f"Critical {i}"}
-                for i in range(5)
+                {"severity": "critical", "description": f"Critical {i}"} for i in range(5)
             ]
         }
 
@@ -131,9 +127,7 @@ class TestPALCodeReviewResponseParsing:
 
     def test_parse_error_response(self, fake_mcp_server):
         """Should handle error responses gracefully."""
-        fake_mcp_server.set_error_response(
-            "mcp__pal__codereview", "Rate limit exceeded"
-        )
+        fake_mcp_server.set_error_response("mcp__pal__codereview", "Rate limit exceeded")
 
         response = fake_mcp_server.invoke(
             "mcp__pal__codereview",

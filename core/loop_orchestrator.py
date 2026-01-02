@@ -168,9 +168,7 @@ class LoopOrchestrator:
                 self.logger.error(
                     "Error during skill invocation.", exc_info=True, extra=log_context
                 )
-                self.metrics_emitter(
-                    "loop.errors.count", 1, {"reason": "skill_invocation"}
-                )
+                self.metrics_emitter("loop.errors.count", 1, {"reason": "skill_invocation"})
                 termination_reason = TerminationReason.ERROR
                 self._record_iteration(
                     iteration=iteration,
@@ -338,12 +336,8 @@ class LoopOrchestrator:
         final_tags = {"termination_reason": termination_reason.value}
         self.metrics_emitter("loop.completed.count", 1, final_tags)
         self.metrics_emitter("loop.duration.seconds", total_time, final_tags)
-        self.metrics_emitter(
-            "loop.iterations.total.gauge", len(self.iteration_history), final_tags
-        )
-        self.metrics_emitter(
-            "loop.quality_score.final.gauge", assessment.overall_score, final_tags
-        )
+        self.metrics_emitter("loop.iterations.total.gauge", len(self.iteration_history), final_tags)
+        self.metrics_emitter("loop.quality_score.final.gauge", assessment.overall_score, final_tags)
         self.logger.info(
             "Agentic loop finished.",
             extra={
@@ -388,9 +382,7 @@ class LoopOrchestrator:
         # Emit per-iteration metrics
         self.metrics_emitter("loop.iteration.duration.seconds", time_taken)
         self.metrics_emitter("loop.iteration.quality_score.gauge", output_quality)
-        self.metrics_emitter(
-            "loop.iteration.quality_delta.gauge", output_quality - input_quality
-        )
+        self.metrics_emitter("loop.iteration.quality_delta.gauge", output_quality - input_quality)
 
         self.iteration_history.append(
             IterationResult(

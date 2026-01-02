@@ -170,8 +170,7 @@ class TestPALFeedbackIncorporation:
         context = {"improvements_needed": [f"Issue {i}" for i in range(8)]}
         feedback = {
             "issues_found": [
-                {"severity": "critical", "description": f"Critical {i}"}
-                for i in range(5)
+                {"severity": "critical", "description": f"Critical {i}"} for i in range(5)
             ]
         }
 
@@ -280,9 +279,7 @@ class TestPALIntegrationWithFakeMCP:
         issues = response["data"]["issues_found"]
         assert len(issues) == 3
 
-    def test_pal_feedback_incorporated_from_fake(
-        self, fake_mcp_server, pal_codereview_with_issues
-    ):
+    def test_pal_feedback_incorporated_from_fake(self, fake_mcp_server, pal_codereview_with_issues):
         """Fake PAL response should be incorporated into context."""
         fake_mcp_server.set_response("mcp__pal__codereview", pal_codereview_with_issues)
 
@@ -406,8 +403,10 @@ class TestE2EPALFeedbackPipeline:
             }
 
         # Patch both assessor and _record_iteration
-        with patch.object(orchestrator, "assessor", assessor), \
-             patch.object(orchestrator, "_record_iteration", patched_record_iteration):
+        with (
+            patch.object(orchestrator, "assessor", assessor),
+            patch.object(orchestrator, "_record_iteration", patched_record_iteration),
+        ):
             result = orchestrator.run({"task": "Implement feature X"}, capturing_invoker)
 
         # Assertions
@@ -457,11 +456,7 @@ class TestE2EPALFeedbackPipeline:
         config = LoopConfig(quality_threshold=75.0, pal_review_enabled=True)
         orchestrator = LoopOrchestrator(config)
 
-        mock_feedback = {
-            "issues_found": [
-                {"severity": "critical", "description": "Test issue"}
-            ]
-        }
+        mock_feedback = {"issues_found": [{"severity": "critical", "description": "Test issue"}]}
 
         original_record = orchestrator._record_iteration
 
@@ -476,10 +471,14 @@ class TestE2EPALFeedbackPipeline:
             return {"changes": ["main.py"], "changed_files": ["main.py"]}
 
         # Use unittest.mock.patch for incorporate_pal_feedback
-        with patch.object(orchestrator, "assessor", assessor), \
-             patch.object(orchestrator, "_record_iteration", patched_record), \
-             patch("core.loop_orchestrator.incorporate_pal_feedback",
-                   side_effect=incorporate_pal_feedback) as mock_incorporate:
+        with (
+            patch.object(orchestrator, "assessor", assessor),
+            patch.object(orchestrator, "_record_iteration", patched_record),
+            patch(
+                "core.loop_orchestrator.incorporate_pal_feedback",
+                side_effect=incorporate_pal_feedback,
+            ) as mock_incorporate,
+        ):
             orchestrator.run({"task": "test"}, invoker)
 
             # incorporate_pal_feedback should have been called
@@ -519,8 +518,10 @@ class TestE2EPALFeedbackPipeline:
             contexts_captured.append(context.copy())
             return {"changes": ["main.py"], "changed_files": ["main.py"]}
 
-        with patch.object(orchestrator, "assessor", assessor), \
-             patch.object(orchestrator, "_record_iteration", patched_record):
+        with (
+            patch.object(orchestrator, "assessor", assessor),
+            patch.object(orchestrator, "_record_iteration", patched_record),
+        ):
             orchestrator.run({"task": "test"}, invoker)
 
         assert len(contexts_captured) == 3

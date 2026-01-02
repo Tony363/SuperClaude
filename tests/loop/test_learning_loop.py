@@ -76,10 +76,12 @@ def patched_skill_dependencies(
     mock_promotion_gate,
 ):
     """Patch all skill_persistence dependencies."""
-    with patch("core.skill_learning_integration.SkillStore", return_value=mock_skill_store), \
-         patch("core.skill_learning_integration.SkillExtractor", return_value=mock_skill_extractor), \
-         patch("core.skill_learning_integration.SkillRetriever", return_value=mock_skill_retriever), \
-         patch("core.skill_learning_integration.PromotionGate", return_value=mock_promotion_gate):
+    with (
+        patch("core.skill_learning_integration.SkillStore", return_value=mock_skill_store),
+        patch("core.skill_learning_integration.SkillExtractor", return_value=mock_skill_extractor),
+        patch("core.skill_learning_integration.SkillRetriever", return_value=mock_skill_retriever),
+        patch("core.skill_learning_integration.PromotionGate", return_value=mock_promotion_gate),
+    ):
         yield {
             "store": mock_skill_store,
             "extractor": mock_skill_extractor,
@@ -124,13 +126,9 @@ class TestLearningLoopOrchestratorInit:
 class TestInjectRelevantSkills:
     """Tests for _inject_relevant_skills() method."""
 
-    def test_skills_injected_into_context(
-        self, patched_skill_dependencies, mock_learned_skill
-    ):
+    def test_skills_injected_into_context(self, patched_skill_dependencies, mock_learned_skill):
         """Retrieved skills should be injected into context."""
-        patched_skill_dependencies["retriever"].retrieve.return_value = [
-            (mock_learned_skill, 0.95)
-        ]
+        patched_skill_dependencies["retriever"].retrieve.return_value = [(mock_learned_skill, 0.95)]
 
         orchestrator = LearningLoopOrchestrator()
         initial_context = {"task": "Refactor file I/O"}
@@ -141,13 +139,9 @@ class TestInjectRelevantSkills:
         assert "learning_context" in updated_context
         assert len(updated_context["learned_skills"]) == 1
 
-    def test_skill_info_correctly_formatted(
-        self, patched_skill_dependencies, mock_learned_skill
-    ):
+    def test_skill_info_correctly_formatted(self, patched_skill_dependencies, mock_learned_skill):
         """Skill info should include name, relevance, patterns, anti-patterns."""
-        patched_skill_dependencies["retriever"].retrieve.return_value = [
-            (mock_learned_skill, 0.95)
-        ]
+        patched_skill_dependencies["retriever"].retrieve.return_value = [(mock_learned_skill, 0.95)]
 
         orchestrator = LearningLoopOrchestrator()
         updated = orchestrator._inject_relevant_skills({"task": "test"})
@@ -158,13 +152,9 @@ class TestInjectRelevantSkills:
         assert len(skill_info["patterns"]) > 0
         assert len(skill_info["anti_patterns"]) > 0
 
-    def test_applied_skills_tracked(
-        self, patched_skill_dependencies, mock_learned_skill
-    ):
+    def test_applied_skills_tracked(self, patched_skill_dependencies, mock_learned_skill):
         """Applied skills should be tracked for effectiveness measurement."""
-        patched_skill_dependencies["retriever"].retrieve.return_value = [
-            (mock_learned_skill, 0.9)
-        ]
+        patched_skill_dependencies["retriever"].retrieve.return_value = [(mock_learned_skill, 0.9)]
 
         orchestrator = LearningLoopOrchestrator()
         orchestrator._inject_relevant_skills({"task": "test"})
@@ -183,19 +173,19 @@ class TestInjectRelevantSkills:
         assert updated["task"] == "test"
         assert updated["key"] == "value"
 
-    def test_retriever_called_with_correct_params(
-        self, patched_skill_dependencies
-    ):
+    def test_retriever_called_with_correct_params(self, patched_skill_dependencies):
         """Retriever should be called with task, files, domain."""
         retriever = patched_skill_dependencies["retriever"]
         retriever.retrieve.return_value = []
 
         orchestrator = LearningLoopOrchestrator()
         orchestrator.domain = "backend"
-        orchestrator._inject_relevant_skills({
-            "task": "Implement API endpoint",
-            "changed_files": ["api.py"],
-        })
+        orchestrator._inject_relevant_skills(
+            {
+                "task": "Implement API endpoint",
+                "changed_files": ["api.py"],
+            }
+        )
 
         retriever.retrieve.assert_called_once()
         call_kwargs = retriever.retrieve.call_args.kwargs
@@ -316,9 +306,7 @@ class TestExtractAndSaveSkill:
         else:
             extractor.extract_from_session.assert_not_called()
 
-    def test_extracted_skill_saved_to_store(
-        self, patched_skill_dependencies, mock_learned_skill
-    ):
+    def test_extracted_skill_saved_to_store(self, patched_skill_dependencies, mock_learned_skill):
         """Extracted skill should be saved to the store."""
         extractor = patched_skill_dependencies["extractor"]
         store = patched_skill_dependencies["store"]
@@ -394,9 +382,7 @@ class TestRecordSkillEffectiveness:
         # quality_impact = final_quality (80.0) - first iteration's input_quality (0.0)
         assert call_kwargs["quality_impact"] == 80.0
 
-    def test_not_helpful_when_quality_not_met(
-        self, patched_skill_dependencies, mock_learned_skill
-    ):
+    def test_not_helpful_when_quality_not_met(self, patched_skill_dependencies, mock_learned_skill):
         """Skill should be marked as not helpful if quality not met."""
         retriever = patched_skill_dependencies["retriever"]
         store = patched_skill_dependencies["store"]
@@ -483,9 +469,7 @@ class TestAutoPromotion:
         gate.evaluate.assert_called_once_with(mock_learned_skill)
         gate.promote.assert_called_once_with(mock_learned_skill, "High quality skill")
 
-    def test_no_promotion_when_gate_rejects(
-        self, patched_skill_dependencies, mock_learned_skill
-    ):
+    def test_no_promotion_when_gate_rejects(self, patched_skill_dependencies, mock_learned_skill):
         """Skill should not be promoted if gate rejects."""
         extractor = patched_skill_dependencies["extractor"]
         gate = patched_skill_dependencies["gate"]
@@ -521,9 +505,7 @@ class TestDomainDetection:
             ("Create ML model for analytics", "data"),
         ],
     )
-    def test_domain_from_task_keywords(
-        self, patched_skill_dependencies, task, expected_domain
-    ):
+    def test_domain_from_task_keywords(self, patched_skill_dependencies, task, expected_domain):
         """Domain should be detected from task keywords."""
         orchestrator = LearningLoopOrchestrator()
         domain = orchestrator._detect_domain({"task": task})
@@ -539,9 +521,7 @@ class TestDomainDetection:
             (["query.sql"], "data"),
         ],
     )
-    def test_domain_from_file_extensions(
-        self, patched_skill_dependencies, files, expected_domain
-    ):
+    def test_domain_from_file_extensions(self, patched_skill_dependencies, files, expected_domain):
         """Domain should be detected from file extensions."""
         orchestrator = LearningLoopOrchestrator()
         domain = orchestrator._detect_domain({"task": "Generic task", "changed_files": files})

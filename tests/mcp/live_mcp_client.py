@@ -315,7 +315,13 @@ _GLOBAL_SANITIZATION_PATTERNS = [
     # Email addresses
     (re.compile(r"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}"), "user@example.com"),
     # API keys / tokens (common formats)
-    (re.compile(r"(?:api[_-]?key|token|secret|password|auth)[\"']?\s*[:=]\s*[\"']?[\w\-]{16,}[\"']?", re.I), "[REDACTED_CREDENTIAL]"),
+    (
+        re.compile(
+            r"(?:api[_-]?key|token|secret|password|auth)[\"']?\s*[:=]\s*[\"']?[\w\-]{16,}[\"']?",
+            re.I,
+        ),
+        "[REDACTED_CREDENTIAL]",
+    ),
     # Bearer tokens
     (re.compile(r"Bearer\s+[\w\-\.]+", re.I), "Bearer [REDACTED]"),
     # AWS-style keys
@@ -323,7 +329,12 @@ _GLOBAL_SANITIZATION_PATTERNS = [
     # Generic long alphanumeric tokens (likely secrets)
     (re.compile(r"[\"'][a-zA-Z0-9]{32,}[\"']"), '"[REDACTED_TOKEN]"'),
     # IP addresses (private ranges kept, public sanitized)
-    (re.compile(r"\b(?!10\.)(?!172\.(?:1[6-9]|2\d|3[01])\.)(?!192\.168\.)\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b"), "203.0.113.1"),
+    (
+        re.compile(
+            r"\b(?!10\.)(?!172\.(?:1[6-9]|2\d|3[01])\.)(?!192\.168\.)\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b"
+        ),
+        "203.0.113.1",
+    ),
     # Phone numbers (US format)
     (re.compile(r"\b\d{3}[-.]?\d{3}[-.]?\d{4}\b"), "555-000-0000"),
     # Credit card numbers (basic pattern)

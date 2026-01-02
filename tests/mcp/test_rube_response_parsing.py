@@ -7,7 +7,6 @@ Validates the signal→call→response→state pipeline for Rube tools:
 - mcp__rube__RUBE_MANAGE_CONNECTIONS
 """
 
-
 from tests.mcp.conftest import (
     FakeMCPResponse,
 )
@@ -92,9 +91,7 @@ class TestRubeSearchToolsResponseParsing:
 
     def test_parse_error_response(self, fake_mcp_server):
         """Should handle error responses gracefully."""
-        fake_mcp_server.set_error_response(
-            "mcp__rube__RUBE_SEARCH_TOOLS", "Invalid session"
-        )
+        fake_mcp_server.set_error_response("mcp__rube__RUBE_SEARCH_TOOLS", "Invalid session")
 
         response = fake_mcp_server.invoke(
             "mcp__rube__RUBE_SEARCH_TOOLS",

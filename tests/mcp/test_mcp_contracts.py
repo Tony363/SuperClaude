@@ -7,7 +7,6 @@ Validates JSON schema / typed contracts for:
 These tests run without a model, without Claude; just parser + adapter validation.
 """
 
-
 from tests.mcp.conftest import (
     FakeMCPResponse,
     FakeMCPServer,
@@ -75,9 +74,7 @@ class TestPALCodeReviewContract:
         """review_type must be one of the valid types."""
         data = pal_codereview_response.to_dict()["data"]
         valid_types = ["full", "quick", "security", "performance"]
-        assert (
-            data["review_type"] in valid_types
-        ), f"Invalid review_type: {data['review_type']}"
+        assert data["review_type"] in valid_types, f"Invalid review_type: {data['review_type']}"
 
     def test_confidence_valid_enum(self, pal_codereview_response):
         """confidence must be one of the valid levels."""
@@ -91,9 +88,7 @@ class TestPALCodeReviewContract:
             "almost_certain",
             "certain",
         ]
-        assert (
-            data["confidence"] in valid_levels
-        ), f"Invalid confidence: {data['confidence']}"
+        assert data["confidence"] in valid_levels, f"Invalid confidence: {data['confidence']}"
 
 
 class TestPALDebugContract:
@@ -133,9 +128,7 @@ class TestPALDebugContract:
             "almost_certain",
             "certain",
         ]
-        assert (
-            data["confidence"] in valid_levels
-        ), f"Invalid confidence: {data['confidence']}"
+        assert data["confidence"] in valid_levels, f"Invalid confidence: {data['confidence']}"
 
 
 class TestRubeSearchToolsContract:
@@ -240,9 +233,7 @@ class TestMCPResponseEnvelope:
 
     def test_error_response_structure(self, fake_mcp_server):
         """Error response must have correct structure."""
-        fake_mcp_server.set_error_response(
-            "mcp__pal__codereview", "Authentication failed"
-        )
+        fake_mcp_server.set_error_response("mcp__pal__codereview", "Authentication failed")
 
         response = fake_mcp_server.invoke(
             "mcp__pal__codereview",

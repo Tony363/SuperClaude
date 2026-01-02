@@ -147,11 +147,13 @@ class InMemoryMetricsCollector:
         tags: Optional[Dict[str, str]] = None,
     ) -> None:
         """Record a metric emission."""
-        self.metrics.append({
-            "name": metric_name,
-            "value": value,
-            "tags": tags or {},
-        })
+        self.metrics.append(
+            {
+                "name": metric_name,
+                "value": value,
+                "tags": tags or {},
+            }
+        )
 
     def get(self, metric_name: str) -> Any:
         """Get the last value for a metric name."""

@@ -312,9 +312,7 @@ class FakeMCPServer:
         if tool_name in self.responses:
             return self.responses[tool_name].to_dict()
 
-        return FakeMCPResponse(
-            success=False, error=f"Unknown tool: {tool_name}"
-        ).to_dict()
+        return FakeMCPResponse(success=False, error=f"Unknown tool: {tool_name}").to_dict()
 
     def get_call_count(self, tool_name: str) -> int:
         """Get the number of times a tool was called."""
@@ -409,9 +407,7 @@ def rube_multi_execute_partial_failure():
 @pytest.fixture
 def mcp_timeout_response():
     """Provide a timeout response."""
-    return FakeMCPResponse(
-        success=False, error="timeout", metadata={"timeout_seconds": 30}
-    )
+    return FakeMCPResponse(success=False, error="timeout", metadata={"timeout_seconds": 30})
 
 
 @pytest.fixture

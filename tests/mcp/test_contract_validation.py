@@ -331,10 +331,7 @@ class TestLiveContractValidation:
         except AssertionError as e:
             # Log schema mismatch with both responses for debugging
             logger.error(
-                "Schema mismatch for %s:\n"
-                "Assertion: %s\n"
-                "Fake response: %s\n"
-                "Live response: %s",
+                "Schema mismatch for %s:\nAssertion: %s\nFake response: %s\nLive response: %s",
                 tool_name,
                 str(e),
                 json.dumps(fake_response, indent=2),
@@ -378,10 +375,7 @@ class TestLiveContractValidation:
         except AssertionError as e:
             # Log schema mismatch with both responses for debugging
             logger.error(
-                "Schema mismatch for %s:\n"
-                "Assertion: %s\n"
-                "Fake response: %s\n"
-                "Live response: %s",
+                "Schema mismatch for %s:\nAssertion: %s\nFake response: %s\nLive response: %s",
                 tool_name,
                 str(e),
                 json.dumps(fake_response, indent=2),

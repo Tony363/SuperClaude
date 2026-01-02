@@ -38,7 +38,9 @@ class TestGlobalSanitization:
 
     def test_sanitize_bearer_token(self):
         """Bearer tokens should be redacted."""
-        text = "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0"
+        text = (
+            "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0"
+        )
         result = _apply_global_sanitization(text)
         assert "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9" not in result
         assert "Bearer [REDACTED]" in result
@@ -252,8 +254,18 @@ class TestFixtureStaleness:
         old_date = now - timedelta(days=60)
 
         fixtures = [
-            {"tool_name": "t1", "request": {}, "response": {}, "metadata": {"captured_at": now.isoformat() + "Z"}},
-            {"tool_name": "t2", "request": {}, "response": {}, "metadata": {"captured_at": old_date.isoformat() + "Z"}},
+            {
+                "tool_name": "t1",
+                "request": {},
+                "response": {},
+                "metadata": {"captured_at": now.isoformat() + "Z"},
+            },
+            {
+                "tool_name": "t2",
+                "request": {},
+                "response": {},
+                "metadata": {"captured_at": old_date.isoformat() + "Z"},
+            },
         ]
 
         with open(tmp_path / "mixed.jsonl", "w") as f:

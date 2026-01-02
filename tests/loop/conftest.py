@@ -26,6 +26,7 @@ try:
         FakePALDebugResponse,
         FakeRubeSearchToolsResponse,
     )
+
     _MCP_FIXTURES_AVAILABLE = True
 except ImportError:
     _MCP_FIXTURES_AVAILABLE = False
@@ -209,6 +210,7 @@ def improving_scenario():
 
 # MCP fixtures for loop integration tests
 # These are only defined if the MCP conftest is available
+
 
 @pytest.fixture
 def fake_mcp_server():

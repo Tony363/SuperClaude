@@ -53,8 +53,7 @@ def assert_schema_matches(
         return  # Both are numeric, schema matches
 
     assert ref_type is cand_type, (
-        f"Type mismatch at path '{path}': "
-        f"expected {ref_type.__name__}, got {cand_type.__name__}"
+        f"Type mismatch at path '{path}': expected {ref_type.__name__}, got {cand_type.__name__}"
     )
 
     if isinstance(reference, dict):
@@ -64,9 +63,7 @@ def assert_schema_matches(
         # Check for missing keys in candidate
         missing_keys = reference_keys - candidate_keys
         if missing_keys:
-            assert False, (
-                f"Missing keys at path '{path}': {sorted(list(missing_keys))}"
-            )
+            assert False, f"Missing keys at path '{path}': {sorted(list(missing_keys))}"
 
         # Check for extra keys in candidate (if not allowed)
         if not allow_extra_keys:

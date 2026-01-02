@@ -83,7 +83,9 @@ class TestTryHttpMcpConfiguration:
         ):
             # Mock ImportError for requests
             with patch.dict("sys.modules", {"requests": None}):
-                with patch("builtins.__import__", side_effect=ImportError("No module named 'requests'")):
+                with patch(
+                    "builtins.__import__", side_effect=ImportError("No module named 'requests'")
+                ):
                     # This won't work perfectly due to how _try_http_mcp imports,
                     # but we can test via a different approach
                     pass
@@ -501,7 +503,9 @@ class TestTryHttpMcpNetworkErrors:
         """Should return TIMEOUT for request timeout."""
         import requests
 
-        with patch("requests.post", side_effect=requests.exceptions.Timeout("Connection timed out")):
+        with patch(
+            "requests.post", side_effect=requests.exceptions.Timeout("Connection timed out")
+        ):
             result = _try_http_mcp(
                 tool_name="mcp__pal__codereview",
                 request_body={},
@@ -626,7 +630,10 @@ class TestInvokeRealMcp:
             )
 
             assert result.category == FailureCategory.NOT_CONFIGURED
-            assert "MCP_API_BASE_URL" in result.error_message or "not configured" in result.error_message.lower()
+            assert (
+                "MCP_API_BASE_URL" in result.error_message
+                or "not configured" in result.error_message.lower()
+            )
 
     def test_uses_default_timeout(self):
         """Should use default 30s timeout when not specified."""
