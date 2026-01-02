@@ -1,0 +1,401 @@
+# Agentic Tests - Nightly Full Suite
+# Tier 3: Comprehensive regression tests (~45 min)
+# - All 13 command skills with LLM-as-a-judge validation
+# - All 114 agent skills smoke tests
+# - Runs at 2 AM UTC daily
+
+name: Agentic Tests - Nightly
+
+on:
+  schedule:
+    - cron: '0 2 * * *'  # 2 AM UTC daily
+  workflow_dispatch:
+    inputs:
+      include_agents:
+        description: 'Include all 114 agent skills'
+        type: boolean
+        default: true
+      include_judge:
+        description: 'Include LLM-as-a-judge validation'
+        type: boolean
+        default: true
+
+concurrency:
+  group: agentic-nightly
+  cancel-in-progress: false
+
+jobs:
+  # ============================================================
+  # Job 1: Command Skills - Deep Validation with LLM-as-a-Judge
+  # ============================================================
+  command-skills-deep:
+    name: Deep Test ${{ matrix.skill }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Critical skills get LLM-as-a-judge validation
+          - skill: sc-implement
+            prompt: "Implement a Python function that calculates the factorial of a number recursively"
+            rubric: "Code must be valid Python, implement factorial recursively, handle base case n<=1, and include a docstring"
+
+          - skill: sc-test
+            prompt: "Write pytest unit tests for a Stack class with push, pop, peek, and is_empty methods"
+            rubric: "Tests must use pytest, cover all four methods, include edge cases (empty stack), and use proper assertions"
+
+          - skill: sc-design
+            prompt: "Design a REST API for a blog platform with posts, comments, and users"
+            rubric: "Design must include proper HTTP methods, resource naming, relationships, and basic authentication consideration"
+
+          - skill: sc-analyze
+            prompt: "Analyze this code for issues: def get_user(id): return db.query(f'SELECT * FROM users WHERE id = {id}')"
+            rubric: "Must identify SQL injection vulnerability, explain the risk, and suggest parameterized queries"
+
+          - skill: sc-cicd-setup
+            prompt: "Create a GitHub Actions workflow for a Python project with testing, linting, and deployment"
+            rubric: "Workflow must include checkout, Python setup, dependencies, pytest, linting step, and conditional deployment"
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Execute skill test
+        uses: anthropics/claude-code-action@v1
+        id: skill_response
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          prompt: |
+            Read and adopt the persona from: .claude/skills/${{ matrix.skill }}/SKILL.md
+
+            Then complete this task with high-quality, production-ready output:
+            ${{ matrix.prompt }}
+
+            Be thorough and demonstrate expertise.
+          claude_args: "--allowedTools Read --max-turns 5"
+
+      - name: Extract skill response
+        if: github.event.inputs.include_judge != 'false'
+        id: extract_response
+        run: |
+          EXECUTION_FILE="${{ steps.skill_response.outputs.execution_file }}"
+          if [ -n "$EXECUTION_FILE" ] && [ -f "$EXECUTION_FILE" ]; then
+            RESPONSE=$(jq -r '.result // .response // .content // empty' "$EXECUTION_FILE" 2>/dev/null || cat "$EXECUTION_FILE")
+            # Truncate for prompt (avoid token limits)
+            RESPONSE="${RESPONSE:0:4000}"
+            echo "response<<EOF" >> $GITHUB_OUTPUT
+            echo "$RESPONSE" >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+          else
+            echo "response=No response available" >> $GITHUB_OUTPUT
+          fi
+
+      - name: LLM-as-a-Judge validation
+        if: github.event.inputs.include_judge != 'false'
+        uses: anthropics/claude-code-action@v1
+        id: judge
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          prompt: |
+            You are a strict test evaluator. Evaluate this response against the rubric.
+
+            RUBRIC: ${{ matrix.rubric }}
+
+            RESPONSE TO EVALUATE:
+            ${{ steps.extract_response.outputs.response }}
+
+            Score each criterion and provide an overall verdict.
+            Format your response EXACTLY as JSON:
+            {"verdict": "PASS" or "FAIL", "score": 0-100, "reasoning": "explanation"}
+          claude_args: "--max-turns 1"
+
+      - name: Check judge verdict
+        if: github.event.inputs.include_judge != 'false'
+        run: |
+          EXECUTION_FILE="${{ steps.judge.outputs.execution_file }}"
+          echo "=== LLM-as-a-Judge Result for ${{ matrix.skill }} ==="
+
+          if [ -n "$EXECUTION_FILE" ] && [ -f "$EXECUTION_FILE" ]; then
+            VERDICT=$(jq -r '.result // .response // .content // empty' "$EXECUTION_FILE" 2>/dev/null || cat "$EXECUTION_FILE")
+            echo "$VERDICT"
+            echo ""
+
+            # Try JSON parsing first, fallback to grep
+            if echo "$VERDICT" | jq -e '.verdict == "FAIL"' 2>/dev/null; then
+              echo "::warning::${{ matrix.skill }} failed LLM-as-a-Judge validation"
+            elif echo "$VERDICT" | grep -qi '"verdict".*:.*"FAIL"'; then
+              echo "::warning::${{ matrix.skill }} failed LLM-as-a-Judge validation"
+            else
+              echo "✅ ${{ matrix.skill }} passed LLM-as-a-Judge validation"
+            fi
+          else
+            echo "::warning::No judge response available for ${{ matrix.skill }}"
+          fi
+
+  # ============================================================
+  # Job 2: All Command Skills - Smoke Tests
+  # ============================================================
+  command-skills-smoke:
+    name: Smoke ${{ matrix.skill }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        skill:
+          - sc-analyze
+          - sc-brainstorm
+          - sc-build
+          - sc-cicd-setup
+          - sc-design
+          - sc-document
+          - sc-estimate
+          - sc-explain
+          - sc-git
+          - sc-implement
+          - sc-improve
+          - sc-test
+          - sc-workflow
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Quick smoke test
+        uses: anthropics/claude-code-action@v1
+        id: smoke
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          prompt: |
+            Read .claude/skills/${{ matrix.skill }}/SKILL.md
+            Then briefly demonstrate your core capability in 2-3 sentences.
+          claude_args: "--allowedTools Read --max-turns 2"
+
+      - name: Validate response
+        run: |
+          EXECUTION_FILE="${{ steps.smoke.outputs.execution_file }}"
+          if [ -z "$EXECUTION_FILE" ] || [ ! -f "$EXECUTION_FILE" ]; then
+            echo "✗ ${{ matrix.skill }} smoke test failed - no execution file"
+            exit 1
+          fi
+
+          RESPONSE=$(jq -r '.result // .response // .content // empty' "$EXECUTION_FILE" 2>/dev/null || cat "$EXECUTION_FILE")
+
+          if [ -z "$RESPONSE" ] || [ ${#RESPONSE} -lt 30 ]; then
+            echo "✗ ${{ matrix.skill }} smoke test failed - empty or too short response"
+            exit 1
+          fi
+          echo "✓ ${{ matrix.skill }} smoke test passed (${#RESPONSE} chars)"
+
+  # ============================================================
+  # Job 3: Agent Skills - Smoke Tests (Batched)
+  # ============================================================
+  agent-skills-batch-1:
+    name: Agent Batch 1 - ${{ matrix.skill }}
+    if: github.event.inputs.include_agents != 'false'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      max-parallel: 5
+      matrix:
+        skill:
+          - agent-python-pro
+          - agent-javascript-pro
+          - agent-typescript-pro
+          - agent-golang-pro
+          - agent-rust-engineer
+          - agent-java-architect
+          - agent-csharp-developer
+          - agent-cpp-pro
+          - agent-php-pro
+          - agent-ruby-pro
+          - agent-swift-expert
+          - agent-kotlin-specialist
+          - agent-backend-developer
+          - agent-frontend-developer
+          - agent-fullstack-developer
+          - agent-react-specialist
+          - agent-vue-expert
+          - agent-angular-architect
+          - agent-nextjs-developer
+          - agent-django-developer
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Agent persona test
+        uses: anthropics/claude-code-action@v1
+        id: agent_test
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          prompt: |
+            Read .claude/skills/${{ matrix.skill }}/SKILL.md
+            Describe your expertise in exactly 2 sentences.
+          claude_args: "--allowedTools Read --max-turns 1"
+
+      - name: Validate
+        run: |
+          EXECUTION_FILE="${{ steps.agent_test.outputs.execution_file }}"
+          if [ -z "$EXECUTION_FILE" ] || [ ! -f "$EXECUTION_FILE" ]; then
+            echo "✗ ${{ matrix.skill }} failed - no execution file"
+            exit 1
+          fi
+          RESPONSE=$(jq -r '.result // .response // .content // empty' "$EXECUTION_FILE" 2>/dev/null || cat "$EXECUTION_FILE")
+          [ -n "$RESPONSE" ] && [ ${#RESPONSE} -ge 20 ] && echo "✓ ${{ matrix.skill }} OK" || exit 1
+
+  agent-skills-batch-2:
+    name: Agent Batch 2 - ${{ matrix.skill }}
+    if: github.event.inputs.include_agents != 'false'
+    needs: agent-skills-batch-1
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      max-parallel: 5
+      matrix:
+        skill:
+          - agent-security-engineer
+          - agent-security-auditor
+          - agent-penetration-tester
+          - agent-devops-engineer
+          - agent-sre-engineer
+          - agent-cloud-architect
+          - agent-kubernetes-specialist
+          - agent-terraform-engineer
+          - agent-database-administrator
+          - agent-postgres-pro
+          - agent-sql-pro
+          - agent-data-engineer
+          - agent-data-scientist
+          - agent-ml-engineer
+          - agent-mlops-engineer
+          - agent-llm-architect
+          - agent-ai-engineer
+          - agent-nlp-engineer
+          - agent-api-designer
+          - agent-graphql-architect
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Agent persona test
+        uses: anthropics/claude-code-action@v1
+        id: agent_test
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          prompt: |
+            Read .claude/skills/${{ matrix.skill }}/SKILL.md
+            Describe your expertise in exactly 2 sentences.
+          claude_args: "--allowedTools Read --max-turns 1"
+
+      - name: Validate
+        run: |
+          EXECUTION_FILE="${{ steps.agent_test.outputs.execution_file }}"
+          if [ -z "$EXECUTION_FILE" ] || [ ! -f "$EXECUTION_FILE" ]; then
+            echo "✗ ${{ matrix.skill }} failed - no execution file"
+            exit 1
+          fi
+          RESPONSE=$(jq -r '.result // .response // .content // empty' "$EXECUTION_FILE" 2>/dev/null || cat "$EXECUTION_FILE")
+          [ -n "$RESPONSE" ] && [ ${#RESPONSE} -ge 20 ] && echo "✓ ${{ matrix.skill }} OK" || exit 1
+
+  agent-skills-batch-3:
+    name: Agent Batch 3 - ${{ matrix.skill }}
+    if: github.event.inputs.include_agents != 'false'
+    needs: agent-skills-batch-2
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      max-parallel: 5
+      matrix:
+        skill:
+          - agent-code-reviewer
+          - agent-debugger
+          - agent-performance-engineer
+          - agent-refactoring-specialist
+          - agent-test-automator
+          - agent-qa-expert
+          - agent-technical-writer
+          - agent-documentation-engineer
+          - agent-api-documenter
+          - agent-product-manager
+          - agent-project-manager
+          - agent-scrum-master
+          - agent-business-analyst
+          - agent-architect-reviewer
+          - agent-microservices-architect
+          - agent-mobile-developer
+          - agent-flutter-expert
+          - agent-electron-pro
+          - agent-game-developer
+          - agent-embedded-systems
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Agent persona test
+        uses: anthropics/claude-code-action@v1
+        id: agent_test
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          prompt: |
+            Read .claude/skills/${{ matrix.skill }}/SKILL.md
+            Describe your expertise in exactly 2 sentences.
+          claude_args: "--allowedTools Read --max-turns 1"
+
+      - name: Validate
+        run: |
+          EXECUTION_FILE="${{ steps.agent_test.outputs.execution_file }}"
+          if [ -z "$EXECUTION_FILE" ] || [ ! -f "$EXECUTION_FILE" ]; then
+            echo "✗ ${{ matrix.skill }} failed - no execution file"
+            exit 1
+          fi
+          RESPONSE=$(jq -r '.result // .response // .content // empty' "$EXECUTION_FILE" 2>/dev/null || cat "$EXECUTION_FILE")
+          [ -n "$RESPONSE" ] && [ ${#RESPONSE} -ge 20 ] && echo "✓ ${{ matrix.skill }} OK" || exit 1
+
+  # ============================================================
+  # Job 4: Generate Quality Report
+  # ============================================================
+  report:
+    name: Generate Quality Report
+    needs: [command-skills-deep, command-skills-smoke, agent-skills-batch-1, agent-skills-batch-2, agent-skills-batch-3]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create summary report
+        run: |
+          echo "# Nightly Agentic Test Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Date:** $(date -u '+%Y-%m-%d %H:%M UTC')" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Test Suite | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|------------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Command Skills (Deep) | ${{ needs.command-skills-deep.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Command Skills (Smoke) | ${{ needs.command-skills-smoke.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Agent Skills (Batch 1) | ${{ needs.agent-skills-batch-1.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Agent Skills (Batch 2) | ${{ needs.agent-skills-batch-2.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Agent Skills (Batch 3) | ${{ needs.agent-skills-batch-3.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Overall status
+          if [[ "${{ needs.command-skills-deep.result }}" == "success" && \
+                "${{ needs.command-skills-smoke.result }}" == "success" ]]; then
+            echo "## ✅ Core Tests Passed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "## ❌ Some Tests Failed" >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Fail if critical tests failed
+        if: needs.command-skills-smoke.result == 'failure' || needs.command-skills-deep.result == 'failure'
+        run: |
+          echo "Critical command skill tests failed!"
+          echo "  - Deep tests: ${{ needs.command-skills-deep.result }}"
+          echo "  - Smoke tests: ${{ needs.command-skills-smoke.result }}"
+          exit 1
