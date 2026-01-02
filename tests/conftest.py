@@ -149,6 +149,12 @@ def fixture_root() -> Path:
     return Path(__file__).parent / "fixtures"
 
 
+# NOTE: MCP and loop test fixtures are provided by their local conftest.py files:
+# - tests/mcp/conftest.py - Fake MCP server fixtures
+# - tests/loop/conftest.py - Loop invariant fixtures
+# These are automatically discovered by pytest when running tests in those directories.
+
+
 def pytest_pyfunc_call(pyfuncitem):
     marker = pyfuncitem.keywords.get("asyncio")
     test_func = pyfuncitem.obj

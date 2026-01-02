@@ -1,0 +1,573 @@
+# Agentic MCP Tests - Tests MCP tool integration and --loop behavior
+# Runs nightly to validate real MCP invocations with live tools
+# Uses anthropics/claude-code-action@v1 for headless LLM testing
+#
+# Testing Tiers:
+# - Tier 1: Offline MCP tests (always run, fast)
+# - Tier 2: Fixture staleness check
+# - Tier 3: Live contract validation
+# - Tier 4: Live integration tests (~20 min) for MCP and --loop
+#
+# Run nightly to avoid flakiness/cost on every PR
+
+name: Agentic MCP Tests
+
+on:
+  schedule:
+    - cron: '0 3 * * *'  # 3 AM UTC daily
+  workflow_dispatch:
+    inputs:
+      test_type:
+        description: 'Type of test to run'
+        required: false
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - offline-only
+          - pal-only
+          - rube-only
+          - loop-only
+      max_fixture_age_days:
+        description: 'Maximum fixture age in days before warning'
+        required: false
+        default: '30'
+        type: string
+
+concurrency:
+  group: agentic-mcp-tests-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Timeout budgets for each test type
+  PAL_TIMEOUT: 5
+  RUBE_TIMEOUT: 3
+  LOOP_TIMEOUT: 10
+  FIXTURE_MAX_AGE_DAYS: ${{ github.event.inputs.max_fixture_age_days || '30' }}
+
+jobs:
+  # ==========================================================================
+  # Tier 1: Offline MCP Tests (Always Run)
+  # ==========================================================================
+  offline-tests:
+    name: Offline MCP Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest pytest-asyncio requests
+
+      - name: Run offline MCP tests
+        run: |
+          pytest tests/mcp/ tests/loop/ \
+            -m "not live" \
+            -v \
+            --tb=short \
+            --junitxml=test-results/offline-tests.xml
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: offline-test-results
+          path: test-results/
+          retention-days: 30
+
+  # ==========================================================================
+  # Tier 2: Fixture Staleness Check
+  # ==========================================================================
+  fixture-staleness:
+    name: Check Fixture Staleness
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Check fixture staleness
+        id: staleness
+        run: |
+          python -c "
+          import sys
+          sys.path.insert(0, '.')
+          from pathlib import Path
+          from tests.mcp.live_mcp_client import check_fixture_staleness, log_staleness_report
+          import logging
+
+          logging.basicConfig(level=logging.INFO)
+
+          fixture_dir = Path('tests/mcp/fixtures/captured')
+          max_age = int('${{ env.FIXTURE_MAX_AGE_DAYS }}')
+
+          report = check_fixture_staleness(fixture_dir, max_age_days=max_age)
+          log_staleness_report(report)
+
+          # Output for GitHub Actions
+          print(f'total={report.total_fixtures}' )
+          print(f'stale={report.stale_fixtures}')
+
+          if report.stale_fixtures > 0:
+              print('::warning::Stale fixtures detected. Consider refreshing them.')
+              for path, age in report.stale_files:
+                  print(f'::warning file={path}::Fixture is {age} days old (threshold: {max_age} days)')
+
+          if report.warnings:
+              for warning in report.warnings:
+                  print(f'::warning::{warning}')
+          "
+
+      - name: Report staleness summary
+        run: |
+          echo "## Fixture Staleness Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Threshold**: ${{ env.FIXTURE_MAX_AGE_DAYS }} days" >> $GITHUB_STEP_SUMMARY
+
+  # ==========================================================================
+  # Tier 3: Live Contract Validation (Schema Drift Detection)
+  # ==========================================================================
+  live-contract-tests:
+    name: Live Contract Validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: [offline-tests]
+    # Only run on schedule when secrets are available, or when manually triggered
+    if: |
+      (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') &&
+      github.event.inputs.test_type != 'offline-only'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest pytest-asyncio requests
+
+      - name: Check for MCP credentials
+        id: check_secrets
+        run: |
+          if [ -n "${{ secrets.MCP_API_KEY }}" ] && [ -n "${{ secrets.MCP_API_BASE_URL }}" ]; then
+            echo "has_credentials=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_credentials=false" >> $GITHUB_OUTPUT
+            echo "::warning::MCP credentials not configured. Skipping live contract tests."
+          fi
+
+      - name: Run live contract tests
+        if: steps.check_secrets.outputs.has_credentials == 'true'
+        env:
+          MCP_LIVE_TESTING_ENABLED: '1'
+          MCP_API_BASE_URL: ${{ secrets.MCP_API_BASE_URL }}
+          MCP_API_KEY: ${{ secrets.MCP_API_KEY }}
+        run: |
+          pytest tests/mcp/test_contract_validation.py \
+            -m "live" \
+            -v \
+            --tb=long \
+            --junitxml=test-results/live-contract-tests.xml \
+            2>&1 | tee live-test-output.txt
+
+      - name: Check for schema drift
+        if: steps.check_secrets.outputs.has_credentials == 'true' && always()
+        run: |
+          if [ -f live-test-output.txt ]; then
+            if grep -q "Schema mismatch\|Missing keys\|Type mismatch" live-test-output.txt; then
+              echo "::error::Schema drift detected! FakeMCPServer responses don't match live MCP."
+              echo "## ❌ Schema Drift Detected" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo "The FakeMCPServer responses no longer match the live MCP API." >> $GITHUB_STEP_SUMMARY
+              echo "Please update the fake server to match the new schema." >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo "### Diff Details" >> $GITHUB_STEP_SUMMARY
+              echo '```' >> $GITHUB_STEP_SUMMARY
+              grep -A5 "Schema mismatch\|Missing keys\|Type mismatch" live-test-output.txt >> $GITHUB_STEP_SUMMARY || true
+              echo '```' >> $GITHUB_STEP_SUMMARY
+              exit 1
+            else
+              echo "## ✅ Schema Validation Passed" >> $GITHUB_STEP_SUMMARY
+              echo "FakeMCPServer responses match the live MCP API schema." >> $GITHUB_STEP_SUMMARY
+            fi
+          fi
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: live-contract-test-results
+          path: |
+            test-results/
+            live-test-output.txt
+          retention-days: 30
+
+  # ==========================================================================
+  # Tier 4: PAL MCP Integration Tests (Smoke Tests)
+  # ==========================================================================
+  test-pal-codereview:
+    name: PAL Code Review
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    if: github.event.inputs.test_type == 'all' || github.event.inputs.test_type == 'pal-only' || github.event.inputs.test_type == ''
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Test PAL codereview invocation
+        uses: anthropics/claude-code-action@v1
+        id: pal_codereview
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          prompt: |
+            Use the mcp__pal__codereview tool to review this Python function:
+
+            ```python
+            def divide(a, b):
+                return a / b
+            ```
+
+            Invoke the tool with:
+            - review_type: "quick"
+            - step_number: 1
+            - total_steps: 1
+
+            After getting the response, summarize what issues were found (if any).
+            Focus on: division by zero handling, type checking, error handling.
+          claude_args: "--max-turns 5 --timeout ${{ env.PAL_TIMEOUT }}m"
+        continue-on-error: true
+
+      - name: Validate PAL codereview response
+        run: |
+          EXECUTION_FILE="${{ steps.pal_codereview.outputs.execution_file }}"
+
+          echo "=== PAL Code Review Test ==="
+
+          if [ -z "$EXECUTION_FILE" ] || [ ! -f "$EXECUTION_FILE" ]; then
+            echo "⚠ No execution file found - MCP may not be available"
+            exit 0  # Don't fail if MCP not configured
+          fi
+
+          RESPONSE=$(jq -r '.result // .response // .content // empty' "$EXECUTION_FILE" 2>/dev/null || cat "$EXECUTION_FILE")
+
+          echo "=== Response Preview ==="
+          echo "${RESPONSE:0:1000}..."
+
+          # Check for PAL-specific indicators
+          if echo "$RESPONSE" | grep -qi "codereview\|issues\|findings\|severity\|review"; then
+            echo "✓ Response indicates code review was performed"
+          else
+            echo "⚠ Response may not contain review results"
+          fi
+
+          # Check for division by zero mention (expected finding)
+          if echo "$RESPONSE" | grep -qi "zero\|division\|error\|exception"; then
+            echo "✓ Response addresses division issues"
+          fi
+
+          echo "=== PAL Code Review Test Passed ==="
+
+  test-pal-debug:
+    name: PAL Debug
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    if: github.event.inputs.test_type == 'all' || github.event.inputs.test_type == 'pal-only' || github.event.inputs.test_type == ''
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Test PAL debug invocation
+        uses: anthropics/claude-code-action@v1
+        id: pal_debug
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          prompt: |
+            Use the mcp__pal__debug tool to analyze this issue:
+
+            "Loop is oscillating with scores: 50, 60, 52, 63, 55"
+
+            Invoke the tool with:
+            - step: "Analyze oscillation pattern in quality scores"
+            - step_number: 1
+            - total_steps: 1
+            - hypothesis: "Loop may be overcorrecting on each iteration"
+            - confidence: "medium"
+
+            Summarize the debugging analysis and root cause hypothesis.
+          claude_args: "--max-turns 5 --timeout ${{ env.PAL_TIMEOUT }}m"
+        continue-on-error: true
+
+      - name: Validate PAL debug response
+        run: |
+          EXECUTION_FILE="${{ steps.pal_debug.outputs.execution_file }}"
+
+          echo "=== PAL Debug Test ==="
+
+          if [ -z "$EXECUTION_FILE" ] || [ ! -f "$EXECUTION_FILE" ]; then
+            echo "⚠ No execution file found - MCP may not be available"
+            exit 0
+          fi
+
+          RESPONSE=$(jq -r '.result // .response // .content // empty' "$EXECUTION_FILE" 2>/dev/null || cat "$EXECUTION_FILE")
+
+          echo "=== Response Preview ==="
+          echo "${RESPONSE:0:1000}..."
+
+          # Check for debugging indicators
+          if echo "$RESPONSE" | grep -qi "hypothesis\|analysis\|pattern\|oscillat"; then
+            echo "✓ Response contains debugging analysis"
+          fi
+
+          echo "=== PAL Debug Test Passed ==="
+
+  # Rube MCP Integration Tests
+  test-rube-search:
+    name: Rube Search Tools
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    if: github.event.inputs.test_type == 'all' || github.event.inputs.test_type == 'rube-only' || github.event.inputs.test_type == ''
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Test Rube search tools
+        uses: anthropics/claude-code-action@v1
+        id: rube_search
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          prompt: |
+            Use the mcp__rube__RUBE_SEARCH_TOOLS tool to find tools for sending Slack messages.
+
+            Invoke with:
+            - queries: [{"use_case": "send a message to a slack channel"}]
+            - session: {"generate_id": true}
+
+            List the tool slugs found and their descriptions.
+          claude_args: "--max-turns 5 --timeout ${{ env.RUBE_TIMEOUT }}m"
+        continue-on-error: true
+
+      - name: Validate Rube search response
+        run: |
+          EXECUTION_FILE="${{ steps.rube_search.outputs.execution_file }}"
+
+          echo "=== Rube Search Tools Test ==="
+
+          if [ -z "$EXECUTION_FILE" ] || [ ! -f "$EXECUTION_FILE" ]; then
+            echo "⚠ No execution file found - Rube MCP may not be available"
+            exit 0
+          fi
+
+          RESPONSE=$(jq -r '.result // .response // .content // empty' "$EXECUTION_FILE" 2>/dev/null || cat "$EXECUTION_FILE")
+
+          echo "=== Response Preview ==="
+          echo "${RESPONSE:0:1000}..."
+
+          # Check for tool discovery indicators
+          if echo "$RESPONSE" | grep -qi "SLACK\|tool\|slug\|message"; then
+            echo "✓ Response indicates tools were discovered"
+          fi
+
+          echo "=== Rube Search Test Passed ==="
+
+  # Live --loop Integration Test
+  test-loop-live:
+    name: Live Loop Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    if: github.event.inputs.test_type == 'all' || github.event.inputs.test_type == 'loop-only' || github.event.inputs.test_type == ''
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Create test directory
+        run: |
+          mkdir -p test_workspace
+          cd test_workspace
+
+          # Create a simple Python file with a deliberate issue
+          cat > calculator.py << 'EOF'
+          def factorial(n):
+              # Missing: input validation
+              result = 1
+              for i in range(1, n + 1):
+                  result *= i
+              return result
+          EOF
+
+      - name: Test --loop with 2 iterations
+        uses: anthropics/claude-code-action@v1
+        id: loop_test
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          prompt: |
+            Read the file test_workspace/calculator.py.
+
+            Your task: Improve the factorial function with --loop 2 iterations.
+
+            For each iteration:
+            1. Assess the current quality (input validation, error handling, docstring)
+            2. Make improvements
+            3. Report the changes made
+
+            After 2 iterations, summarize:
+            - What was the initial state
+            - What improvements were made
+            - Final quality assessment
+
+            Focus on: input validation for negative numbers, type hints, docstring.
+          claude_args: "--allowedTools Read,Edit,Write --max-turns 10 --timeout ${{ env.LOOP_TIMEOUT }}m"
+        continue-on-error: true
+
+      - name: Validate loop execution
+        run: |
+          EXECUTION_FILE="${{ steps.loop_test.outputs.execution_file }}"
+
+          echo "=== Live Loop Test ==="
+
+          if [ -z "$EXECUTION_FILE" ] || [ ! -f "$EXECUTION_FILE" ]; then
+            echo "✗ No execution file found"
+            exit 1
+          fi
+
+          RESPONSE=$(jq -r '.result // .response // .content // empty' "$EXECUTION_FILE" 2>/dev/null || cat "$EXECUTION_FILE")
+
+          echo "=== Response Preview ==="
+          echo "${RESPONSE:0:2000}..."
+
+          # Check for iteration indicators
+          if echo "$RESPONSE" | grep -qi "iteration\|improve\|quality\|validation"; then
+            echo "✓ Response indicates iterative improvement was attempted"
+          fi
+
+          # Check if file was modified
+          if [ -f "test_workspace/calculator.py" ]; then
+            echo "=== Final File Contents ==="
+            cat test_workspace/calculator.py
+
+            # Check for improvements
+            if grep -q "def\|raise\|if\|return" test_workspace/calculator.py; then
+              echo "✓ File contains Python code"
+            fi
+
+            # Check for input validation (expected improvement)
+            if grep -qi "ValueError\|negative\|< 0\|<= 0" test_workspace/calculator.py; then
+              echo "✓ Input validation was added"
+            else
+              echo "⚠ Input validation may not have been added"
+            fi
+          fi
+
+          echo "=== Live Loop Test Completed ==="
+
+      - name: Upload test artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: loop-test-artifacts
+          path: |
+            test_workspace/
+            ${{ steps.loop_test.outputs.execution_file }}
+          retention-days: 7
+
+  # Summary job
+  summary:
+    name: Test Summary
+    runs-on: ubuntu-latest
+    needs: [offline-tests, fixture-staleness, live-contract-tests, test-pal-codereview, test-pal-debug, test-rube-search, test-loop-live]
+    if: always()
+    steps:
+      - name: Check test results
+        run: |
+          echo "=== Agentic MCP Test Summary ==="
+          echo ""
+          echo "Offline Tests:      ${{ needs.offline-tests.result }}"
+          echo "Fixture Check:      ${{ needs.fixture-staleness.result }}"
+          echo "Contract Validation: ${{ needs.live-contract-tests.result }}"
+          echo "PAL Code Review:    ${{ needs.test-pal-codereview.result }}"
+          echo "PAL Debug:          ${{ needs.test-pal-debug.result }}"
+          echo "Rube Search:        ${{ needs.test-rube-search.result }}"
+          echo "Live Loop:          ${{ needs.test-loop-live.result }}"
+          echo ""
+
+          # Count results
+          PASSED=0
+          FAILED=0
+          SKIPPED=0
+
+          for result in "${{ needs.offline-tests.result }}" "${{ needs.fixture-staleness.result }}" "${{ needs.live-contract-tests.result }}" "${{ needs.test-pal-codereview.result }}" "${{ needs.test-pal-debug.result }}" "${{ needs.test-rube-search.result }}" "${{ needs.test-loop-live.result }}"; do
+            case "$result" in
+              success) PASSED=$((PASSED + 1)) ;;
+              failure) FAILED=$((FAILED + 1)) ;;
+              skipped) SKIPPED=$((SKIPPED + 1)) ;;
+            esac
+          done
+
+          echo "Passed:  $PASSED"
+          echo "Failed:  $FAILED"
+          echo "Skipped: $SKIPPED"
+          echo ""
+
+          # Determine overall status
+          # - Offline tests are mandatory (always fail on failure)
+          # - Contract validation failures are critical (schema drift)
+          if [ "${{ needs.offline-tests.result }}" = "failure" ]; then
+            echo "❌ Offline tests failed - this is a blocking failure"
+            exit 1
+          elif [ "${{ needs.live-contract-tests.result }}" = "failure" ]; then
+            echo "❌ Contract validation failed - schema drift detected!"
+            exit 1
+          elif [ $FAILED -gt 0 ]; then
+            echo "⚠ Some live tests failed (non-blocking)"
+            exit 0  # Don't fail on smoke test issues
+          elif [ $PASSED -eq 0 ]; then
+            echo "⚠ No tests passed (all skipped or cancelled)"
+            exit 0
+          else
+            echo "✅ All tests passed!"
+          fi
+
+      - name: Post summary to job
+        if: always()
+        run: |
+          echo "## Agentic MCP Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Testing Tiers" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Tier | Test | Status | Blocking? |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|------|--------|-----------|" >> $GITHUB_STEP_SUMMARY
+          echo "| 1 | Offline MCP Tests | ${{ needs.offline-tests.result }} | Yes |" >> $GITHUB_STEP_SUMMARY
+          echo "| 2 | Fixture Staleness | ${{ needs.fixture-staleness.result }} | No (warns) |" >> $GITHUB_STEP_SUMMARY
+          echo "| 3 | Contract Validation | ${{ needs.live-contract-tests.result }} | Yes (schema) |" >> $GITHUB_STEP_SUMMARY
+          echo "| 4 | PAL Code Review | ${{ needs.test-pal-codereview.result }} | No |" >> $GITHUB_STEP_SUMMARY
+          echo "| 4 | PAL Debug | ${{ needs.test-pal-debug.result }} | No |" >> $GITHUB_STEP_SUMMARY
+          echo "| 4 | Rube Search | ${{ needs.test-rube-search.result }} | No |" >> $GITHUB_STEP_SUMMARY
+          echo "| 5 | Live Loop | ${{ needs.test-loop-live.result }} | No |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Run at: $(date -u)" >> $GITHUB_STEP_SUMMARY

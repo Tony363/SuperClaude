@@ -15,6 +15,7 @@ jobs:
   ai-review:
     name: PAL MCP Consensus Code Review
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     # Skip for dependabot PRs to avoid API costs
     if: github.actor != 'dependabot[bot]'
 
@@ -54,7 +55,6 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
-          timeout_minutes: 15
           prompt: |
             # SuperClaude PR Code Review - PAL MCP Consensus
 
