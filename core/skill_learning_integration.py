@@ -19,11 +19,13 @@ Usage:
 
 from __future__ import annotations
 
+import logging
 import uuid
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
 
 from .loop_orchestrator import LoopOrchestrator, create_skill_invoker_signal
+from .metrics import MetricsEmitter
 from .skill_persistence import (
     IterationFeedback,
     LearnedSkill,
@@ -48,6 +50,34 @@ class LearningLoopOrchestrator(LoopOrchestrator):
     - Skill extraction from successful sessions
     - Relevant skill retrieval at loop start
     - Application tracking for skill effectiveness
+
+    Observability:
+        Inherits all logging and metrics from LoopOrchestrator, plus:
+
+        - Logger: Uses the same logger as parent, with additional
+          `session_id` context for learning-specific events.
+        - Metrics: Emits learning-specific metrics via the same callback.
+
+        Additional metrics emitted:
+            - learning.skills.applied.count: Skills injected at loop start
+            - learning.skills.extracted.count: Skills extracted from success
+              (with domain and success tags)
+            - learning.skills.promoted.count: Skills auto-promoted
+              (with reason tag)
+
+    Usage:
+        from core.skill_learning_integration import LearningLoopOrchestrator
+        from core.metrics import InMemoryMetricsCollector
+
+        collector = InMemoryMetricsCollector()
+        orchestrator = LearningLoopOrchestrator(
+            config=config,
+            metrics_emitter=collector,
+        )
+        result = orchestrator.run(context, skill_invoker)
+
+        # Check metrics
+        print(f"Skills applied: {collector.get('learning.skills.applied.count')}")
     """
 
     def __init__(
@@ -56,6 +86,8 @@ class LearningLoopOrchestrator(LoopOrchestrator):
         store: Optional[SkillStore] = None,
         enable_learning: bool = True,
         auto_promote: bool = False,
+        logger: Optional[logging.Logger] = None,
+        metrics_emitter: Optional[MetricsEmitter] = None,
     ):
         """
         Initialize the learning-enabled orchestrator.
@@ -65,8 +97,10 @@ class LearningLoopOrchestrator(LoopOrchestrator):
             store: Skill store instance (uses default if None)
             enable_learning: Whether to record feedback and extract skills
             auto_promote: Whether to automatically promote high-quality skills
+            logger: A logger instance. If not provided, a default will be used.
+            metrics_emitter: A callable for emitting operational metrics.
         """
-        super().__init__(config)
+        super().__init__(config, logger=logger, metrics_emitter=metrics_emitter)
 
         self.enable_learning = enable_learning
         self.auto_promote = auto_promote
@@ -110,12 +144,26 @@ class LearningLoopOrchestrator(LoopOrchestrator):
         Returns:
             LoopResult with final output and learning metadata
         """
+        log_context = {"loop_id": self.loop_id, "session_id": self.session_id}
+        self.logger.info("Running loop with learning enabled.", extra=log_context)
+
         # Detect domain from context
         self.domain = self._detect_domain(initial_context)
 
         # Retrieve and inject relevant skills
         if self.enable_learning:
             initial_context = self._inject_relevant_skills(initial_context)
+            self.metrics_emitter(
+                "learning.skills.applied.count", len(self._applied_skills)
+            )
+            if self._applied_skills:
+                self.logger.info(
+                    f"Injected {len(self._applied_skills)} relevant skills.",
+                    extra={
+                        **log_context,
+                        "skill_ids": [s.skill_id for s in self._applied_skills],
+                    },
+                )
 
         # Run the standard loop
         result = super().run(initial_context, skill_invoker)
@@ -123,14 +171,44 @@ class LearningLoopOrchestrator(LoopOrchestrator):
         # Record all iteration feedback
         if self.enable_learning:
             self._record_all_feedback(result)
+            self.logger.debug(
+                "Recorded feedback for all iterations.",
+                extra={**log_context, "iterations": len(result.iteration_history)},
+            )
 
         # Extract skill if successful
         if self.enable_learning and result.termination_reason == TerminationReason.QUALITY_MET:
-            self._extract_and_save_skill(result)
+            learned_skill = self._extract_and_save_skill(result)
+            self.metrics_emitter(
+                "learning.skills.extracted.count",
+                1,
+                {"domain": self.domain, "success": str(learned_skill is not None).lower()},
+            )
+            if learned_skill:
+                self.logger.info(
+                    "Successfully extracted and saved new skill.",
+                    extra={
+                        **log_context,
+                        "skill_id": learned_skill.skill_id,
+                        "skill_name": learned_skill.name,
+                    },
+                )
+            else:
+                self.logger.info(
+                    "Loop successful, but no new skill was extracted.",
+                    extra=log_context,
+                )
 
         # Track skill application effectiveness
         if self.enable_learning and self._applied_skills:
             self._record_skill_effectiveness(result)
+            self.logger.debug(
+                "Recorded effectiveness for applied skills.",
+                extra={
+                    **log_context,
+                    "applied_skill_count": len(self._applied_skills),
+                },
+            )
 
         return result
 
@@ -258,6 +336,18 @@ class LearningLoopOrchestrator(LoopOrchestrator):
         if self.auto_promote:
             should_promote, reason = self.promotion_gate.evaluate(skill)
             if should_promote:
+                self.metrics_emitter(
+                    "learning.skills.promoted.count", 1, {"reason": "auto"}
+                )
+                self.logger.info(
+                    "Auto-promoting skill.",
+                    extra={
+                        "loop_id": self.loop_id,
+                        "session_id": self.session_id,
+                        "skill_id": skill.skill_id,
+                        "reason": reason,
+                    },
+                )
                 self.promotion_gate.promote(skill, reason)
 
         return skill

@@ -1,0 +1,20 @@
+{
+  "name": "improving_scores",
+  "description": "Score history that shows consistent improvement until quality threshold met",
+  "scores": [50.0, 58.0, 66.0, 74.0],
+  "expected_termination": "quality_met",
+  "expected_iterations": 4,
+  "quality_threshold": 70.0,
+  "pattern_analysis": {
+    "type": "improving",
+    "direction_changes": 0,
+    "average_improvement": 8.0,
+    "trend": "upward"
+  },
+  "improvements_per_iteration": [
+    ["Add basic tests"],
+    ["Improve error handling"],
+    ["Add edge case tests"],
+    []
+  ]
+}
