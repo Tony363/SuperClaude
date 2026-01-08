@@ -1,0 +1,20 @@
+[
+  {
+    "name": "lint",
+    "state": "completed",
+    "conclusion": "success",
+    "detailsUrl": "https://github.com/owner/repo/actions/runs/123456"
+  },
+  {
+    "name": "test",
+    "state": "completed",
+    "conclusion": "success",
+    "detailsUrl": "https://github.com/owner/repo/actions/runs/123457"
+  },
+  {
+    "name": "build",
+    "state": "completed",
+    "conclusion": "success",
+    "detailsUrl": "https://github.com/owner/repo/actions/runs/123458"
+  }
+]

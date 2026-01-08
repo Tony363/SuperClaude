@@ -1,0 +1,11 @@
+/home/runner/work/repo/src/components/Button.tsx
+   42:15  error  Missing semicolon                      semi
+   58:1   error  Unexpected console statement           no-console
+   72:25  warning  'unused' is defined but never used   no-unused-vars
+
+/home/runner/work/repo/src/utils/helpers.ts
+   18:1   error  Expected indentation of 2 spaces       indent
+   23:45  error  Strings must use singlequote           quotes
+
+✖ 5 problems (4 errors, 1 warning)
+  2 errors and 0 warnings potentially fixable with the `--fix` option.

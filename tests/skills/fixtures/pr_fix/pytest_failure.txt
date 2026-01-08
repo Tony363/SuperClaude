@@ -1,0 +1,31 @@
+============================= test session starts ==============================
+platform linux -- Python 3.11.0, pytest-7.4.0, pluggy-1.0.0
+rootdir: /home/runner/work/repo
+collected 45 items
+
+tests/test_auth.py ..F.                                                  [  8%]
+tests/test_utils.py .....F..                                             [ 26%]
+tests/test_api.py ....                                                   [ 35%]
+
+=================================== FAILURES ===================================
+________________________________ test_validate_token ___________________________
+
+    def test_validate_token():
+        token = generate_token("test_user")
+>       assert validate_token(token) == True
+E       AssertionError: assert False == True
+E        +  where False = validate_token('eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...')
+
+tests/test_auth.py:42: AssertionError
+________________________________ test_parse_config _____________________________
+
+    def test_parse_config():
+        config = parse_config("test.yaml")
+>       assert config["debug"] == False
+E       KeyError: 'debug'
+
+tests/test_utils.py:58: KeyError
+=========================== short test summary info ============================
+FAILED tests/test_auth.py::test_validate_token - AssertionError: assert False == True
+FAILED tests/test_utils.py::test_parse_config - KeyError: 'debug'
+========================= 2 failed, 43 passed in 1.23s =========================
