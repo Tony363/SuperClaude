@@ -300,8 +300,8 @@ def parse_jest_errors(logs: str) -> list[ParsedError]:
     fail_pattern = re.compile(r"FAIL\s+([^\s]+)")
     test_pattern = re.compile(r"●\s+(.+)")
 
-    # Look for expect assertions
-    expect_pattern = re.compile(r"at\s+([^\s:]+):(\d+):(\d+)")
+    # Look for expect assertions - pattern available for future use
+    # expect_pattern = re.compile(r"at\s+([^\s:]+):(\d+):(\d+)")
 
     current_file = None
     for line in logs.split("\n"):

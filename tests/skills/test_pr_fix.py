@@ -20,10 +20,10 @@ import pytest
 SKILL_SCRIPTS_PATH = Path(__file__).parent.parent.parent / ".claude/skills/sc-pr-fix/scripts"
 sys.path.insert(0, str(SKILL_SCRIPTS_PATH))
 
+# Imports from skill scripts - must be after path modification
+# ruff: noqa: E402
 from check_pr_status import (
-    CheckConclusion,
     CheckResult,
-    CheckState,
     PRCheckStatus,
     format_status_summary,
     get_failed_checks,

@@ -17,7 +17,7 @@ from datetime import datetime
 from enum import Enum
 from typing import Any
 
-from check_pr_status import CheckResult, PRCheckStatus, get_pr_checks
+from check_pr_status import PRCheckStatus, get_pr_checks
 from parse_check_failures import (
     FailureType,
     ParsedError,
