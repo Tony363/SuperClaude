@@ -472,7 +472,9 @@ def parse_failure_logs(
 
     # Generate summary
     if unique_errors:
-        summary = f"{len(unique_errors)} error(s) in {len(set(e.file for e in unique_errors))} file(s)"
+        summary = (
+            f"{len(unique_errors)} error(s) in {len(set(e.file for e in unique_errors))} file(s)"
+        )
     else:
         summary = "Could not parse specific errors from logs"
 

@@ -101,7 +101,9 @@ class FixLoopState:
             "fixes_applied": [f.to_dict() for f in self.fixes_applied],
             "error_history": self.error_history,
             "skipped_checks": self.skipped_checks,
-            "termination_reason": self.termination_reason.value if self.termination_reason else None,
+            "termination_reason": self.termination_reason.value
+            if self.termination_reason
+            else None,
             "final_status": self.final_status.to_dict() if self.final_status else None,
         }
 
@@ -191,7 +193,8 @@ def format_prompt(
     """Format the interactive prompt for user."""
     lines = [
         "=" * 80,
-        f"CI Check Failed: {failure.check_name}".ljust(60) + f"Attempt {iteration} of {max_attempts}".rjust(20),
+        f"CI Check Failed: {failure.check_name}".ljust(60)
+        + f"Attempt {iteration} of {max_attempts}".rjust(20),
         "=" * 80,
         "",
         "Error Summary:",
@@ -222,7 +225,9 @@ def format_prompt(
 
     # Risk level
     risk_levels = [e.risk_level for e in failure.errors]
-    highest_risk = max(risk_levels, key=lambda r: ["low", "medium", "high"].index(r.value), default=RiskLevel.LOW)
+    highest_risk = max(
+        risk_levels, key=lambda r: ["low", "medium", "high"].index(r.value), default=RiskLevel.LOW
+    )
     risk_desc = {
         RiskLevel.LOW: "LOW (auto-fixable lint errors)",
         RiskLevel.MEDIUM: "MEDIUM (may require review)",
@@ -403,7 +408,9 @@ def run_fix_loop(
                 iteration=state.current_iteration,
                 check_name=failure.check_name,
                 errors_count=len(failure.errors),
-                fix_type="auto" if auto_fix and should_auto_fix(failure, failure.errors) else "manual",
+                fix_type="auto"
+                if auto_fix and should_auto_fix(failure, failure.errors)
+                else "manual",
                 files_changed=list(set(e.file for e in failure.errors)),
                 user_approved=True,  # Would be set by user input
                 success=False,  # Would be set after fix verification
@@ -448,7 +455,9 @@ def format_final_summary(state: FixLoopState) -> str:
         lines.append("")
         lines.append(f"Fixes Applied: {len(state.fixes_applied)}")
         for fix in state.fixes_applied:
-            lines.append(f"  - {fix.check_name}: {fix.errors_count} error(s) in {len(fix.files_changed)} file(s)")
+            lines.append(
+                f"  - {fix.check_name}: {fix.errors_count} error(s) in {len(fix.files_changed)} file(s)"
+            )
 
     if state.skipped_checks:
         lines.append("")
