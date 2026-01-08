@@ -145,12 +145,28 @@ commands:
       - "--minimal: Only essential CI workflow"
       - "--full: All workflows including publish"
 
+  - name: pr-fix
+    prefix: /sc:pr-fix
+    file: pr-fix.md
+    description: "Create PR and iteratively fix CI failures with interactive confirmation"
+    aliases: [prfix, cifix, fix-pr]
+    flags:
+      - "--branch=NAME: New branch name (auto-generates if not specified)"
+      - "--base=BRANCH: Target branch for PR (default: main)"
+      - "--title=TITLE: PR title (defaults to commit message)"
+      - "--body=TEXT: PR description body"
+      - "--dry-run: Preview operations without executing"
+      - "--auto-fix: Auto-apply low-risk fixes, prompt only for high-risk"
+      - "--max-fix-attempts=N: Max CI fix iterations (hard cap: 5)"
+      - "--poll-interval=SECS: Seconds between CI status checks (default: 30)"
+      - "--no-push: Create branch and commit but do not push/PR"
+
 # MCP Integration for commands
 mcp_integration:
   pal:
-    codereview: "Used by /sc:implement --pal-review"
+    codereview: "Used by /sc:implement --pal-review, /sc:pr-fix fix validation"
     consensus: "Used by /sc:implement --consensus"
-    debug: "Used by /sc:analyze --deep"
+    debug: "Used by /sc:analyze --deep, /sc:pr-fix CI failure diagnosis"
     precommit: "Used by /sc:git --commit"
 
   rube:

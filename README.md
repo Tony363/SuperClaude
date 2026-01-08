@@ -214,7 +214,7 @@ The `LoopOrchestrator` class manages the `--loop` flag behavior:
 
 ```mermaid
 stateDiagram-v2
-    [*] --> Initialize: /sc:implement --loop
+    [*] --> Initialize
 
     state "Loop Execution" as Loop {
         [*] --> ExecuteSkill
@@ -247,6 +247,8 @@ stateDiagram-v2
     MaxIterations --> [*]
     FinalValidation --> [*]
     DebugSignal --> [*]
+
+    note right of Initialize: Triggered by /sc​:implement --loop
 ```
 
 **Key Features:**
