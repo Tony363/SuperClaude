@@ -89,25 +89,25 @@ def gh_checks_pending() -> list[dict]:
 @pytest.fixture
 def eslint_log() -> str:
     """Load ESLint failure log fixture."""
-    return (FIXTURES_DIR / "eslint_failure.log").read_text()
+    return (FIXTURES_DIR / "eslint_failure.txt").read_text()
 
 
 @pytest.fixture
 def ruff_log() -> str:
     """Load ruff failure log fixture."""
-    return (FIXTURES_DIR / "ruff_failure.log").read_text()
+    return (FIXTURES_DIR / "ruff_failure.txt").read_text()
 
 
 @pytest.fixture
 def pytest_log() -> str:
     """Load pytest failure log fixture."""
-    return (FIXTURES_DIR / "pytest_failure.log").read_text()
+    return (FIXTURES_DIR / "pytest_failure.txt").read_text()
 
 
 @pytest.fixture
 def jest_log() -> str:
     """Load Jest failure log fixture."""
-    return (FIXTURES_DIR / "jest_failure.log").read_text()
+    return (FIXTURES_DIR / "jest_failure.txt").read_text()
 
 
 # =============================================================================

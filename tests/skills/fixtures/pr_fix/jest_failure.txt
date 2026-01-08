@@ -1,0 +1,36 @@
+ PASS  src/utils/__tests__/helpers.test.ts
+ FAIL  src/components/__tests__/Button.test.tsx
+  ● Button component › should handle click events
+
+    expect(received).toHaveBeenCalledTimes(expected)
+
+    Expected number of calls: 1
+    Received number of calls: 0
+
+      23 |     fireEvent.click(button);
+      24 |
+    > 25 |     expect(handleClick).toHaveBeenCalledTimes(1);
+         |                         ^
+      26 |   });
+      27 | });
+
+      at Object.<anonymous> (src/components/__tests__/Button.test.tsx:25:25)
+
+ FAIL  src/api/__tests__/client.test.ts
+  ● API client › should retry on failure
+
+    thrown: "Exceeded timeout of 5000 ms for a test.
+    Add a timeout value to this test to increase the timeout, if this is a long-running test. See https://jestjs.io/docs/api#testname-fn-timeout."
+
+      14 |   });
+      15 |
+    > 16 |   it('should retry on failure', async () => {
+         |   ^
+      17 |     const client = new APIClient();
+
+      at src/api/__tests__/client.test.ts:16:3
+
+Test Suites: 2 failed, 1 passed, 3 total
+Tests:       2 failed, 8 passed, 10 total
+Snapshots:   0 total
+Time:        12.345 s

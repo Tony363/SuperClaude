@@ -1,0 +1,5 @@
+src/auth/validator.py:42:15: E501 Line too long (120 > 88)
+src/auth/validator.py:58:1: F401 `os` imported but unused
+src/utils/helpers.py:18:5: E302 Expected 2 blank lines, found 1
+src/utils/helpers.py:23:1: I001 Import block is un-sorted or un-formatted
+Found 4 errors.
