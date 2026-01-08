@@ -248,7 +248,7 @@ stateDiagram-v2
     FinalValidation --> [*]
     DebugSignal --> [*]
 
-    note right of Initialize: Triggered by /sc​:implement --loop
+    note right of Initialize: Triggered by /sc:implement --loop
 ```
 
 **Key Features:**
