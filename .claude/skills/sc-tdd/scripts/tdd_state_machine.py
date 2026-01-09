@@ -32,6 +32,7 @@ from typing import Optional
 
 class TDDPhase(Enum):
     """TDD workflow phases."""
+
     IDLE = "IDLE"
     RED_PENDING = "RED_PENDING"
     RED_CONFIRMED = "RED_CONFIRMED"
@@ -44,6 +45,7 @@ class TDDPhase(Enum):
 @dataclass
 class IntentTest:
     """Intent test information."""
+
     file: str
     name: Optional[str]  # Optional test name within file
     failure_type: Optional[str]  # e.g., "AssertionError", "semantic"
@@ -53,6 +55,7 @@ class IntentTest:
 @dataclass
 class StateTransition:
     """State transition record."""
+
     from_phase: str
     to_phase: str
     timestamp: str
@@ -62,6 +65,7 @@ class StateTransition:
 @dataclass
 class TDDState:
     """TDD workflow state."""
+
     scope_root: str
     current_phase: str
     framework: Optional[str] = None
@@ -150,9 +154,7 @@ class TDDStateMachine:
                 data["intent_test"] = IntentTest(**data["intent_test"])
 
             if data.get("transitions"):
-                data["transitions"] = [
-                    StateTransition(**t) for t in data["transitions"]
-                ]
+                data["transitions"] = [StateTransition(**t) for t in data["transitions"]]
 
             return TDDState(**data)
         except (json.JSONDecodeError, TypeError, KeyError) as e:
@@ -195,10 +197,7 @@ class TDDStateMachine:
         return to_phase in self.TRANSITIONS.get(from_phase, [])
 
     def transition(
-        self,
-        state: TDDState,
-        to_phase: TDDPhase,
-        evidence: Optional[str] = None
+        self, state: TDDState, to_phase: TDDPhase, evidence: Optional[str] = None
     ) -> tuple[bool, str]:
         """Attempt state transition.
 
@@ -220,7 +219,7 @@ class TDDStateMachine:
             from_phase=current.value,
             to_phase=to_phase.value,
             timestamp=datetime.utcnow().isoformat(),
-            evidence=evidence
+            evidence=evidence,
         )
         state.transitions.append(transition)
         state.current_phase = to_phase.value
@@ -240,10 +239,7 @@ class TDDStateMachine:
         Returns:
             True if production edits allowed
         """
-        return phase in [
-            TDDPhase.GREEN_PENDING,
-            TDDPhase.REFACTOR_PENDING
-        ]
+        return phase in [TDDPhase.GREEN_PENDING, TDDPhase.REFACTOR_PENDING]
 
     def can_edit_test(self, phase: TDDPhase, edit_type: str = "modify") -> bool:
         """Check if test edits are allowed.
@@ -279,16 +275,9 @@ def main():
 
     if args.init:
         # Initialize new state
-        state = TDDState(
-            scope_root=args.scope_root,
-            current_phase=TDDPhase.IDLE.value
-        )
+        state = TDDState(scope_root=args.scope_root, current_phase=TDDPhase.IDLE.value)
         if sm.save_state(state):
-            output = {
-                "success": True,
-                "phase": state.current_phase,
-                "message": "State initialized"
-            }
+            output = {"success": True, "phase": state.current_phase, "message": "State initialized"}
             print(json.dumps(output, indent=2) if args.json else output["message"])
             sys.exit(0)
         else:
@@ -299,10 +288,7 @@ def main():
     # Load existing state
     state = sm.load_state(args.scope_root)
     if not state:
-        output = {
-            "success": False,
-            "error": "No state found. Run with --init first."
-        }
+        output = {"success": False, "error": "No state found. Run with --init first."}
         print(json.dumps(output, indent=2) if args.json else output["error"])
         sys.exit(3)
 
@@ -316,7 +302,7 @@ def main():
                 "success": success,
                 "from_phase": state.transitions[-1].from_phase,
                 "to_phase": state.current_phase,
-                "message": message
+                "message": message,
             }
 
             print(json.dumps(output, indent=2) if args.json else message)
@@ -332,7 +318,7 @@ def main():
             "phase": state.current_phase,
             "scope_root": state.scope_root,
             "framework": state.framework,
-            "intent_test": asdict(state.intent_test) if state.intent_test else None
+            "intent_test": asdict(state.intent_test) if state.intent_test else None,
         }
         print(json.dumps(output, indent=2))
         sys.exit(0)

@@ -28,6 +28,7 @@ from typing import Optional
 
 class TestOutcome(Enum):
     """Test execution outcome classifications."""
+
     PASS = "PASS"
     SEMANTIC_FAIL = "SEMANTIC_FAIL"
     NON_SEMANTIC_FAIL = "NON_SEMANTIC_FAIL"
@@ -38,6 +39,7 @@ class TestOutcome(Enum):
 @dataclass
 class TestResult:
     """Normalized test execution result."""
+
     framework: str
     cmd: list[str]
     cwd: str
@@ -55,78 +57,48 @@ class TestRunner:
     """Execute and classify test results."""
 
     # Classification patterns
-    PYTEST_NO_TESTS = [
-        "collected 0 items",
-        "no tests ran"
-    ]
+    PYTEST_NO_TESTS = ["collected 0 items", "no tests ran"]
     PYTEST_NON_SEMANTIC = [
         "SyntaxError",
         "ImportError",
         "ModuleNotFoundError",
         "ERROR collecting",
         "usage: pytest",
-        "INTERNALERROR>"
+        "INTERNALERROR>",
     ]
     PYTEST_SEMANTIC = [
         "E   AssertionError",
         "E   assert ",
         "E   Expected",
         ">       assert",
-        "== FAILURES =="
+        "== FAILURES ==",
     ]
 
-    JEST_NO_TESTS = [
-        "No tests found",
-        "No test files found"
-    ]
+    JEST_NO_TESTS = ["No tests found", "No test files found"]
     JEST_NON_SEMANTIC = [
         "SyntaxError:",
         "Cannot find module",
         "Module not found",
         "TypeScript error",
-        "Jest encountered an unexpected token"
+        "Jest encountered an unexpected token",
     ]
-    JEST_SEMANTIC = [
-        "FAIL ",
-        "●",
-        "AssertionError",
-        "Expected"
-    ]
+    JEST_SEMANTIC = ["FAIL ", "●", "AssertionError", "Expected"]
 
     VITEST_NO_TESTS = JEST_NO_TESTS
     VITEST_NON_SEMANTIC = JEST_NON_SEMANTIC
     VITEST_SEMANTIC = JEST_SEMANTIC
 
-    GO_NO_TESTS = [
-        "[no test files]",
-        "no test files"
-    ]
-    GO_NON_SEMANTIC = [
-        "build failed",
-        "cannot find package",
-        "found packages",
-        "go: downloading"
-    ]
-    GO_SEMANTIC = [
-        "--- FAIL:",
-        "FAIL\t"
-    ]
+    GO_NO_TESTS = ["[no test files]", "no test files"]
+    GO_NON_SEMANTIC = ["build failed", "cannot find package", "found packages", "go: downloading"]
+    GO_SEMANTIC = ["--- FAIL:", "FAIL\t"]
 
-    CARGO_NO_TESTS = [
-        "running 0 tests",
-        "test result: ok. 0 passed; 0 failed"
-    ]
+    CARGO_NO_TESTS = ["running 0 tests", "test result: ok. 0 passed; 0 failed"]
     CARGO_NON_SEMANTIC = [
         "error: could not compile",
         "error[E",
-        "failed to run custom build command"
+        "failed to run custom build command",
     ]
-    CARGO_SEMANTIC = [
-        "test result: FAILED",
-        "... FAILED",
-        "thread '",
-        "panicked at"
-    ]
+    CARGO_SEMANTIC = ["test result: FAILED", "... FAILED", "thread '", "panicked at"]
 
     def __init__(self, allow_snapshots: bool = False):
         """Initialize test runner.
@@ -137,11 +109,7 @@ class TestRunner:
         self.allow_snapshots = allow_snapshots
 
     def run_command(
-        self,
-        cmd: list[str],
-        cwd: str | Path,
-        timeout_s: int = 120,
-        framework: str = "unknown"
+        self, cmd: list[str], cwd: str | Path, timeout_s: int = 120, framework: str = "unknown"
     ) -> TestResult:
         """Execute test command with timeout.
 
@@ -158,13 +126,7 @@ class TestRunner:
         start_time = time.time()
 
         try:
-            result = subprocess.run(
-                cmd,
-                cwd=cwd,
-                capture_output=True,
-                text=True,
-                timeout=timeout_s
-            )
+            result = subprocess.run(cmd, cwd=cwd, capture_output=True, text=True, timeout=timeout_s)
             duration_ms = int((time.time() - start_time) * 1000)
             exit_code = result.returncode
             stdout = result.stdout
@@ -188,16 +150,12 @@ class TestRunner:
                 stderr=str(e),
                 outcome=TestOutcome.NON_SEMANTIC_FAIL.value,
                 signals=["execution_error"],
-                excerpt_hash=""
+                excerpt_hash="",
             )
 
         # Classify outcome
         combined_output = stdout + "\n" + stderr
-        outcome, signals = self._classify_outcome(
-            combined_output,
-            exit_code,
-            framework
-        )
+        outcome, signals = self._classify_outcome(combined_output, exit_code, framework)
 
         # Generate excerpt hash for state persistence
         excerpt = self._extract_excerpt(combined_output, 4000)
@@ -214,7 +172,7 @@ class TestRunner:
             stderr=stderr,
             outcome=outcome.value,
             signals=signals,
-            excerpt_hash=excerpt_hash
+            excerpt_hash=excerpt_hash,
         )
 
     def _extract_excerpt(self, output: str, max_chars: int) -> str:
@@ -235,10 +193,7 @@ class TestRunner:
         return output[:portion] + "\n...\n" + output[-portion:]
 
     def _classify_outcome(
-        self,
-        output: str,
-        exit_code: int | str,
-        framework: str
+        self, output: str, exit_code: int | str, framework: str
     ) -> tuple[TestOutcome, list[str]]:
         """Classify test outcome based on output.
 
@@ -272,10 +227,7 @@ class TestRunner:
                 return TestOutcome.NON_SEMANTIC_FAIL, ["unknown_framework", "non_zero_exit"]
 
     def _classify_pytest(
-        self,
-        output: str,
-        exit_code: int,
-        signals: list[str]
+        self, output: str, exit_code: int, signals: list[str]
     ) -> tuple[TestOutcome, list[str]]:
         """Classify pytest output."""
         # Check for NO_TESTS
@@ -308,11 +260,7 @@ class TestRunner:
         return TestOutcome.NON_SEMANTIC_FAIL, signals
 
     def _classify_jest_vitest(
-        self,
-        output: str,
-        exit_code: int,
-        signals: list[str],
-        framework: str
+        self, output: str, exit_code: int, signals: list[str], framework: str
     ) -> tuple[TestOutcome, list[str]]:
         """Classify jest/vitest output."""
         prefix = framework
@@ -356,10 +304,7 @@ class TestRunner:
         return TestOutcome.NON_SEMANTIC_FAIL, signals
 
     def _classify_go(
-        self,
-        output: str,
-        exit_code: int,
-        signals: list[str]
+        self, output: str, exit_code: int, signals: list[str]
     ) -> tuple[TestOutcome, list[str]]:
         """Classify go test output."""
         # Check for NO_TESTS
@@ -390,10 +335,7 @@ class TestRunner:
         return TestOutcome.NON_SEMANTIC_FAIL, signals
 
     def _classify_cargo(
-        self,
-        output: str,
-        exit_code: int,
-        signals: list[str]
+        self, output: str, exit_code: int, signals: list[str]
     ) -> tuple[TestOutcome, list[str]]:
         """Classify cargo test output."""
         # Check for NO_TESTS
@@ -424,10 +366,7 @@ class TestRunner:
         return TestOutcome.NON_SEMANTIC_FAIL, signals
 
     def build_targeted_command(
-        self,
-        base_command: str,
-        framework: str,
-        test_file: Optional[str] = None
+        self, base_command: str, framework: str, test_file: Optional[str] = None
     ) -> list[str]:
         """Build targeted test command.
 
@@ -484,19 +423,10 @@ def main():
     runner = TestRunner(allow_snapshots=args.allow_snapshots)
 
     # Build command
-    cmd = runner.build_targeted_command(
-        args.command,
-        args.framework,
-        args.test_file
-    )
+    cmd = runner.build_targeted_command(args.command, args.framework, args.test_file)
 
     # Execute
-    result = runner.run_command(
-        cmd,
-        args.cwd,
-        timeout_s=args.timeout,
-        framework=args.framework
-    )
+    result = runner.run_command(cmd, args.cwd, timeout_s=args.timeout, framework=args.framework)
 
     # Output
     output = asdict(result)

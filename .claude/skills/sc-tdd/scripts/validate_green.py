@@ -47,7 +47,7 @@ def validate_green_state(scope_root: str, skip_full_suite: bool = False) -> dict
             "phase": "UNKNOWN",
             "reasons": ["No TDD state found"],
             "warnings": [],
-            "artifacts": {}
+            "artifacts": {},
         }
 
     # Check current phase
@@ -57,7 +57,7 @@ def validate_green_state(scope_root: str, skip_full_suite: bool = False) -> dict
             "phase": state.current_phase,
             "reasons": [f"Not in GREEN_PENDING phase (currently: {state.current_phase})"],
             "warnings": [],
-            "artifacts": {}
+            "artifacts": {},
         }
 
     # Check we have intent test from Red phase
@@ -67,7 +67,7 @@ def validate_green_state(scope_root: str, skip_full_suite: bool = False) -> dict
             "phase": state.current_phase,
             "reasons": ["No intent test found. Must complete RED phase first."],
             "warnings": [],
-            "artifacts": {}
+            "artifacts": {},
         }
 
     # Verify we have framework
@@ -77,7 +77,7 @@ def validate_green_state(scope_root: str, skip_full_suite: bool = False) -> dict
             "phase": state.current_phase,
             "reasons": ["Framework not configured. Re-run validation."],
             "warnings": [],
-            "artifacts": {}
+            "artifacts": {},
         }
 
     runner = TestRunner()
@@ -85,16 +85,11 @@ def validate_green_state(scope_root: str, skip_full_suite: bool = False) -> dict
     # Step 1: Re-run intent test (targeted)
     intent_test_path = str(scope_path / state.intent_test.file)
     targeted_cmd = runner.build_targeted_command(
-        state.test_command,
-        state.framework,
-        intent_test_path
+        state.test_command, state.framework, intent_test_path
     )
 
     targeted_result = runner.run_command(
-        targeted_cmd,
-        str(scope_path),
-        timeout_s=120,
-        framework=state.framework
+        targeted_cmd, str(scope_path), timeout_s=120, framework=state.framework
     )
 
     # Must pass
@@ -107,23 +102,21 @@ def validate_green_state(scope_root: str, skip_full_suite: bool = False) -> dict
                 f"Outcome: {targeted_result.outcome}",
                 f"Signals: {', '.join(targeted_result.signals)}",
                 "",
-                "Implementation did not make the test pass."
+                "Implementation did not make the test pass.",
             ],
             "warnings": [],
             "artifacts": {
                 "intent_test_output": targeted_result.stdout[:2000],
                 "outcome": targeted_result.outcome,
-                "signals": targeted_result.signals
-            }
+                "signals": targeted_result.signals,
+            },
         }
 
     # Step 2: Run full suite (unless skipped)
     if skip_full_suite:
         # Fast mode: trust targeted test, defer full suite
         success, message = sm.transition(
-            state,
-            TDDPhase.GREEN_CONFIRMED,
-            evidence="Intent test passed (full suite deferred)"
+            state, TDDPhase.GREEN_CONFIRMED, evidence="Intent test passed (full suite deferred)"
         )
 
         return {
@@ -131,27 +124,27 @@ def validate_green_state(scope_root: str, skip_full_suite: bool = False) -> dict
             "phase": TDDPhase.GREEN_CONFIRMED.value,
             "reasons": [
                 f"Intent test '{state.intent_test.file}' now PASSES",
-                "Full suite execution deferred (fast mode)"
+                "Full suite execution deferred (fast mode)",
             ],
             "warnings": ["Run full suite before completing feature"],
             "artifacts": {
                 "intent_test_output": targeted_result.stdout[:1000],
-                "duration_ms": targeted_result.duration_ms
-            }
+                "duration_ms": targeted_result.duration_ms,
+            },
         }
 
     # Run full suite
     full_cmd = runner.build_targeted_command(
         state.test_command,
         state.framework,
-        test_file=None  # No targeting = full suite
+        test_file=None,  # No targeting = full suite
     )
 
     full_result = runner.run_command(
         full_cmd,
         str(scope_path),
         timeout_s=300,  # Longer timeout for full suite
-        framework=state.framework
+        framework=state.framework,
     )
 
     # Check outcome
@@ -160,7 +153,7 @@ def validate_green_state(scope_root: str, skip_full_suite: bool = False) -> dict
         success, message = sm.transition(
             state,
             TDDPhase.GREEN_CONFIRMED,
-            evidence=f"Intent test + full suite passed ({full_result.duration_ms}ms)"
+            evidence=f"Intent test + full suite passed ({full_result.duration_ms}ms)",
         )
 
         return {
@@ -169,14 +162,14 @@ def validate_green_state(scope_root: str, skip_full_suite: bool = False) -> dict
             "reasons": [
                 f"Intent test '{state.intent_test.file}' now PASSES",
                 f"Full test suite PASSES ({full_result.duration_ms}ms)",
-                "No regressions detected"
+                "No regressions detected",
             ],
             "warnings": [],
             "artifacts": {
                 "intent_test_output": targeted_result.stdout[:1000],
                 "full_suite_duration_ms": full_result.duration_ms,
-                "full_suite_signals": full_result.signals
-            }
+                "full_suite_signals": full_result.signals,
+            },
         }
 
     elif full_result.outcome == TestOutcome.TIMEOUT.value:
@@ -185,15 +178,13 @@ def validate_green_state(scope_root: str, skip_full_suite: bool = False) -> dict
             "phase": state.current_phase,
             "reasons": [
                 f"Full test suite timed out (>{full_result.timeout_s}s)",
-                "Suite may be too slow or have infinite loops"
+                "Suite may be too slow or have infinite loops",
             ],
             "warnings": [
                 "Consider using --skip-full-suite for faster cycles",
-                "Run full suite only at feature completion"
+                "Run full suite only at feature completion",
             ],
-            "artifacts": {
-                "timeout_s": full_result.timeout_s
-            }
+            "artifacts": {"timeout_s": full_result.timeout_s},
         }
 
     else:
@@ -206,15 +197,15 @@ def validate_green_state(scope_root: str, skip_full_suite: bool = False) -> dict
                 f"Outcome: {full_result.outcome}",
                 f"Signals: {', '.join(full_result.signals)}",
                 "",
-                "Your implementation broke existing tests."
+                "Your implementation broke existing tests.",
             ],
             "warnings": ["Fix regressions before proceeding"],
             "artifacts": {
                 "full_suite_output": full_result.stdout[:2000],
                 "full_suite_stderr": full_result.stderr[:1000],
                 "outcome": full_result.outcome,
-                "signals": full_result.signals
-            }
+                "signals": full_result.signals,
+            },
         }
 
 
@@ -222,7 +213,9 @@ def main():
     """CLI entrypoint."""
     parser = argparse.ArgumentParser(description="Validate Green phase")
     parser.add_argument("--scope-root", required=True, help="Scope root directory")
-    parser.add_argument("--skip-full-suite", action="store_true", help="Skip full suite (fast mode)")
+    parser.add_argument(
+        "--skip-full-suite", action="store_true", help="Skip full suite (fast mode)"
+    )
     parser.add_argument("--json", action="store_true", help="Output JSON")
 
     args = parser.parse_args()

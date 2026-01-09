@@ -26,6 +26,7 @@ from typing import Optional
 @dataclass
 class FrameworkInfo:
     """Detected framework information."""
+
     name: str  # pytest, jest, vitest, go, cargo
     test_command: str  # Full command template
     targeted_template: str  # Command for running single test file
@@ -36,21 +37,9 @@ class FrameworkDetector:
     """Auto-detect testing framework for a scope."""
 
     # Framework signatures
-    PYTEST_PATTERNS = [
-        r"pytest",
-        r"py\.test",
-        r"python -m pytest"
-    ]
-    JEST_PATTERNS = [
-        r"jest",
-        r"npm (?:run )?test",
-        r"yarn test"
-    ]
-    VITEST_PATTERNS = [
-        r"vitest",
-        r"npm (?:run )?vitest",
-        r"yarn vitest"
-    ]
+    PYTEST_PATTERNS = [r"pytest", r"py\.test", r"python -m pytest"]
+    JEST_PATTERNS = [r"jest", r"npm (?:run )?test", r"yarn test"]
+    VITEST_PATTERNS = [r"vitest", r"npm (?:run )?vitest", r"yarn vitest"]
     GO_PATTERNS = [
         r"go test",
     ]
@@ -95,7 +84,7 @@ class FrameworkDetector:
             ".github/workflows/*.yml",
             ".github/workflows/*.yaml",
             ".gitlab-ci.yml",
-            ".circleci/config.yml"
+            ".circleci/config.yml",
         ]
 
         for pattern in ci_files:
@@ -116,7 +105,7 @@ class FrameworkDetector:
                                     name="pytest",
                                     test_command="pytest",
                                     targeted_template="pytest {test_file}",
-                                    config_source=f"CI:{ci_file.name}"
+                                    config_source=f"CI:{ci_file.name}",
                                 )
                             # jest
                             if any(re.search(p, line, re.IGNORECASE) for p in self.JEST_PATTERNS):
@@ -124,7 +113,7 @@ class FrameworkDetector:
                                     name="jest",
                                     test_command="npm test",
                                     targeted_template="jest {test_file}",
-                                    config_source=f"CI:{ci_file.name}"
+                                    config_source=f"CI:{ci_file.name}",
                                 )
                             # vitest
                             if any(re.search(p, line, re.IGNORECASE) for p in self.VITEST_PATTERNS):
@@ -132,7 +121,7 @@ class FrameworkDetector:
                                     name="vitest",
                                     test_command="vitest run",
                                     targeted_template="vitest run {test_file}",
-                                    config_source=f"CI:{ci_file.name}"
+                                    config_source=f"CI:{ci_file.name}",
                                 )
                             # go test
                             if any(re.search(p, line, re.IGNORECASE) for p in self.GO_PATTERNS):
@@ -140,7 +129,7 @@ class FrameworkDetector:
                                     name="go",
                                     test_command="go test ./...",
                                     targeted_template="go test {test_file}",
-                                    config_source=f"CI:{ci_file.name}"
+                                    config_source=f"CI:{ci_file.name}",
                                 )
                             # cargo test
                             if any(re.search(p, line, re.IGNORECASE) for p in self.CARGO_PATTERNS):
@@ -148,7 +137,7 @@ class FrameworkDetector:
                                     name="cargo",
                                     test_command="cargo test",
                                     targeted_template="cargo test --test {test_file}",
-                                    config_source=f"CI:{ci_file.name}"
+                                    config_source=f"CI:{ci_file.name}",
                                 )
                 except (OSError, UnicodeDecodeError):
                     continue
@@ -167,7 +156,7 @@ class FrameworkDetector:
                         name="pytest",
                         test_command="pytest",
                         targeted_template="pytest {test_file}",
-                        config_source="pyproject.toml"
+                        config_source="pyproject.toml",
                     )
             except (OSError, UnicodeDecodeError):
                 pass
@@ -188,7 +177,7 @@ class FrameworkDetector:
                         name="jest",
                         test_command="npm test",
                         targeted_template="jest {test_file}",
-                        config_source="package.json"
+                        config_source="package.json",
                     )
 
                 if "vitest" in test_script or "vitest" in data.get("devDependencies", {}):
@@ -196,7 +185,7 @@ class FrameworkDetector:
                         name="vitest",
                         test_command="vitest run",
                         targeted_template="vitest run {test_file}",
-                        config_source="package.json"
+                        config_source="package.json",
                     )
             except (OSError, json.JSONDecodeError, UnicodeDecodeError):
                 pass
@@ -208,7 +197,7 @@ class FrameworkDetector:
                 name="go",
                 test_command="go test ./...",
                 targeted_template="go test {test_file}",
-                config_source="go.mod"
+                config_source="go.mod",
             )
 
         # Rust: Cargo.toml
@@ -218,7 +207,7 @@ class FrameworkDetector:
                 name="cargo",
                 test_command="cargo test",
                 targeted_template="cargo test --test {test_file}",
-                config_source="Cargo.toml"
+                config_source="Cargo.toml",
             )
 
         return None
@@ -226,48 +215,36 @@ class FrameworkDetector:
     def _detect_from_configs(self) -> Optional[FrameworkInfo]:
         """Detect from framework config files."""
         # pytest
-        pytest_configs = [
-            "pytest.ini",
-            "pyproject.toml",
-            "tox.ini",
-            "setup.cfg"
-        ]
+        pytest_configs = ["pytest.ini", "pyproject.toml", "tox.ini", "setup.cfg"]
         for config in pytest_configs:
             if (self.scope_root / config).exists():
                 return FrameworkInfo(
                     name="pytest",
                     test_command="pytest",
                     targeted_template="pytest {test_file}",
-                    config_source=config
+                    config_source=config,
                 )
 
         # jest
-        jest_configs = [
-            "jest.config.js",
-            "jest.config.ts",
-            "jest.config.json"
-        ]
+        jest_configs = ["jest.config.js", "jest.config.ts", "jest.config.json"]
         for config in jest_configs:
             if (self.scope_root / config).exists():
                 return FrameworkInfo(
                     name="jest",
                     test_command="npm test",
                     targeted_template="jest {test_file}",
-                    config_source=config
+                    config_source=config,
                 )
 
         # vitest
-        vitest_configs = [
-            "vitest.config.js",
-            "vitest.config.ts"
-        ]
+        vitest_configs = ["vitest.config.js", "vitest.config.ts"]
         for config in vitest_configs:
             if (self.scope_root / config).exists():
                 return FrameworkInfo(
                     name="vitest",
                     test_command="vitest run",
                     targeted_template="vitest run {test_file}",
-                    config_source=config
+                    config_source=config,
                 )
 
         return None
@@ -297,7 +274,7 @@ def detect_scope_root(start_path: Path) -> Optional[Path]:
         "Cargo.toml",
         "pom.xml",
         "build.gradle",
-        "build.gradle.kts"
+        "build.gradle.kts",
     ]
 
     current = Path(start_path).resolve()
@@ -333,15 +310,12 @@ def main():
             output = {
                 "success": True,
                 "scope_root": str(scope_root),
-                "message": f"Detected scope root: {scope_root}"
+                "message": f"Detected scope root: {scope_root}",
             }
             print(json.dumps(output, indent=2) if args.json else output["message"])
             sys.exit(0)
         else:
-            output = {
-                "success": False,
-                "error": "No scope root detected"
-            }
+            output = {"success": False, "error": "No scope root detected"}
             print(json.dumps(output, indent=2) if args.json else output["error"])
             sys.exit(2)
 
@@ -359,15 +333,12 @@ def main():
             "framework": framework.name,
             "test_command": framework.test_command,
             "targeted_template": framework.targeted_template,
-            "config_source": framework.config_source
+            "config_source": framework.config_source,
         }
         print(json.dumps(output, indent=2))
         sys.exit(0)
     else:
-        output = {
-            "success": False,
-            "error": "No testing framework detected"
-        }
+        output = {"success": False, "error": "No testing framework detected"}
         print(json.dumps(output, indent=2) if args.json else output["error"])
         sys.exit(2)
 

@@ -47,7 +47,7 @@ def find_changed_test_files(scope_root: Path) -> list[str]:
             cwd=scope_root,
             capture_output=True,
             text=True,
-            check=True
+            check=True,
         )
 
         changed_files = result.stdout.strip().split("\n")
@@ -55,19 +55,9 @@ def find_changed_test_files(scope_root: Path) -> list[str]:
             return []
 
         # Filter to test files
-        test_patterns = [
-            "test_",
-            "_test.",
-            ".test.",
-            ".spec.",
-            "/tests/",
-            "/__tests__/"
-        ]
+        test_patterns = ["test_", "_test.", ".test.", ".spec.", "/tests/", "/__tests__/"]
 
-        test_files = [
-            f for f in changed_files
-            if any(pattern in f for pattern in test_patterns)
-        ]
+        test_files = [f for f in changed_files if any(pattern in f for pattern in test_patterns)]
 
         return test_files
 
@@ -95,9 +85,11 @@ def validate_red_state(scope_root: str, allow_snapshots: bool = False) -> dict:
         return {
             "allowed": False,
             "phase": "UNKNOWN",
-            "reasons": ["No TDD state found. Initialize with: python tdd_state_machine.py --init --scope-root <path>"],
+            "reasons": [
+                "No TDD state found. Initialize with: python tdd_state_machine.py --init --scope-root <path>"
+            ],
             "warnings": [],
-            "artifacts": {}
+            "artifacts": {},
         }
 
     # Check current phase
@@ -107,7 +99,7 @@ def validate_red_state(scope_root: str, allow_snapshots: bool = False) -> dict:
             "phase": state.current_phase,
             "reasons": [f"Not in RED_PENDING phase (currently: {state.current_phase})"],
             "warnings": [],
-            "artifacts": {}
+            "artifacts": {},
         }
 
     # Detect framework if not already set
@@ -121,7 +113,7 @@ def validate_red_state(scope_root: str, allow_snapshots: bool = False) -> dict:
                 "phase": state.current_phase,
                 "reasons": ["No testing framework detected. Specify with --framework flag."],
                 "warnings": [],
-                "artifacts": {}
+                "artifacts": {},
             }
 
         state.framework = framework_info.name
@@ -137,7 +129,7 @@ def validate_red_state(scope_root: str, allow_snapshots: bool = False) -> dict:
             "phase": state.current_phase,
             "reasons": ["No changed test files found. Write a failing test first."],
             "warnings": ["Run: git status to see tracked files"],
-            "artifacts": {}
+            "artifacts": {},
         }
 
     if len(changed_tests) > 1:
@@ -146,10 +138,10 @@ def validate_red_state(scope_root: str, allow_snapshots: bool = False) -> dict:
             "phase": state.current_phase,
             "reasons": [
                 f"Multiple test files changed: {changed_tests}",
-                "TDD requires one test file at a time. Specify with --intent-test-file flag."
+                "TDD requires one test file at a time. Specify with --intent-test-file flag.",
             ],
             "warnings": [],
-            "artifacts": {"changed_tests": changed_tests}
+            "artifacts": {"changed_tests": changed_tests},
         }
 
     intent_test_file = changed_tests[0]
@@ -157,17 +149,10 @@ def validate_red_state(scope_root: str, allow_snapshots: bool = False) -> dict:
     # Execute test
     runner = TestRunner(allow_snapshots=allow_snapshots)
     cmd = runner.build_targeted_command(
-        state.test_command,
-        state.framework,
-        str(scope_path / intent_test_file)
+        state.test_command, state.framework, str(scope_path / intent_test_file)
     )
 
-    result = runner.run_command(
-        cmd,
-        str(scope_path),
-        timeout_s=120,
-        framework=state.framework
-    )
+    result = runner.run_command(cmd, str(scope_path), timeout_s=120, framework=state.framework)
 
     # Validate outcome
     if result.outcome == TestOutcome.SEMANTIC_FAIL.value:
@@ -176,14 +161,12 @@ def validate_red_state(scope_root: str, allow_snapshots: bool = False) -> dict:
             file=intent_test_file,
             name=None,  # File-level targeting in v1
             failure_type="semantic",
-            excerpt_hash=result.excerpt_hash
+            excerpt_hash=result.excerpt_hash,
         )
 
         # Transition to RED_CONFIRMED
         success, message = sm.transition(
-            state,
-            TDDPhase.RED_CONFIRMED,
-            evidence=f"Test failed: {result.signals}"
+            state, TDDPhase.RED_CONFIRMED, evidence=f"Test failed: {result.signals}"
         )
 
         return {
@@ -191,18 +174,18 @@ def validate_red_state(scope_root: str, allow_snapshots: bool = False) -> dict:
             "phase": TDDPhase.RED_CONFIRMED.value,
             "reasons": [
                 f"Intent test '{intent_test_file}' failed with semantic assertion",
-                f"Signals: {', '.join(result.signals)}"
+                f"Signals: {', '.join(result.signals)}",
             ],
             "warnings": [],
             "artifacts": {
                 "intent_test": {
                     "file": intent_test_file,
                     "failure_type": "semantic",
-                    "excerpt_hash": result.excerpt_hash
+                    "excerpt_hash": result.excerpt_hash,
                 },
                 "test_output": result.stdout[:2000],  # Truncated
-                "exit_code": result.exit_code
-            }
+                "exit_code": result.exit_code,
+            },
         }
 
     elif result.outcome == TestOutcome.NO_TESTS.value:
@@ -212,13 +195,10 @@ def validate_red_state(scope_root: str, allow_snapshots: bool = False) -> dict:
             "reasons": [
                 f"No tests found in '{intent_test_file}'",
                 "Test file exists but contains no executable tests.",
-                f"Signals: {', '.join(result.signals)}"
+                f"Signals: {', '.join(result.signals)}",
             ],
             "warnings": ["Check test file syntax and framework configuration"],
-            "artifacts": {
-                "test_output": result.stdout[:2000],
-                "signals": result.signals
-            }
+            "artifacts": {"test_output": result.stdout[:2000], "signals": result.signals},
         }
 
     elif result.outcome == TestOutcome.NON_SEMANTIC_FAIL.value:
@@ -230,14 +210,14 @@ def validate_red_state(scope_root: str, allow_snapshots: bool = False) -> dict:
                 "Detected: compile error, import error, or syntax error",
                 f"Signals: {', '.join(result.signals)}",
                 "",
-                "Fix the test to compile and run, then fail with assertion."
+                "Fix the test to compile and run, then fail with assertion.",
             ],
             "warnings": [],
             "artifacts": {
                 "test_output": result.stdout[:2000],
                 "stderr": result.stderr[:2000],
-                "signals": result.signals
-            }
+                "signals": result.signals,
+            },
         }
 
     elif result.outcome == TestOutcome.PASS.value:
@@ -247,13 +227,10 @@ def validate_red_state(scope_root: str, allow_snapshots: bool = False) -> dict:
             "reasons": [
                 f"Test '{intent_test_file}' PASSED (expected failure)",
                 "RED phase requires a failing test.",
-                "Write an assertion that exposes missing functionality."
+                "Write an assertion that exposes missing functionality.",
             ],
             "warnings": [],
-            "artifacts": {
-                "test_output": result.stdout[:2000],
-                "signals": result.signals
-            }
+            "artifacts": {"test_output": result.stdout[:2000], "signals": result.signals},
         }
 
     elif result.outcome == TestOutcome.TIMEOUT.value:
@@ -262,10 +239,10 @@ def validate_red_state(scope_root: str, allow_snapshots: bool = False) -> dict:
             "phase": state.current_phase,
             "reasons": [
                 f"Test execution timed out (>{result.timeout_s}s)",
-                "Infinite loop or very slow test detected."
+                "Infinite loop or very slow test detected.",
             ],
             "warnings": ["Optimize test or increase timeout"],
-            "artifacts": {}
+            "artifacts": {},
         }
 
     else:
@@ -274,7 +251,7 @@ def validate_red_state(scope_root: str, allow_snapshots: bool = False) -> dict:
             "phase": state.current_phase,
             "reasons": [f"Unknown test outcome: {result.outcome}"],
             "warnings": [],
-            "artifacts": {"test_output": result.stdout[:2000]}
+            "artifacts": {"test_output": result.stdout[:2000]},
         }
 
 
