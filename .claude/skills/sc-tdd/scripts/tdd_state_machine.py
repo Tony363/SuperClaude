@@ -321,7 +321,7 @@ def main():
 
             print(json.dumps(output, indent=2) if args.json else message)
             sys.exit(0 if success else 2)
-        except ValueError as e:
+        except ValueError:
             output = {"success": False, "error": f"Invalid phase: {args.phase}"}
             print(json.dumps(output, indent=2) if args.json else output["error"])
             sys.exit(3)

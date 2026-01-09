@@ -365,7 +365,7 @@ class TestRunner:
         # Check for NO_TESTS
         for pattern in self.GO_NO_TESTS:
             if pattern in output:
-                signals.append(f"go:no_tests")
+                signals.append("go:no_tests")
                 return TestOutcome.NO_TESTS, signals
 
         # Check for NON_SEMANTIC failures
@@ -399,7 +399,7 @@ class TestRunner:
         # Check for NO_TESTS
         for pattern in self.CARGO_NO_TESTS:
             if pattern in output:
-                signals.append(f"cargo:no_tests")
+                signals.append("cargo:no_tests")
                 return TestOutcome.NO_TESTS, signals
 
         # Check for NON_SEMANTIC failures

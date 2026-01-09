@@ -12,15 +12,17 @@ Exit Codes:
     3 - Validation error (cannot determine)
 """
 
+from __future__ import annotations
+
 import argparse
 import json
 import sys
 from pathlib import Path
 
-# Import from sibling modules
 sys.path.insert(0, str(Path(__file__).parent))
-from tdd_state_machine import TDDStateMachine, TDDPhase
-from test_runner import TestRunner, TestOutcome
+
+from tdd_state_machine import TDDPhase, TDDStateMachine
+from test_runner import TestOutcome, TestRunner
 
 
 def validate_green_state(scope_root: str, skip_full_suite: bool = False) -> dict:

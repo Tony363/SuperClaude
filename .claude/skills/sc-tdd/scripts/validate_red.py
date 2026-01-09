@@ -24,11 +24,11 @@ import subprocess
 import sys
 from pathlib import Path
 
-# Import from sibling modules
 sys.path.insert(0, str(Path(__file__).parent))
-from framework_detector import FrameworkDetector, detect_scope_root
-from tdd_state_machine import TDDStateMachine, TDDPhase, IntentTest
-from test_runner import TestRunner, TestOutcome
+
+from framework_detector import FrameworkDetector
+from tdd_state_machine import IntentTest, TDDPhase, TDDStateMachine
+from test_runner import TestOutcome, TestRunner
 
 
 def find_changed_test_files(scope_root: Path) -> list[str]:
