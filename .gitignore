@@ -108,6 +108,7 @@ CLAUDE.md
 # SuperClaude specific
 .serena/
 .superclaude/
+.sc-tdd/
 .superclaude_metrics/
 SuperClaude/Generated/
 SuperClaude/quarantine/

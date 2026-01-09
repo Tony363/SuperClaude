@@ -247,6 +247,14 @@ triggers:
       - "authentication"
       - "authorization"
 
+    test-automator:
+      - "TDD"
+      - "test-driven"
+      - "write tests first"
+      - "red green refactor"
+      - "test first"
+      - "failing test"
+
 # Workflow definitions
 workflows:
   default_workflow:
