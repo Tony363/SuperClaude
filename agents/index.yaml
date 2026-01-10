@@ -380,10 +380,6 @@ extended:
         file: extended/04-quality-security/test-automator.md
         triggers: [test automation, selenium, cypress, playwright]
 
-      - name: code-warden
-        file: extended/04-quality-security/code-warden.md
-        triggers: [kiss, simplicity, pure function, purity, complexity, clean code, functional core]
-
   05-data-ai:
     description: "Data science and AI/ML specialists"
     priority: medium
