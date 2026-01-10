@@ -25,7 +25,10 @@ Comprehensive feature implementation with coordinated expertise and systematic d
 1. **Analyze** - Examine requirements, detect technology context
 2. **Plan** - Choose approach, activate relevant personas
 3. **Generate** - Create implementation with framework best practices
-4. **Validate** - Apply security and quality validation
+4. **Validate** - Apply security, quality, and principles validation
+   - Run KISS validation: `python .claude/skills/sc-principles/scripts/validate_kiss.py --scope-root . --json`
+   - Run Purity validation: `python .claude/skills/sc-principles/scripts/validate_purity.py --scope-root . --json`
+   - **If blocked**: Refactor code to comply before proceeding
 5. **Integrate** - Update docs, provide testing recommendations
 
 ## Flags
@@ -40,6 +43,8 @@ Comprehensive feature implementation with coordinated expertise and systematic d
 | `--orchestrate` | bool | false | Enable hierarchical task breakdown |
 | `--strategy` | string | systematic | systematic, agile, enterprise, parallel, adaptive |
 | `--delegate` | bool | false | Enable intelligent delegation |
+| `--principles` | bool | true | Enable KISS/Purity validation |
+| `--strict-principles` | bool | false | Treat principles warnings as errors |
 
 ## Personas Activated
 
@@ -50,6 +55,7 @@ Comprehensive feature implementation with coordinated expertise and systematic d
 - **qa-specialist** - Testing, quality assurance
 - **devops** - Infrastructure, deployment
 - **project-manager** - Task coordination (with --orchestrate)
+- **code-warden** - Principles enforcement (KISS, Purity)
 
 ## MCP Integration
 
