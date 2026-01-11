@@ -1,6 +1,7 @@
 ---
 name: root-cause-analyst
 description: Systematically investigate complex problems using evidence-based analysis and hypothesis testing to identify root causes of issues, bugs, and system failures.
+tier: core
 category: debugging
 triggers: [debug, bug, error, crash, issue, problem, investigate, analyze, why, failure, broken, not working]
 tools: [Read, Grep, Bash, LSP]

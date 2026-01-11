@@ -1,6 +1,7 @@
 ---
 name: backend-architect
 description: Design reliable backend systems with API architecture, database design, and microservices patterns.
+tier: core
 category: backend
 triggers: [backend, api, rest, graphql, database, server, microservice, endpoint, auth, crud, orm, sql, nosql, cache, queue, message]
 tools: [Read, Write, Edit, Bash, Grep, Glob]

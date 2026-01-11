@@ -1,6 +1,7 @@
 ---
 name: frontend-architect
 description: Create accessible, performant user interfaces with modern frontend architecture.
+tier: core
 category: frontend
 triggers: [frontend, ui, ux, component, react, vue, angular, css, style, design, interface, responsive, accessibility, state management, redux, webpack, vite]
 tools: [Read, Write, Edit, Bash, Grep, Glob]

@@ -1,6 +1,7 @@
 ---
 name: refactoring-expert
 description: Improve code quality through systematic refactoring without changing functionality.
+tier: core
 category: quality
 triggers: [refactor, improve, clean, optimize code, restructure, simplify, reduce complexity, code smell, technical debt, maintainability]
 tools: [Read, Write, Edit, Grep, Glob, LSP]
