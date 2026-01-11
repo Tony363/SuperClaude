@@ -35,7 +35,7 @@ Systematic improvements with multi-persona expertise and safety validation.
 
 | Flag | Type | Default | Description |
 |------|------|---------|-------------|
-| `--type` | string | quality | quality, performance, maintainability, style, code, imports, files, all |
+| `--type` | string | quality | quality, performance, maintainability, style, principles, code, imports, files, all |
 | `--cleanup` | bool | false | Enable cleanup mode |
 | `--safe` | bool | true | Conservative with safety validation |
 | `--aggressive` | bool | false | Thorough cleanup (use with caution) |
@@ -48,6 +48,7 @@ Systematic improvements with multi-persona expertise and safety validation.
 - **performance** - Optimization expertise
 - **quality** - Code quality and maintainability
 - **security** - Security pattern application
+- **code-warden** - KISS and Purity enforcement (with --type principles)
 
 ## MCP Integration
 
@@ -82,6 +83,21 @@ This skill requires evidence. You MUST:
 - Formatting consistency
 - Naming conventions
 - Pattern alignment
+
+### Principles (`--type principles`)
+- KISS compliance improvements (reduce complexity, extract methods)
+- Purity enforcement (separate I/O from logic)
+- Guard clause refactoring (reduce nesting)
+- Functional core extraction (move I/O to shell layer)
+
+**Validators:**
+```bash
+# Run KISS validation
+python .claude/skills/sc-principles/scripts/validate_kiss.py --scope-root . --json
+
+# Run Purity validation
+python .claude/skills/sc-principles/scripts/validate_purity.py --scope-root . --json
+```
 
 ## Cleanup Mode (`--cleanup`)
 
