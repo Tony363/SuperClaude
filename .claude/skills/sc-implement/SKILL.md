@@ -59,8 +59,110 @@ Comprehensive feature implementation with coordinated expertise and systematic d
 
 ## MCP Integration
 
-- **PAL MCP** - Consensus for architectural/security decisions
-- **Rube MCP** - External automation (ticketing, CI hooks)
+### PAL MCP (Always Use for Quality)
+
+| Tool | When to Use | Purpose |
+|------|-------------|---------|
+| `mcp__pal__consensus` | Architectural decisions | Multi-model validation before major changes |
+| `mcp__pal__codereview` | Code quality | Review implementation quality, security, performance |
+| `mcp__pal__precommit` | Before commit | Validate all changes before git commit |
+| `mcp__pal__debug` | Implementation issues | Root cause analysis for bugs encountered |
+| `mcp__pal__thinkdeep` | Complex features | Multi-stage analysis for complex implementations |
+| `mcp__pal__planner` | Large features | Sequential planning for multi-step implementations |
+| `mcp__pal__apilookup` | Dependencies | Get current API/SDK documentation |
+| `mcp__pal__challenge` | Code review feedback | Critically evaluate review suggestions |
+
+### PAL Usage Patterns
+
+```bash
+# Consensus for architectural decision
+mcp__pal__consensus(
+    models=[
+        {"model": "gpt-5.2", "stance": "for"},
+        {"model": "gemini-3-pro", "stance": "against"},
+        {"model": "deepseek", "stance": "neutral"}
+    ],
+    step="Evaluate: Should we use Redux or Context API for state management?"
+)
+
+# Pre-commit validation
+mcp__pal__precommit(
+    path="/path/to/repo",
+    step="Validating implementation changes",
+    findings="Security, performance, completeness checks",
+    confidence="high"
+)
+
+# Code review after implementation
+mcp__pal__codereview(
+    review_type="full",
+    step="Reviewing new authentication implementation",
+    findings="Quality, security, performance, architecture",
+    relevant_files=["/src/auth/login.ts", "/src/auth/middleware.ts"]
+)
+
+# Debug implementation issue
+mcp__pal__debug(
+    step="Investigating why API returns 500 on edge case",
+    hypothesis="Null check missing for optional field",
+    confidence="medium"
+)
+```
+
+### Rube MCP (Automation & Integration)
+
+| Tool | When to Use | Purpose |
+|------|-------------|---------|
+| `mcp__rube__RUBE_SEARCH_TOOLS` | External services | Find APIs, SDKs, integrations |
+| `mcp__rube__RUBE_MULTI_EXECUTE_TOOL` | CI/CD, notifications | Trigger builds, notify team, update tickets |
+| `mcp__rube__RUBE_REMOTE_WORKBENCH` | Code generation | Bulk code operations, transformations |
+| `mcp__rube__RUBE_CREATE_UPDATE_RECIPE` | Reusable workflows | Save implementation patterns as recipes |
+| `mcp__rube__RUBE_MANAGE_CONNECTIONS` | Verify integrations | Ensure external service connections |
+
+### Rube Usage Patterns
+
+```bash
+# Search for integration tools
+mcp__rube__RUBE_SEARCH_TOOLS(queries=[
+    {"use_case": "send slack message", "known_fields": "channel_name:dev-updates"},
+    {"use_case": "create github pull request", "known_fields": "repo:myapp"}
+])
+
+# Notify team and update ticket on completion
+mcp__rube__RUBE_MULTI_EXECUTE_TOOL(tools=[
+    {"tool_slug": "SLACK_SEND_MESSAGE", "arguments": {
+        "channel": "#dev-updates",
+        "text": "Feature implemented: User authentication flow"
+    }},
+    {"tool_slug": "JIRA_UPDATE_ISSUE", "arguments": {
+        "issue_key": "PROJ-123",
+        "status": "In Review"
+    }},
+    {"tool_slug": "GITHUB_CREATE_PULL_REQUEST", "arguments": {
+        "repo": "myapp",
+        "title": "feat: Add user authentication",
+        "base": "main",
+        "head": "feature/auth"
+    }}
+])
+
+# Save implementation workflow as recipe
+mcp__rube__RUBE_CREATE_UPDATE_RECIPE(
+    name="Feature Implementation Workflow",
+    description="Standard flow for implementing features with notifications",
+    workflow_code="..."
+)
+```
+
+### MCP-Powered Loop Mode
+
+When `--loop` is enabled, MCP tools are used between iterations:
+
+1. **Iteration N** - Implement feature
+2. **PAL codereview** - Assess quality (target: 70+ score)
+3. **PAL debug** - Investigate any issues found
+4. **Iteration N+1** - Apply improvements
+5. **PAL precommit** - Final validation before marking complete
 
 ## Guardrails
 

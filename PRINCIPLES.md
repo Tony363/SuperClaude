@@ -63,7 +63,7 @@ Claims require backing:
 ## 4. Composability
 
 ### Agent Specialization
-131 agents, each with focused expertise:
+33 agents (16 core + 10 traits + 7 extensions), each with focused expertise:
 - Domain knowledge (backend, frontend, data, etc.)
 - Language specialization (Python, TypeScript, Rust, etc.)
 - Task type (analysis, implementation, testing)

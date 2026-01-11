@@ -3,7 +3,7 @@ Agent Registry for SuperClaude Framework.
 
 Updated to work with the v7 tiered architecture:
 - agents/core/     - 16 primary agents
-- agents/traits/   - 8 composable modifiers
+- agents/traits/   - 10 composable modifiers
 - agents/extensions/ - 7 domain specialists
 
 This is a standalone implementation that doesn't depend on the archived SDK.

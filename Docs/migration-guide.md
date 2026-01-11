@@ -8,7 +8,7 @@ This guide covers migrating from SuperClaude v6.x to v7.0 (Tiered Agent Architec
 
 | v6.x | v7.0 |
 |------|------|
-| 131 agents in flat structure | 31 agents in tiered structure |
+| 131 agents in flat structure | 33 agents in tiered structure (16 core + 10 traits + 7 extensions) |
 | `agents/core/` + `agents/extended/` | `agents/core/` + `agents/traits/` + `agents/extensions/` |
 | Monolithic agent personas | Composable agent + trait system |
 | No schema validation | JSON Schema + Python validation |
@@ -18,7 +18,7 @@ This guide covers migrating from SuperClaude v6.x to v7.0 (Tiered Agent Architec
 
 The v6 architecture had 131 agents with significant overlap and maintenance burden. The v7 tiered architecture provides:
 
-- **Maintainability**: 31 agents vs 131 (76% reduction)
+- **Maintainability**: 33 agents vs 131 (75% reduction)
 - **Composability**: Combine any agent with any trait
 - **Validation**: Schema enforcement prevents drift
 - **Clarity**: Clear tier separation (core → traits → extensions)
@@ -117,7 +117,7 @@ from SuperClaude.Agents.registry import AgentRegistry
 registry = AgentRegistry()
 registry.discover_agents()
 agents = registry.get_all_agents()       # Returns 23 (excludes traits)
-traits = registry.get_all_traits()       # Returns 8 traits
+traits = registry.get_all_traits()       # Returns 10 traits
 core = registry.get_agents_by_tier("core")  # Returns 16
 ```
 
@@ -162,7 +162,7 @@ v6.x                              v7.0
 ====                              ====
 agents/                           agents/
 ├── core/          (16 agents)    ├── core/        (16 agents)
-├── extended/      (115 agents)   ├── traits/      (8 traits)
+├── extended/      (115 agents)   ├── traits/      (10 traits)
 └── index.yaml                    ├── extensions/  (7 agents)
                                   ├── DEPRECATED/  (106 archived)
                                   └── index.yaml   (auto-generated)

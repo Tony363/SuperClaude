@@ -44,7 +44,90 @@ Educational explanations with adaptive depth and format.
 
 ## MCP Integration
 
-- **PAL MCP** - Cross-perspective validation for complex topics
+### PAL MCP (Multi-Perspective Explanations)
+
+| Tool | When to Use | Purpose |
+|------|-------------|---------|
+| `mcp__pal__consensus` | Complex topics | Cross-perspective validation |
+| `mcp__pal__chat` | Clarification | Get alternative explanations |
+| `mcp__pal__thinkdeep` | Deep concepts | Multi-stage exploration |
+| `mcp__pal__apilookup` | Current APIs | Get up-to-date documentation |
+| `mcp__pal__challenge` | Verify accuracy | Challenge explanation correctness |
+
+### PAL Usage Patterns
+
+```bash
+# Multi-perspective explanation for complex topic
+mcp__pal__consensus(
+    models=[
+        {"model": "gpt-5.2", "stance": "neutral"},
+        {"model": "gemini-3-pro", "stance": "neutral"}
+    ],
+    step="Explain: How does React's reconciliation algorithm work?"
+)
+
+# Get alternative explanation approach
+mcp__pal__chat(
+    prompt="Explain React hooks to someone familiar with Vue composition API",
+    model="gpt-5.2",
+    thinking_mode="medium"
+)
+
+# Deep dive into complex concept
+mcp__pal__thinkdeep(
+    step="Understanding Kubernetes pod scheduling algorithm",
+    hypothesis="Priority-based scheduling with resource constraints",
+    confidence="medium",
+    focus_areas=["scheduling", "resource_management", "affinity"]
+)
+
+# Verify explanation accuracy
+mcp__pal__challenge(
+    prompt="Is my explanation of OAuth2 refresh tokens technically accurate?"
+)
+
+# Get current API/framework documentation
+mcp__pal__apilookup(
+    prompt="Get current React 19 documentation for use hook"
+)
+```
+
+### Rube MCP (Research & Sharing)
+
+| Tool | When to Use | Purpose |
+|------|-------------|---------|
+| `mcp__rube__RUBE_SEARCH_TOOLS` | Web research | Find tutorials, docs, examples |
+| `mcp__rube__RUBE_MULTI_EXECUTE_TOOL` | Share explanations | Post to Notion, Slack, etc. |
+
+### Rube Usage Patterns
+
+```bash
+# Research current best practices
+mcp__rube__RUBE_SEARCH_TOOLS(queries=[
+    {"use_case": "web search", "known_fields": "query:React 19 new features explained"}
+])
+
+# Share explanation with team
+mcp__rube__RUBE_MULTI_EXECUTE_TOOL(tools=[
+    {"tool_slug": "NOTION_CREATE_PAGE", "arguments": {
+        "title": "Understanding: React Concurrent Mode",
+        "content": "## Overview\n..."
+    }},
+    {"tool_slug": "SLACK_SEND_MESSAGE", "arguments": {
+        "channel": "#learning",
+        "text": "New explainer: React Concurrent Mode fundamentals"
+    }}
+])
+```
+
+## Flags (Extended)
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--pal-consensus` | bool | false | Use PAL for multi-perspective validation |
+| `--pal-deep` | bool | false | Use PAL thinkdeep for complex topics |
+| `--research` | bool | false | Use Rube for web research |
+| `--share` | string | - | Share via Rube (notion, slack, confluence) |
 
 ## Evidence Requirements
 
