@@ -85,9 +85,9 @@ SuperClaude v7.0.0 is a **config-first hybrid framework**:
 |------|-------|---------|----------|
 | **Core** | 16 | High-priority generalists | general-purpose, root-cause-analyst, refactoring-expert, security-engineer |
 | **Traits** | 10 | Composable modifiers | security-first, performance-first, test-driven, minimal-changes, mcp-pal-enabled, mcp-rube-enabled |
-| **Extensions** | 7 | Domain specialists | typescript-expert, golang-expert, react-specialist, python-pro |
+| **Extensions** | 7 | Domain specialists | typescript-expert, golang-expert, rust-expert, react-specialist, kubernetes-specialist, data-engineer, ml-engineer |
 
-**Why Tiered?** The v7 architecture consolidates 243 legacy agents into a lean, composable system. Core agents handle most tasks, traits modify behavior (e.g., `@security-engineer +security-first`), and extensions provide deep domain expertise when needed.
+**Why Tiered?** The v7 architecture provides a lean, composable system. Core agents handle most tasks, traits modify behavior (e.g., `@security-engineer +security-first`), and extensions provide deep domain expertise when needed.
 
 ### Command System
 
@@ -386,7 +386,7 @@ High-priority generalists for common tasks:
 | requirements-analyst | requirements, spec, user story | Requirements analysis |
 | socratic-mentor | mentor, coach, why | Guided discovery learning |
 
-### Traits (8)
+### Traits (10)
 
 Composable behavior modifiers that can be combined with any agent:
 
@@ -394,12 +394,14 @@ Composable behavior modifiers that can be combined with any agent:
 |-------|---------|---------------|
 | security-first | Prioritize security considerations | `@backend-architect +security-first` |
 | performance-first | Focus on optimization | `@python-expert +performance-first` |
+| pedagogy-first | Include educational explanations | `@learning-guide +pedagogy-first` |
 | test-driven | Enforce TDD practices | `@fullstack-developer +test-driven` |
 | minimal-changes | Reduce change scope | `@refactoring-expert +minimal-changes` |
 | legacy-friendly | Support older systems | `@devops-architect +legacy-friendly` |
 | cloud-native | Modern cloud patterns | `@system-architect +cloud-native` |
 | rapid-prototype | Fast iteration | `@frontend-architect +rapid-prototype` |
-| documentation-heavy | Emphasize docs | `@technical-writer +documentation-heavy` |
+| mcp-pal-enabled | Enables PAL MCP tools (consensus, debug, codereview) | `@security-engineer +mcp-pal-enabled` |
+| mcp-rube-enabled | Enables Rube MCP tools (500+ app integrations) | `@devops-architect +mcp-rube-enabled` |
 
 ### Extensions (7)
 
@@ -409,15 +411,11 @@ Domain-specialist agents for deep expertise:
 |-----------|----------|-----------|
 | typescript-expert | typescript, ts, angular | TypeScript ecosystem |
 | golang-expert | go, golang | Go development |
-| react-specialist | react, nextjs, hooks | React ecosystem |
-| python-pro | python, fastapi, django | Python ecosystem |
 | rust-expert | rust, cargo, wasm | Rust development |
-| java-expert | java, spring, kotlin | JVM ecosystem |
-| devops-specialist | terraform, ansible, k8s | DevOps tooling |
-
-### Legacy Agents (DEPRECATED)
-
-243 agents from previous versions are archived in `agents/DEPRECATED/`. The v7 tiered system replaces these with composable core + traits + extensions.
+| react-specialist | react, nextjs, hooks | React ecosystem |
+| kubernetes-specialist | kubernetes, k8s, helm | Kubernetes orchestration |
+| data-engineer | data, pipeline, etl | Data engineering |
+| ml-engineer | ml, machine learning, model | Machine learning |
 
 ### Agent Selection Algorithm
 
@@ -1369,7 +1367,7 @@ SuperClaude/
 │   │   ├── golang-expert.md
 │   │   ├── react-specialist.md
 │   │   └── ...
-│   └── DEPRECATED/              # 243 archived legacy agents
+│   └── DEPRECATED/              # Archived agents from previous versions
 │
 ├── commands/
 │   ├── index.yaml               # Command registry
