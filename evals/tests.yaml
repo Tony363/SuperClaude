@@ -1,0 +1,254 @@
+# Stochastic Agentic Evaluation Test Definitions
+# Each test runs N times (default 5), passes if M/N succeed (default 80%)
+#
+# Structure:
+#   agents:
+#     <agent-name>:
+#       prompt: "Task for the agent to complete"
+#       keywords: ["word1", "word2"]  # At least one must appear in response
+#       threshold: 0.8  # Optional, defaults to 0.8 (4/5)
+#       type: standard|critical|experimental  # Optional, affects threshold
+
+agents:
+  # ============================================
+  # Core Development Agents
+  # ============================================
+
+  python-expert:
+    prompt: |
+      Implement a Python function that calculates the nth Fibonacci number.
+      Use type hints, include a docstring, and handle edge cases.
+    keywords:
+      - "def"
+      - "fibonacci"
+      - "int"
+      - "->"
+    type: standard
+
+  backend-architect:
+    prompt: |
+      Design a REST API endpoint for user authentication.
+      Include the HTTP method, path, request/response schemas, and error handling.
+    keywords:
+      - "POST"
+      - "login"
+      - "token"
+      - "401"
+      - "authentication"
+    type: standard
+
+  frontend-architect:
+    prompt: |
+      Create a React component that displays a list of items with pagination.
+      Include TypeScript types and handle loading/error states.
+    keywords:
+      - "function"
+      - "useState"
+      - "return"
+      - "pagination"
+      - "loading"
+    type: standard
+
+  fullstack-developer:
+    prompt: |
+      Implement a simple todo item component with a Node.js API endpoint to save it.
+      Show both frontend and backend code.
+    keywords:
+      - "express"
+      - "React"
+      - "todo"
+      - "POST"
+    type: standard
+
+  # ============================================
+  # Quality & Security Agents
+  # ============================================
+
+  security-engineer:
+    prompt: |
+      Review this code for security vulnerabilities:
+      def query(id): return db.execute(f"SELECT * FROM users WHERE id={id}")
+
+      Identify all issues and suggest fixes.
+    keywords:
+      - "injection"
+      - "SQL"
+      - "parameterized"
+      - "sanitize"
+      - "vulnerability"
+    type: critical
+    threshold: 1.0  # Security tests must pass 100%
+
+  quality-engineer:
+    prompt: |
+      Write pytest unit tests for a Calculator class with add, subtract, multiply, divide methods.
+      Include edge cases and use proper assertions.
+    keywords:
+      - "def test_"
+      - "assert"
+      - "pytest"
+      - "divide"
+      - "zero"
+    type: standard
+
+  performance-engineer:
+    prompt: |
+      Analyze this code for performance issues and suggest optimizations:
+      def find_duplicates(lst):
+          duplicates = []
+          for i in range(len(lst)):
+              for j in range(i+1, len(lst)):
+                  if lst[i] == lst[j] and lst[i] not in duplicates:
+                      duplicates.append(lst[i])
+          return duplicates
+    keywords:
+      - "O(n"
+      - "set"
+      - "complexity"
+      - "optimization"
+      - "performance"
+    type: standard
+
+  # ============================================
+  # Architecture & Design Agents
+  # ============================================
+
+  system-architect:
+    prompt: |
+      Design a scalable architecture for a real-time chat application.
+      Include components, data flow, and technology choices.
+    keywords:
+      - "WebSocket"
+      - "database"
+      - "scalable"
+      - "microservice"
+      - "cache"
+    type: standard
+
+  devops-architect:
+    prompt: |
+      Create a GitHub Actions workflow for a Python project that:
+      1. Runs tests on PRs
+      2. Builds and pushes Docker image on merge to main
+      3. Deploys to staging
+    keywords:
+      - "on:"
+      - "jobs:"
+      - "pytest"
+      - "docker"
+      - "deploy"
+    type: standard
+
+  # ============================================
+  # Analysis & Documentation Agents
+  # ============================================
+
+  root-cause-analyst:
+    prompt: |
+      Debug this error and identify the root cause:
+      TypeError: cannot unpack non-iterable NoneType object
+
+      Code:
+      def get_user_data(user_id):
+          result = cache.get(f"user:{user_id}")
+          name, email = result
+          return {"name": name, "email": email}
+    keywords:
+      - "None"
+      - "cache"
+      - "check"
+      - "return"
+      - "if"
+    type: standard
+
+  refactoring-expert:
+    prompt: |
+      Refactor this code to improve readability and maintainability:
+      def f(x):
+        if x>0:
+          if x<10:
+            return "small"
+          else:
+            if x<100:
+              return "medium"
+            else:
+              return "large"
+        else:
+          return "invalid"
+    keywords:
+      - "def"
+      - "return"
+      - "elif"
+      - "readable"
+    type: standard
+
+  technical-writer:
+    prompt: |
+      Write documentation for this function:
+      def retry_with_backoff(func, max_retries=3, base_delay=1.0):
+          for attempt in range(max_retries):
+              try:
+                  return func()
+              except Exception as e:
+                  if attempt == max_retries - 1:
+                      raise
+                  time.sleep(base_delay * (2 ** attempt))
+    keywords:
+      - "Args"
+      - "Returns"
+      - "Raises"
+      - "retry"
+      - "backoff"
+    type: standard
+
+  # ============================================
+  # Learning & Requirements Agents
+  # ============================================
+
+  learning-guide:
+    prompt: |
+      Explain the concept of dependency injection to a junior developer.
+      Include a simple Python example.
+    keywords:
+      - "inject"
+      - "dependency"
+      - "class"
+      - "def"
+      - "example"
+    type: standard
+
+  requirements-analyst:
+    prompt: |
+      Convert this user request into technical requirements:
+      "I want users to be able to save their favorite products and get notified when they go on sale"
+    keywords:
+      - "user"
+      - "product"
+      - "notification"
+      - "save"
+      - "requirement"
+    type: standard
+
+  socratic-mentor:
+    prompt: |
+      A developer asks: "Why should I use async/await instead of callbacks?"
+      Guide them to understand through questions rather than direct answers.
+    keywords:
+      - "?"
+      - "think"
+      - "consider"
+      - "what"
+      - "why"
+    type: experimental
+    threshold: 0.6  # Teaching style is more variable
+
+# ============================================
+# Global Settings
+# ============================================
+settings:
+  default_runs: 5
+  default_threshold: 0.8
+  thresholds:
+    critical: 1.0      # Must pass all runs
+    standard: 0.8      # Must pass 4/5
+    experimental: 0.6  # Must pass 3/5

@@ -1,0 +1,411 @@
+# Stochastic Agent Evaluations
+# Runs each agent test N times and computes pass rates
+# Uses Claude Code CLI in headless mode for full agentic testing
+#
+# Pass rate threshold: 4/5 = 80% (configurable)
+# Full tool access: Bash, Read, Write, Edit
+
+name: Stochastic Agent Evals
+
+on:
+  pull_request:
+    paths:
+      - 'agents/**'
+      - 'evals/**'
+      - 'scripts/compute_pass_rates.py'
+      - '.github/workflows/stochastic-evals.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'agents/**'
+      - 'evals/**'
+      - 'scripts/compute_pass_rates.py'
+      - '.github/workflows/stochastic-evals.yml'
+  workflow_dispatch:
+    inputs:
+      runs_per_test:
+        description: 'Number of runs per test (1-10)'
+        required: false
+        default: '5'
+        type: string
+      threshold:
+        description: 'Pass rate threshold (0.0-1.0)'
+        required: false
+        default: '0.8'
+        type: string
+      agent:
+        description: 'Specific agent to test (leave empty for all)'
+        required: false
+        type: string
+
+concurrency:
+  group: stochastic-evals-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  DEFAULT_RUNS: 5
+  DEFAULT_THRESHOLD: '0.8'
+
+jobs:
+  # ============================================================
+  # Setup: Determine which agents to test and run configuration
+  # ============================================================
+  setup:
+    name: Setup Test Matrix
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+      runs: ${{ steps.set-matrix.outputs.runs }}
+      threshold: ${{ steps.set-matrix.outputs.threshold }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install PyYAML
+        run: pip install pyyaml
+
+      - name: Determine test matrix
+        id: set-matrix
+        run: |
+          # Get configuration
+          RUNS="${{ github.event.inputs.runs_per_test || env.DEFAULT_RUNS }}"
+          THRESHOLD="${{ github.event.inputs.threshold || env.DEFAULT_THRESHOLD }}"
+          SPECIFIC_AGENT="${{ github.event.inputs.agent }}"
+
+          echo "runs=$RUNS" >> $GITHUB_OUTPUT
+          echo "threshold=$THRESHOLD" >> $GITHUB_OUTPUT
+
+          # Generate matrix from tests.yaml
+          python3 << 'EOF'
+          import yaml
+          import json
+          import os
+
+          with open('evals/tests.yaml', 'r') as f:
+              config = yaml.safe_load(f)
+
+          specific_agent = os.environ.get('SPECIFIC_AGENT', '').strip()
+          runs = int(os.environ.get('RUNS', '5'))
+
+          agents = []
+          for agent_name, agent_config in config.get('agents', {}).items():
+              if specific_agent and agent_name != specific_agent:
+                  continue
+              agents.append(agent_name)
+
+          # Create matrix: agent × run combinations
+          matrix = {
+              'include': []
+          }
+          for agent in agents:
+              for run in range(1, runs + 1):
+                  matrix['include'].append({
+                      'agent': agent,
+                      'run': run
+                  })
+
+          # Output matrix
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+              f.write(f"matrix={json.dumps(matrix)}\n")
+
+          print(f"Generated matrix with {len(matrix['include'])} jobs")
+          print(f"Agents: {agents}")
+          print(f"Runs per agent: {runs}")
+          EOF
+        env:
+          SPECIFIC_AGENT: ${{ github.event.inputs.agent }}
+          RUNS: ${{ github.event.inputs.runs_per_test || env.DEFAULT_RUNS }}
+
+  # ============================================================
+  # Agent Evaluation: Run each agent test N times with full tool access
+  # ============================================================
+  agent-eval:
+    name: "${{ matrix.agent }} #${{ matrix.run }}"
+    needs: setup
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      max-parallel: 10
+      matrix: ${{ fromJson(needs.setup.outputs.matrix) }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install pyyaml
+          npm install -g @anthropic-ai/claude-code
+
+      - name: Load test configuration
+        id: config
+        run: |
+          python3 << 'EOF'
+          import yaml
+          import os
+
+          with open('evals/tests.yaml', 'r') as f:
+              config = yaml.safe_load(f)
+
+          agent = os.environ.get('AGENT')
+          agent_config = config.get('agents', {}).get(agent, {})
+
+          prompt = agent_config.get('prompt', f'Demonstrate your expertise as {agent}')
+          keywords = agent_config.get('keywords', [])
+          test_type = agent_config.get('type', 'standard')
+          threshold = agent_config.get('threshold')
+
+          # Get default threshold from settings if not specified
+          if threshold is None:
+              settings = config.get('settings', {})
+              thresholds = settings.get('thresholds', {})
+              threshold = thresholds.get(test_type, 0.8)
+
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+              # Escape newlines in prompt for GitHub Actions
+              prompt_escaped = prompt.replace('\n', '%0A').replace('\r', '%0D')
+              f.write(f"prompt<<PROMPT_EOF\n{prompt}\nPROMPT_EOF\n")
+              f.write(f"keywords={','.join(keywords)}\n")
+              f.write(f"test_type={test_type}\n")
+              f.write(f"threshold={threshold}\n")
+
+          print(f"Agent: {agent}")
+          print(f"Type: {test_type}")
+          print(f"Threshold: {threshold}")
+          print(f"Keywords: {keywords}")
+          EOF
+        env:
+          AGENT: ${{ matrix.agent }}
+
+      - name: Run agentic evaluation
+        id: eval
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          set +e  # Don't exit on error
+
+          # Determine agent file path
+          AGENT="${{ matrix.agent }}"
+          if [[ -f "agents/core/${AGENT}.md" ]]; then
+            AGENT_FILE="agents/core/${AGENT}.md"
+          elif [[ -f "agents/extended/${AGENT}.md" ]]; then
+            AGENT_FILE="agents/extended/${AGENT}.md"
+          else
+            # Try without suffix for skill-style agents
+            AGENT_FILE="agents/core/${AGENT}.md"
+          fi
+
+          echo "=== Running evaluation for $AGENT (run ${{ matrix.run }}) ==="
+          echo "Agent file: $AGENT_FILE"
+
+          # Build the prompt
+          PROMPT="First, read and adopt the persona from: ${AGENT_FILE}
+
+          Then complete this task with your full expertise:
+          ${{ steps.config.outputs.prompt }}
+
+          You have full tool access. Demonstrate your capabilities thoroughly."
+
+          # Run Claude Code CLI in headless mode
+          # Using timeout to prevent runaway executions
+          timeout 600 claude -p "$PROMPT" \
+            --allowedTools "Bash,Read,Write,Edit" \
+            --output-format json \
+            --max-turns 10 \
+            > result.json 2>&1 || true
+
+          # Check if we got a result
+          if [[ -f result.json ]] && [[ -s result.json ]]; then
+            echo "result_file=result.json" >> $GITHUB_OUTPUT
+            RESULT_LENGTH=$(wc -c < result.json)
+            echo "result_length=$RESULT_LENGTH" >> $GITHUB_OUTPUT
+            echo "=== Got result: $RESULT_LENGTH bytes ==="
+          else
+            echo "=== No result file or empty result ==="
+            echo '{"error": "No response from Claude Code CLI"}' > result.json
+            echo "result_file=result.json" >> $GITHUB_OUTPUT
+            echo "result_length=0" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Validate response
+        id: validate
+        run: |
+          set +e
+
+          echo "=== Validating response for ${{ matrix.agent }} (run ${{ matrix.run }}) ==="
+
+          # Extract response content
+          RESULT=$(jq -r '.result // .response // .content // .message // empty' result.json 2>/dev/null)
+
+          # Fallback: if no standard field, use entire JSON as text
+          if [[ -z "$RESULT" ]]; then
+            RESULT=$(cat result.json)
+          fi
+
+          RESULT_LENGTH=${#RESULT}
+          echo "Response length: $RESULT_LENGTH characters"
+
+          # Check minimum length
+          if [[ $RESULT_LENGTH -lt 50 ]]; then
+            echo "FAIL: Response too short ($RESULT_LENGTH < 50 chars)"
+            PASSED=false
+            REASON="Response too short"
+          else
+            # Check for keywords
+            KEYWORDS="${{ steps.config.outputs.keywords }}"
+            RESULT_LOWER=$(echo "$RESULT" | tr '[:upper:]' '[:lower:]')
+
+            FOUND=0
+            MATCHED=""
+            IFS=',' read -ra KW_ARRAY <<< "$KEYWORDS"
+            for kw in "${KW_ARRAY[@]}"; do
+              kw_lower=$(echo "$kw" | tr '[:upper:]' '[:lower:]')
+              if echo "$RESULT_LOWER" | grep -q "$kw_lower"; then
+                echo "Found keyword: $kw"
+                MATCHED="$MATCHED $kw"
+                FOUND=$((FOUND + 1))
+              fi
+            done
+
+            if [[ $FOUND -gt 0 ]]; then
+              PASSED=true
+              REASON="Matched keywords:$MATCHED"
+              echo "PASS: Found $FOUND keyword(s)"
+            else
+              PASSED=false
+              REASON="No keywords found (expected one of: $KEYWORDS)"
+              echo "FAIL: No expected keywords found"
+            fi
+          fi
+
+          echo "passed=$PASSED" >> $GITHUB_OUTPUT
+          echo "reason=$REASON" >> $GITHUB_OUTPUT
+
+          # Create result JSON for aggregation
+          cat > eval-result.json << EOF
+          {
+            "agent": "${{ matrix.agent }}",
+            "run": ${{ matrix.run }},
+            "passed": $PASSED,
+            "reason": "$REASON",
+            "response_length": $RESULT_LENGTH,
+            "test_type": "${{ steps.config.outputs.test_type }}",
+            "threshold": ${{ steps.config.outputs.threshold }}
+          }
+          EOF
+
+          echo "=== Result ==="
+          cat eval-result.json
+
+      - name: Upload result artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: result-${{ matrix.agent }}-run${{ matrix.run }}
+          path: eval-result.json
+          retention-days: 7
+
+      - name: Upload full response (for debugging)
+        if: failure() || github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@v4
+        with:
+          name: response-${{ matrix.agent }}-run${{ matrix.run }}
+          path: result.json
+          retention-days: 3
+
+  # ============================================================
+  # Compute Pass Rates: Aggregate results and determine overall status
+  # ============================================================
+  compute-pass-rates:
+    name: Compute Pass Rates
+    needs: [setup, agent-eval]
+    if: always() && needs.setup.result == 'success'
+    runs-on: ubuntu-latest
+    outputs:
+      all_passed: ${{ steps.compute.outputs.all_passed }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download all result artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts/
+          pattern: result-*
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Compute pass rates
+        id: compute
+        run: |
+          THRESHOLD="${{ needs.setup.outputs.threshold }}"
+
+          echo "=== Computing pass rates (threshold: $THRESHOLD) ==="
+
+          # Run the pass rate calculator
+          python scripts/compute_pass_rates.py \
+            --input artifacts/ \
+            --threshold "$THRESHOLD" \
+            --format console
+
+          # Generate markdown report for GitHub summary
+          python scripts/compute_pass_rates.py \
+            --input artifacts/ \
+            --threshold "$THRESHOLD" \
+            --format markdown \
+            --output "$GITHUB_STEP_SUMMARY"
+
+          # Get exit code for overall pass/fail
+          python scripts/compute_pass_rates.py \
+            --input artifacts/ \
+            --threshold "$THRESHOLD" \
+            --format json > results.json
+
+          ALL_PASSED=$(jq -r '.all_passed' results.json)
+          echo "all_passed=$ALL_PASSED" >> $GITHUB_OUTPUT
+
+      - name: Upload aggregated results
+        uses: actions/upload-artifact@v4
+        with:
+          name: aggregated-results
+          path: results.json
+          retention-days: 30
+
+  # ============================================================
+  # Final Status: Report overall pass/fail
+  # ============================================================
+  status:
+    name: Final Status
+    needs: [compute-pass-rates]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check results
+        run: |
+          if [[ "${{ needs.compute-pass-rates.outputs.all_passed }}" == "true" ]]; then
+            echo "All agents met their pass rate thresholds!"
+            exit 0
+          else
+            echo "Some agents failed to meet pass rate thresholds"
+            echo "See the Compute Pass Rates job for details"
+            exit 1
+          fi
