@@ -17,19 +17,12 @@ TDD Cycle 5: Edge case hardening
 from __future__ import annotations
 
 import sys
-import tempfile
 from pathlib import Path
 
-import pytest
-
 # Add scripts directory to path for imports
-sys.path.insert(
-    0, str(Path(__file__).parent.parent / "scripts")
-)
+sys.path.insert(0, str(Path(__file__).parent.parent / "scripts"))
 
 from validate_purity import (
-    PurityAnalyzer,
-    PurityViolation,
     analyze_file_purity,
 )
 
@@ -124,9 +117,9 @@ async def handle_request(request):
 
         # 3. Assertion: Should be warnings, not errors
         if violations:
-            assert all(
-                v.severity == "warning" for v in violations
-            ), "Shell async should be warnings only, not errors"
+            assert all(v.severity == "warning" for v in violations), (
+                "Shell async should be warnings only, not errors"
+            )
 
     def test_sync_function_not_flagged_for_async(self, tmp_path: Path) -> None:
         """
@@ -185,9 +178,9 @@ async def process_stream(stream):
 
         # 3. Assertion: Should detect async for as async_io
         patterns = [v.pattern for v in violations if v.io_type == "async_io"]
-        assert any(
-            "async for" in pat for pat in patterns
-        ), f"Should flag async for as async_io. Patterns found: {patterns}"
+        assert any("async for" in pat for pat in patterns), (
+            f"Should flag async for as async_io. Patterns found: {patterns}"
+        )
 
     def test_async_with_flagged_as_impure_in_core(self, tmp_path: Path) -> None:
         """
@@ -214,9 +207,9 @@ async def use_connection(client):
 
         # 3. Assertion: Should detect async with as async_io
         patterns = [v.pattern for v in violations if v.io_type == "async_io"]
-        assert any(
-            "async with" in pat for pat in patterns
-        ), f"Should flag async with as async_io. Patterns found: {patterns}"
+        assert any("async with" in pat for pat in patterns), (
+            f"Should flag async with as async_io. Patterns found: {patterns}"
+        )
 
     def test_async_for_and_with_combined(self, tmp_path: Path) -> None:
         """
@@ -244,12 +237,12 @@ async def fetch_all(client):
 
         # 3. Assertion: Both should be flagged
         patterns = [v.pattern for v in violations if v.io_type == "async_io"]
-        assert any(
-            "async with" in pat for pat in patterns
-        ), f"Should flag async with. Patterns: {patterns}"
-        assert any(
-            "async for" in pat for pat in patterns
-        ), f"Should flag async for. Patterns: {patterns}"
+        assert any("async with" in pat for pat in patterns), (
+            f"Should flag async with. Patterns: {patterns}"
+        )
+        assert any("async for" in pat for pat in patterns), (
+            f"Should flag async for. Patterns: {patterns}"
+        )
 
     def test_async_for_with_severity_in_shell(self, tmp_path: Path) -> None:
         """
@@ -277,9 +270,9 @@ async def handle_stream(request):
         # 3. Assertion: Should be warnings, not errors
         async_violations = [v for v in violations if v.io_type == "async_io"]
         if async_violations:
-            assert all(
-                v.severity == "warning" for v in async_violations
-            ), "Shell async should be warnings only"
+            assert all(v.severity == "warning" for v in async_violations), (
+                "Shell async should be warnings only"
+            )
 
 
 class TestEdgeCaseHandling:
@@ -297,9 +290,9 @@ class TestEdgeCaseHandling:
         core_dir.mkdir()
         test_file = core_dir / "broken.py"
         test_file.write_text(
-            '''def broken(
+            """def broken(
     return 1
-'''
+"""
         )
 
         # 2. Action: Should not crash

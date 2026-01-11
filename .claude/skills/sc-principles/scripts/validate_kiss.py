@@ -212,9 +212,7 @@ def try_mccabe_complexity(file_path: Path, threshold: int) -> dict[str, int]:
     return result
 
 
-def analyze_file_kiss(
-    file_path: Path, thresholds: KISSThresholds
-) -> list[KISSViolation]:
+def analyze_file_kiss(file_path: Path, thresholds: KISSThresholds) -> list[KISSViolation]:
     """Analyze a single file for KISS violations."""
     violations: list[KISSViolation] = []
 
@@ -336,9 +334,7 @@ def find_python_files(scope_root: Path, changed_only: bool = True) -> list[Path]
                 cwd=scope_root,
                 timeout=30,
             )
-            unstaged = (
-                result.stdout.strip().split("\n") if result.stdout.strip() else []
-            )
+            unstaged = result.stdout.strip().split("\n") if result.stdout.strip() else []
 
             result = subprocess.run(
                 ["git", "ls-files", "--others", "--exclude-standard"],
@@ -347,15 +343,11 @@ def find_python_files(scope_root: Path, changed_only: bool = True) -> list[Path]
                 cwd=scope_root,
                 timeout=30,
             )
-            untracked = (
-                result.stdout.strip().split("\n") if result.stdout.strip() else []
-            )
+            untracked = result.stdout.strip().split("\n") if result.stdout.strip() else []
 
             all_files = set(staged + unstaged + untracked)
             py_files = [
-                scope_root / f
-                for f in all_files
-                if f.endswith(".py") and (scope_root / f).exists()
+                scope_root / f for f in all_files if f.endswith(".py") and (scope_root / f).exists()
             ]
 
             if py_files:
@@ -435,9 +427,7 @@ def validate_kiss(
 
 def main() -> None:
     """CLI entrypoint."""
-    parser = argparse.ArgumentParser(
-        description="KISS Validator - Enforce code simplicity"
-    )
+    parser = argparse.ArgumentParser(description="KISS Validator - Enforce code simplicity")
     parser.add_argument(
         "--scope-root",
         default=".",

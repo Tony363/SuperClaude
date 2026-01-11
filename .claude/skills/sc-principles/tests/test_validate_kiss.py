@@ -20,16 +20,11 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-import pytest
-
 # Add scripts directory to path for imports
-sys.path.insert(
-    0, str(Path(__file__).parent.parent / "scripts")
-)
+sys.path.insert(0, str(Path(__file__).parent.parent / "scripts"))
 
 from validate_kiss import (
     KISSThresholds,
-    KISSViolation,
     analyze_file_kiss,
 )
 
@@ -48,10 +43,10 @@ class TestFunctionLengthValidation:
         # 1. Setup: 3-line function
         test_file = tmp_path / "sample.py"
         test_file.write_text(
-            '''def f():
+            """def f():
     x = 1
     return x
-'''
+"""
         )
 
         # 2. Action: Analyze with threshold=2 (should flag 3-line function)
@@ -60,8 +55,7 @@ class TestFunctionLengthValidation:
 
         # 3. Assertion: Should detect length violation with value=3
         length_violations = [
-            v for v in violations
-            if v.violation_type == "length" and v.function == "f"
+            v for v in violations if v.violation_type == "length" and v.function == "f"
         ]
         assert len(length_violations) == 1, (
             f"Expected 1 length violation for 3-line function with max=2. "
@@ -82,10 +76,10 @@ class TestFunctionLengthValidation:
         # 1. Setup: Same 3-line function
         test_file = tmp_path / "sample.py"
         test_file.write_text(
-            '''def f():
+            """def f():
     x = 1
     return x
-'''
+"""
         )
 
         # 2. Action: Analyze with threshold=3 (should NOT flag)
@@ -94,12 +88,10 @@ class TestFunctionLengthValidation:
 
         # 3. Assertion: No length violation
         length_violations = [
-            v for v in violations
-            if v.violation_type == "length" and v.function == "f"
+            v for v in violations if v.violation_type == "length" and v.function == "f"
         ]
         assert len(length_violations) == 0, (
-            f"Expected no violation for 3-line function with max=3. "
-            f"Got {length_violations}"
+            f"Expected no violation for 3-line function with max=3. Got {length_violations}"
         )
 
     def test_one_liner_function_counts_as_one(self, tmp_path: Path) -> None:
@@ -112,8 +104,8 @@ class TestFunctionLengthValidation:
         # 1. Setup: Single-line function
         test_file = tmp_path / "sample.py"
         test_file.write_text(
-            '''def f(): return 42
-'''
+            """def f(): return 42
+"""
         )
 
         # 2. Action: Analyze with threshold=0 (should flag any function)
@@ -122,12 +114,10 @@ class TestFunctionLengthValidation:
 
         # 3. Assertion: Should detect with value=1
         length_violations = [
-            v for v in violations
-            if v.violation_type == "length" and v.function == "f"
+            v for v in violations if v.violation_type == "length" and v.function == "f"
         ]
         assert len(length_violations) == 1, (
-            f"Expected violation for 1-line function with max=0. "
-            f"Got {len(length_violations)}"
+            f"Expected violation for 1-line function with max=0. Got {len(length_violations)}"
         )
         assert length_violations[0].value == 1, (
             f"Expected value=1 for single-line function. Got {length_violations[0].value}"
@@ -148,7 +138,7 @@ class TestComplexityValidation:
         # 1. Setup: Function with multiple decision points
         test_file = tmp_path / "complex.py"
         test_file.write_text(
-            '''def complex_func(a, b, c, d, e):
+            """def complex_func(a, b, c, d, e):
     if a:
         return 1
     elif b:
@@ -167,7 +157,7 @@ class TestComplexityValidation:
             if b:
                 break
     return 0
-'''
+"""
         )
 
         # 2. Action: Analyze with low threshold
@@ -175,10 +165,7 @@ class TestComplexityValidation:
         violations = analyze_file_kiss(test_file, thresholds)
 
         # 3. Assertion: Should detect complexity violation
-        complexity_violations = [
-            v for v in violations
-            if v.violation_type == "complexity"
-        ]
+        complexity_violations = [v for v in violations if v.violation_type == "complexity"]
         assert len(complexity_violations) >= 1, (
             f"Expected complexity violation for highly branched function. "
             f"Violations found: {violations}"
@@ -192,9 +179,9 @@ class TestComplexityValidation:
         # 1. Setup: Simple function
         test_file = tmp_path / "simple.py"
         test_file.write_text(
-            '''def simple(x):
+            """def simple(x):
     return x * 2
-'''
+"""
         )
 
         # 2. Action: Analyze with default threshold
@@ -202,10 +189,7 @@ class TestComplexityValidation:
         violations = analyze_file_kiss(test_file, thresholds)
 
         # 3. Assertion: No complexity violation
-        complexity_violations = [
-            v for v in violations
-            if v.violation_type == "complexity"
-        ]
+        complexity_violations = [v for v in violations if v.violation_type == "complexity"]
         assert len(complexity_violations) == 0
 
 
@@ -222,7 +206,7 @@ class TestNestingDepthValidation:
         # 1. Setup: Deeply nested function
         test_file = tmp_path / "nested.py"
         test_file.write_text(
-            '''def deeply_nested(a, b, c, d, e):
+            """def deeply_nested(a, b, c, d, e):
     if a:
         if b:
             if c:
@@ -230,7 +214,7 @@ class TestNestingDepthValidation:
                     if e:
                         return "too deep"
     return "ok"
-'''
+"""
         )
 
         # 2. Action: Analyze with low nesting threshold
@@ -238,13 +222,9 @@ class TestNestingDepthValidation:
         violations = analyze_file_kiss(test_file, thresholds)
 
         # 3. Assertion: Should detect nesting violation
-        nesting_violations = [
-            v for v in violations
-            if v.violation_type == "nesting"
-        ]
+        nesting_violations = [v for v in violations if v.violation_type == "nesting"]
         assert len(nesting_violations) >= 1, (
-            f"Expected nesting violation for deeply nested function. "
-            f"Violations found: {violations}"
+            f"Expected nesting violation for deeply nested function. Violations found: {violations}"
         )
 
     def test_shallow_nesting_no_violation(self, tmp_path: Path) -> None:
@@ -255,11 +235,11 @@ class TestNestingDepthValidation:
         # 1. Setup: Shallow function
         test_file = tmp_path / "shallow.py"
         test_file.write_text(
-            '''def shallow(x):
+            """def shallow(x):
     if x > 0:
         return x
     return 0
-'''
+"""
         )
 
         # 2. Action: Analyze with default threshold
@@ -267,10 +247,7 @@ class TestNestingDepthValidation:
         violations = analyze_file_kiss(test_file, thresholds)
 
         # 3. Assertion: No nesting violation
-        nesting_violations = [
-            v for v in violations
-            if v.violation_type == "nesting"
-        ]
+        nesting_violations = [v for v in violations if v.violation_type == "nesting"]
         assert len(nesting_violations) == 0
 
 
@@ -287,9 +264,9 @@ class TestParameterCountValidation:
         # 1. Setup: Function with many params
         test_file = tmp_path / "many_params.py"
         test_file.write_text(
-            '''def many_params(a, b, c, d, e, f, g):
+            """def many_params(a, b, c, d, e, f, g):
     return a + b + c + d + e + f + g
-'''
+"""
         )
 
         # 2. Action: Analyze with low param threshold
@@ -297,13 +274,9 @@ class TestParameterCountValidation:
         violations = analyze_file_kiss(test_file, thresholds)
 
         # 3. Assertion: Should detect parameter warning
-        param_violations = [
-            v for v in violations
-            if v.violation_type == "parameters"
-        ]
+        param_violations = [v for v in violations if v.violation_type == "parameters"]
         assert len(param_violations) >= 1, (
-            f"Expected parameter violation for 7-param function. "
-            f"Violations found: {violations}"
+            f"Expected parameter violation for 7-param function. Violations found: {violations}"
         )
         # Parameters are warnings, not errors
         assert param_violations[0].severity == "warning"
@@ -316,9 +289,7 @@ class TestCognitiveComplexityValidation:
     Each control structure adds 1 + current nesting depth.
     """
 
-    def test_cognitive_complexity_flags_nested_conditionals(
-        self, tmp_path: Path
-    ) -> None:
+    def test_cognitive_complexity_flags_nested_conditionals(self, tmp_path: Path) -> None:
         """
         Scenario: Deeply nested conditionals with moderate cyclomatic complexity.
         Expected: Should be flagged for cognitive complexity.
@@ -328,7 +299,7 @@ class TestCognitiveComplexityValidation:
         # 1. Setup: Nested conditional pyramid
         test_file = tmp_path / "nested.py"
         test_file.write_text(
-            '''def decision(x):
+            """def decision(x):
     if x > 0:
         if x > 10:
             if x > 20:
@@ -339,7 +310,7 @@ class TestCognitiveComplexityValidation:
             return 3
     else:
         return 4
-'''
+"""
         )
 
         # 2. Action: Analyze with low cognitive threshold but high cyclomatic
@@ -352,7 +323,8 @@ class TestCognitiveComplexityValidation:
 
         # 3. Assertion: Should detect cognitive complexity violation
         cog_violations = [
-            v for v in violations
+            v
+            for v in violations
             if v.violation_type == "cognitive_complexity" and v.function == "decision"
         ]
         assert len(cog_violations) == 1, (
@@ -371,11 +343,11 @@ class TestCognitiveComplexityValidation:
         # 1. Setup: Simple function
         test_file = tmp_path / "simple.py"
         test_file.write_text(
-            '''def simple(x):
+            """def simple(x):
     if x > 0:
         return x
     return 0
-'''
+"""
         )
 
         # 2. Action: Analyze with default thresholds
@@ -383,10 +355,7 @@ class TestCognitiveComplexityValidation:
         violations = analyze_file_kiss(test_file, thresholds)
 
         # 3. Assertion: No cognitive violation
-        cog_violations = [
-            v for v in violations
-            if v.violation_type == "cognitive_complexity"
-        ]
+        cog_violations = [v for v in violations if v.violation_type == "cognitive_complexity"]
         assert len(cog_violations) == 0
 
     def test_cognitive_complexity_counts_loops_and_try(self, tmp_path: Path) -> None:
@@ -399,7 +368,7 @@ class TestCognitiveComplexityValidation:
         # 1. Setup: Function with various control structures
         test_file = tmp_path / "mixed.py"
         test_file.write_text(
-            '''def process(items):
+            """def process(items):
     for item in items:
         try:
             if item.valid:
@@ -407,7 +376,7 @@ class TestCognitiveComplexityValidation:
                     item.process()
         except Exception:
             pass
-'''
+"""
         )
 
         # 2. Action: Analyze with low threshold
@@ -419,13 +388,9 @@ class TestCognitiveComplexityValidation:
         violations = analyze_file_kiss(test_file, thresholds)
 
         # 3. Assertion: Should detect cognitive complexity
-        cog_violations = [
-            v for v in violations
-            if v.violation_type == "cognitive_complexity"
-        ]
+        cog_violations = [v for v in violations if v.violation_type == "cognitive_complexity"]
         assert len(cog_violations) >= 1, (
-            f"Expected cognitive complexity violation for nested loops/try. "
-            f"Got: {violations}"
+            f"Expected cognitive complexity violation for nested loops/try. Got: {violations}"
         )
 
 
@@ -442,9 +407,9 @@ class TestEdgeCaseHandling:
         # 1. Setup: File with syntax error
         test_file = tmp_path / "broken.py"
         test_file.write_text(
-            '''def broken(
+            """def broken(
     return 1
-'''
+"""
         )
 
         # 2. Action: Should not crash
