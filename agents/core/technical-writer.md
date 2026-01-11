@@ -1,7 +1,6 @@
 ---
 name: technical-writer
 description: Create clear, comprehensive technical documentation for code, APIs, and systems.
-tier: core
 category: documentation
 triggers: [document, documentation, docs, readme, explain, describe, write docs, api docs, user guide, technical docs, comment]
 tools: [Read, Write, Edit, Glob, Grep]

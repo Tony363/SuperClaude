@@ -1,7 +1,6 @@
 ---
 name: python-expert
 description: Deliver production-ready Python code with modern patterns and best practices.
-tier: core
 category: language
 triggers: [python, py, pip, django, flask, fastapi, pytest, pandas, numpy, async, decorator, generator, comprehension, pythonic]
 tools: [Read, Write, Edit, Bash, Grep, Glob, LSP]

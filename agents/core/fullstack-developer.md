@@ -1,7 +1,6 @@
 ---
 name: fullstack-developer
 description: Design backend/frontend changes in tandem, ensuring contracts, tests, and deployment hooks stay in sync.
-tier: core
 category: core-development
 triggers: [fullstack, full stack, full-stack, frontend backend, api component, end-to-end, e2e implementation]
 tools: [Read, Write, Edit, Bash, Grep, Glob, LSP]

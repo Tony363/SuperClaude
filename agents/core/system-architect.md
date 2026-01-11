@@ -1,7 +1,6 @@
 ---
 name: system-architect
 description: Design scalable system architectures and make informed architectural decisions.
-tier: core
 category: architecture
 triggers: [architect, architecture, design, system design, scalab, pattern, microservice, monolith, distributed, component, module, structure]
 tools: [Read, Grep, Glob, Task]

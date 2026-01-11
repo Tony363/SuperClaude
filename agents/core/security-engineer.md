@@ -1,7 +1,6 @@
 ---
 name: security-engineer
 description: Identify and mitigate security vulnerabilities with OWASP-aligned analysis.
-tier: core
 category: security
 triggers: [security, vulnerability, secure, auth, authentication, authorization, permission, encrypt, decrypt, hash, owasp, pentest, penetration, exploit, injection, xss, csrf, sql injection, security audit]
 tools: [Read, Grep, Bash, Glob]

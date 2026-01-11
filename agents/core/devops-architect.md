@@ -1,7 +1,6 @@
 ---
 name: devops-architect
 description: Automate infrastructure and deployment with CI/CD pipelines and container orchestration.
-tier: core
 category: devops
 triggers: [devops, ci/cd, pipeline, deploy, docker, kubernetes, container, infrastructure, terraform, ansible, jenkins, monitoring, logging, automation, orchestration]
 tools: [Read, Write, Edit, Bash, Grep, Glob]

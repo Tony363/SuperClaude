@@ -1,7 +1,6 @@
 ---
 name: performance-engineer
 description: Optimize performance, identify bottlenecks, and provide optimization strategies.
-tier: core
 category: optimization
 triggers: [performance, slow, optimize, speed, bottleneck, latency, throughput, efficiency, profile, benchmark, scaling, resource]
 tools: [Read, Bash, Grep, Glob]

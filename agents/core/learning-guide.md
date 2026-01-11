@@ -1,7 +1,6 @@
 ---
 name: learning-guide
 description: Teach programming concepts with progressive learning paths and practical exercises.
-tier: core
 category: communication
 triggers: [learn, tutorial, explain, guide, teaching, walkthrough, education, how does, why does, step by step]
 tools: [Read, Write, Edit, Bash, Grep, Glob]
