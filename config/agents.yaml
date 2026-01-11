@@ -1,10 +1,10 @@
 # SuperClaude Framework Agent Configuration
-# Version: 6.0.0-alpha
+# Version: 7.0.0
 
 agents:
   core:
-    count: 15
-    directory: SuperClaude/Agents/core
+    count: 16
+    directory: agents/core
     cache_ttl: 3600
     priority_order:
       - general-purpose
@@ -21,51 +21,45 @@ agents:
       - quality-engineer
       - requirements-analyst
       - learning-guide
+      - fullstack-developer
+      - socratic-mentor
 
-  extended:
-    count: 116
-    directory: SuperClaude/Agents/extended
-    categories:
-      01-core-development:
-        count: 11
-        priority: high
-      02-language-specialists:
-        count: 23
-        priority: high
-      03-infrastructure:
-        count: 12
-        priority: medium
-      04-quality-security:
-        count: 12
-        priority: high
-      05-data-ai:
-        count: 12
-        priority: medium
-      06-developer-experience:
-        count: 10
-        priority: medium
-      07-specialized-domains:
-        count: 11
-        priority: low
-      08-business-product:
-        count: 11
-        priority: low
-      09-meta-orchestration:
-        count: 8
-        priority: high
-      10-research-analysis:
-        count: 6
-        priority: low
+  traits:
+    count: 10
+    directory: agents/traits
+    composable: true
+    traits:
+      - security-first
+      - performance-first
+      - pedagogy-first
+      - minimal-changes
+      - test-driven
+      - cloud-native
+      - legacy-friendly
+      - rapid-prototype
+      - mcp-pal-enabled
+      - mcp-rube-enabled
+
+  extensions:
+    count: 7
+    directory: agents/extensions
+    specialists:
+      - typescript-expert
+      - golang-expert
+      - rust-expert
+      - react-specialist
+      - kubernetes-specialist
+      - data-engineer
+      - ml-engineer
 
 # Selection Configuration
 selection:
   algorithm: weighted-match
-  factors:
-    - domain_match: 0.3
-    - keyword_match: 0.2
-    - file_pattern_match: 0.2
-    - language_match: 0.15
-    - framework_match: 0.15
+  weights:
+    trigger_match: 0.35
+    category_match: 0.25
+    description_match: 0.20
+    tool_match: 0.20
 
   thresholds:
     minimum_score: 0.6
@@ -73,17 +67,17 @@ selection:
 
   strategies:
     delegate:
-      search_extended: true
+      search_extensions: true
       prefer_specialists: true
       max_candidates: 5
 
     delegate-core:
-      search_extended: false
+      search_extensions: false
       prefer_generalists: true
       max_candidates: 3
 
-    delegate-extended:
-      search_extended: true
+    delegate-specialist:
+      search_extensions: true
       prefer_specialists: true
       exclude_core: true
       max_candidates: 7

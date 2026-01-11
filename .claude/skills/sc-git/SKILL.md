@@ -115,9 +115,98 @@ Types:
 # Step-by-step assistance
 ```
 
+## MCP Integration
+
+### PAL MCP (Validation & Review)
+
+| Tool | When to Use | Purpose |
+|------|-------------|---------|
+| `mcp__pal__precommit` | Before commit | Comprehensive change validation |
+| `mcp__pal__codereview` | Before merge | Code quality review of changes |
+| `mcp__pal__consensus` | Merge conflicts | Multi-model resolution strategy |
+| `mcp__pal__debug` | Git issues | Investigate repository problems |
+
+### PAL Usage Patterns
+
+```bash
+# Pre-commit validation (--smart-commit)
+mcp__pal__precommit(
+    path="/path/to/repo",
+    step="Validating changes before commit",
+    findings="Security, completeness, test coverage",
+    include_staged=True,
+    include_unstaged=False
+)
+
+# Review before merge
+mcp__pal__codereview(
+    review_type="full",
+    step="Reviewing feature branch before merge",
+    findings="Quality, security, breaking changes",
+    compare_to="main"
+)
+
+# Consensus on merge conflict resolution
+mcp__pal__consensus(
+    models=[{"model": "gpt-5.2", "stance": "neutral"}, {"model": "gemini-3-pro", "stance": "neutral"}],
+    step="Evaluate: Which conflict resolution preserves intended behavior?"
+)
+```
+
+### Rube MCP (Automation & Notifications)
+
+| Tool | When to Use | Purpose |
+|------|-------------|---------|
+| `mcp__rube__RUBE_SEARCH_TOOLS` | GitHub/GitLab | Find repository management tools |
+| `mcp__rube__RUBE_MULTI_EXECUTE_TOOL` | PR/notifications | Create PRs, notify team, update issues |
+| `mcp__rube__RUBE_CREATE_UPDATE_RECIPE` | Git workflows | Save reusable git automation |
+
+### Rube Usage Patterns
+
+```bash
+# Create PR and notify team after commit
+mcp__rube__RUBE_MULTI_EXECUTE_TOOL(tools=[
+    {"tool_slug": "GITHUB_CREATE_PULL_REQUEST", "arguments": {
+        "repo": "myapp",
+        "title": "feat: Add user authentication",
+        "body": "## Summary\n- Added JWT auth\n- Added refresh tokens",
+        "base": "main",
+        "head": "feature/auth"
+    }},
+    {"tool_slug": "SLACK_SEND_MESSAGE", "arguments": {
+        "channel": "#pull-requests",
+        "text": "New PR ready for review: feat: Add user authentication"
+    }}
+])
+
+# Update issue status on merge
+mcp__rube__RUBE_MULTI_EXECUTE_TOOL(tools=[
+    {"tool_slug": "JIRA_UPDATE_ISSUE", "arguments": {
+        "issue_key": "PROJ-123",
+        "status": "Done"
+    }},
+    {"tool_slug": "GITHUB_CREATE_ISSUE_COMMENT", "arguments": {
+        "repo": "myapp",
+        "issue_number": 456,
+        "body": "Merged in PR #789"
+    }}
+])
+```
+
+## Flags (Extended)
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--pal-precommit` | bool | false | Use PAL precommit validation |
+| `--pal-review` | bool | false | Use PAL codereview before merge |
+| `--create-pr` | bool | false | Create PR via Rube after commit |
+| `--notify` | string | - | Notify via Rube (slack, teams, email) |
+
 ## Tool Coordination
 
 - **Bash** - Git command execution
 - **Read** - Repository state analysis
 - **Grep** - Log parsing
 - **Write** - Commit message generation
+- **PAL MCP** - Pre-commit validation, code review, conflict resolution
+- **Rube MCP** - PR creation, team notifications, issue updates

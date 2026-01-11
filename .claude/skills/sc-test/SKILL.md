@@ -48,7 +48,72 @@ Test execution with coverage analysis and quality reporting.
 
 ## MCP Integration
 
-- **Rube MCP** - LinkUp web search for testing best practices
+### PAL MCP (Quality & Debugging)
+
+| Tool | When to Use | Purpose |
+|------|-------------|---------|
+| `mcp__pal__debug` | Test failures | Root cause analysis for failing tests |
+| `mcp__pal__codereview` | Test quality | Review test coverage and quality |
+| `mcp__pal__thinkdeep` | Complex failures | Multi-stage investigation of flaky tests |
+| `mcp__pal__consensus` | Test strategy | Multi-model validation of testing approach |
+| `mcp__pal__apilookup` | Framework docs | Get current testing framework documentation |
+
+### PAL Usage Patterns
+
+```bash
+# Debug failing test
+mcp__pal__debug(
+    step="Investigating intermittent test failure",
+    hypothesis="Race condition in async setup",
+    confidence="medium",
+    relevant_files=["/tests/test_api.py"]
+)
+
+# Review test quality
+mcp__pal__codereview(
+    review_type="full",
+    findings="Test coverage, assertion quality, edge cases",
+    focus_on="test isolation and mocking patterns"
+)
+
+# Validate testing strategy
+mcp__pal__consensus(
+    models=[{"model": "gpt-5.2", "stance": "neutral"}, {"model": "gemini-3-pro", "stance": "neutral"}],
+    step="Evaluate: Is integration testing sufficient for this feature?"
+)
+```
+
+### Rube MCP (Automation & Research)
+
+| Tool | When to Use | Purpose |
+|------|-------------|---------|
+| `mcp__rube__RUBE_SEARCH_TOOLS` | CI/CD integration | Find test reporting tools |
+| `mcp__rube__RUBE_MULTI_EXECUTE_TOOL` | Notifications | Post results to Slack, update tickets |
+| `mcp__rube__RUBE_REMOTE_WORKBENCH` | Bulk processing | Analyze large test result sets |
+
+### Rube Usage Patterns
+
+```bash
+# Search for testing best practices (--linkup)
+mcp__rube__RUBE_SEARCH_TOOLS(queries=[
+    {"use_case": "web search for testing patterns", "known_fields": "query:pytest fixtures"}
+])
+
+# Post test results to Slack
+mcp__rube__RUBE_MULTI_EXECUTE_TOOL(tools=[
+    {"tool_slug": "SLACK_SEND_MESSAGE", "arguments": {
+        "channel": "#ci-results",
+        "text": "Test run complete: 95% pass rate, 87% coverage"
+    }}
+])
+
+# Update Jira with test status
+mcp__rube__RUBE_MULTI_EXECUTE_TOOL(tools=[
+    {"tool_slug": "JIRA_ADD_COMMENT", "arguments": {
+        "issue_key": "PROJ-123",
+        "body": "All tests passing. Ready for review."
+    }}
+])
 
 ## Evidence Requirements
 

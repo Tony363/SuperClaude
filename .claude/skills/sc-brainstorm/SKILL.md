@@ -49,8 +49,126 @@ Transform ambiguous ideas into concrete specifications through structured explor
 
 ## MCP Integration
 
-- **PAL MCP** - Consensus building for conflicting priorities
-- **Rube MCP** - Cross-session persistence and memory management
+### PAL MCP (Collaborative Intelligence)
+
+| Tool | When to Use | Purpose |
+|------|-------------|---------|
+| `mcp__pal__consensus` | Conflicting priorities | Multi-model resolution of trade-offs |
+| `mcp__pal__chat` | Brainstorming | Collaborative idea exploration with external model |
+| `mcp__pal__thinkdeep` | Complex problems | Multi-stage deep analysis |
+| `mcp__pal__planner` | Solution design | Sequential planning with branching |
+| `mcp__pal__challenge` | Validate ideas | Force critical thinking on proposed solutions |
+
+### PAL Usage Patterns
+
+```bash
+# Consensus on conflicting priorities
+mcp__pal__consensus(
+    models=[
+        {"model": "gpt-5.2", "stance": "for", "stance_prompt": "Prioritize user experience"},
+        {"model": "gemini-3-pro", "stance": "against", "stance_prompt": "Prioritize technical simplicity"},
+        {"model": "deepseek", "stance": "neutral"}
+    ],
+    step="Evaluate: Should we use real-time sync or eventual consistency?"
+)
+
+# Deep exploration of complex idea
+mcp__pal__thinkdeep(
+    step="Exploring AI-powered analytics dashboard concept",
+    hypothesis="Users need predictive insights, not just historical data",
+    confidence="medium",
+    focus_areas=["user_needs", "technical_feasibility", "market_fit"]
+)
+
+# Collaborative brainstorming
+mcp__pal__chat(
+    prompt="Help me explore innovative approaches for real-time collaboration in document editing",
+    model="gpt-5.2",
+    thinking_mode="high"
+)
+
+# Challenge assumptions
+mcp__pal__challenge(
+    prompt="We assume users want AI-generated summaries. Is this assumption valid?"
+)
+
+# Plan solution architecture
+mcp__pal__planner(
+    step="Planning architecture for real-time notification system",
+    step_number=1,
+    total_steps=4,
+    is_branch_point=True,
+    branch_id="websocket-approach"
+)
+```
+
+### Rube MCP (Research & Persistence)
+
+| Tool | When to Use | Purpose |
+|------|-------------|---------|
+| `mcp__rube__RUBE_SEARCH_TOOLS` | Market research | Find web search, competitor analysis tools |
+| `mcp__rube__RUBE_MULTI_EXECUTE_TOOL` | Documentation | Save ideas to Notion, share in Slack |
+| `mcp__rube__RUBE_CREATE_UPDATE_RECIPE` | Workflows | Save brainstorming processes |
+| `mcp__rube__RUBE_REMOTE_WORKBENCH` | Data analysis | Analyze market data, user research |
+
+### Rube Usage Patterns
+
+```bash
+# Research market and competitors
+mcp__rube__RUBE_SEARCH_TOOLS(queries=[
+    {"use_case": "web search", "known_fields": "query:AI analytics dashboard competitors 2025"}
+])
+
+# Document brainstorming session
+mcp__rube__RUBE_MULTI_EXECUTE_TOOL(tools=[
+    {"tool_slug": "NOTION_CREATE_PAGE", "arguments": {
+        "title": "Brainstorm: AI Analytics Dashboard",
+        "content": "## Key Ideas\n- Predictive insights\n- Natural language queries\n\n## Decisions\n- Real-time sync chosen over eventual consistency"
+    }},
+    {"tool_slug": "SLACK_SEND_MESSAGE", "arguments": {
+        "channel": "#product",
+        "text": "New brainstorm session documented: AI Analytics Dashboard"
+    }}
+])
+
+# Create user research tasks
+mcp__rube__RUBE_MULTI_EXECUTE_TOOL(tools=[
+    {"tool_slug": "JIRA_CREATE_ISSUE", "arguments": {
+        "project": "PROD",
+        "summary": "User research: AI analytics preferences",
+        "issue_type": "Task",
+        "description": "Interview 10 users about analytics needs"
+    }},
+    {"tool_slug": "ASANA_CREATE_TASK", "arguments": {
+        "name": "Competitor analysis: analytics dashboards",
+        "project": "Research"
+    }}
+])
+
+# Analyze existing user feedback
+mcp__rube__RUBE_REMOTE_WORKBENCH(
+    thought="Analyze user feedback data for patterns",
+    code_to_execute='''
+import json
+# Load user feedback from file
+feedback_data = json.load(open("/tmp/user_feedback.json"))
+# Analyze with LLM
+analysis, error = invoke_llm(f"Analyze this user feedback for analytics feature requests: {feedback_data[:5000]}")
+output = {"analysis": analysis, "feedback_count": len(feedback_data)}
+output
+'''
+)
+```
+
+## Flags (Extended)
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--pal-consensus` | bool | false | Use PAL consensus for trade-offs |
+| `--pal-deep` | bool | false | Use PAL thinkdeep for complex exploration |
+| `--research` | bool | false | Use Rube for market/competitor research |
+| `--document` | string | - | Document to Rube (notion, confluence, google-docs) |
+| `--notify` | string | - | Notify via Rube (slack, teams, email) |
 
 ## Evidence Requirements
 

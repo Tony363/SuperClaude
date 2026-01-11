@@ -1,7 +1,8 @@
 """
 Extended Agent System Usage Examples
 
-Demonstrates various usage patterns for the 131-agent system.
+Demonstrates various usage patterns for the tiered agent system (33 agents).
+Note: This example uses legacy APIs. For v7.0.0+ use agents/core, agents/traits, agents/extensions.
 """
 
 from SuperClaude.Agents.extended_loader import AgentCategory, ExtendedAgentLoader

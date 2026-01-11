@@ -89,6 +89,79 @@ When `--troubleshoot` is enabled:
 /sc:analyze "slow API response" --troubleshoot --focus performance --trace
 ```
 
+## MCP Integration
+
+### PAL MCP (Always Use)
+
+| Tool | When to Use | Purpose |
+|------|-------------|---------|
+| `mcp__pal__thinkdeep` | Complex issues | Multi-stage investigation with hypothesis testing |
+| `mcp__pal__debug` | Bug troubleshooting | Systematic root cause analysis |
+| `mcp__pal__codereview` | Quality analysis | Comprehensive code quality, security, performance review |
+| `mcp__pal__consensus` | Critical findings | Multi-model validation of security/architecture issues |
+| `mcp__pal__challenge` | Uncertain findings | Force critical thinking on ambiguous issues |
+| `mcp__pal__apilookup` | Dependency issues | Get current API docs for version conflicts |
+
+### PAL Usage Patterns
+
+```bash
+# Deep investigation (--depth deep)
+mcp__pal__thinkdeep(
+    step="Investigating performance bottleneck in API layer",
+    hypothesis="Database queries lack proper indexing",
+    confidence="medium",
+    relevant_files=["/src/api/users.py"]
+)
+
+# Security analysis (--focus security)
+mcp__pal__codereview(
+    review_type="security",
+    findings="Authentication, authorization, injection vectors",
+    issues_found=[{"severity": "high", "description": "SQL injection risk"}]
+)
+
+# Critical finding validation
+mcp__pal__consensus(
+    models=[
+        {"model": "gpt-5.2", "stance": "for"},
+        {"model": "gemini-3-pro", "stance": "against"}
+    ],
+    step="Evaluate: Is this a critical security vulnerability?"
+)
+```
+
+### Rube MCP (When Needed)
+
+| Tool | When to Use | Purpose |
+|------|-------------|---------|
+| `mcp__rube__RUBE_SEARCH_TOOLS` | External analysis | Find security scanners, linters |
+| `mcp__rube__RUBE_MULTI_EXECUTE_TOOL` | Issue tracking | Create tickets for findings |
+| `mcp__rube__RUBE_REMOTE_WORKBENCH` | Bulk analysis | Process large codebases |
+
+### Rube Usage Patterns
+
+```bash
+# Find and create Jira tickets for findings
+mcp__rube__RUBE_SEARCH_TOOLS(queries=[
+    {"use_case": "create jira issue", "known_fields": "project:SECURITY"}
+])
+
+# Notify team of critical findings
+mcp__rube__RUBE_MULTI_EXECUTE_TOOL(tools=[
+    {"tool_slug": "SLACK_SEND_MESSAGE", "arguments": {"channel": "#security", "text": "Critical finding..."}}
+])
+```
+
+## Flags (Extended)
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--pal-deep` | bool | false | Use PAL thinkdeep for multi-stage analysis |
+| `--pal-review` | bool | false | Use PAL codereview for comprehensive review |
+| `--consensus` | bool | false | Use PAL consensus for critical findings |
+| `--notify` | string | - | Notify via Rube (slack, jira, email) |
+| `--create-tickets` | bool | false | Create tickets for findings via Rube |
+
 ## Tool Coordination
 
 - **Glob** - File discovery and structure analysis
@@ -96,3 +169,5 @@ When `--troubleshoot` is enabled:
 - **Read** - Source inspection and config analysis
 - **Bash** - External tool execution
 - **Write** - Report generation
+- **PAL MCP** - Multi-model analysis, debugging, code review
+- **Rube MCP** - External notifications, ticket creation

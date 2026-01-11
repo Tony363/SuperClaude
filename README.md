@@ -2,14 +2,14 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/version-7.0.0-blue" alt="Version">
-  <img src="https://img.shields.io/badge/agents-31-orange" alt="Agents">
-  <img src="https://img.shields.io/badge/skills-134-green" alt="Skills">
-  <img src="https://img.shields.io/badge/commands-16-purple" alt="Commands">
+  <img src="https://img.shields.io/badge/agents-33-orange" alt="Agents">
+  <img src="https://img.shields.io/badge/skills-28-green" alt="Skills">
+  <img src="https://img.shields.io/badge/commands-14-purple" alt="Commands">
   <img src="https://img.shields.io/badge/modes-6-teal" alt="Modes">
   <img src="https://img.shields.io/badge/license-MIT-lightgrey" alt="License">
 </p>
 
-**A config-first meta-framework for Claude Code that provides 31 specialized agent personas (16 core + 8 traits + 7 extensions), 16 structured commands, 134 skills, and comprehensive MCP integration with quality-driven iterative workflows.**
+**A config-first meta-framework for Claude Code that provides 33 specialized agent personas (16 core + 10 traits + 7 extensions), 14 structured commands, 28 skills, and comprehensive MCP integration with quality-driven iterative workflows.**
 
 SuperClaude transforms Claude Code into a powerful development platform with specialized agent prompts, signal-based loop orchestration, and multi-model consensus capabilities. The core interface is markdown and YAML configuration files, with a Python orchestration layer for advanced workflows including quality gates, termination detection, and PAL MCP integration.
 
@@ -42,9 +42,9 @@ SuperClaude transforms Claude Code into a powerful development platform with spe
 
 SuperClaude is a meta-prompt framework that enhances Claude Code with:
 
-- **31 Specialized Agents**: 16 core + 8 composable traits + 7 domain extensions (tiered architecture)
-- **134 Claude Skills**: 114 agent personas + 16 command workflows + 4 utility skills
-- **16 Structured Commands**: analyze, implement, test, design, document, and more
+- **33 Specialized Agents**: 16 core + 10 composable traits + 7 domain extensions (tiered architecture)
+- **28 Claude Skills**: 8 agent personas + 17 command workflows + 3 utility skills
+- **14 Structured Commands**: analyze, implement, test, design, document, and more
 - **6 Framework Modes**: normal, brainstorming, introspection, task_management, token_efficiency, orchestration
 - **MCP Integration**: PAL (11 tools), Rube (500+ apps via Composio), LinkUp (web search)
 - **Quality Gates**: KISS validator, Purity validator, and iterative quality loop
@@ -79,19 +79,19 @@ SuperClaude v7.0.0 is a **config-first hybrid framework**:
 
 ### Tiered Agent Architecture
 
-31 agents organized in a tiered system for composable expertise:
+33 agents organized in a tiered system for composable expertise:
 
 | Tier | Count | Purpose | Examples |
 |------|-------|---------|----------|
 | **Core** | 16 | High-priority generalists | general-purpose, root-cause-analyst, refactoring-expert, security-engineer |
-| **Traits** | 8 | Composable modifiers | security-first, performance-first, test-driven, minimal-changes |
+| **Traits** | 10 | Composable modifiers | security-first, performance-first, test-driven, minimal-changes, mcp-pal-enabled, mcp-rube-enabled |
 | **Extensions** | 7 | Domain specialists | typescript-expert, golang-expert, react-specialist, python-pro |
 
 **Why Tiered?** The v7 architecture consolidates 243 legacy agents into a lean, composable system. Core agents handle most tasks, traits modify behavior (e.g., `@security-engineer +security-first`), and extensions provide deep domain expertise when needed.
 
 ### Command System
 
-16 structured commands with consistent patterns:
+14 structured commands with consistent patterns:
 
 ```
 /sc:analyze    - Static analysis, security review, performance bottlenecks
@@ -108,8 +108,6 @@ SuperClaude v7.0.0 is a **config-first hybrid framework**:
 /sc:estimate   - Effort estimation and planning
 /sc:cicd-setup - CI/CD workflow and pre-commit generation
 /sc:pr-fix     - PR fix workflow and issue resolution
-/sc:principles - KISS and Purity code validation
-/sc:tdd        - Test-Driven Development workflow
 ```
 
 ---
@@ -131,9 +129,9 @@ flowchart TB
     end
 
     subgraph Config["Configuration Layer"]
-        AGENTS[("agents/<br/>16 core + 8 traits + 7 ext")]
-        COMMANDS[("commands/<br/>16 templates")]
-        SKILLS[(".claude/skills/<br/>134 skills")]
+        AGENTS[("agents/<br/>16 core + 10 traits + 7 ext")]
+        COMMANDS[("commands/<br/>14 templates")]
+        SKILLS[(".claude/skills/<br/>28 skills")]
         YAML[("config/<br/>6 YAML files")]
     end
 
@@ -181,14 +179,14 @@ SuperClaude uses a layered file-based architecture:
 1. **CLAUDE.md** - Master system prompt loaded by Claude Code
 2. **agents/index.yaml** - Agent registry with triggers, categories, and selection weights
 3. **agents/core/*.md** - 16 core agent persona prompts
-4. **agents/traits/*.md** - 8 composable behavior modifier prompts
+4. **agents/traits/*.md** - 10 composable behavior modifier prompts
 5. **agents/extensions/*.md** - 7 domain specialist prompts
 6. **commands/index.yaml** - Command registry with flags and aliases
-7. **commands/*.md** - 16 command templates
+7. **commands/*.md** - 14 command templates
 8. **config/*.yaml** - 6 configuration files
 9. **core/*.py** - Python orchestration modules
 10. **mcp/*.md** - MCP integration guides
-11. **.claude/skills/** - 134 Claude Code skills
+11. **.claude/skills/** - 28 Claude Code skills
 
 ---
 
@@ -765,48 +763,46 @@ Web search capabilities for real-time information:
 
 ## Skills System
 
-SuperClaude includes 134 Claude Code skills in `.claude/skills/`:
+SuperClaude includes 28 Claude Code skills in `.claude/skills/`:
 
 ```mermaid
 flowchart TB
-    subgraph Skills[".claude/skills/ (134 total)"]
-        subgraph Agent["Agent Skills (114)"]
-            A1["01-core-development<br/>(21 agents)"]
-            A2["02-language-specialists<br/>(48 agents)"]
-            A3["03-infrastructure<br/>(26 agents)"]
-            A4["04-quality-security<br/>(27 agents)"]
-            A5["05-data-ai<br/>(25 agents)"]
-            A6["06-developer-experience<br/>(21 agents)"]
-            A7["07-specialized-domains<br/>(23 agents)"]
-            A8["08-business-product<br/>(21 agents)"]
-            A9["09-meta-orchestration<br/>(17 agents)"]
-            A10["10-research-analysis<br/>(13 agents)"]
+    subgraph Skills[".claude/skills/ (28 total)"]
+        subgraph Agent["Agent Skills (8)"]
+            A1["agent-data-engineer"]
+            A2["agent-fullstack-developer"]
+            A3["agent-kubernetes-specialist"]
+            A4["agent-ml-engineer"]
+            A5["agent-performance-engineer"]
+            A6["agent-react-specialist"]
+            A7["agent-security-engineer"]
+            A8["agent-technical-writer"]
         end
 
-        subgraph Command["Command Skills (16)"]
+        subgraph Command["Command Skills (17)"]
             C1["sc-analyze"]
-            C2["sc-implement"]
-            C3["sc-test"]
-            C4["sc-design"]
-            C5["sc-document"]
-            C6["sc-improve"]
-            C7["sc-explain"]
-            C8["sc-brainstorm"]
-            C9["sc-build"]
-            C10["sc-git"]
-            C11["sc-workflow"]
-            C12["sc-estimate"]
-            C13["sc-cicd-setup"]
-            C14["sc-pr-fix"]
-            C15["sc-principles"]
-            C16["sc-tdd"]
+            C2["sc-brainstorm"]
+            C3["sc-build"]
+            C4["sc-cicd-setup"]
+            C5["sc-design"]
+            C6["sc-document"]
+            C7["sc-estimate"]
+            C8["sc-explain"]
+            C9["sc-git"]
+            C10["sc-implement"]
+            C11["sc-improve"]
+            C12["sc-mcp"]
+            C13["sc-pr-fix"]
+            C14["sc-principles"]
+            C15["sc-tdd"]
+            C16["sc-test"]
+            C17["sc-workflow"]
         end
 
-        subgraph Utility["Utility Skills (4)"]
+        subgraph Utility["Utility Skills (3)"]
             U1["ask<br/>(single-select)"]
             U2["ask-multi<br/>(multi-select)"]
             U3["learned<br/>(auto-learned)"]
-            U4["sc-status<br/>(workflow status)"]
         end
     end
 
@@ -831,9 +827,9 @@ flowchart TB
 
 | Type | Pattern | Count | Purpose |
 |------|---------|-------|---------|
-| Agent Skills | `agent-*` | 114 | Specialized personas for domains |
-| Command Skills | `sc-*` | 16 | Structured workflow implementations |
-| Utility Skills | `ask`, `ask-multi`, `learned`, etc. | 4 | User interaction and learning |
+| Agent Skills | `agent-*` | 8 | Specialized personas for domains |
+| Command Skills | `sc-*` | 17 | Structured workflow implementations |
+| Utility Skills | `ask`, `ask-multi`, `learned` | 3 | User interaction and learning |
 
 ### Skill Architecture
 
@@ -1281,19 +1277,21 @@ core:
   directory: agents/core
   cache_ttl: 3600
 
-extended:
-  count: 114
-  categories: 10
-  directory: agents/extended
+traits:
+  count: 10
+  directory: agents/traits
+
+extensions:
+  count: 7
+  directory: agents/extensions
 
 selection:
   algorithm: weighted-match
   weights:
-    domain: 0.30
-    keyword: 0.20
-    file_pattern: 0.20
-    language: 0.15
-    framework: 0.15
+    trigger_match: 0.35
+    category_match: 0.25
+    description_match: 0.20
+    tool_match: 0.20
   thresholds:
     minimum_score: 0.6
     confidence_level: 0.8
@@ -1342,10 +1340,10 @@ SuperClaude/
 ├── pyproject.toml               # Python project config
 │
 ├── .claude/
-│   └── skills/                  # 134 Claude Code skills
-│       ├── agent-*/             # 114 agent persona skills
+│   └── skills/                  # 28 Claude Code skills
+│       ├── agent-*/             # 8 agent persona skills
 │       │   └── SKILL.md
-│       ├── sc-*/                # 16 command skills
+│       ├── sc-*/                # 17 command skills
 │       │   ├── SKILL.md
 │       │   └── scripts/         # Optional tool implementations
 │       ├── ask/                 # Single-select questions
@@ -1359,10 +1357,12 @@ SuperClaude/
 │   │   ├── root-cause-analyst.md
 │   │   ├── refactoring-expert.md
 │   │   └── ...
-│   ├── traits/                  # 8 composable trait prompts
+│   ├── traits/                  # 10 composable trait prompts
 │   │   ├── security-first.md
 │   │   ├── performance-first.md
 │   │   ├── test-driven.md
+│   │   ├── mcp-pal-enabled.md
+│   │   ├── mcp-rube-enabled.md
 │   │   └── ...
 │   ├── extensions/              # 7 domain specialist prompts
 │   │   ├── typescript-expert.md
@@ -1377,7 +1377,7 @@ SuperClaude/
 │   ├── analyze.md
 │   ├── implement.md
 │   ├── test.md
-│   └── ...                      # 16 command templates
+│   └── ...                      # 14 command templates
 │
 ├── config/
 │   ├── superclaud.yaml          # Main framework config (281 lines)
@@ -1557,5 +1557,5 @@ MIT License - see [LICENSE](LICENSE) for details.
 <p align="center">
   <strong>SuperClaude v7.0.0</strong><br>
   Config-First Meta-Framework for Claude Code<br>
-  <em>31 Agents (16 Core + 8 Traits + 7 Extensions) | 134 Skills | 16 Commands | 6 Modes | Quality-Driven Loops</em>
+  <em>33 Agents (16 Core + 10 Traits + 7 Extensions) | 28 Skills | 14 Commands | 6 Modes | Quality-Driven Loops</em>
 </p>

@@ -49,8 +49,108 @@ Transform PRDs and requirements into structured implementation plans.
 
 ## MCP Integration
 
-- **PAL MCP** - Consensus for high-risk decisions
-- **Rube MCP** - Backlog updates and notifications
+### PAL MCP (Planning & Validation)
+
+| Tool | When to Use | Purpose |
+|------|-------------|---------|
+| `mcp__pal__planner` | Complex workflows | Sequential planning with branching |
+| `mcp__pal__consensus` | High-risk decisions | Multi-model validation of approach |
+| `mcp__pal__thinkdeep` | Architecture planning | Deep analysis of system design |
+| `mcp__pal__chat` | Clarification | Get second opinion on workflow structure |
+
+### PAL Usage Patterns
+
+```bash
+# Plan complex workflow
+mcp__pal__planner(
+    step="Planning authentication system implementation workflow",
+    step_number=1,
+    total_steps=5,
+    is_branch_point=True,
+    branch_id="auth-approach-oauth"
+)
+
+# Validate architectural decisions
+mcp__pal__consensus(
+    models=[
+        {"model": "gpt-5.2", "stance": "for"},
+        {"model": "gemini-3-pro", "stance": "against"},
+        {"model": "deepseek", "stance": "neutral"}
+    ],
+    step="Evaluate: Should auth be microservice or monolith module?"
+)
+
+# Deep analysis for enterprise planning
+mcp__pal__thinkdeep(
+    step="Analyzing compliance requirements for enterprise auth",
+    hypothesis="SOC2 requires audit logging at every auth event",
+    confidence="medium",
+    focus_areas=["compliance", "security", "scalability"]
+)
+```
+
+### Rube MCP (Project Management)
+
+| Tool | When to Use | Purpose |
+|------|-------------|---------|
+| `mcp__rube__RUBE_SEARCH_TOOLS` | Project tools | Find Jira, Asana, Linear, Notion |
+| `mcp__rube__RUBE_MULTI_EXECUTE_TOOL` | Backlog creation | Create tasks, epics, stories |
+| `mcp__rube__RUBE_CREATE_PLAN` | Complex workflows | Generate execution plans |
+| `mcp__rube__RUBE_CREATE_UPDATE_RECIPE` | Reusable workflows | Save workflow templates |
+
+### Rube Usage Patterns
+
+```bash
+# Create backlog items from workflow
+mcp__rube__RUBE_MULTI_EXECUTE_TOOL(tools=[
+    {"tool_slug": "JIRA_CREATE_ISSUE", "arguments": {
+        "project": "AUTH",
+        "summary": "Implement OAuth2 provider integration",
+        "issue_type": "Epic",
+        "description": "## Scope\n- Google OAuth\n- GitHub OAuth\n- SAML support"
+    }},
+    {"tool_slug": "JIRA_CREATE_ISSUE", "arguments": {
+        "project": "AUTH",
+        "summary": "Set up JWT token generation",
+        "issue_type": "Story",
+        "description": "Implement JWT with refresh tokens"
+    }},
+    {"tool_slug": "JIRA_CREATE_ISSUE", "arguments": {
+        "project": "AUTH",
+        "summary": "Add rate limiting to auth endpoints",
+        "issue_type": "Task"
+    }}
+])
+
+# Notify team of new workflow
+mcp__rube__RUBE_MULTI_EXECUTE_TOOL(tools=[
+    {"tool_slug": "SLACK_SEND_MESSAGE", "arguments": {
+        "channel": "#project-planning",
+        "text": "New implementation workflow created: Authentication System\nEpic: AUTH-123\n5 stories, 12 tasks"
+    }},
+    {"tool_slug": "NOTION_CREATE_PAGE", "arguments": {
+        "title": "Auth System Implementation Plan",
+        "content": "## Phases\n1. OAuth Integration\n2. JWT Implementation\n3. Rate Limiting\n\n## Timeline\nSprint 1-3"
+    }}
+])
+
+# Save workflow as reusable template
+mcp__rube__RUBE_CREATE_UPDATE_RECIPE(
+    name="Auth System Workflow Template",
+    description="Standard workflow for implementing authentication systems",
+    workflow_code="..."
+)
+```
+
+## Flags (Extended)
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--pal-plan` | bool | false | Use PAL planner for complex workflows |
+| `--consensus` | bool | false | Validate approach with multi-model consensus |
+| `--create-backlog` | bool | false | Create backlog items via Rube |
+| `--notify` | string | - | Notify via Rube (slack, teams, email) |
+| `--save-template` | bool | false | Save as reusable Rube recipe |
 
 ## Evidence Requirements
 

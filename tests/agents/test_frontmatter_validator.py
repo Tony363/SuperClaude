@@ -404,8 +404,8 @@ class TestActualAgents:
         """Verify expected number of agents are validated."""
         result = run_validator()
 
-        # We should have 31 active agents (16 core + 8 traits + 7 extensions)
-        assert "Files validated: 31" in result.stdout
+        # We should have 33 active agents (16 core + 10 traits + 7 extensions)
+        assert "Files validated: 33" in result.stdout
 
     def test_no_deprecated_agents_in_active_paths(self):
         """Verify deprecated agents are not in active directories."""
