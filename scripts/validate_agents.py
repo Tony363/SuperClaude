@@ -20,10 +20,9 @@ import argparse
 import re
 import sys
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 import yaml
-
 
 # =============================================================================
 # Configuration
@@ -47,10 +46,24 @@ VALID_TIERS = {"core", "trait", "extension"}
 
 # Valid tool names (Claude Code standard tools)
 VALID_TOOLS = {
-    "Read", "Write", "Edit", "Bash", "Glob", "Grep", "Task",
-    "WebFetch", "WebSearch", "NotebookEdit", "AskUserQuestion",
-    "TodoWrite", "KillShell", "TaskOutput", "LSP", "Skill",
-    "EnterPlanMode", "ExitPlanMode",
+    "Read",
+    "Write",
+    "Edit",
+    "Bash",
+    "Glob",
+    "Grep",
+    "Task",
+    "WebFetch",
+    "WebSearch",
+    "NotebookEdit",
+    "AskUserQuestion",
+    "TodoWrite",
+    "KillShell",
+    "TaskOutput",
+    "LSP",
+    "Skill",
+    "EnterPlanMode",
+    "ExitPlanMode",
 }
 
 # Name pattern: lowercase letters, numbers, hyphens
@@ -60,6 +73,7 @@ NAME_PATTERN = re.compile(r"^[a-z][a-z0-9-]*[a-z0-9]$|^[a-z]$")
 # =============================================================================
 # Frontmatter Parsing
 # =============================================================================
+
 
 def extract_frontmatter(content: str) -> Tuple[Optional[Dict], Optional[str]]:
     """Extract YAML frontmatter from markdown content.
@@ -75,7 +89,7 @@ def extract_frontmatter(content: str) -> Tuple[Optional[Dict], Optional[str]]:
     if not end_match:
         return None, "Could not find closing frontmatter delimiter '---'"
 
-    yaml_content = content[3:end_match.start() + 3]
+    yaml_content = content[3 : end_match.start() + 3]
 
     try:
         frontmatter = yaml.safe_load(yaml_content)
@@ -89,6 +103,7 @@ def extract_frontmatter(content: str) -> Tuple[Optional[Dict], Optional[str]]:
 # =============================================================================
 # Validation Functions
 # =============================================================================
+
 
 class ValidationResult:
     """Holds validation results for a single file."""
@@ -131,9 +146,7 @@ def validate_name(fm: dict, result: ValidationResult) -> None:
     # Normalize and validate
     normalized = name.lower().strip()
     if not NAME_PATTERN.match(normalized):
-        result.add_error(
-            f"'name' must be lowercase alphanumeric with hyphens, got '{name}'"
-        )
+        result.add_error(f"'name' must be lowercase alphanumeric with hyphens, got '{name}'")
         return
 
     result.name = normalized
@@ -305,6 +318,7 @@ def validate_file(filepath: Path) -> ValidationResult:
 # Cross-File Validation
 # =============================================================================
 
+
 def validate_uniqueness(results: List[ValidationResult]) -> List[str]:
     """Check for duplicate agent names across all files."""
     errors = []
@@ -328,18 +342,13 @@ def validate_trait_references(results: List[ValidationResult]) -> List[str]:
     errors = []
 
     # Collect all trait names
-    trait_names = {
-        r.name for r in results
-        if r.tier == "trait" and r.name
-    }
+    trait_names = {r.name for r in results if r.tier == "trait" and r.name}
 
     # Check references
     for result in results:
         for trait_ref in result.traits:
             if trait_ref not in trait_names:
-                errors.append(
-                    f"{result.filepath}: references unknown trait '{trait_ref}'"
-                )
+                errors.append(f"{result.filepath}: references unknown trait '{trait_ref}'")
 
     return errors
 
@@ -355,6 +364,7 @@ def check_for_cycles(results: List[ValidationResult]) -> List[str]:
 # Main Entry Point
 # =============================================================================
 
+
 def find_agent_files(repo_root: Path) -> List[Path]:
     """Find all agent markdown files in active paths."""
     files = []
@@ -368,9 +378,7 @@ def find_agent_files(repo_root: Path) -> List[Path]:
 
 
 def print_results(
-    results: List[ValidationResult],
-    cross_errors: List[str],
-    verbose: bool = False
+    results: List[ValidationResult], cross_errors: List[str], verbose: bool = False
 ) -> Tuple[int, int]:
     """Print validation results and return counts."""
     total_errors = len(cross_errors)
@@ -397,24 +405,16 @@ def print_results(
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(
-        description="Validate SuperClaude agent frontmatter"
-    )
+    parser = argparse.ArgumentParser(description="Validate SuperClaude agent frontmatter")
+    parser.add_argument("--strict", action="store_true", help="Treat warnings as errors")
     parser.add_argument(
-        "--strict",
-        action="store_true",
-        help="Treat warnings as errors"
-    )
-    parser.add_argument(
-        "--verbose", "-v",
-        action="store_true",
-        help="Show warnings even in non-strict mode"
+        "--verbose", "-v", action="store_true", help="Show warnings even in non-strict mode"
     )
     parser.add_argument(
         "--repo-root",
         type=Path,
         default=None,
-        help="Repository root (defaults to script parent's parent)"
+        help="Repository root (defaults to script parent's parent)",
     )
     args = parser.parse_args()
 
@@ -455,7 +455,7 @@ def main() -> int:
     )
 
     # Summary
-    print(f"\n{'='*50}")
+    print(f"\n{'=' * 50}")
     print(f"Files validated: {len(files)}")
     print(f"Errors: {total_errors}")
     print(f"Warnings: {total_warnings}")

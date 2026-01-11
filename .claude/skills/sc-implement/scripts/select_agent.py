@@ -40,12 +40,11 @@ import fnmatch
 import json
 import re
 import sys
-from dataclasses import asdict, dataclass, field
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple
 
 import yaml
-
 
 # =============================================================================
 # Trait Conflict Detection
@@ -73,6 +72,7 @@ TRAIT_TENSIONS: Dict[str, Set[str]] = {
 # Configuration
 # =============================================================================
 
+
 # Find the SuperClaude root directory (contains CLAUDE.md)
 def find_superclaude_root() -> Path:
     """Find SuperClaude root by searching upward for CLAUDE.md."""
@@ -91,6 +91,7 @@ AGENTS_DIR = SUPERCLAUDE_ROOT / "agents"
 # =============================================================================
 # Data Classes
 # =============================================================================
+
 
 @dataclass
 class AgentMetadata:
@@ -141,6 +142,7 @@ class MatchScore:
 # Frontmatter Parsing
 # =============================================================================
 
+
 def extract_frontmatter(content: str) -> Optional[Dict[str, Any]]:
     """Extract YAML frontmatter from markdown content."""
     if not content.startswith("---"):
@@ -150,7 +152,7 @@ def extract_frontmatter(content: str) -> Optional[Dict[str, Any]]:
     if not end_match:
         return None
 
-    yaml_content = content[3:end_match.start() + 3]
+    yaml_content = content[3 : end_match.start() + 3]
 
     try:
         return yaml.safe_load(yaml_content)
@@ -220,6 +222,7 @@ def load_trait_from_file(filepath: Path) -> Optional[TraitMetadata]:
 # Agent Loading
 # =============================================================================
 
+
 def load_all_agents() -> List[AgentMetadata]:
     """Load all agents from core and extensions directories."""
     agents = []
@@ -260,6 +263,7 @@ def load_all_traits() -> Dict[str, TraitMetadata]:
 # =============================================================================
 # Scoring Algorithm
 # =============================================================================
+
 
 def calculate_match_score(context: Dict[str, Any], metadata: AgentMetadata) -> MatchScore:
     """
@@ -374,9 +378,9 @@ def calculate_match_score(context: Dict[str, Any], metadata: AgentMetadata) -> M
 # Main Selection Logic
 # =============================================================================
 
+
 def validate_traits(
-    requested_traits: List[str],
-    available_traits: Dict[str, TraitMetadata]
+    requested_traits: List[str], available_traits: Dict[str, TraitMetadata]
 ) -> tuple[List[str], List[str]]:
     """Validate requested traits and return valid/invalid lists."""
     valid = []
@@ -392,7 +396,7 @@ def validate_traits(
 
 
 def detect_trait_conflicts(
-    traits: List[str]
+    traits: List[str],
 ) -> Tuple[List[Tuple[str, str]], List[Tuple[str, str]]]:
     """
     Detect conflicts and tensions between requested traits.
@@ -406,7 +410,7 @@ def detect_trait_conflicts(
 
     # Check each pair of traits
     for i, trait1 in enumerate(traits):
-        for trait2 in traits[i + 1:]:
+        for trait2 in traits[i + 1 :]:
             # Check hard conflicts
             if trait1 in TRAIT_CONFLICTS and trait2 in TRAIT_CONFLICTS[trait1]:
                 hard_conflicts.append((trait1, trait2))
@@ -444,7 +448,7 @@ def select_agent(context: Dict[str, Any], top_n: int = 3) -> Dict[str, Any]:
             "traits_applied": [],
             "agent_path": "agents/core/general-purpose.md",
             "trait_paths": [],
-            "warning": "No agents found in agents/ directory"
+            "warning": "No agents found in agents/ directory",
         }
 
     # Calculate scores for all agents
@@ -467,12 +471,14 @@ def select_agent(context: Dict[str, Any], top_n: int = 3) -> Dict[str, Any]:
     alternatives = []
     for s in scores[1:top_n]:
         alt_agent = agent_map[s.agent_id]
-        alternatives.append({
-            "agent_id": s.agent_id,
-            "total_score": round(s.total_score, 4),
-            "confidence": s.confidence,
-            "agent_path": alt_agent.file_path,
-        })
+        alternatives.append(
+            {
+                "agent_id": s.agent_id,
+                "total_score": round(s.total_score, 4),
+                "confidence": s.confidence,
+                "agent_path": alt_agent.file_path,
+            }
+        )
 
     # Process traits
     requested_traits = context.get("traits", [])
@@ -505,8 +511,7 @@ def select_agent(context: Dict[str, Any], top_n: int = 3) -> Dict[str, Any]:
     # Include conflict information
     if hard_conflicts:
         result["trait_conflicts"] = [
-            {"trait1": t1, "trait2": t2, "severity": "error"}
-            for t1, t2 in hard_conflicts
+            {"trait1": t1, "trait2": t2, "severity": "error"} for t1, t2 in hard_conflicts
         ]
         result["conflict_warning"] = (
             f"Conflicting traits detected: {hard_conflicts}. "
@@ -515,8 +520,7 @@ def select_agent(context: Dict[str, Any], top_n: int = 3) -> Dict[str, Any]:
 
     if soft_tensions:
         result["trait_tensions"] = [
-            {"trait1": t1, "trait2": t2, "severity": "warning"}
-            for t1, t2 in soft_tensions
+            {"trait1": t1, "trait2": t2, "severity": "warning"} for t1, t2 in soft_tensions
         ]
         if "conflict_warning" not in result:
             result["tension_note"] = (

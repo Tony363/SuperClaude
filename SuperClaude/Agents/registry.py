@@ -62,7 +62,7 @@ class AgentMarkdownParser:
         if not end_match:
             return None
 
-        yaml_content = content[3:end_match.start() + 3]
+        yaml_content = content[3 : end_match.start() + 3]
 
         try:
             frontmatter = yaml.safe_load(yaml_content)
@@ -164,9 +164,7 @@ class AgentRegistry:
 
         return total
 
-    def _discover_tiered_agents(
-        self, directory: Path, tier: str, is_core: bool = False
-    ) -> int:
+    def _discover_tiered_agents(self, directory: Path, tier: str, is_core: bool = False) -> int:
         """
         Discover agents from a tiered directory.
 

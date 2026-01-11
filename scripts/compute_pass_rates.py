@@ -120,8 +120,7 @@ def format_console_output(
 
         status = "\u2705 MEETS THRESHOLD" if data["passed"] else "\u274c BELOW THRESHOLD"
         lines.append(
-            f"  Result: {data['passes']}/{data['total']} "
-            f"({data['pass_rate']:.0%}) {status}"
+            f"  Result: {data['passes']}/{data['total']} ({data['pass_rate']:.0%}) {status}"
         )
         lines.append("")
 
@@ -134,7 +133,7 @@ def format_markdown_output(
 ) -> str:
     """Format results as GitHub-flavored markdown."""
     lines = [
-        f"# Stochastic Evaluation Results",
+        "# Stochastic Evaluation Results",
         "",
         f"**Threshold**: {int(threshold * 100)}% ({int(threshold * 5)}/5 runs)",
         "",
@@ -169,9 +168,7 @@ def format_markdown_output(
 
 def main() -> int:
     """Main entry point."""
-    parser = argparse.ArgumentParser(
-        description="Compute pass rates from stochastic test runs"
-    )
+    parser = argparse.ArgumentParser(description="Compute pass rates from stochastic test runs")
     parser.add_argument(
         "--input",
         type=Path,

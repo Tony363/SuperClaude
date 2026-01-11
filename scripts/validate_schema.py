@@ -26,7 +26,8 @@ from typing import Any, Optional
 import yaml
 
 try:
-    from jsonschema import Draft202012Validator, ValidationError
+    from jsonschema import Draft202012Validator
+
     HAS_JSONSCHEMA = True
 except ImportError:
     HAS_JSONSCHEMA = False
@@ -50,7 +51,7 @@ def extract_frontmatter(content: str) -> Optional[dict[str, Any]]:
     if not end_match:
         return None
 
-    yaml_content = content[3:end_match.start() + 3]
+    yaml_content = content[3 : end_match.start() + 3]
 
     try:
         return yaml.safe_load(yaml_content)
@@ -87,14 +88,8 @@ def validate_file(filepath: Path, validator: Any, verbose: bool = False) -> list
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(
-        description="Validate agent frontmatter against JSON Schema"
-    )
-    parser.add_argument(
-        "--verbose", "-v",
-        action="store_true",
-        help="Show successful validations"
-    )
+    parser = argparse.ArgumentParser(description="Validate agent frontmatter against JSON Schema")
+    parser.add_argument("--verbose", "-v", action="store_true", help="Show successful validations")
     args = parser.parse_args()
 
     # Check dependencies

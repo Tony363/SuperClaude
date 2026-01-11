@@ -15,7 +15,6 @@ from typing import Dict, List, Optional
 import pytest
 import yaml
 
-
 # =============================================================================
 # Test Configuration
 # =============================================================================
@@ -27,8 +26,7 @@ AGENTS_DIR = REPO_ROOT / "agents"
 
 
 def run_validator(
-    args: Optional[List[str]] = None,
-    repo_root: Optional[Path] = None
+    args: Optional[List[str]] = None, repo_root: Optional[Path] = None
 ) -> subprocess.CompletedProcess:
     """Run the validator script and return result."""
     cmd = [sys.executable, str(VALIDATOR_SCRIPT)]
@@ -75,6 +73,7 @@ def setup_test_repo(tmp_path: Path) -> Path:
 # Validator Script Tests
 # =============================================================================
 
+
 class TestValidatorScript:
     """Test the validator script execution."""
 
@@ -120,7 +119,7 @@ class TestValidatorWithTestRepo:
                 "category": "testing",
                 "triggers": ["test", "validate"],
                 "tools": ["Read", "Write", "Bash"],
-            }
+            },
         )
 
         result = run_validator(repo_root=repo)
@@ -140,7 +139,7 @@ class TestValidatorWithTestRepo:
                 "description": "A test trait modifier",
                 "tier": "trait",
                 "category": "modifier",
-            }
+            },
         )
 
         result = run_validator(repo_root=repo)
@@ -161,7 +160,7 @@ class TestValidatorWithTestRepo:
                 "category": "language",
                 "triggers": ["testlang"],
                 "tools": ["Read", "Edit"],
-            }
+            },
         )
 
         result = run_validator(repo_root=repo)
@@ -179,7 +178,7 @@ class TestValidatorWithTestRepo:
                 # "name": missing!
                 "description": "Agent without name",
                 "tier": "core",
-            }
+            },
         )
 
         result = run_validator(repo_root=repo)
@@ -198,7 +197,7 @@ class TestValidatorWithTestRepo:
                 "name": "no-desc-agent",
                 # "description": missing!
                 "tier": "core",
-            }
+            },
         )
 
         result = run_validator(repo_root=repo)
@@ -217,7 +216,7 @@ class TestValidatorWithTestRepo:
                 "name": "no-tier-agent",
                 "description": "Agent without tier",
                 # "tier": missing!
-            }
+            },
         )
 
         result = run_validator(repo_root=repo)
@@ -236,7 +235,7 @@ class TestValidatorWithTestRepo:
                 "name": "bad-tier-agent",
                 "description": "Agent with invalid tier",
                 "tier": "invalid-tier-value",
-            }
+            },
         )
 
         result = run_validator(repo_root=repo)
@@ -255,7 +254,7 @@ class TestValidatorWithTestRepo:
                 "name": "bad_name_with_underscores",  # Underscores not allowed
                 "description": "Agent with invalid name format",
                 "tier": "core",
-            }
+            },
         )
 
         result = run_validator(repo_root=repo)
@@ -276,7 +275,7 @@ class TestValidatorWithTestRepo:
                 "name": "duplicate-agent",
                 "description": "First agent with this name",
                 "tier": "core",
-            }
+            },
         )
 
         # Create second agent with same name
@@ -287,7 +286,7 @@ class TestValidatorWithTestRepo:
                 "name": "duplicate-agent",  # Same name!
                 "description": "Second agent with same name",
                 "tier": "extension",
-            }
+            },
         )
 
         result = run_validator(repo_root=repo)
@@ -307,7 +306,7 @@ class TestValidatorWithTestRepo:
                 "description": "Agent with unknown tool",
                 "tier": "core",
                 "tools": ["Read", "UnknownMagicTool"],
-            }
+            },
         )
 
         result = run_validator(["--verbose"], repo_root=repo)
@@ -328,7 +327,7 @@ class TestValidatorWithTestRepo:
                 "description": "Agent that triggers a warning",
                 "tier": "core",
                 "tools": ["Read", "UnknownMagicTool"],  # Unknown tool = warning
-            }
+            },
         )
 
         result = run_validator(["--strict"], repo_root=repo)
@@ -349,7 +348,7 @@ class TestValidatorWithTestRepo:
                 "description": "Trait that incorrectly has triggers",
                 "tier": "trait",
                 "triggers": ["trigger1", "trigger2"],  # Traits shouldn't have this
-            }
+            },
         )
 
         result = run_validator(["--verbose"], repo_root=repo)
@@ -370,7 +369,7 @@ class TestValidatorWithTestRepo:
                 "description": "Agent referencing traits",
                 "tier": "core",
                 "traits": ["nonexistent-trait"],  # This trait doesn't exist
-            }
+            },
         )
 
         result = run_validator(repo_root=repo)
@@ -410,14 +409,13 @@ class TestActualAgents:
 
     def test_no_deprecated_agents_in_active_paths(self):
         """Verify deprecated agents are not in active directories."""
-        deprecated_dir = AGENTS_DIR / "DEPRECATED"
-
         for active_path in ["core", "traits", "extensions"]:
             active_dir = AGENTS_DIR / active_path
             if active_dir.exists():
                 for agent_file in active_dir.glob("*.md"):
-                    assert "DEPRECATED" not in str(agent_file), \
+                    assert "DEPRECATED" not in str(agent_file), (
                         f"Found deprecated agent in active path: {agent_file}"
+                    )
 
 
 class TestTraitConflictDetection:
@@ -425,7 +423,9 @@ class TestTraitConflictDetection:
 
     def test_hard_conflict_detected(self):
         """Verify conflicting traits are detected."""
-        select_script = REPO_ROOT / ".claude" / "skills" / "sc-implement" / "scripts" / "select_agent.py"
+        select_script = (
+            REPO_ROOT / ".claude" / "skills" / "sc-implement" / "scripts" / "select_agent.py"
+        )
 
         if not select_script.exists():
             pytest.skip("select_agent.py not found")
@@ -434,7 +434,7 @@ class TestTraitConflictDetection:
             [
                 sys.executable,
                 str(select_script),
-                '{"task": "test", "traits": ["minimal-changes", "rapid-prototype"]}'
+                '{"task": "test", "traits": ["minimal-changes", "rapid-prototype"]}',
             ],
             capture_output=True,
             text=True,
@@ -444,6 +444,7 @@ class TestTraitConflictDetection:
         assert result.returncode == 0
 
         import json
+
         output = json.loads(result.stdout)
 
         assert "trait_conflicts" in output
@@ -453,7 +454,9 @@ class TestTraitConflictDetection:
 
     def test_soft_tension_detected(self):
         """Verify trait tensions are detected and warned."""
-        select_script = REPO_ROOT / ".claude" / "skills" / "sc-implement" / "scripts" / "select_agent.py"
+        select_script = (
+            REPO_ROOT / ".claude" / "skills" / "sc-implement" / "scripts" / "select_agent.py"
+        )
 
         if not select_script.exists():
             pytest.skip("select_agent.py not found")
@@ -462,7 +465,7 @@ class TestTraitConflictDetection:
             [
                 sys.executable,
                 str(select_script),
-                '{"task": "test", "traits": ["legacy-friendly", "cloud-native"]}'
+                '{"task": "test", "traits": ["legacy-friendly", "cloud-native"]}',
             ],
             capture_output=True,
             text=True,
@@ -472,6 +475,7 @@ class TestTraitConflictDetection:
         assert result.returncode == 0
 
         import json
+
         output = json.loads(result.stdout)
 
         assert "trait_tensions" in output
@@ -481,7 +485,9 @@ class TestTraitConflictDetection:
 
     def test_no_conflict_when_compatible(self):
         """Verify no conflicts for compatible traits."""
-        select_script = REPO_ROOT / ".claude" / "skills" / "sc-implement" / "scripts" / "select_agent.py"
+        select_script = (
+            REPO_ROOT / ".claude" / "skills" / "sc-implement" / "scripts" / "select_agent.py"
+        )
 
         if not select_script.exists():
             pytest.skip("select_agent.py not found")
@@ -490,7 +496,7 @@ class TestTraitConflictDetection:
             [
                 sys.executable,
                 str(select_script),
-                '{"task": "test", "traits": ["security-first", "test-driven"]}'
+                '{"task": "test", "traits": ["security-first", "test-driven"]}',
             ],
             capture_output=True,
             text=True,
@@ -500,6 +506,7 @@ class TestTraitConflictDetection:
         assert result.returncode == 0
 
         import json
+
         output = json.loads(result.stdout)
 
         assert "trait_conflicts" not in output
@@ -513,7 +520,9 @@ class TestSelectAgentIntegration:
 
     def test_all_validated_agents_loadable(self):
         """Verify all validated agents can be loaded by select_agent.py."""
-        select_script = REPO_ROOT / ".claude" / "skills" / "sc-implement" / "scripts" / "select_agent.py"
+        select_script = (
+            REPO_ROOT / ".claude" / "skills" / "sc-implement" / "scripts" / "select_agent.py"
+        )
 
         if not select_script.exists():
             pytest.skip("select_agent.py not found")
@@ -531,13 +540,16 @@ class TestSelectAgentIntegration:
 
         # Should return valid JSON with expected fields
         import json
+
         output = json.loads(result.stdout)
         assert "selected_agent" in output
         assert "agent_path" in output
 
     def test_trait_composition_works(self):
         """Verify trait composition works with validated traits."""
-        select_script = REPO_ROOT / ".claude" / "skills" / "sc-implement" / "scripts" / "select_agent.py"
+        select_script = (
+            REPO_ROOT / ".claude" / "skills" / "sc-implement" / "scripts" / "select_agent.py"
+        )
 
         if not select_script.exists():
             pytest.skip("select_agent.py not found")
@@ -547,7 +559,7 @@ class TestSelectAgentIntegration:
             [
                 sys.executable,
                 str(select_script),
-                '{"task": "secure api", "traits": ["security-first"]}'
+                '{"task": "secure api", "traits": ["security-first"]}',
             ],
             capture_output=True,
             text=True,
@@ -557,6 +569,7 @@ class TestSelectAgentIntegration:
         assert result.returncode == 0
 
         import json
+
         output = json.loads(result.stdout)
 
         # Should have trait applied

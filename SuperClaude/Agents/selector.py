@@ -120,9 +120,7 @@ class AgentSelector:
             if not config:
                 continue
 
-            score, breakdown, matched = self._calculate_score(
-                context, config, category_hint
-            )
+            score, breakdown, matched = self._calculate_score(context, config, category_hint)
             if score >= self.min_confidence:
                 scores.append((agent_name, score, breakdown, matched, config))
 
@@ -132,13 +130,9 @@ class AgentSelector:
         # Fallback to default
         if not scores and self.default_agent not in exclude_agents:
             default_config = self.registry.get_agent_config(self.default_agent) or {}
-            scores = [(
-                self.default_agent,
-                0.5,
-                {"fallback": 0.5},
-                ["default selection"],
-                default_config
-            )]
+            scores = [
+                (self.default_agent, 0.5, {"fallback": 0.5}, ["default selection"], default_config)
+            ]
 
         if not scores:
             return SelectionResult(
@@ -161,22 +155,12 @@ class AgentSelector:
             if trait_config:
                 trait_paths.append(trait_config.get("file_path", ""))
 
-        # Determine confidence level
-        if top_score >= 0.7:
-            confidence_str = "excellent"
-        elif top_score >= 0.5:
-            confidence_str = "high"
-        elif top_score >= 0.3:
-            confidence_str = "medium"
-        else:
-            confidence_str = "low"
-
         result = SelectionResult(
             agent_name=top_name,
             confidence=top_score,
             breakdown=top_breakdown,
             matched_criteria=top_matched,
-            alternatives=[(s[0], s[1]) for s in scores[1:top_n + 1]],
+            alternatives=[(s[0], s[1]) for s in scores[1 : top_n + 1]],
             traits_applied=valid_traits,
             agent_path=top_config.get("file_path", ""),
             trait_paths=trait_paths,
@@ -185,10 +169,7 @@ class AgentSelector:
         return result
 
     def _calculate_score(
-        self,
-        context: Any,
-        config: dict[str, Any],
-        category_hint: str | None = None
+        self, context: Any, config: dict[str, Any], category_hint: str | None = None
     ) -> tuple[float, dict[str, float], list[str]]:
         """Calculate match score with detailed breakdown."""
         score = 0.0
@@ -198,9 +179,11 @@ class AgentSelector:
         # Normalize context
         if isinstance(context, dict):
             context_str = (
-                context.get("task", "") + " " +
-                context.get("description", "") + " " +
-                " ".join(context.get("files", []))
+                context.get("task", "")
+                + " "
+                + context.get("description", "")
+                + " "
+                + " ".join(context.get("files", []))
             )
         else:
             context_str = str(context)
@@ -302,7 +285,7 @@ class AgentSelector:
         tensions = []
 
         for i, trait1 in enumerate(valid):
-            for trait2 in valid[i + 1:]:
+            for trait2 in valid[i + 1 :]:
                 if trait1 in TRAIT_CONFLICTS and trait2 in TRAIT_CONFLICTS[trait1]:
                     conflicts.append((trait1, trait2))
                 elif trait1 in TRAIT_TENSIONS and trait2 in TRAIT_TENSIONS[trait1]:
@@ -334,9 +317,7 @@ class AgentSelector:
         )
         return result.agent_name, result.confidence
 
-    def get_agent_suggestions(
-        self, context: str, top_n: int = 5
-    ) -> list[tuple[str, float]]:
+    def get_agent_suggestions(self, context: str, top_n: int = 5) -> list[tuple[str, float]]:
         """
         Get top N agent suggestions for context.
 
