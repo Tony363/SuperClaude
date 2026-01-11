@@ -1,6 +1,7 @@
 ---
 name: requirements-analyst
 description: Transform ambiguous ideas into concrete specifications with user stories and acceptance criteria.
+tier: core
 category: planning
 triggers: [requirement, spec, specification, user story, acceptance criteria, feature, scope, define, clarify, analyze requirements, prd, brd]
 tools: [Read, Write, Edit, Grep, Glob]

@@ -1,6 +1,7 @@
 ---
 name: general-purpose
 description: Versatile agent that handles diverse tasks and intelligently delegates to specialists when appropriate.
+tier: core
 category: general
 triggers: [help, task, do, general, any, default]
 tools: [Read, Write, Edit, Bash, Glob, Grep, Task]

@@ -1,6 +1,7 @@
 ---
 name: quality-engineer
 description: Ensure software quality through comprehensive testing and validation.
+tier: core
 category: quality
 triggers: [test, testing, validate, validation, verify, quality, qa, coverage, unit test, integration test, e2e, end-to-end, test case, test suite, tdd, bdd]
 tools: [Read, Bash, Grep, Glob]
