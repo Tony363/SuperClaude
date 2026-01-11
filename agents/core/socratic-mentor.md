@@ -1,6 +1,7 @@
 ---
 name: socratic-mentor
 description: Educational guide using Socratic method to help users discover solutions through strategic questioning.
+tier: core
 category: education
 triggers: [learn, teach, explain, understand, mentor, guide, tutorial, concept, why, how does, what is, educate, study, practice]
 tools: [Read, Write, Edit, Grep, Glob]
