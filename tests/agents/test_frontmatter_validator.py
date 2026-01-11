@@ -63,8 +63,8 @@ def setup_test_repo(tmp_path: Path) -> Path:
     (tmp_path / "agents" / "traits").mkdir(parents=True)
     (tmp_path / "agents" / "extensions").mkdir(parents=True)
 
-    # Create CLAUDE.md marker file
-    (tmp_path / "CLAUDE.md").write_text("# Test SuperClaude\n")
+    # Create pyproject.toml marker file (validator checks for this)
+    (tmp_path / "pyproject.toml").write_text('[project]\nname = "test-superclaude"\n')
 
     return tmp_path
 

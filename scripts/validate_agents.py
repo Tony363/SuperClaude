@@ -424,8 +424,9 @@ def main() -> int:
     else:
         repo_root = Path(__file__).parent.parent.resolve()
 
-    if not (repo_root / "CLAUDE.md").exists():
-        print(f"ERROR: Could not find CLAUDE.md in {repo_root}", file=sys.stderr)
+    # Verify repo root by checking for pyproject.toml or agents/ directory
+    if not (repo_root / "pyproject.toml").exists() and not (repo_root / "agents").is_dir():
+        print(f"ERROR: Could not find pyproject.toml or agents/ in {repo_root}", file=sys.stderr)
         print("Are you running from the SuperClaude repository?", file=sys.stderr)
         return 2
 
