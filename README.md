@@ -1,15 +1,15 @@
 # SuperClaude Framework
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-6.0.0-blue" alt="Version">
-  <img src="https://img.shields.io/badge/agents-130-orange" alt="Agents">
-  <img src="https://img.shields.io/badge/skills-130-green" alt="Skills">
-  <img src="https://img.shields.io/badge/commands-13-purple" alt="Commands">
+  <img src="https://img.shields.io/badge/version-7.0.0-blue" alt="Version">
+  <img src="https://img.shields.io/badge/agents-258-orange" alt="Agents">
+  <img src="https://img.shields.io/badge/skills-134-green" alt="Skills">
+  <img src="https://img.shields.io/badge/commands-16-purple" alt="Commands">
   <img src="https://img.shields.io/badge/modes-6-teal" alt="Modes">
   <img src="https://img.shields.io/badge/license-MIT-lightgrey" alt="License">
 </p>
 
-**A config-first meta-framework for Claude Code that provides 130 specialized agent personas, 13 structured commands, 130 skills, and comprehensive MCP integration with quality-driven iterative workflows.**
+**A config-first meta-framework for Claude Code that provides 258 specialized agent personas, 16 structured commands, 134 skills, and comprehensive MCP integration with quality-driven iterative workflows.**
 
 SuperClaude transforms Claude Code into a powerful development platform with specialized agent prompts, signal-based loop orchestration, and multi-model consensus capabilities. The core interface is markdown and YAML configuration files, with a Python orchestration layer for advanced workflows including quality gates, termination detection, and PAL MCP integration.
 
@@ -29,6 +29,7 @@ SuperClaude transforms Claude Code into a powerful development platform with spe
 - [MCP Integrations](#mcp-integrations)
 - [Skills System](#skills-system)
 - [Quality System](#quality-system)
+- [Quality Gates](#quality-gates)
 - [Type System](#type-system)
 - [Configuration](#configuration)
 - [Directory Structure](#directory-structure)
@@ -41,12 +42,12 @@ SuperClaude transforms Claude Code into a powerful development platform with spe
 
 SuperClaude is a meta-prompt framework that enhances Claude Code with:
 
-- **130 Specialized Agents**: 16 core + 114 extended agents across 10 categories
-- **130 Claude Skills**: 114 agent personas + 13 command workflows + 3 utility skills
-- **13 Structured Commands**: analyze, implement, test, design, document, and more
+- **258 Specialized Agents**: 16 core + 242 extended agents across 10 categories
+- **134 Claude Skills**: 114 agent personas + 16 command workflows + 4 utility skills
+- **16 Structured Commands**: analyze, implement, test, design, document, and more
 - **6 Framework Modes**: normal, brainstorming, introspection, task_management, token_efficiency, orchestration
 - **MCP Integration**: PAL (11 tools), Rube (500+ apps via Composio), LinkUp (web search)
-- **Quality-Driven Loop**: 9-dimension scoring with 8 termination conditions
+- **Quality Gates**: KISS validator, Purity validator, and iterative quality loop
 - **Core Orchestration**: Python layer for loop management, PAL integration, and skill learning
 - **Signal-Based Architecture**: Structured communication between components
 
@@ -56,7 +57,7 @@ SuperClaude is a meta-prompt framework that enhances Claude Code with:
 
 ### Config-First Hybrid Architecture
 
-SuperClaude v6.0.0 is a **config-first hybrid framework**:
+SuperClaude v7.0.0 is a **config-first hybrid framework**:
 
 - **Markdown Agent Personas**: Each agent is a self-contained markdown file with YAML frontmatter
 - **YAML Configuration**: 6 configuration files for agents, commands, quality, models, MCP, and framework settings
@@ -78,24 +79,24 @@ SuperClaude v6.0.0 is a **config-first hybrid framework**:
 
 ### Specialized Agent System
 
-130 agents organized across 10 categories:
+258 agents organized across 10 categories:
 
 | Category | Count | Examples |
 |----------|-------|----------|
-| Core Development | 10 | API Designer, Backend Developer, Mobile Developer |
-| Language Specialists | 23 | Python Pro, TypeScript Pro, Rust Engineer, Go Pro |
-| Infrastructure | 12 | Cloud Architect, Kubernetes Specialist, SRE Engineer |
-| Quality & Security | 12 | Code Reviewer, Security Auditor, Chaos Engineer |
-| Data & AI | 12 | Data Scientist, ML Engineer, LLM Architect, Prompt Engineer |
-| Developer Experience | 10 | CLI Developer, DX Optimizer, Git Workflow Manager |
-| Specialized Domains | 11 | Blockchain Developer, IoT Engineer, Game Developer |
-| Business & Product | 10 | Product Manager, Scrum Master, UX Researcher |
-| Meta Orchestration | 8 | Agent Organizer, Context Manager, Workflow Orchestrator |
-| Research & Analysis | 6 | Data Researcher, Competitive Analyst, Trend Analyst |
+| Core Development | 21 | API Designer, Backend Developer, Mobile Developer |
+| Language Specialists | 48 | Python Pro, TypeScript Pro, Rust Engineer, Go Pro |
+| Infrastructure | 26 | Cloud Architect, Kubernetes Specialist, SRE Engineer |
+| Quality & Security | 27 | Code Reviewer, Security Auditor, Chaos Engineer |
+| Data & AI | 25 | Data Scientist, ML Engineer, LLM Architect, Prompt Engineer |
+| Developer Experience | 21 | CLI Developer, DX Optimizer, Git Workflow Manager |
+| Specialized Domains | 23 | Blockchain Developer, IoT Engineer, Game Developer |
+| Business & Product | 21 | Product Manager, Scrum Master, UX Researcher |
+| Meta Orchestration | 17 | Agent Organizer, Context Manager, Workflow Orchestrator |
+| Research & Analysis | 13 | Data Researcher, Competitive Analyst, Trend Analyst |
 
 ### Command System
 
-13 structured commands with consistent patterns:
+16 structured commands with consistent patterns:
 
 ```
 /sc:analyze    - Static analysis, security review, performance bottlenecks
@@ -111,6 +112,9 @@ SuperClaude v6.0.0 is a **config-first hybrid framework**:
 /sc:workflow   - Multi-step task orchestration
 /sc:estimate   - Effort estimation and planning
 /sc:cicd-setup - CI/CD workflow and pre-commit generation
+/sc:pr-fix     - PR fix workflow and issue resolution
+/sc:principles - KISS and Purity code validation
+/sc:tdd        - Test-Driven Development workflow
 ```
 
 ---
@@ -132,9 +136,9 @@ flowchart TB
     end
 
     subgraph Config["Configuration Layer"]
-        AGENTS[("agents/<br/>16 core + 114 extended")]
-        COMMANDS[("commands/<br/>13 templates")]
-        SKILLS[(".claude/skills/<br/>130 skills")]
+        AGENTS[("agents/<br/>16 core + 242 extended")]
+        COMMANDS[("commands/<br/>16 templates")]
+        SKILLS[(".claude/skills/<br/>134 skills")]
         YAML[("config/<br/>6 YAML files")]
     end
 
@@ -182,19 +186,19 @@ SuperClaude uses a layered file-based architecture:
 1. **CLAUDE.md** - Master system prompt loaded by Claude Code
 2. **agents/index.yaml** - Agent registry with triggers, categories, and selection weights
 3. **agents/core/*.md** - 16 core agent persona prompts
-4. **agents/extended/**/*.md** - 114 extended agent persona prompts across 10 categories
+4. **agents/extended/**/*.md** - 242 extended agent persona prompts across 10 categories
 5. **commands/index.yaml** - Command registry with flags and aliases
-6. **commands/*.md** - 13 command templates
+6. **commands/*.md** - 16 command templates
 7. **config/*.yaml** - 6 configuration files
 8. **core/*.py** - Python orchestration modules
 9. **mcp/*.md** - MCP integration guides
-10. **.claude/skills/** - 130 Claude Code skills
+10. **.claude/skills/** - 134 Claude Code skills
 
 ---
 
 ## Core Orchestration Layer
 
-SuperClaude v6.0.0 includes a Python orchestration layer in `core/` for advanced workflows:
+SuperClaude v7.0.0 includes a Python orchestration layer in `core/` for advanced workflows:
 
 ### Modules
 
@@ -388,22 +392,22 @@ High-priority generalists for common tasks:
 | requirements-analyst | requirements, spec, user story | Requirements analysis |
 | socratic-mentor | mentor, coach, why | Guided discovery learning |
 
-### Extended Agents (114)
+### Extended Agents (242)
 
 Specialized agents across 10 categories in `agents/extended/`:
 
 | Category | Directory | Count | Examples |
 |----------|-----------|-------|----------|
-| Core Development | `01-core-development/` | 10 | API Designer, GraphQL Architect, Mobile Developer |
-| Language Specialists | `02-language-specialists/` | 23 | Python Pro, TypeScript Pro, Rust Engineer, Go Pro |
-| Infrastructure | `03-infrastructure/` | 12 | Cloud Architect, Kubernetes Specialist, Terraform Engineer |
-| Quality & Security | `04-quality-security/` | 12 | Security Auditor, Penetration Tester, Chaos Engineer |
-| Data & AI | `05-data-ai/` | 12 | Data Scientist, ML Engineer, LLM Architect, NLP Engineer |
-| Developer Experience | `06-developer-experience/` | 10 | CLI Developer, DX Optimizer, MCP Developer |
-| Specialized Domains | `07-specialized-domains/` | 11 | Blockchain Developer, IoT Engineer, Game Developer |
-| Business & Product | `08-business-product/` | 10 | Product Manager, Scrum Master, Sales Engineer |
-| Meta Orchestration | `09-meta-orchestration/` | 8 | Agent Organizer, Task Distributor, Workflow Orchestrator |
-| Research & Analysis | `10-research-analysis/` | 6 | Data Researcher, Competitive Analyst, Market Researcher |
+| Core Development | `01-core-development/` | 21 | API Designer, GraphQL Architect, Mobile Developer |
+| Language Specialists | `02-language-specialists/` | 48 | Python Pro, TypeScript Pro, Rust Engineer, Go Pro |
+| Infrastructure | `03-infrastructure/` | 26 | Cloud Architect, Kubernetes Specialist, Terraform Engineer |
+| Quality & Security | `04-quality-security/` | 27 | Security Auditor, Penetration Tester, Chaos Engineer |
+| Data & AI | `05-data-ai/` | 25 | Data Scientist, ML Engineer, LLM Architect, NLP Engineer |
+| Developer Experience | `06-developer-experience/` | 21 | CLI Developer, DX Optimizer, MCP Developer |
+| Specialized Domains | `07-specialized-domains/` | 23 | Blockchain Developer, IoT Engineer, Game Developer |
+| Business & Product | `08-business-product/` | 21 | Product Manager, Scrum Master, Sales Engineer |
+| Meta Orchestration | `09-meta-orchestration/` | 17 | Agent Organizer, Task Distributor, Workflow Orchestrator |
+| Research & Analysis | `10-research-analysis/` | 13 | Data Researcher, Competitive Analyst, Market Researcher |
 
 ### Agent Selection Algorithm
 
@@ -418,7 +422,7 @@ flowchart TD
     TRIGGER -->|"No"| CATEGORY{"Category<br/>Match?"}
 
     CORE -->|"Yes"| USE_CORE["Load Core Agent<br/>(16 available)"]
-    CORE -->|"No"| USE_EXT["Load Extended Agent<br/>(114 available)"]
+    CORE -->|"No"| USE_EXT["Load Extended Agent<br/>(242 available)"]
 
     CATEGORY -->|"Yes (0.25)"| CAT_SELECT["Select from Category"]
     CATEGORY -->|"No"| DESC{"Description<br/>Match?"}
@@ -749,25 +753,25 @@ Web search capabilities for real-time information:
 
 ## Skills System
 
-SuperClaude includes 130 Claude Code skills in `.claude/skills/`:
+SuperClaude includes 134 Claude Code skills in `.claude/skills/`:
 
 ```mermaid
 flowchart TB
-    subgraph Skills[".claude/skills/ (130 total)"]
+    subgraph Skills[".claude/skills/ (134 total)"]
         subgraph Agent["Agent Skills (114)"]
-            A1["01-core-development<br/>(10 agents)"]
-            A2["02-language-specialists<br/>(23 agents)"]
-            A3["03-infrastructure<br/>(12 agents)"]
-            A4["04-quality-security<br/>(12 agents)"]
-            A5["05-data-ai<br/>(12 agents)"]
-            A6["06-developer-experience<br/>(10 agents)"]
-            A7["07-specialized-domains<br/>(11 agents)"]
-            A8["08-business-product<br/>(10 agents)"]
-            A9["09-meta-orchestration<br/>(8 agents)"]
-            A10["10-research-analysis<br/>(6 agents)"]
+            A1["01-core-development<br/>(21 agents)"]
+            A2["02-language-specialists<br/>(48 agents)"]
+            A3["03-infrastructure<br/>(26 agents)"]
+            A4["04-quality-security<br/>(27 agents)"]
+            A5["05-data-ai<br/>(25 agents)"]
+            A6["06-developer-experience<br/>(21 agents)"]
+            A7["07-specialized-domains<br/>(23 agents)"]
+            A8["08-business-product<br/>(21 agents)"]
+            A9["09-meta-orchestration<br/>(17 agents)"]
+            A10["10-research-analysis<br/>(13 agents)"]
         end
 
-        subgraph Command["Command Skills (13)"]
+        subgraph Command["Command Skills (16)"]
             C1["sc-analyze"]
             C2["sc-implement"]
             C3["sc-test"]
@@ -781,12 +785,16 @@ flowchart TB
             C11["sc-workflow"]
             C12["sc-estimate"]
             C13["sc-cicd-setup"]
+            C14["sc-pr-fix"]
+            C15["sc-principles"]
+            C16["sc-tdd"]
         end
 
-        subgraph Utility["Utility Skills (3)"]
+        subgraph Utility["Utility Skills (4)"]
             U1["ask<br/>(single-select)"]
             U2["ask-multi<br/>(multi-select)"]
             U3["learned<br/>(auto-learned)"]
+            U4["sc-status<br/>(workflow status)"]
         end
     end
 
@@ -812,8 +820,8 @@ flowchart TB
 | Type | Pattern | Count | Purpose |
 |------|---------|-------|---------|
 | Agent Skills | `agent-*` | 114 | Specialized personas for domains |
-| Command Skills | `sc-*` | 13 | Structured workflow implementations |
-| Utility Skills | `ask`, `ask-multi`, `learned` | 3 | User interaction and learning |
+| Command Skills | `sc-*` | 16 | Structured workflow implementations |
+| Utility Skills | `ask`, `ask-multi`, `learned`, etc. | 4 | User interaction and learning |
 
 ### Skill Architecture
 
@@ -942,6 +950,108 @@ flowchart LR
 
 ---
 
+## Quality Gates
+
+SuperClaude enforces code quality through automated validators integrated into the development workflow via the `/sc:principles` command.
+
+### KISS Validator
+
+Enforces code simplicity via AST analysis. Located at `.claude/skills/sc-principles/scripts/validate_kiss.py`.
+
+| Metric | Threshold | Severity | Description |
+|--------|-----------|----------|-------------|
+| Cyclomatic Complexity | > 10 | error | Number of independent paths through code |
+| Cyclomatic Complexity | > 7 | warning | Early warning for growing complexity |
+| Cognitive Complexity | > 15 | error | Weighted complexity (nested structures count more) |
+| Function Length | > 50 lines | error | Lines of code per function |
+| Nesting Depth | > 4 levels | error | If/for/while/with/try nesting |
+| Parameter Count | > 5 | warning | Function parameters |
+
+**Usage:**
+```bash
+python .claude/skills/sc-principles/scripts/validate_kiss.py --scope-root . --json
+```
+
+**Cognitive vs Cyclomatic Complexity:**
+- Cyclomatic counts decision points (branches)
+- Cognitive weights nested structures more heavily: `1 + nesting_depth` per control structure
+- Example: `if (if (if ...))` has low cyclomatic but high cognitive (hard to read)
+
+### Purity Validator
+
+Enforces "Functional Core, Imperative Shell" architectural pattern. Located at `.claude/skills/sc-principles/scripts/validate_purity.py`.
+
+| Layer | Path Patterns | I/O Allowed | Severity |
+|-------|---------------|-------------|----------|
+| Core (purity required) | `*/domain/*`, `*/logic/*`, `*/services/*`, `*/utils/*`, `*/core/*` | NO | error |
+| Shell (I/O allowed) | `*/handlers/*`, `*/adapters/*`, `*/api/*`, `*/cli/*`, `*/scripts/*`, `*/tests/*` | YES | warning |
+
+**Detected I/O Patterns:**
+
+| Category | Examples |
+|----------|----------|
+| File I/O | `open()`, `read()`, `write()`, `Path.read_text()` |
+| Network | `requests.get()`, `httpx`, `urllib`, `socket` |
+| Database | `execute()`, `query()`, `session.add()`, `cursor` |
+| Subprocess | `subprocess.run()`, `os.system()`, `Popen` |
+| Global State | `global`, `nonlocal` keywords |
+| Side Effects | `print()`, `logging.*`, `logger.*` |
+| Async I/O | `async def`, `await`, `async for`, `async with` |
+
+**Usage:**
+```bash
+python .claude/skills/sc-principles/scripts/validate_purity.py --scope-root . --json
+```
+
+### Pre-commit Integration
+
+Add to `.pre-commit-config.yaml`:
+
+```yaml
+repos:
+  - repo: local
+    hooks:
+      - id: kiss-check
+        name: KISS Validation
+        entry: python .claude/skills/sc-principles/scripts/validate_kiss.py --scope-root . --json
+        language: python
+        types: [python]
+        pass_filenames: false
+
+      - id: purity-check
+        name: Purity Validation
+        entry: python .claude/skills/sc-principles/scripts/validate_purity.py --scope-root . --json
+        language: python
+        types: [python]
+        pass_filenames: false
+```
+
+### Exit Codes
+
+| Code | Meaning | Action |
+|------|---------|--------|
+| 0 | Validation passed | Proceed |
+| 2 | Violations detected | Blocked - refactor required |
+| 3 | Validation error | Manual intervention needed |
+
+### Refactoring Guidance
+
+When violations are detected:
+
+**For Complexity Violations:**
+- **Extract Method** - Split large functions into smaller, named pieces
+- **Guard Clauses** - Replace nested if/else with early returns
+- **Strategy Pattern** - Replace complex switch/if-else with polymorphism
+- **Decompose Conditional** - Name complex conditions as explaining variables
+
+**For Purity Violations:**
+- **Dependency Injection** - Pass dependencies as arguments
+- **Repository Pattern** - Isolate database operations
+- **Adapter Pattern** - Wrap external APIs
+- **Return Don't Print** - Return values, let callers handle output
+
+---
+
 ## Type System
 
 Core types defined in `core/types.py`:
@@ -1035,7 +1145,7 @@ SuperClaude uses 6 YAML configuration files:
 Main framework configuration:
 
 ```yaml
-version: 6.0.0
+version: 7.0.0
 name: SuperClaude Framework
 
 modes:
@@ -1220,10 +1330,10 @@ SuperClaude/
 ├── pyproject.toml               # Python project config
 │
 ├── .claude/
-│   └── skills/                  # 130 Claude Code skills
+│   └── skills/                  # 134 Claude Code skills
 │       ├── agent-*/             # 114 agent persona skills
 │       │   └── SKILL.md
-│       ├── sc-*/                # 13 command skills
+│       ├── sc-*/                # 16 command skills
 │       │   ├── SKILL.md
 │       │   └── scripts/         # Optional tool implementations
 │       ├── ask/                 # Single-select questions
@@ -1231,13 +1341,13 @@ SuperClaude/
 │       └── learned/             # Auto-learned skills
 │
 ├── agents/
-│   ├── index.yaml               # Agent registry (630 lines)
+│   ├── index.yaml               # Agent registry
 │   ├── core/                    # 16 core agent prompts
 │   │   ├── general-purpose.md
 │   │   ├── root-cause-analyst.md
 │   │   ├── refactoring-expert.md
 │   │   └── ...
-│   └── extended/                # 114 extended agents
+│   └── extended/                # 242 extended agents
 │       ├── 01-core-development/
 │       ├── 02-language-specialists/
 │       ├── 03-infrastructure/
@@ -1255,7 +1365,7 @@ SuperClaude/
 │   ├── analyze.md
 │   ├── implement.md
 │   ├── test.md
-│   └── ...                      # 13 command templates
+│   └── ...                      # 16 command templates
 │
 ├── config/
 │   ├── superclaud.yaml          # Main framework config (281 lines)
@@ -1433,7 +1543,7 @@ MIT License - see [LICENSE](LICENSE) for details.
 ---
 
 <p align="center">
-  <strong>SuperClaude v6.0.0</strong><br>
+  <strong>SuperClaude v7.0.0</strong><br>
   Config-First Meta-Framework for Claude Code<br>
-  <em>130 Agents | 130 Skills | 13 Commands | 6 Modes | Quality-Driven Loops</em>
+  <em>258 Agents | 134 Skills | 16 Commands | 6 Modes | Quality-Driven Loops</em>
 </p>
