@@ -21,6 +21,7 @@ from calculator import Calculator
 # Fixtures
 # =============================================================================
 
+
 @pytest.fixture
 def calc():
     """Provide a Calculator instance for each test."""
@@ -30,6 +31,7 @@ def calc():
 # =============================================================================
 # Test Class: Addition
 # =============================================================================
+
 
 class TestAdd:
     """Unit tests for Calculator.add() method."""
@@ -92,6 +94,7 @@ class TestAdd:
 # Test Class: Subtraction
 # =============================================================================
 
+
 class TestSubtract:
     """Unit tests for Calculator.subtract() method."""
 
@@ -142,6 +145,7 @@ class TestSubtract:
 # =============================================================================
 # Test Class: Multiplication
 # =============================================================================
+
 
 class TestMultiply:
     """Unit tests for Calculator.multiply() method."""
@@ -202,6 +206,7 @@ class TestMultiply:
 # =============================================================================
 # Test Class: Division
 # =============================================================================
+
 
 class TestDivide:
     """Unit tests for Calculator.divide() method."""
@@ -286,54 +291,67 @@ class TestDivide:
 # Parametrized Tests for Comprehensive Coverage
 # =============================================================================
 
+
 class TestParametrized:
     """Parametrized tests for batch testing multiple inputs."""
 
-    @pytest.mark.parametrize("a,b,expected", [
-        (1, 1, 2),
-        (0, 0, 0),
-        (-1, 1, 0),
-        (100, 200, 300),
-        (1.5, 2.5, 4.0),
-        (-1.5, -2.5, -4.0),
-        (10**10, 10**10, 2 * 10**10),
-    ])
+    @pytest.mark.parametrize(
+        "a,b,expected",
+        [
+            (1, 1, 2),
+            (0, 0, 0),
+            (-1, 1, 0),
+            (100, 200, 300),
+            (1.5, 2.5, 4.0),
+            (-1.5, -2.5, -4.0),
+            (10**10, 10**10, 2 * 10**10),
+        ],
+    )
     def test_add_parametrized(self, calc, a, b, expected):
         """Parametrized addition tests."""
         assert calc.add(a, b) == expected
 
-    @pytest.mark.parametrize("a,b,expected", [
-        (5, 3, 2),
-        (3, 5, -2),
-        (0, 0, 0),
-        (-5, -3, -2),
-        (100, 50, 50),
-        (1.5, 0.5, 1.0),
-    ])
+    @pytest.mark.parametrize(
+        "a,b,expected",
+        [
+            (5, 3, 2),
+            (3, 5, -2),
+            (0, 0, 0),
+            (-5, -3, -2),
+            (100, 50, 50),
+            (1.5, 0.5, 1.0),
+        ],
+    )
     def test_subtract_parametrized(self, calc, a, b, expected):
         """Parametrized subtraction tests."""
         assert calc.subtract(a, b) == expected
 
-    @pytest.mark.parametrize("a,b,expected", [
-        (2, 3, 6),
-        (0, 100, 0),
-        (-2, 3, -6),
-        (-2, -3, 6),
-        (1.5, 2, 3.0),
-        (10, 10, 100),
-    ])
+    @pytest.mark.parametrize(
+        "a,b,expected",
+        [
+            (2, 3, 6),
+            (0, 100, 0),
+            (-2, 3, -6),
+            (-2, -3, 6),
+            (1.5, 2, 3.0),
+            (10, 10, 100),
+        ],
+    )
     def test_multiply_parametrized(self, calc, a, b, expected):
         """Parametrized multiplication tests."""
         assert calc.multiply(a, b) == expected
 
-    @pytest.mark.parametrize("a,b,expected", [
-        (10, 2, 5.0),
-        (7, 2, 3.5),
-        (0, 5, 0.0),
-        (-10, 2, -5.0),
-        (-10, -2, 5.0),
-        (1, 3, 1/3),
-    ])
+    @pytest.mark.parametrize(
+        "a,b,expected",
+        [
+            (10, 2, 5.0),
+            (7, 2, 3.5),
+            (0, 5, 0.0),
+            (-10, 2, -5.0),
+            (-10, -2, 5.0),
+            (1, 3, 1 / 3),
+        ],
+    )
     def test_divide_parametrized(self, calc, a, b, expected):
         """Parametrized division tests."""
         assert math.isclose(calc.divide(a, b), expected, rel_tol=1e-9)
@@ -343,26 +361,27 @@ class TestParametrized:
 # Special Value Tests
 # =============================================================================
 
+
 class TestSpecialValues:
     """Tests for special floating point values."""
 
     def test_add_infinity(self, calc):
         """Test addition with infinity."""
-        assert calc.add(float('inf'), 1) == float('inf')
-        assert calc.add(float('-inf'), 1) == float('-inf')
+        assert calc.add(float("inf"), 1) == float("inf")
+        assert calc.add(float("-inf"), 1) == float("-inf")
 
     def test_multiply_infinity(self, calc):
         """Test multiplication with infinity."""
-        assert calc.multiply(float('inf'), 2) == float('inf')
-        assert calc.multiply(float('inf'), -1) == float('-inf')
+        assert calc.multiply(float("inf"), 2) == float("inf")
+        assert calc.multiply(float("inf"), -1) == float("-inf")
 
     def test_divide_by_infinity(self, calc):
         """Test division by infinity."""
-        assert calc.divide(1, float('inf')) == 0.0
+        assert calc.divide(1, float("inf")) == 0.0
 
     def test_operations_with_nan(self, calc):
         """Test that NaN propagates through operations."""
-        nan = float('nan')
+        nan = float("nan")
         assert math.isnan(calc.add(nan, 1))
         assert math.isnan(calc.subtract(nan, 1))
         assert math.isnan(calc.multiply(nan, 1))
@@ -372,6 +391,7 @@ class TestSpecialValues:
 # =============================================================================
 # Property Tests (Mathematical Properties)
 # =============================================================================
+
 
 class TestMathematicalProperties:
     """Tests verifying mathematical properties hold."""
@@ -420,6 +440,7 @@ class TestMathematicalProperties:
 # =============================================================================
 # Type Return Tests
 # =============================================================================
+
 
 class TestReturnTypes:
     """Tests verifying correct return types."""

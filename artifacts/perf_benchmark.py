@@ -10,15 +10,17 @@ from collections import Counter
 def find_duplicates_original(lst):
     duplicates = []
     for i in range(len(lst)):
-        for j in range(i+1, len(lst)):
+        for j in range(i + 1, len(lst)):
             if lst[i] == lst[j] and lst[i] not in duplicates:
                 duplicates.append(lst[i])
     return duplicates
+
 
 # Optimized O(n) using Counter
 def find_duplicates_counter(lst):
     counts = Counter(lst)
     return [item for item, count in counts.items() if count > 1]
+
 
 # Optimized O(n) using sets
 def find_duplicates_set(lst):
@@ -30,6 +32,7 @@ def find_duplicates_set(lst):
         else:
             seen.add(item)
     return list(duplicates)
+
 
 # O(n log n) sorting approach
 def find_duplicates_sorted(lst):
@@ -100,7 +103,9 @@ def main():
             try:
                 avg_time, dup_count = benchmark(find_duplicates_original, data, runs=1)
                 results["Original"] = avg_time
-                print(f"  Original (O(n²×k)):  {avg_time*1000:>10.3f} ms  ({dup_count} duplicates)")
+                print(
+                    f"  Original (O(n²×k)):  {avg_time * 1000:>10.3f} ms  ({dup_count} duplicates)"
+                )
             except Exception as e:
                 print(f"  Original: Error - {e}")
         else:
@@ -114,7 +119,7 @@ def main():
         ]:
             avg_time, dup_count = benchmark(func, data, runs=3)
             results[name] = avg_time
-            print(f"  {name} ({complexity}):  {avg_time*1000:>10.3f} ms")
+            print(f"  {name} ({complexity}):  {avg_time * 1000:>10.3f} ms")
 
         # Show speedup
         if "Original" in results and results["Original"] > 0:
@@ -137,7 +142,7 @@ def main():
             ("Sorted", find_duplicates_sorted),
         ]:
             avg_time, dup_count = benchmark(func, data, runs=3)
-            print(f"    {name}: {avg_time*1000:>10.3f} ms")
+            print(f"    {name}: {avg_time * 1000:>10.3f} ms")
 
     print("\n" + "=" * 70)
     print("CONCLUSION: Use Counter or Set-based approach for O(n) performance")

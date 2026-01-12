@@ -60,10 +60,14 @@ IMPORTANT: After completing your work, provide a brief text summary of what you 
 
     cmd = [
         "claude",
-        "-p", full_prompt,
-        "--allowedTools", "Bash,Read,Write,Edit",
-        "--output-format", "text",  # Use text format to get actual response
-        "--max-turns", "15",  # Increased from 10 to allow more complex tasks
+        "-p",
+        full_prompt,
+        "--allowedTools",
+        "Bash,Read,Write,Edit",
+        "--output-format",
+        "text",  # Use text format to get actual response
+        "--max-turns",
+        "15",  # Increased from 10 to allow more complex tasks
     ]
 
     try:
@@ -93,7 +97,10 @@ IMPORTANT: After completing your work, provide a brief text summary of what you 
     except subprocess.TimeoutExpired:
         return "TIMEOUT", False
     except FileNotFoundError:
-        return "ERROR: Claude CLI not found. Install with: npm install -g @anthropic-ai/claude-code", False
+        return (
+            "ERROR: Claude CLI not found. Install with: npm install -g @anthropic-ai/claude-code",
+            False,
+        )
     except Exception as e:
         return f"ERROR: {e}", False
 
@@ -101,6 +108,7 @@ IMPORTANT: After completing your work, provide a brief text summary of what you 
 def find_recent_files(base_dir: Path, extensions: list[str], minutes: int = 5) -> list[Path]:
     """Find files created in the last N minutes."""
     import time
+
     cutoff = time.time() - (minutes * 60)
     recent = []
 
@@ -108,7 +116,7 @@ def find_recent_files(base_dir: Path, extensions: list[str], minutes: int = 5) -
         for f in base_dir.rglob(f"*{ext}"):
             if f.is_file() and f.stat().st_mtime > cutoff:
                 # Skip common non-output directories
-                if any(skip in str(f) for skip in ['node_modules', '__pycache__', '.git', 'venv']):
+                if any(skip in str(f) for skip in ["node_modules", "__pycache__", ".git", "venv"]):
                     continue
                 recent.append(f)
 
@@ -139,7 +147,9 @@ def validate_response(
     # Fallback: Check for recently created files (evidence of work)
     if base_dir and "max turns" in response_lower:
         # Look for code files created during the test
-        recent_files = find_recent_files(base_dir, ['.py', '.ts', '.tsx', '.js', '.jsx', '.yml', '.yaml'], minutes=5)
+        recent_files = find_recent_files(
+            base_dir, [".py", ".ts", ".tsx", ".js", ".jsx", ".yml", ".yaml"], minutes=5
+        )
 
         if recent_files:
             # Read recent files and check for keywords
@@ -151,7 +161,7 @@ def validate_response(
                 except Exception:
                     pass
 
-            combined = ' '.join(file_contents).lower()
+            combined = " ".join(file_contents).lower()
             file_matched = []
             for keyword in keywords:
                 if keyword.lower() in combined:
@@ -192,7 +202,7 @@ def run_single_test(
     test_type = agent_config.get("type", "standard")
     threshold = agent_config.get("threshold", 0.8)
 
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print(f"Running: {agent_name} (run {run_number})")
     print(f"Agent file: {agent_file}")
     print(f"Keywords: {keywords}")
@@ -320,7 +330,7 @@ def main() -> int:
             f.unlink()
 
     print("Stochastic Agent Evaluation")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
     print(f"Agents: {len(agents)}")
     print(f"Runs per agent: {args.runs}")
     print(f"Total evaluations: {len(agents) * args.runs}")
@@ -343,9 +353,9 @@ def main() -> int:
             all_results.append(result)
 
     # Compute pass rates
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print("Computing Pass Rates...")
-    print(f"{'='*60}\n")
+    print(f"{'=' * 60}\n")
 
     compute_script = base_dir / "scripts" / "compute_pass_rates.py"
     if compute_script.exists():
@@ -353,15 +363,19 @@ def main() -> int:
             [
                 sys.executable,
                 str(compute_script),
-                "--input", str(output_dir),
-                "--threshold", str(args.threshold),
-                "--format", "console",
+                "--input",
+                str(output_dir),
+                "--threshold",
+                str(args.threshold),
+                "--format",
+                "console",
             ],
             cwd=str(base_dir),
         )
     else:
         # Fallback: simple summary
         from collections import defaultdict
+
         agent_results = defaultdict(list)
         for r in all_results:
             agent_results[r["agent"]].append(r)

@@ -16,6 +16,7 @@ from typing import Any, List
 # ORIGINAL IMPLEMENTATION - O(n³) worst case
 # ============================================================================
 
+
 def find_duplicates_original(lst: List[Any]) -> List[Any]:
     """
     Original implementation with nested loops.
@@ -37,6 +38,7 @@ def find_duplicates_original(lst: List[Any]) -> List[Any]:
 # OPTIMIZED IMPLEMENTATION #1 - O(n) using set + Counter
 # ============================================================================
 
+
 def find_duplicates_counter(lst: List[Any]) -> List[Any]:
     """
     Optimized using Counter from collections.
@@ -53,6 +55,7 @@ def find_duplicates_counter(lst: List[Any]) -> List[Any]:
 # ============================================================================
 # OPTIMIZED IMPLEMENTATION #2 - O(n) using two sets (memory efficient)
 # ============================================================================
+
 
 def find_duplicates_two_sets(lst: List[Any]) -> List[Any]:
     """
@@ -79,6 +82,7 @@ def find_duplicates_two_sets(lst: List[Any]) -> List[Any]:
 # OPTIMIZED IMPLEMENTATION #3 - O(n) preserving order
 # ============================================================================
 
+
 def find_duplicates_ordered(lst: List[Any]) -> List[Any]:
     """
     Optimized version that preserves the order of first duplicate occurrence.
@@ -103,6 +107,7 @@ def find_duplicates_ordered(lst: List[Any]) -> List[Any]:
 # OPTIMIZED IMPLEMENTATION #4 - Using set intersection (elegant)
 # ============================================================================
 
+
 def find_duplicates_set_trick(lst: List[Any]) -> List[Any]:
     """
     Elegant one-liner using set comprehension.
@@ -113,9 +118,11 @@ def find_duplicates_set_trick(lst: List[Any]) -> List[Any]:
     seen = set()
     # Item is duplicate if seen.add() returns None (item was already there)
     # set.add() returns None always, so we use the walrus operator
-    return list({x for x in lst if x in seen or seen.add(x) is None and False}
-                if False else
-                {x for x in lst if x in seen or not seen.add(x)} - seen.union(set()))
+    return list(
+        {x for x in lst if x in seen or seen.add(x) is None and False}
+        if False
+        else {x for x in lst if x in seen or not seen.add(x)} - seen.union(set())
+    )
 
 
 # Cleaner version of the set trick:
@@ -128,6 +135,7 @@ def find_duplicates_clean(lst: List[Any]) -> List[Any]:
 # ============================================================================
 # BENCHMARKING SUITE
 # ============================================================================
+
 
 def benchmark(func, data: List[Any], name: str, iterations: int = 3) -> float:
     """Run benchmark and return average time in milliseconds."""
@@ -243,7 +251,7 @@ def demonstrate_complexity():
             ratio_orig = f"{t_original / prev_original:.2f}x" if prev_original else "-"
             prev_original = t_original
         else:
-            t_original = float('inf')
+            t_original = float("inf")
             ratio_orig = "SKIP"
 
         # Benchmark optimized
@@ -252,10 +260,12 @@ def demonstrate_complexity():
         prev_optimized = t_optimized
 
         # Calculate speedup
-        speedup = f"{t_original / t_optimized:.0f}x" if t_original != float('inf') else ">>100x"
+        speedup = f"{t_original / t_optimized:.0f}x" if t_original != float("inf") else ">>100x"
 
-        orig_str = f"{t_original:.3f} ms" if t_original != float('inf') else "SKIP"
-        print(f"{size:<10}{orig_str:<15}{ratio_orig:<10}{t_optimized:.3f} ms      {ratio_opt:<10}{speedup:<10}")
+        orig_str = f"{t_original:.3f} ms" if t_original != float("inf") else "SKIP"
+        print(
+            f"{size:<10}{orig_str:<15}{ratio_orig:<10}{t_optimized:.3f} ms      {ratio_opt:<10}{speedup:<10}"
+        )
 
     print("\nExpected ratios when doubling input:")
     print("  - O(n³): ~8x (2³ = 8)")

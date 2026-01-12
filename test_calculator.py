@@ -361,13 +361,7 @@ class TestCalculatorIntegration:
     def test_chained_operations(self, calc):
         """Test chained operations."""
         # 100 - 50 + 25 - 10 = 65
-        result = calc.add(
-            calc.subtract(
-                calc.add(calc.subtract(100, 50), 25),
-                10
-            ),
-            0
-        )
+        result = calc.add(calc.subtract(calc.add(calc.subtract(100, 50), 25), 10), 0)
         assert result == 65
 
     def test_inverse_operations(self, calc):
@@ -376,11 +370,7 @@ class TestCalculatorIntegration:
         # add then subtract
         assert calc.subtract(calc.add(original, 10), 10) == original
         # multiply then divide
-        assert math.isclose(
-            calc.divide(calc.multiply(original, 5), 5),
-            original,
-            rel_tol=1e-9
-        )
+        assert math.isclose(calc.divide(calc.multiply(original, 5), 5), original, rel_tol=1e-9)
 
 
 class TestParameterizedOperations:
@@ -390,50 +380,62 @@ class TestParameterizedOperations:
     def calc(self):
         return Calculator()
 
-    @pytest.mark.parametrize("a,b,expected", [
-        (1, 1, 2),
-        (0, 0, 0),
-        (-1, -1, -2),
-        (1.5, 2.5, 4.0),
-        (100, -100, 0),
-        (10**10, 10**10, 2 * 10**10),
-    ])
+    @pytest.mark.parametrize(
+        "a,b,expected",
+        [
+            (1, 1, 2),
+            (0, 0, 0),
+            (-1, -1, -2),
+            (1.5, 2.5, 4.0),
+            (100, -100, 0),
+            (10**10, 10**10, 2 * 10**10),
+        ],
+    )
     def test_add_parametrized(self, calc, a, b, expected):
         """Parametrized addition tests."""
         result = calc.add(a, b)
         assert math.isclose(result, expected, rel_tol=1e-9)
 
-    @pytest.mark.parametrize("a,b,expected", [
-        (5, 3, 2),
-        (0, 0, 0),
-        (-5, -3, -2),
-        (3, 5, -2),
-        (1.5, 0.5, 1.0),
-    ])
+    @pytest.mark.parametrize(
+        "a,b,expected",
+        [
+            (5, 3, 2),
+            (0, 0, 0),
+            (-5, -3, -2),
+            (3, 5, -2),
+            (1.5, 0.5, 1.0),
+        ],
+    )
     def test_subtract_parametrized(self, calc, a, b, expected):
         """Parametrized subtraction tests."""
         result = calc.subtract(a, b)
         assert math.isclose(result, expected, rel_tol=1e-9)
 
-    @pytest.mark.parametrize("a,b,expected", [
-        (2, 3, 6),
-        (0, 100, 0),
-        (-2, 3, -6),
-        (-2, -3, 6),
-        (1.5, 2, 3.0),
-    ])
+    @pytest.mark.parametrize(
+        "a,b,expected",
+        [
+            (2, 3, 6),
+            (0, 100, 0),
+            (-2, 3, -6),
+            (-2, -3, 6),
+            (1.5, 2, 3.0),
+        ],
+    )
     def test_multiply_parametrized(self, calc, a, b, expected):
         """Parametrized multiplication tests."""
         result = calc.multiply(a, b)
         assert math.isclose(result, expected, rel_tol=1e-9)
 
-    @pytest.mark.parametrize("a,b,expected", [
-        (6, 3, 2.0),
-        (0, 5, 0.0),
-        (-6, 3, -2.0),
-        (-6, -3, 2.0),
-        (7, 2, 3.5),
-    ])
+    @pytest.mark.parametrize(
+        "a,b,expected",
+        [
+            (6, 3, 2.0),
+            (0, 5, 0.0),
+            (-6, 3, -2.0),
+            (-6, -3, 2.0),
+            (7, 2, 3.5),
+        ],
+    )
     def test_divide_parametrized(self, calc, a, b, expected):
         """Parametrized division tests."""
         result = calc.divide(a, b)
@@ -449,27 +451,27 @@ class TestSpecialFloatValues:
 
     def test_infinity_addition(self, calc):
         """Adding infinity."""
-        inf = float('inf')
+        inf = float("inf")
         assert calc.add(inf, 1) == inf
         assert calc.add(inf, inf) == inf
 
     def test_infinity_multiplication(self, calc):
         """Multiplying with infinity."""
-        inf = float('inf')
+        inf = float("inf")
         assert calc.multiply(inf, 2) == inf
         assert calc.multiply(inf, -1) == -inf
 
     def test_infinity_division(self, calc):
         """Dividing with infinity."""
-        inf = float('inf')
+        inf = float("inf")
         assert calc.divide(inf, 2) == inf
         assert calc.divide(1, inf) == 0.0
 
     def test_negative_infinity(self, calc):
         """Operations with negative infinity."""
-        neg_inf = float('-inf')
+        neg_inf = float("-inf")
         assert calc.add(neg_inf, 1) == neg_inf
-        assert calc.multiply(neg_inf, -1) == float('inf')
+        assert calc.multiply(neg_inf, -1) == float("inf")
 
 
 if __name__ == "__main__":

@@ -602,7 +602,7 @@ class SecurityValidator:
             Path("/usr/bin"),
             Path("/usr/sbin"),
             Path("/var"),
-            Path("/tmp"),
+            Path("/tmp"),  # nosec B108
             Path("/dev"),
             Path("/proc"),
             Path("/sys"),
@@ -759,7 +759,7 @@ class SecurityValidator:
                 r"^/usr/bin/": "/usr/bin (user binaries)",
                 r"^/usr/sbin/": "/usr/sbin (user system binaries)",
                 r"^/var/": "/var (variable data)",
-                r"^/tmp/": "/tmp (temporary files)",
+                r"^/tmp/": "/tmp (temporary files)",  # nosec B108
                 r"^/proc/": "/proc (process information)",
                 r"^/sys/": "/sys (system information)",
             }
