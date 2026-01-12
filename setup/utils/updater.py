@@ -99,7 +99,7 @@ class UpdateChecker:
             )
 
             # Set timeout for the request
-            with urllib.request.urlopen(req, timeout=self.TIMEOUT) as response:
+            with urllib.request.urlopen(req, timeout=self.TIMEOUT) as response:  # nosec B310
                 data = json.loads(response.read().decode())
                 latest = data.get("info", {}).get("version")
 

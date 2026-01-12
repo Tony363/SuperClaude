@@ -1,0 +1,9 @@
+{
+  "agent": "python-expert",
+  "run": 1,
+  "passed": true,
+  "reason": "Max turns reached but found work in files: def, fibonacci, int, ->",
+  "response_length": 29,
+  "test_type": "standard",
+  "threshold": 0.8
+}

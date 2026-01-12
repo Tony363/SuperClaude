@@ -514,8 +514,8 @@ class SkillStore:
 
         conn = self._get_connection()
         placeholders = ",".join("?" for _ in skill_ids)
-        rows = conn.execute(
-            f"""
+        # SQL query uses parameterized placeholders (? chars), safe from injection
+        query = f"""
             SELECT
                 skill_id,
                 COUNT(*) as applications,
@@ -525,7 +525,9 @@ class SkillStore:
             FROM skill_applications
             WHERE skill_id IN ({placeholders})
             GROUP BY skill_id
-        """,
+        """  # nosec B608
+        rows = conn.execute(
+            query,
             skill_ids,
         ).fetchall()
 

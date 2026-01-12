@@ -1,0 +1,209 @@
+I've adopted the **Technical Writer** persona. Now I'll create comprehensive documentation for the `retry_with_backoff` function, following the structured approach and templates from my expertise.
+
+## retry_with_backoff
+
+### Description
+
+Executes a callable with automatic retry logic using exponential backoff. When the function raises an exception, the decorator waits progressively longer between retries (1s, 2s, 4s by default), reducing load on failing services and increasing the probability of recovery.
+
+This pattern is essential for handling transient failures in distributed systems, network operations, and external API calls.
+
+### Parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `func` | `Callable[[], T]` | *required* | A zero-argument callable to execute. Use `functools.partial` or a lambda to wrap functions with arguments. |
+| `max_retries` | `int` | `3` | Maximum number of execution attempts. The function will be called at most this many times. |
+| `base_delay` | `float` | `1.0` | Initial delay in seconds before the first retry. Subsequent delays are calculated as `base_delay * (2 ** attempt)`. |
+
+### Returns
+
+Returns the result of `func()` upon successful execution. The return type matches whatever `func` returns.
+
+### Exceptions
+
+- Raises the **last exception** encountered if all retry attempts are exhausted.
+- Any exception type raised by `func` will propagate after final failure.
+
+### Backoff Schedule
+
+With default parameters (`max_retries=3`, `base_delay=1.0`):
+
+| Attempt | Delay Before Retry |
+|---------|-------------------|
+| 1 | — (immediate) |
+| 2 | 1.0 seconds |
+| 3 | 2.0 seconds |
+| *failure* | Exception raised |
+
+Total maximum wait time: **3.0 seconds** (excluding execution time).
+
+### Usage Examples
+
+#### Basic Usage
+
+```python
+import time
+
+def retry_with_backoff(func, max_retries=3, base_delay=1.0):
+    for attempt in range(max_retries):
+        try:
+            return func()
+        except Exception as e:
+            if attempt == max_retries - 1:
+                raise
+            time.sleep(base_delay * (2 ** attempt))
+
+# Simple function retry
+def fetch_data():
+    response = requests.get("https://api.example.com/data")
+    response.raise_for_status()
+    return response.json()
+
+data = retry_with_backoff(fetch_data)
+```
+
+#### With Arguments Using Lambda
+
+```python
+def send_message(recipient, body):
+    # Potentially failing network operation
+    return api.send(to=recipient, message=body)
+
+# Wrap with lambda to pass arguments
+result = retry_with_backoff(
+    lambda: send_message("user@example.com", "Hello!"),
+    max_retries=5,
+    base_delay=0.5
+)
+```
+
+#### With functools.partial
+
+```python
+from functools import partial
+
+def upload_file(path, bucket):
+    return s3_client.upload(path, bucket)
+
+upload_fn = partial(upload_file, "/tmp/data.csv", "my-bucket")
+retry_with_backoff(upload_fn, max_retries=4, base_delay=2.0)
+```
+
+#### Database Connection
+
+```python
+def connect_to_database():
+    return psycopg2.connect(
+        host="db.example.com",
+        database="myapp"
+    )
+
+# Retry with longer delays for database recovery
+connection = retry_with_backoff(
+    connect_to_database,
+    max_retries=5,
+    base_delay=2.0  # Waits: 2s, 4s, 8s, 16s
+)
+```
+
+### Edge Cases
+
+| Scenario | Behavior |
+|----------|----------|
+| `max_retries=1` | Single attempt, no retries, immediate failure propagation |
+| `max_retries=0` | Raises `ValueError` (should add validation) |
+| `func` succeeds on first try | Returns immediately, no delay |
+| `func` always fails | Raises exception after `max_retries` attempts |
+| `base_delay=0` | No delay between retries (not recommended) |
+
+### Performance Notes
+
+- **Time complexity**: O(n) where n = `max_retries`
+- **Maximum blocking time**: `base_delay * (2^(max_retries-1) - 1)` seconds
+- **Thread safety**: Safe for concurrent use; each call maintains independent state
+- **Memory**: Constant space O(1)
+
+### Related Functions
+
+| Function | Use Case |
+|----------|----------|
+| `tenacity.retry` | Production-grade retry with jitter, circuit breakers |
+| `backoff.on_exception` | Decorator-based retry with comprehensive strategies |
+| `urllib3.util.retry.Retry` | HTTP-specific retry configuration |
+
+### Limitations
+
+1. **No jitter**: Identical retry timing can cause thundering herd problems
+2. **Catches all exceptions**: May retry non-transient errors unnecessarily
+3. **No logging**: Failures are silent until final exception
+4. **Blocking**: Synchronous sleep blocks the calling thread
+
+### Improved Version
+
+```python
+import time
+import logging
+import random
+
+def retry_with_backoff(
+    func,
+    max_retries=3,
+    base_delay=1.0,
+    max_delay=60.0,
+    jitter=True,
+    exceptions=(Exception,)
+):
+    """
+    Execute func with exponential backoff retry logic.
+    
+    Args:
+        func: Zero-argument callable to execute
+        max_retries: Maximum attempts (default: 3)
+        base_delay: Initial delay in seconds (default: 1.0)
+        max_delay: Maximum delay cap (default: 60.0)
+        jitter: Add randomness to prevent thundering herd (default: True)
+        exceptions: Tuple of exception types to retry (default: all)
+    
+    Returns:
+        Result of func() on success
+    
+    Raises:
+        Last exception if all retries exhausted
+    """
+    for attempt in range(max_retries):
+        try:
+            return func()
+        except exceptions as e:
+            if attempt == max_retries - 1:
+                raise
+            
+            delay = min(base_delay * (2 ** attempt), max_delay)
+            if jitter:
+                delay *= (0.5 + random.random())
+            
+            logging.warning(
+                f"Attempt {attempt + 1}/{max_retries} failed: {e}. "
+                f"Retrying in {delay:.2f}s"
+            )
+            time.sleep(delay)
+```
+
+---
+
+## Summary
+
+I created comprehensive documentation for the `retry_with_backoff` function following technical writing best practices:
+
+**Documentation includes:**
+- Clear description of the exponential backoff pattern
+- Parameter table with types, defaults, and descriptions
+- Backoff schedule visualization
+- Multiple usage examples (basic, lambda, partial, database)
+- Edge cases table
+- Performance characteristics
+- Related functions for further exploration
+- Known limitations
+- An improved version addressing the limitations (jitter, selective exception handling, logging, max delay cap)
+
+The documentation targets intermediate developers who understand retry patterns but need implementation guidance.

@@ -1,0 +1,9 @@
+{
+  "agent": "learning-guide",
+  "run": 1,
+  "passed": true,
+  "reason": "Matched keywords: inject, dependency, class, def, example",
+  "response_length": 7019,
+  "test_type": "standard",
+  "threshold": 0.8
+}

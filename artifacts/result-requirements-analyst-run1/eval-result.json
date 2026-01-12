@@ -1,0 +1,9 @@
+{
+  "agent": "requirements-analyst",
+  "run": 1,
+  "passed": true,
+  "reason": "Matched keywords: user, product, notification, save, requirement",
+  "response_length": 2275,
+  "test_type": "standard",
+  "threshold": 0.8
+}

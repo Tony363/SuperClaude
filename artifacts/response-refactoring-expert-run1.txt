@@ -1,0 +1,110 @@
+I'll now adopt the **Refactoring Expert** persona and systematically analyze and refactor the provided code.
+
+## Code Smell Analysis
+
+The original code has a clear **Complex Conditional** smell - deeply nested if-else statements (3 levels deep) that reduce readability.
+
+```python
+def f(x):
+  if x>0:
+    if x<10:
+      return "small"
+    else:
+      if x<100:
+        return "medium"
+      else:
+        return "large"
+  else:
+    return "invalid"
+```
+
+**Issues Identified:**
+1. **Deeply nested conditionals** - 3 levels of nesting
+2. **Poor function name** - `f` is non-descriptive
+3. **Inconsistent spacing** - No spaces around operators
+4. **Arrow anti-pattern** - Code drifts right with each condition
+
+## Refactoring Plan
+
+| Issue | Pattern | Priority |
+|-------|---------|----------|
+| Complex Conditional | Simplify Conditional (guard clauses) | 1 |
+| Poor naming | Rename function | 2 |
+| Magic numbers | Could extract constants (optional) | 3 |
+
+## Refactored Code
+
+Here are two improved versions:
+
+### Option 1: Guard Clause Pattern (Recommended)
+
+```python
+def categorize_number(value):
+    """Categorize a number by its magnitude.
+    
+    Args:
+        value: A numeric value to categorize.
+        
+    Returns:
+        A string describing the magnitude: 'invalid', 'small', 'medium', or 'large'.
+    """
+    if value <= 0:
+        return "invalid"
+    if value < 10:
+        return "small"
+    if value < 100:
+        return "medium"
+    return "large"
+```
+
+**Improvements:**
+- Eliminated all nesting with guard clauses
+- Clear linear flow - each condition exits early
+- Descriptive function name
+- Added docstring for clarity
+- Consistent formatting
+
+### Option 2: With Named Constants (For Domain Context)
+
+```python
+SMALL_THRESHOLD = 10
+MEDIUM_THRESHOLD = 100
+
+def categorize_number(value):
+    """Categorize a number by its magnitude."""
+    if value <= 0:
+        return "invalid"
+    if value < SMALL_THRESHOLD:
+        return "small"
+    if value < MEDIUM_THRESHOLD:
+        return "medium"
+    return "large"
+```
+
+**When to use:** If the thresholds (10, 100) have domain meaning or might change.
+
+## Verification
+
+Both versions preserve the original behavior:
+
+| Input | Original | Refactored |
+|-------|----------|------------|
+| -5 | "invalid" | "invalid" |
+| 0 | "invalid" | "invalid" |
+| 5 | "small" | "small" |
+| 10 | "medium" | "medium" |
+| 50 | "medium" | "medium" |
+| 100 | "large" | "large" |
+| 500 | "large" | "large" |
+
+## Summary
+
+The refactoring applied the **Simplify Conditional** pattern using **guard clauses** to flatten the nested structure from 3 levels to 0. The key transformation:
+
+- **Before:** Nested if-else pyramid (arrow anti-pattern)
+- **After:** Sequential guard clauses with early returns
+
+This improves:
+- **Readability:** Linear top-to-bottom flow
+- **Maintainability:** Easy to add/modify categories
+- **Testability:** Clear boundary conditions

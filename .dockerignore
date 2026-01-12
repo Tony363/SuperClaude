@@ -1,0 +1,109 @@
+# SuperClaude Docker Build Exclusions
+# Minimize build context for faster builds and security
+
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Python artifacts
+__pycache__
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+.env
+.venv
+env/
+venv/
+ENV/
+
+# IDE and editor
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.project
+.pydevproject
+.settings/
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+coverage.xml
+*.cover
+.hypothesis/
+
+# Documentation
+docs/_build/
+site/
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+.travis.yml
+Jenkinsfile
+
+# Local configuration
+*.local
+.env*
+!.env.example
+
+# Archives and artifacts
+*.tar.gz
+*.zip
+archive/
+artifacts/
+
+# Logs
+*.log
+logs/
+
+# Test and development files
+tests/
+benchmarks/
+examples/
+scripts/
+Makefile
+
+# Secrets (should never be in repo, but just in case)
+*.pem
+*.key
+secrets/
+credentials/
+
+# macOS
+.DS_Store
+
+# Docker
+Dockerfile*
+docker-compose*
+.docker/
+
+# Miscellaneous
+*.md
+!README.md
+LICENSE
+CHANGELOG*
+CONTRIBUTING*

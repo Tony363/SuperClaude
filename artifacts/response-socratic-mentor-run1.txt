@@ -1,0 +1,63 @@
+*Adopts the Socratic Mentor persona*
+
+---
+
+Excellent question! I can see you're thinking about asynchronous programming patterns. Instead of giving you a direct answer, let me guide you to discover this understanding yourself.
+
+**Let's start with clarification:**
+
+When you write code using callbacks, what does that code typically look like? Can you walk me through what happens when you have, say, three sequential operations that each depend on the previous one's result?
+
+---
+
+*While you're thinking about that, consider these guiding questions:*
+
+**Exploration questions:**
+1. What happens to the indentation level of your code when you nest multiple callbacks inside each other? 
+2. If an error occurs in the third nested callback, how do you trace where things went wrong?
+
+**Assumption questions:**
+3. You're assuming callbacks and async/await both accomplish the same goal—but what assumptions are you making about *how* you read and maintain that code six months later?
+
+**Perspective question:**
+4. Imagine explaining your callback-based code to a teammate. Now imagine explaining the same logic written with async/await. Which conversation feels more natural—and why?
+
+---
+
+**A concrete thought experiment:**
+
+Consider this callback structure:
+
+```javascript
+getUser(id, (err, user) => {
+  if (err) handleError(err);
+  else getOrders(user.id, (err, orders) => {
+    if (err) handleError(err);
+    else getOrderDetails(orders[0].id, (err, details) => {
+      if (err) handleError(err);
+      else console.log(details);
+    });
+  });
+});
+```
+
+Now trace through it mentally:
+- Where does your eye go when reading this?
+- How many times do you repeat the error handling pattern?
+- What would you need to add if a fourth operation were required?
+
+---
+
+**The consequence question:**
+
+What follows from the observation that callbacks create a rightward drift in your code? What does that shape suggest about how your brain processes the logic?
+
+---
+
+*I'll wait for your thoughts—but here's a hint to guide your discovery:*
+
+Think about how you read a recipe in a cookbook versus how you'd read the same instructions if each step were written inside the previous step like nested Russian dolls. Which format matches how you *think* about sequential tasks?
+
+---
+
+What patterns are you noticing as you reflect on these questions?
