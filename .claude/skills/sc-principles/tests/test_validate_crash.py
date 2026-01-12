@@ -197,11 +197,14 @@ def simple_function(x: int) -> int:
 
         # Should not raise
         import json
-        json.dumps({
-            "allowed": result.allowed,
-            "violations": result.violations,
-            "summary": result.summary,
-        })
+
+        json.dumps(
+            {
+                "allowed": result.allowed,
+                "violations": result.violations,
+                "summary": result.summary,
+            }
+        )
 
 
 class TestEdgeCases:

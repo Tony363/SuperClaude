@@ -98,22 +98,24 @@ class SRPVisitor(ast.NodeVisitor):
     def visit_ClassDef(self, node: ast.ClassDef) -> None:
         """Check class for too many public methods."""
         public_methods = [
-            n for n in node.body
-            if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))
-            and not n.name.startswith("_")
+            n
+            for n in node.body
+            if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)) and not n.name.startswith("_")
         ]
 
         if len(public_methods) > self.thresholds.max_class_public_methods:
-            self.violations.append(SOLIDViolation(
-                file=self.file_path,
-                line=node.lineno,
-                violation_type="srp_class_methods",
-                message=f"Class '{node.name}' has {len(public_methods)} public methods "
-                        f"(max: {self.thresholds.max_class_public_methods})",
-                principle="SRP",
-                severity="warning",
-                context=node.name,
-            ))
+            self.violations.append(
+                SOLIDViolation(
+                    file=self.file_path,
+                    line=node.lineno,
+                    violation_type="srp_class_methods",
+                    message=f"Class '{node.name}' has {len(public_methods)} public methods "
+                    f"(max: {self.thresholds.max_class_public_methods})",
+                    principle="SRP",
+                    severity="warning",
+                    context=node.name,
+                )
+            )
 
         self.generic_visit(node)
 
@@ -147,16 +149,18 @@ class OCPVisitor(ast.NodeVisitor):
                     isinstance_count += 1
 
         if isinstance_count > self.thresholds.max_isinstance_chain:
-            self.violations.append(SOLIDViolation(
-                file=self.file_path,
-                line=node.lineno,
-                violation_type="ocp_isinstance_cascade",
-                message=f"Function '{node.name}' has {isinstance_count} isinstance checks. "
-                        "Consider using polymorphism or strategy pattern.",
-                principle="OCP",
-                severity="warning",
-                context=node.name,
-            ))
+            self.violations.append(
+                SOLIDViolation(
+                    file=self.file_path,
+                    line=node.lineno,
+                    violation_type="ocp_isinstance_cascade",
+                    message=f"Function '{node.name}' has {isinstance_count} isinstance checks. "
+                    "Consider using polymorphism or strategy pattern.",
+                    principle="OCP",
+                    severity="warning",
+                    context=node.name,
+                )
+            )
 
     def _is_isinstance_check(self, node: ast.expr) -> bool:
         """Check if expression is an isinstance call."""
@@ -202,29 +206,33 @@ class LSPVisitor(ast.NodeVisitor):
                     if isinstance(child.exc, ast.Call):
                         if isinstance(child.exc.func, ast.Name):
                             if child.exc.func.id == "NotImplementedError":
-                                self.violations.append(SOLIDViolation(
+                                self.violations.append(
+                                    SOLIDViolation(
+                                        file=self.file_path,
+                                        line=child.lineno,
+                                        violation_type="lsp_not_implemented",
+                                        message=f"Method '{node.name}' in class '{self.current_class}' "
+                                        "raises NotImplementedError, violating LSP.",
+                                        principle="LSP",
+                                        severity="error",
+                                        context=f"{self.current_class}.{node.name}",
+                                    )
+                                )
+                    # Check for raise NotImplementedError (without call)
+                    elif isinstance(child.exc, ast.Name):
+                        if child.exc.id == "NotImplementedError":
+                            self.violations.append(
+                                SOLIDViolation(
                                     file=self.file_path,
                                     line=child.lineno,
                                     violation_type="lsp_not_implemented",
                                     message=f"Method '{node.name}' in class '{self.current_class}' "
-                                            "raises NotImplementedError, violating LSP.",
+                                    "raises NotImplementedError, violating LSP.",
                                     principle="LSP",
                                     severity="error",
                                     context=f"{self.current_class}.{node.name}",
-                                ))
-                    # Check for raise NotImplementedError (without call)
-                    elif isinstance(child.exc, ast.Name):
-                        if child.exc.id == "NotImplementedError":
-                            self.violations.append(SOLIDViolation(
-                                file=self.file_path,
-                                line=child.lineno,
-                                violation_type="lsp_not_implemented",
-                                message=f"Method '{node.name}' in class '{self.current_class}' "
-                                        "raises NotImplementedError, violating LSP.",
-                                principle="LSP",
-                                severity="error",
-                                context=f"{self.current_class}.{node.name}",
-                            ))
+                                )
+                            )
 
 
 class ISPVisitor(ast.NodeVisitor):
@@ -241,24 +249,29 @@ class ISPVisitor(ast.NodeVisitor):
         is_abc = self._is_abc(node)
 
         if is_protocol or is_abc:
-            method_count = len([
-                n for n in node.body
-                if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))
-                and not n.name.startswith("_")
-            ])
+            method_count = len(
+                [
+                    n
+                    for n in node.body
+                    if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))
+                    and not n.name.startswith("_")
+                ]
+            )
 
             if method_count > self.thresholds.max_interface_methods:
-                self.violations.append(SOLIDViolation(
-                    file=self.file_path,
-                    line=node.lineno,
-                    violation_type="isp_fat_interface",
-                    message=f"Interface '{node.name}' has {method_count} methods "
-                            f"(max: {self.thresholds.max_interface_methods}). "
-                            "Consider splitting into smaller interfaces.",
-                    principle="ISP",
-                    severity="warning",
-                    context=node.name,
-                ))
+                self.violations.append(
+                    SOLIDViolation(
+                        file=self.file_path,
+                        line=node.lineno,
+                        violation_type="isp_fat_interface",
+                        message=f"Interface '{node.name}' has {method_count} methods "
+                        f"(max: {self.thresholds.max_interface_methods}). "
+                        "Consider splitting into smaller interfaces.",
+                        principle="ISP",
+                        severity="warning",
+                        context=node.name,
+                    )
+                )
 
         self.generic_visit(node)
 
@@ -292,8 +305,15 @@ class DIPVisitor(ast.NodeVisitor):
 
     # Common service/infrastructure class name patterns
     SERVICE_PATTERNS = [
-        "Connection", "Service", "Client", "Repository",
-        "Database", "Cache", "Logger", "Queue", "Session",
+        "Connection",
+        "Service",
+        "Client",
+        "Repository",
+        "Database",
+        "Cache",
+        "Logger",
+        "Queue",
+        "Session",
     ]
 
     def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
@@ -321,16 +341,18 @@ class DIPVisitor(ast.NodeVisitor):
             if isinstance(child, ast.Call):
                 class_name = self._get_class_name(child.func)
                 if class_name and self._is_service_class(class_name):
-                    self.violations.append(SOLIDViolation(
-                        file=self.file_path,
-                        line=child.lineno,
-                        violation_type="dip_direct_instantiation",
-                        message=f"Direct instantiation of '{class_name}' in function "
-                                f"'{self.current_function}'. Consider dependency injection.",
-                        principle="DIP",
-                        severity="warning",
-                        context=self.current_function or "",
-                    ))
+                    self.violations.append(
+                        SOLIDViolation(
+                            file=self.file_path,
+                            line=child.lineno,
+                            violation_type="dip_direct_instantiation",
+                            message=f"Direct instantiation of '{class_name}' in function "
+                            f"'{self.current_function}'. Consider dependency injection.",
+                            principle="DIP",
+                            severity="warning",
+                            context=self.current_function or "",
+                        )
+                    )
 
     def _get_class_name(self, node: ast.expr) -> Optional[str]:
         """Extract class name from call expression."""
@@ -420,8 +442,7 @@ def find_python_files(scope_root: Path, changed_only: bool = True) -> list[Path]
             all_files.discard("")
 
             py_files = [
-                scope_root / f for f in all_files
-                if f.endswith(".py") and (scope_root / f).exists()
+                scope_root / f for f in all_files if f.endswith(".py") and (scope_root / f).exists()
             ]
 
             if py_files:

@@ -98,15 +98,17 @@ class CrashVisitor(ast.NodeVisitor):
 
         # Check for nested try/except
         if self.try_depth > self.thresholds.max_nested_try:
-            self.violations.append(CrashViolation(
-                file=self.file_path,
-                line=node.lineno,
-                violation_type="nested_try_except",
-                message=f"Nested try/except depth {self.try_depth} exceeds max "
-                        f"{self.thresholds.max_nested_try}. Simplify error handling.",
-                severity="warning",
-                context=self.current_function or "",
-            ))
+            self.violations.append(
+                CrashViolation(
+                    file=self.file_path,
+                    line=node.lineno,
+                    violation_type="nested_try_except",
+                    message=f"Nested try/except depth {self.try_depth} exceeds max "
+                    f"{self.thresholds.max_nested_try}. Simplify error handling.",
+                    severity="warning",
+                    context=self.current_function or "",
+                )
+            )
 
         # Check each except handler
         for handler in node.handlers:
@@ -119,41 +121,47 @@ class CrashVisitor(ast.NodeVisitor):
         """Check a single exception handler for anti-patterns."""
         # Bare except (no exception type)
         if handler.type is None:
-            self.violations.append(CrashViolation(
-                file=self.file_path,
-                line=handler.lineno,
-                violation_type="bare_except",
-                message="Bare 'except:' catches all exceptions including "
-                        "KeyboardInterrupt and SystemExit. Use specific exceptions.",
-                severity="error",
-                context=self.current_function or "",
-            ))
+            self.violations.append(
+                CrashViolation(
+                    file=self.file_path,
+                    line=handler.lineno,
+                    violation_type="bare_except",
+                    message="Bare 'except:' catches all exceptions including "
+                    "KeyboardInterrupt and SystemExit. Use specific exceptions.",
+                    severity="error",
+                    context=self.current_function or "",
+                )
+            )
 
         # Check for except: pass or except Exception: pass
         if self._is_pass_only(handler.body):
-            self.violations.append(CrashViolation(
-                file=self.file_path,
-                line=handler.lineno,
-                violation_type="except_pass",
-                message="Silent exception handling (except: pass) hides bugs. "
-                        "Either let it crash or handle meaningfully.",
-                severity="error",
-                context=self.current_function or "",
-            ))
+            self.violations.append(
+                CrashViolation(
+                    file=self.file_path,
+                    line=handler.lineno,
+                    violation_type="except_pass",
+                    message="Silent exception handling (except: pass) hides bugs. "
+                    "Either let it crash or handle meaningfully.",
+                    severity="error",
+                    context=self.current_function or "",
+                )
+            )
             return  # Don't double-report
 
         # Check for except Exception without re-raise (only in core paths)
         if not self.is_shell and self._is_broad_exception(handler.type):
             if not self._has_reraise(handler.body):
-                self.violations.append(CrashViolation(
-                    file=self.file_path,
-                    line=handler.lineno,
-                    violation_type="exception_swallowed",
-                    message="Broad exception caught without re-raise. "
-                            "In core logic, let errors propagate to boundaries.",
-                    severity="warning",
-                    context=self.current_function or "",
-                ))
+                self.violations.append(
+                    CrashViolation(
+                        file=self.file_path,
+                        line=handler.lineno,
+                        violation_type="exception_swallowed",
+                        message="Broad exception caught without re-raise. "
+                        "In core logic, let errors propagate to boundaries.",
+                        severity="warning",
+                        context=self.current_function or "",
+                    )
+                )
 
     def _is_pass_only(self, body: list[ast.stmt]) -> bool:
         """Check if handler body is just 'pass'."""
@@ -234,8 +242,7 @@ def find_python_files(scope_root: Path, changed_only: bool = True) -> list[Path]
             all_files.discard("")
 
             py_files = [
-                scope_root / f for f in all_files
-                if f.endswith(".py") and (scope_root / f).exists()
+                scope_root / f for f in all_files if f.endswith(".py") and (scope_root / f).exists()
             ]
 
             if py_files:
@@ -309,10 +316,18 @@ def validate_crash(
             "warnings": len(warnings),
             "blocked": blocked,
             "by_type": {
-                "bare_except": len([v for v in all_violations if v.violation_type == "bare_except"]),
-                "except_pass": len([v for v in all_violations if v.violation_type == "except_pass"]),
-                "exception_swallowed": len([v for v in all_violations if v.violation_type == "exception_swallowed"]),
-                "nested_try_except": len([v for v in all_violations if v.violation_type == "nested_try_except"]),
+                "bare_except": len(
+                    [v for v in all_violations if v.violation_type == "bare_except"]
+                ),
+                "except_pass": len(
+                    [v for v in all_violations if v.violation_type == "except_pass"]
+                ),
+                "exception_swallowed": len(
+                    [v for v in all_violations if v.violation_type == "exception_swallowed"]
+                ),
+                "nested_try_except": len(
+                    [v for v in all_violations if v.violation_type == "nested_try_except"]
+                ),
             },
         },
         recommendations=generate_recommendations(all_violations),
@@ -321,7 +336,9 @@ def validate_crash(
 
 def main() -> None:
     """CLI entrypoint."""
-    parser = argparse.ArgumentParser(description="Let It Crash Validator - Enforce error handling patterns")
+    parser = argparse.ArgumentParser(
+        description="Let It Crash Validator - Enforce error handling patterns"
+    )
     parser.add_argument(
         "--scope-root",
         default=".",
