@@ -198,7 +198,7 @@ SuperClaude v7.0.0 includes a Python orchestration layer in `core/` for advanced
 
 | Module | Lines | Purpose |
 |--------|-------|---------|
-| `loop_orchestrator.py` | 362 | Manages iterative improvement with quality gates |
+| `loop_orchestrator.py` | ~480 | Manages iterative improvement with quality gates |
 | `quality_assessment.py` | ~200 | 9-dimension quality scoring with evidence collection |
 | `pal_integration.py` | ~250 | PAL MCP signal generation (review, debug, validation) |
 | `termination.py` | ~100 | Termination condition detection (oscillation, stagnation) |
@@ -462,19 +462,23 @@ flowchart TD
     style EXEC fill:#2196f3,color:#fff
 ```
 
-**Selection Weights (from `agents/index.yaml`):**
+**Selection Weights (from `select_agent.py`):**
 
 ```yaml
 selection:
   weights:
-    trigger_match: 0.35      # Keyword triggers (highest priority)
-    category_match: 0.25     # Category alignment
-    description_match: 0.20  # Description relevance
-    tool_match: 0.20         # Required tool availability
+    keyword_match: 0.35      # Keyword/trigger matching (highest priority)
+    category_match: 0.25     # Domain/category alignment
+    task_match: 0.20         # Task text matching
+    file_patterns: 0.10      # File pattern matching
+    priority_bonus: 0.10     # Tier priority bonus
 
   thresholds:
-    minimum_score: 0.6       # Minimum match score
-    confidence_level: 0.8    # Confidence threshold
+    minimum_score: 0.3       # Minimum match score
+    confidence_levels:
+      excellent: 0.7         # >= 0.7 score
+      high: 0.5              # >= 0.5 score
+      medium: 0.3            # >= 0.3 score
 ```
 
 ---
@@ -1387,7 +1391,7 @@ SuperClaude/
 │
 ├── core/                        # Python orchestration layer
 │   ├── __init__.py
-│   ├── loop_orchestrator.py     # Loop management (362 lines)
+│   ├── loop_orchestrator.py     # Loop management (~480 lines)
 │   ├── quality_assessment.py    # Quality scoring
 │   ├── pal_integration.py       # PAL MCP signals
 │   ├── termination.py           # Termination detection
