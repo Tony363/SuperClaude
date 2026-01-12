@@ -7,11 +7,10 @@ This module demonstrates performance optimization techniques for
 finding duplicates in a list.
 """
 
-import time
 import random
+import time
 from collections import Counter
-from typing import List, Any
-
+from typing import Any, List
 
 # ============================================================================
 # ORIGINAL IMPLEMENTATION - O(n³) worst case
@@ -135,7 +134,7 @@ def benchmark(func, data: List[Any], name: str, iterations: int = 3) -> float:
     times = []
     for _ in range(iterations):
         start = time.perf_counter()
-        result = func(data)
+        func(data)  # Execute function, result not needed for timing
         end = time.perf_counter()
         times.append((end - start) * 1000)  # Convert to ms
 
@@ -191,7 +190,7 @@ def run_benchmarks():
                 try:
                     avg_time = benchmark(func, test_data, name)
                     print(f"{avg_time:>8.3f} ms       ", end="")
-                except Exception as e:
+                except Exception:
                     print(f"{'ERROR':<18}", end="")
             print()
 

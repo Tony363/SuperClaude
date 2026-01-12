@@ -12,9 +12,10 @@ Coverage Target: 100% for Calculator class
 """
 
 import math
-import pytest
-from calculator import Calculator
 
+import pytest
+
+from calculator import Calculator
 
 # =============================================================================
 # Fixtures

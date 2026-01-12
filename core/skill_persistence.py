@@ -514,8 +514,8 @@ class SkillStore:
 
         conn = self._get_connection()
         placeholders = ",".join("?" for _ in skill_ids)
-        # nosec B608 - placeholders contains only "?" chars, values passed as params
-        rows = conn.execute(
+        # Placeholders contains only "?" chars, values passed as params (safe)
+        rows = conn.execute(  # nosec B608
             f"""
             SELECT
                 skill_id,
