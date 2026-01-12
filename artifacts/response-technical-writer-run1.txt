@@ -1,0 +1,103 @@
+I've adopted the **Technical Writer** persona. Now I'll create clear, comprehensive documentation for the `retry_with_backoff` function.
+
+---
+
+## `retry_with_backoff`
+
+### Description
+
+Executes a callable function with automatic retry logic using exponential backoff. When the function raises an exception, it waits for an increasing delay before retrying, which helps handle transient failures (network timeouts, rate limits, temporary service unavailability) without overwhelming the target service.
+
+### Parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `func` | `Callable[[], T]` | *required* | A zero-argument callable to execute. Use `functools.partial` or a lambda to wrap functions that require arguments. |
+| `max_retries` | `int` | `3` | Maximum number of execution attempts. Must be ≥ 1. |
+| `base_delay` | `float` | `1.0` | Initial delay in seconds before the first retry. Subsequent delays double each attempt. |
+
+### Returns
+
+Returns the result of `func()` upon successful execution (type `T`).
+
+### Exceptions
+
+- **Any exception from `func`**: Re-raised after all retry attempts are exhausted. The original exception is preserved.
+
+### Backoff Schedule
+
+| Attempt | Delay Before Retry |
+|---------|-------------------|
+| 1 (initial) | — |
+| 2 | `base_delay * 1` (1.0s default) |
+| 3 | `base_delay * 2` (2.0s default) |
+| 4 | `base_delay * 4` (4.0s default) |
+| n | `base_delay * 2^(n-2)` |
+
+**Total maximum wait time** (default settings): 1.0 + 2.0 = **3.0 seconds** across 3 attempts.
+
+### Examples
+
+**Basic usage with a simple function:**
+```python
+import time
+
+def fetch_data():
+    response = requests.get("https://api.example.com/data")
+    response.raise_for_status()
+    return response.json()
+
+data = retry_with_backoff(fetch_data)
+```
+
+**With arguments using lambda:**
+```python
+result = retry_with_backoff(lambda: send_email(to="user@example.com", body="Hello"))
+```
+
+**With arguments using functools.partial:**
+```python
+from functools import partial
+
+result = retry_with_backoff(partial(upload_file, path="/data/report.csv"))
+```
+
+**Custom retry configuration:**
+```python
+# More aggressive: 5 retries, starting at 0.5s
+result = retry_with_backoff(api_call, max_retries=5, base_delay=0.5)
+
+# Conservative: 2 retries, 5 second initial delay
+result = retry_with_backoff(db_query, max_retries=2, base_delay=5.0)
+```
+
+### Edge Cases
+
+- **`max_retries=1`**: Function executes once with no retries on failure.
+- **`base_delay=0`**: All delays are zero; retries happen immediately (not recommended for rate-limited APIs).
+- **Function succeeds on first try**: Returns immediately with no delay.
+- **All retries fail**: The exception from the final attempt is raised.
+
+### Performance Notes
+
+- **Blocking**: Uses `time.sleep()`, which blocks the current thread. For async code, consider an async variant.
+- **Memory**: Minimal overhead; no state persisted between attempts.
+- **Timing**: Worst-case execution time is `func_time * max_retries + sum(delays)`.
+
+### Related Concepts
+
+- **Exponential backoff**: A standard algorithm for spacing retry attempts to reduce system load.
+- **Jitter**: Consider adding random jitter to prevent thundering herd problems when multiple clients retry simultaneously.
+- **Circuit breaker**: A complementary pattern that stops retrying after repeated failures.
+
+### Suggested Improvements
+
+For production use, consider:
+1. Adding **jitter** to prevent synchronized retries
+2. Filtering **retryable exceptions** (e.g., only retry `ConnectionError`, not `ValueError`)
+3. Adding **logging** for observability
+4. Supporting **async/await** for non-blocking operation
+
+---
+
+This documentation follows the function documentation template and covers purpose, parameters, return values, usage examples, edge cases, and performance considerations for a developer audience.

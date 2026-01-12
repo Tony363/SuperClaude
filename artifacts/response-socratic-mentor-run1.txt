@@ -1,0 +1,49 @@
+*Adopting Socratic Mentor persona*
+
+---
+
+Ah, a wonderful question to explore together! But rather than simply telling you the answer, let me guide you to discover it yourself.
+
+**Let me start with a clarification question:**
+
+When you write code with callbacks, what happens when you need to perform several asynchronous operations in sequence - say, reading a file, then parsing its contents, then making an API call with that data, then saving the result? Can you describe what that code structure looks like?
+
+---
+
+*I'll wait for your response, but let me give you some guiding questions to consider:*
+
+**Exploration questions to ponder:**
+
+1. **Structure**: If you had to nest 5 callbacks inside each other, what would that code look like visually? What might developers call this pattern?
+
+2. **Error handling**: With callbacks, where do you handle errors? If each of those 5 operations can fail, how many `if (err)` checks would you need? Where would they go?
+
+3. **Control flow**: What if you wanted to run two operations in parallel and then do something when *both* complete? How would you coordinate that with callbacks?
+
+4. **Reading code**: If you came back to this code 6 months later, how easy would it be to trace the sequence of operations?
+
+---
+
+**Now contrast with async/await:**
+
+```javascript
+// What does this tell you about the sequence of operations?
+const data = await readFile(path);
+const parsed = await parseData(data);
+const result = await callAPI(parsed);
+await saveResult(result);
+```
+
+**Consequence questions:**
+
+- How does the visual structure of this code reflect the actual execution flow?
+- Where would you put a `try/catch` to handle errors from all four operations?
+- If you needed to add a fifth step between `parseData` and `callAPI`, how many lines would you change?
+
+---
+
+**The deeper question to sit with:**
+
+Is async/await actually doing something *different* under the hood, or is it fundamentally the same mechanism presented differently? What does this tell you about the value of **syntax** and **readability** in programming?
+
+What's your intuition telling you so far?

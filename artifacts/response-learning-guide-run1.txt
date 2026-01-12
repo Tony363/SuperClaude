@@ -1,0 +1,205 @@
+*Adopting Learning Guide persona*
+
+---
+
+# Understanding Dependency Injection
+
+Welcome! Since you're a junior developer, I'll explain dependency injection (DI) in a way that builds understanding step-by-step.
+
+## 1. Concept Overview: What and Why
+
+**Dependency injection** is a design pattern where an object receives ("is injected with") other objects it needs, rather than creating them itself.
+
+### The Analogy
+
+Think of making coffee:
+
+- **Without DI**: You build your own coffee machine every time you want coffee
+- **With DI**: Someone hands you a coffee machine that's already built
+
+In code terms: instead of a class creating its own dependencies internally, those dependencies are passed in from outside.
+
+### Why It Matters
+
+1. **Testability** - You can swap real services for mock/fake ones in tests
+2. **Flexibility** - Change implementations without modifying the class
+3. **Separation of concerns** - Classes focus on their job, not on creating helpers
+
+---
+
+## 2. How It Works: The Mechanics
+
+There are three main ways to inject dependencies:
+
+| Method | How | When to Use |
+|--------|-----|-------------|
+| **Constructor injection** | Pass via `__init__` | Most common; required dependencies |
+| **Method injection** | Pass via method parameter | One-time or optional dependencies |
+| **Property injection** | Set via attribute | Optional dependencies with defaults |
+
+---
+
+## 3. Worked Example: Before and After
+
+### Without Dependency Injection (Tightly Coupled)
+
+```python
+class EmailService:
+    def send(self, to: str, message: str) -> None:
+        print(f"Sending email to {to}: {message}")
+
+
+class UserNotifier:
+    def __init__(self):
+        # Problem: UserNotifier creates its own EmailService
+        # This is "tight coupling" - hard to test or change
+        self.email_service = EmailService()
+
+    def notify(self, user_email: str, message: str) -> None:
+        self.email_service.send(user_email, message)
+
+
+# Usage
+notifier = UserNotifier()
+notifier.notify("alice@example.com", "Welcome!")
+```
+
+**Problems with this approach:**
+- Can't easily test `UserNotifier` without sending real emails
+- Can't swap `EmailService` for SMS or push notifications
+- `UserNotifier` knows too much about how to create `EmailService`
+
+---
+
+### With Dependency Injection (Loosely Coupled)
+
+```python
+from abc import ABC, abstractmethod
+
+
+# Step 1: Define an interface (what the dependency does)
+class NotificationService(ABC):
+    @abstractmethod
+    def send(self, to: str, message: str) -> None:
+        pass
+
+
+# Step 2: Create concrete implementations
+class EmailService(NotificationService):
+    def send(self, to: str, message: str) -> None:
+        print(f"Sending EMAIL to {to}: {message}")
+
+
+class SMSService(NotificationService):
+    def send(self, to: str, message: str) -> None:
+        print(f"Sending SMS to {to}: {message}")
+
+
+# Step 3: Inject the dependency via constructor
+class UserNotifier:
+    def __init__(self, notification_service: NotificationService):
+        # Dependency is "injected" from outside
+        self.notification_service = notification_service
+
+    def notify(self, user_contact: str, message: str) -> None:
+        self.notification_service.send(user_contact, message)
+
+
+# Usage - you control what gets injected
+email_notifier = UserNotifier(EmailService())
+email_notifier.notify("alice@example.com", "Welcome!")
+
+sms_notifier = UserNotifier(SMSService())
+sms_notifier.notify("+1234567890", "Your code is 1234")
+```
+
+**Output:**
+```
+Sending EMAIL to alice@example.com: Welcome!
+Sending SMS to +1234567890: Your code is 1234
+```
+
+---
+
+### Testing Becomes Easy
+
+```python
+# Create a fake service for testing
+class FakeNotificationService(NotificationService):
+    def __init__(self):
+        self.sent_messages = []  # Track what was sent
+
+    def send(self, to: str, message: str) -> None:
+        self.sent_messages.append((to, message))
+
+
+# Test without sending real emails or SMS
+def test_user_notifier():
+    fake_service = FakeNotificationService()
+    notifier = UserNotifier(fake_service)
+    
+    notifier.notify("test@example.com", "Hello!")
+    
+    # Verify the notification was sent correctly
+    assert len(fake_service.sent_messages) == 1
+    assert fake_service.sent_messages[0] == ("test@example.com", "Hello!")
+    print("Test passed!")
+
+
+test_user_notifier()
+```
+
+---
+
+## 4. Practice Activities
+
+Try these exercises to reinforce your understanding:
+
+### Exercise 1: Identify the Dependency
+Look at this code and identify what the "dependency" is:
+
+```python
+class ReportGenerator:
+    def __init__(self):
+        self.database = PostgresDatabase()  # <-- What's the dependency?
+```
+
+### Exercise 2: Refactor This
+Convert this tightly-coupled code to use dependency injection:
+
+```python
+class OrderProcessor:
+    def __init__(self):
+        self.payment_gateway = StripePaymentGateway()
+    
+    def process(self, order):
+        self.payment_gateway.charge(order.total)
+```
+
+### Exercise 3: Write a Test
+Using the DI pattern from the example, write a test that verifies `UserNotifier` calls `send()` with the correct arguments.
+
+---
+
+## 5. Key Takeaways
+
+| Concept | Remember |
+|---------|----------|
+| **Dependency** | An object that another object needs to function |
+| **Injection** | Passing dependencies from outside rather than creating internally |
+| **Interface** | Define what a dependency does (contract), not how |
+| **Benefit** | Testable, flexible, maintainable code |
+
+---
+
+## 6. Next Steps
+
+Once you're comfortable with manual DI, explore:
+
+1. **DI Containers/Frameworks** - Libraries like `dependency-injector` or `inject` that automate wiring
+2. **Inversion of Control (IoC)** - The broader principle behind DI
+3. **SOLID Principles** - DI implements the "D" (Dependency Inversion Principle)
+
+---
+
+**Quick Mental Model**: If your class uses `=` to create a helper object inside `__init__`, ask yourself: "Should this be passed in instead?" If testing or flexibility would benefit, the answer is usually yes.

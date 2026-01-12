@@ -1,0 +1,141 @@
+Now I'll adopt the refactoring-expert persona and analyze the provided code.
+
+## Code Smell Analysis
+
+The provided code has a **Complex Conditional** smell with deeply nested if-else statements (3 levels deep). Let me analyze it:
+
+```python
+def f(x):
+  if x>0:
+    if x<10:
+      return "small"
+    else:
+      if x<100:
+        return "medium"
+      else:
+        return "large"
+  else:
+    return "invalid"
+```
+
+### Issues Identified
+
+| Issue | Severity | Description |
+|-------|----------|-------------|
+| Deep nesting | Medium | 3 levels of nested conditionals |
+| Poor naming | Low | Function name `f` is non-descriptive |
+| Inconsistent formatting | Low | Missing spaces around operators |
+| Magic numbers | Low | Hard-coded values 0, 10, 100 |
+
+## Refactored Solutions
+
+### Option 1: Guard Clause + Flat Conditions (Recommended)
+
+```python
+def categorize_size(value):
+    """Categorize a numeric value into size buckets."""
+    if value <= 0:
+        return "invalid"
+    if value < 10:
+        return "small"
+    if value < 100:
+        return "medium"
+    return "large"
+```
+
+**Why this works:**
+- Early return (guard clause) handles the invalid case first
+- Flat structure - no nesting at all
+- Each condition is independent and easy to read
+- Descriptive function name communicates intent
+
+### Option 2: With Named Constants
+
+```python
+SMALL_THRESHOLD = 10
+MEDIUM_THRESHOLD = 100
+
+def categorize_size(value):
+    """Categorize a numeric value into size buckets."""
+    if value <= 0:
+        return "invalid"
+    if value < SMALL_THRESHOLD:
+        return "small"
+    if value < MEDIUM_THRESHOLD:
+        return "medium"
+    return "large"
+```
+
+**Benefits:** Thresholds can be adjusted without touching the logic.
+
+### Option 3: Data-Driven Approach (for extensibility)
+
+```python
+def categorize_size(value):
+    """Categorize a numeric value into size buckets."""
+    if value <= 0:
+        return "invalid"
+    
+    thresholds = [
+        (10, "small"),
+        (100, "medium"),
+    ]
+    
+    for limit, category in thresholds:
+        if value < limit:
+            return category
+    return "large"
+```
+
+**Use case:** When you expect to add more categories in the future.
+
+## Refactoring Applied
+
+**Before (Cyclomatic Complexity: 4, Nesting Depth: 3):**
+```python
+def f(x):
+  if x>0:
+    if x<10:
+      return "small"
+    else:
+      if x<100:
+        return "medium"
+      else:
+        return "large"
+  else:
+    return "invalid"
+```
+
+**After (Cyclomatic Complexity: 4, Nesting Depth: 1):**
+```python
+def categorize_size(value):
+    """Categorize a numeric value into size buckets."""
+    if value <= 0:
+        return "invalid"
+    if value < 10:
+        return "small"
+    if value < 100:
+        return "medium"
+    return "large"
+```
+
+## Summary of Improvements
+
+| Metric | Before | After |
+|--------|--------|-------|
+| Max nesting depth | 3 | 1 |
+| Lines of code | 11 | 8 |
+| Readability | Poor | Good |
+| Function name clarity | None | Descriptive |
+| Has docstring | No | Yes |
+| Formatting | Inconsistent | PEP 8 compliant |
+
+## Key Refactoring Techniques Used
+
+1. **Guard Clause Pattern**: Handle edge cases early to reduce nesting
+2. **Simplify Conditional**: Flatten nested if-else into sequential ifs
+3. **Meaningful Naming**: `f` → `categorize_size`, `x` → `value`
+4. **Documentation**: Added docstring
+5. **Consistent Formatting**: PEP 8 spacing around operators
+
+The refactored code preserves **100% functional equivalence** while dramatically improving readability and maintainability.
