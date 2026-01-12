@@ -1,40 +1,90 @@
----
-
-## Performance Results Summary
-
-| Size | Original | Counter | Set | Speedup |
-|------|----------|---------|-----|---------|
-| 100 | 0.47 ms | 0.016 ms | 0.016 ms | **30x** |
-| 500 | 12.0 ms | 0.060 ms | 0.063 ms | **200x** |
-| 1,000 | 36.0 ms | 0.095 ms | 0.109 ms | **380x** |
-| 100,000 | ~hours | 13.7 ms | 17.8 ms | **N/A** |
+The benchmarks clearly demonstrate the performance difference. Let me provide a comprehensive summary.
 
 ---
 
-## Final Recommendation
+## Performance Analysis Summary
 
-**Use the Counter-based approach** for best overall performance:
+### Original Code Problems
+
+```python
+def find_duplicates(lst):
+    duplicates = []
+    for i in range(len(lst)):
+        for j in range(i+1, len(lst)):
+            if lst[i] == lst[j] and lst[i] not in duplicates:  # ← O(n) check!
+                duplicates.append(lst[i])
+    return duplicates
+```
+
+| Problem | Impact |
+|---------|--------|
+| Nested loops | O(n²) comparisons |
+| `in` check on list | O(n) per check → O(n³) total |
+| 2000 elements | 146ms vs 0.2ms optimized (**707x slower**) |
+
+### Recommended Optimized Implementation
+
+**Best for most cases — Two Sets approach:**
+
+```python
+def find_duplicates(lst):
+    """
+    O(n) time, O(n) space - single pass through list.
+    """
+    seen = set()
+    duplicates = set()
+
+    for item in lst:
+        if item in seen:
+            duplicates.add(item)
+        else:
+            seen.add(item)
+
+    return list(duplicates)
+```
+
+**If you need to preserve order of first occurrence:**
+
+```python
+def find_duplicates_ordered(lst):
+    """O(n) while preserving order."""
+    seen = set()
+    duplicates = []
+    duplicates_set = set()
+
+    for item in lst:
+        if item in seen and item not in duplicates_set:
+            duplicates.append(item)
+            duplicates_set.add(item)
+        seen.add(item)
+
+    return duplicates
+```
+
+**Most concise (using Counter):**
 
 ```python
 from collections import Counter
 
 def find_duplicates(lst):
-    counts = Counter(lst)
-    return [item for item, count in counts.items() if count > 1]
+    """O(n) using Counter - most Pythonic."""
+    return [item for item, count in Counter(lst).items() if count > 1]
 ```
 
-### Why Counter wins:
-1. **Single import** - `Counter` is part of Python's standard library
-2. **Most readable** - Intent is immediately clear
-3. **Fastest at scale** - 13.7ms for 100K elements
-4. **Memory efficient** - Only stores unique values with counts
+### Benchmark Results
 
-### Performance Health Score: **20/100 → 95/100**
+| Size | Original | Optimized | Speedup |
+|------|----------|-----------|---------|
+| 500 | 9.2 ms | 0.05 ms | **178x** |
+| 1000 | 36.8 ms | 0.12 ms | **321x** |
+| 2000 | 146 ms | 0.21 ms | **707x** |
+| 5000 | SKIPPED | 0.44 ms | **>1000x** |
 
-| Before | After |
-|--------|-------|
-| O(n² × k) | O(n) |
-| 36ms @ 1K items | 0.1ms @ 1K items |
-| Unusable at scale | Handles 100K+ easily |
+### Key Optimization Principles Applied
 
-The optimization provides **380x speedup** at 1,000 elements and would be **orders of magnitude faster** at larger scales where the original would take hours.
+1. **Replace nested loops with hash-based data structures** — Sets provide O(1) lookup vs O(n) for lists
+2. **Use the right data structure** — `set()` membership testing is O(1), list is O(n)
+3. **Single pass algorithms** — Process data once instead of comparing all pairs
+4. **Trade space for time** — O(n) extra space enables O(n) time complexity
+
+The full benchmark code is saved to `artifacts/perf_find_duplicates.py` for your reference and future profiling needs.

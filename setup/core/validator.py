@@ -136,7 +136,7 @@ class Validator:
                 capture_output=True,
                 text=True,
                 timeout=10,
-                shell=(sys.platform == "win32"),
+                shell=(sys.platform == "win32"),  # nosec B602 - hardcoded command
             )
 
             if result.returncode != 0:
@@ -210,7 +210,7 @@ class Validator:
                 capture_output=True,
                 text=True,
                 timeout=10,
-                shell=(sys.platform == "win32"),
+                shell=(sys.platform == "win32"),  # nosec B602 - hardcoded command
             )
 
             if result.returncode != 0:
@@ -284,7 +284,7 @@ class Validator:
                 capture_output=True,
                 text=True,
                 timeout=10,
-                shell=(sys.platform == "win32"),
+                shell=(sys.platform == "win32"),  # nosec B602 - validated command
             )
 
             if result.returncode != 0:
@@ -683,7 +683,7 @@ class Validator:
                         capture_output=True,
                         text=True,
                         timeout=5,
-                        shell=(sys.platform == "win32"),
+                        shell=(sys.platform == "win32"),  # nosec B602 - hardcoded command
                     )
                     if result.returncode == 0:
                         tool_found = True

@@ -15,8 +15,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
-import re
 import subprocess
 import sys
 import time
@@ -321,7 +319,7 @@ def main() -> int:
         else:
             f.unlink()
 
-    print(f"Stochastic Agent Evaluation")
+    print("Stochastic Agent Evaluation")
     print(f"{'='*60}")
     print(f"Agents: {len(agents)}")
     print(f"Runs per agent: {args.runs}")

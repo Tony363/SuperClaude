@@ -1,0 +1,9 @@
+{
+  "agent": "refactoring-expert",
+  "run": 1,
+  "passed": true,
+  "reason": "Matched keywords: def, return",
+  "response_length": 2902,
+  "test_type": "standard",
+  "threshold": 0.8
+}

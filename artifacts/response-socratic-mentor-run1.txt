@@ -1,49 +1,63 @@
-*Adopting Socratic Mentor persona*
+*Adopts the Socratic Mentor persona*
 
 ---
 
-Ah, a wonderful question to explore together! But rather than simply telling you the answer, let me guide you to discover it yourself.
+Excellent question! I can see you're thinking about asynchronous programming patterns. Instead of giving you a direct answer, let me guide you to discover this understanding yourself.
 
-**Let me start with a clarification question:**
+**Let's start with clarification:**
 
-When you write code with callbacks, what happens when you need to perform several asynchronous operations in sequence - say, reading a file, then parsing its contents, then making an API call with that data, then saving the result? Can you describe what that code structure looks like?
-
----
-
-*I'll wait for your response, but let me give you some guiding questions to consider:*
-
-**Exploration questions to ponder:**
-
-1. **Structure**: If you had to nest 5 callbacks inside each other, what would that code look like visually? What might developers call this pattern?
-
-2. **Error handling**: With callbacks, where do you handle errors? If each of those 5 operations can fail, how many `if (err)` checks would you need? Where would they go?
-
-3. **Control flow**: What if you wanted to run two operations in parallel and then do something when *both* complete? How would you coordinate that with callbacks?
-
-4. **Reading code**: If you came back to this code 6 months later, how easy would it be to trace the sequence of operations?
+When you write code using callbacks, what does that code typically look like? Can you walk me through what happens when you have, say, three sequential operations that each depend on the previous one's result?
 
 ---
 
-**Now contrast with async/await:**
+*While you're thinking about that, consider these guiding questions:*
+
+**Exploration questions:**
+1. What happens to the indentation level of your code when you nest multiple callbacks inside each other? 
+2. If an error occurs in the third nested callback, how do you trace where things went wrong?
+
+**Assumption questions:**
+3. You're assuming callbacks and async/await both accomplish the same goal—but what assumptions are you making about *how* you read and maintain that code six months later?
+
+**Perspective question:**
+4. Imagine explaining your callback-based code to a teammate. Now imagine explaining the same logic written with async/await. Which conversation feels more natural—and why?
+
+---
+
+**A concrete thought experiment:**
+
+Consider this callback structure:
 
 ```javascript
-// What does this tell you about the sequence of operations?
-const data = await readFile(path);
-const parsed = await parseData(data);
-const result = await callAPI(parsed);
-await saveResult(result);
+getUser(id, (err, user) => {
+  if (err) handleError(err);
+  else getOrders(user.id, (err, orders) => {
+    if (err) handleError(err);
+    else getOrderDetails(orders[0].id, (err, details) => {
+      if (err) handleError(err);
+      else console.log(details);
+    });
+  });
+});
 ```
 
-**Consequence questions:**
-
-- How does the visual structure of this code reflect the actual execution flow?
-- Where would you put a `try/catch` to handle errors from all four operations?
-- If you needed to add a fifth step between `parseData` and `callAPI`, how many lines would you change?
+Now trace through it mentally:
+- Where does your eye go when reading this?
+- How many times do you repeat the error handling pattern?
+- What would you need to add if a fourth operation were required?
 
 ---
 
-**The deeper question to sit with:**
+**The consequence question:**
 
-Is async/await actually doing something *different* under the hood, or is it fundamentally the same mechanism presented differently? What does this tell you about the value of **syntax** and **readability** in programming?
+What follows from the observation that callbacks create a rightward drift in your code? What does that shape suggest about how your brain processes the logic?
 
-What's your intuition telling you so far?
+---
+
+*I'll wait for your thoughts—but here's a hint to guide your discovery:*
+
+Think about how you read a recipe in a cookbook versus how you'd read the same instructions if each step were written inside the previous step like nested Russian dolls. Which format matches how you *think* about sequential tasks?
+
+---
+
+What patterns are you noticing as you reflect on these questions?

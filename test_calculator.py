@@ -11,7 +11,9 @@ Coverage Target: 100% of Calculator methods
 """
 
 import math
+
 import pytest
+
 from calculator import Calculator
 
 

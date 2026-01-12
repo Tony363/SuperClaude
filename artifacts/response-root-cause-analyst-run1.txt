@@ -1,12 +1,14 @@
-I'm now adopting the **Root Cause Analyst** persona. Let me systematically investigate this error.
+# Root Cause Analysis: TypeError in `get_user_data`
+
+I'm adopting the Root Cause Analyst persona to systematically investigate this error.
 
 ---
 
-## Root Cause Analysis: `TypeError: cannot unpack non-iterable NoneType object`
-
-### Phase 1: Evidence Gathering
+## Phase 1: Evidence Gathering
 
 **Error:** `TypeError: cannot unpack non-iterable NoneType object`
+
+**Symptom:** The code is attempting tuple unpacking on a `None` value.
 
 **Code under investigation:**
 ```python
@@ -16,125 +18,97 @@ def get_user_data(user_id):
     return {"name": name, "email": email}
 ```
 
-**Symptoms:**
-- Python is attempting to unpack `result` into two variables (`name`, `email`)
-- The unpacking fails because `result` is `None`
+---
+
+## Phase 2: Hypothesis Formation
+
+Based on the error pattern (Type error → Type mismatches) from my investigation framework:
+
+| Hypothesis | Evidence | Likelihood |
+|------------|----------|------------|
+| **H1:** `cache.get()` returns `None` when key doesn't exist | Standard cache behavior; error message confirms `NoneType` | **HIGH** |
+| **H2:** Cache is uninitialized/misconfigured | Would typically cause `AttributeError`, not `TypeError` | LOW |
+| **H3:** User ID is invalid | Would still return `None` for missing key | MEDIUM (contributes to H1) |
 
 ---
 
-### Phase 2: Hypothesis Formation
+## Phase 3: Root Cause Identification
 
-| Hypothesis | Description | Likelihood |
-|------------|-------------|------------|
-| **H1** | `cache.get()` returns `None` when the key doesn't exist (cache miss) | **HIGH** |
-| **H2** | The cache entry exists but was stored as `None` | Low |
-| **H3** | The `cache` object itself is misconfigured | Low |
-
-**Primary Hypothesis (H1):** The cache key `user:{user_id}` doesn't exist, so `cache.get()` returns `None` (standard behavior for most cache implementations like Redis, Memcached, or Python dicts).
-
----
-
-### Phase 3: Hypothesis Testing
-
-**Evidence supporting H1:**
-1. **Standard cache behavior**: `.get()` methods conventionally return `None` on cache miss:
-   - Python `dict.get(key)` → `None` if key missing
-   - Redis `GET` → `None` (via redis-py) if key missing
-   - Memcached → `None` if key missing
-
-2. **The error type matches**: `NoneType` indicates the cache returned nothing, not a malformed tuple.
-
-3. **Unpacking syntax**: `name, email = None` raises exactly this error:
-   ```python
-   >>> name, email = None
-   TypeError: cannot unpack non-iterable NoneType object
-   ```
-
----
-
-### Phase 4: Root Cause Identification
-
-**Root Cause (High Confidence):** The function assumes the cache always contains a valid tuple for the given `user_id`, but `cache.get()` returns `None` when:
-1. The user has never been cached
-2. The cache entry expired (TTL)
-3. The cache was cleared/restarted
-4. The `user_id` is invalid or doesn't exist
+**Root Cause:** `cache.get()` returns `None` when the key `user:{user_id}` is not found in the cache.
 
 **Causal Chain:**
+1. `cache.get(f"user:{user_id}")` is called
+2. Key doesn't exist in cache → returns `None`
+3. `name, email = None` attempts tuple unpacking
+4. Python cannot iterate over `None` → `TypeError`
+
+**Confidence Level:** HIGH (95%)
+
+This is the canonical behavior of cache/dictionary `.get()` methods - they return `None` for missing keys rather than raising `KeyError`.
+
+---
+
+## Phase 4: Resolution
+
+### Fix Option 1: Guard with conditional check (Recommended)
+```python
+def get_user_data(user_id):
+    result = cache.get(f"user:{user_id}")
+    if result is None:
+        return None  # Or raise custom exception
+    name, email = result
+    return {"name": name, "email": email}
 ```
-cache.get("user:123") → None (cache miss)
-                            ↓
-           name, email = None (unpacking attempted)
-                            ↓
-           TypeError: cannot unpack non-iterable NoneType object
+
+### Fix Option 2: Provide default value
+```python
+def get_user_data(user_id):
+    result = cache.get(f"user:{user_id}", (None, None))
+    name, email = result
+    return {"name": name, "email": email}
+```
+
+### Fix Option 3: Use walrus operator with early return (Python 3.8+)
+```python
+def get_user_data(user_id):
+    if (result := cache.get(f"user:{user_id}"))) is None:
+        raise ValueError(f"User {user_id} not found in cache")
+    name, email = result
+    return {"name": name, "email": email}
 ```
 
 ---
 
-### Phase 5: Resolution & Prevention
+## Phase 5: Prevention Recommendations
 
-#### Immediate Fix
-
-**Option A: Guard clause with explicit None check (Recommended)**
-```python
-def get_user_data(user_id):
-    result = cache.get(f"user:{user_id}")
-    if result is None:
-        return None  # Or raise an appropriate exception
-    name, email = result
-    return {"name": name, "email": email}
-```
-
-**Option B: Use default value with cache.get()**
-```python
-def get_user_data(user_id):
-    result = cache.get(f"user:{user_id}", default=(None, None))
-    name, email = result
-    return {"name": name, "email": email}
-```
-
-**Option C: Cache-through pattern (fetch if missing)**
-```python
-def get_user_data(user_id):
-    result = cache.get(f"user:{user_id}")
-    if result is None:
-        # Fetch from database and populate cache
-        user = db.get_user(user_id)
-        if user is None:
-            raise UserNotFoundError(f"User {user_id} not found")
-        result = (user.name, user.email)
-        cache.set(f"user:{user_id}", result, ttl=3600)
-    name, email = result
-    return {"name": name, "email": email}
-```
-
-#### Prevention Recommendations
-
-1. **Type hints** - Make the contract explicit:
+1. **Add type hints** to make expected types explicit:
    ```python
-   def get_user_data(user_id: int) -> dict | None:
+   def get_user_data(user_id: str) -> dict | None:
    ```
 
-2. **Validate early** - Check cache returns before unpacking
-
-3. **Consider typing the cache value** - Use a dataclass/namedtuple instead of raw tuple:
+2. **Consider cache-aside pattern** - fetch from source if cache miss:
    ```python
-   @dataclass
-   class CachedUser:
-       name: str
-       email: str
+   def get_user_data(user_id):
+       result = cache.get(f"user:{user_id}")
+       if result is None:
+           result = fetch_from_database(user_id)
+           if result:
+               cache.set(f"user:{user_id}", result)
+       if result is None:
+           return None
+       name, email = result
+       return {"name": name, "email": email}
    ```
 
-4. **Add monitoring** - Track cache hit/miss rates to detect issues early
+3. **Add monitoring** for cache miss rates to detect issues early
 
 ---
 
 ## Summary
 
-| Aspect | Finding |
-|--------|---------|
-| **Error** | `TypeError: cannot unpack non-iterable NoneType object` |
-| **Root Cause** | `cache.get()` returns `None` on cache miss; code assumes cached value always exists |
-| **Confidence** | **High** (95%) |
-| **Fix** | Add `None` check before unpacking, or use cache-through pattern |
-| **Severity** | Medium - causes runtime crash for uncached users |
+| Item | Detail |
+|------|--------|
+| **Root Cause** | `cache.get()` returns `None` for missing keys |
+| **Error Location** | Line 3: `name, email = result` |
+| **Fix** | Add `None` check before unpacking |
+| **Prevention** | Type hints, default values, cache-aside pattern |

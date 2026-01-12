@@ -1,0 +1,9 @@
+{
+  "agent": "technical-writer",
+  "run": 1,
+  "passed": true,
+  "reason": "Matched keywords: Args, Returns, Raises, retry, backoff",
+  "response_length": 6568,
+  "test_type": "standard",
+  "threshold": 0.8
+}

@@ -1,0 +1,9 @@
+{
+  "agent": "security-engineer",
+  "run": 1,
+  "passed": true,
+  "reason": "Matched keywords: injection, SQL, parameterized, vulnerability",
+  "response_length": 5662,
+  "test_type": "critical",
+  "threshold": 1.0
+}

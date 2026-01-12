@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """Performance benchmark comparing duplicate-finding algorithms."""
 
-import time
 import random
+import time
 from collections import Counter
+
 
 # Original O(n²×k) implementation
 def find_duplicates_original(lst):
@@ -103,7 +104,7 @@ def main():
             except Exception as e:
                 print(f"  Original: Error - {e}")
         else:
-            print(f"  Original (O(n²×k)):  SKIPPED (too slow)")
+            print("  Original (O(n²×k)):  SKIPPED (too slow)")
 
         # Run optimized versions
         for name, func, complexity in [

@@ -1,0 +1,9 @@
+{
+  "agent": "performance-engineer",
+  "run": 1,
+  "passed": true,
+  "reason": "Matched keywords: O(n, set, complexity, optimization, performance",
+  "response_length": 2436,
+  "test_type": "standard",
+  "threshold": 0.8
+}
