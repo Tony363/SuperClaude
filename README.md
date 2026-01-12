@@ -577,30 +577,30 @@ The loop orchestration system manages iterative improvement workflows with safet
 
 ```mermaid
 flowchart TD
-    START["Start Loop<br/>Iteration 0"] --> EXEC["Execute Skill"]
-    EXEC --> EVIDENCE["Collect Evidence<br/>(changes, tests, lint)"]
-    EVIDENCE --> ASSESS["Assess Quality<br/>(9 dimensions)"]
+    START["Start Loop Iteration 0"] --> EXEC["Execute Skill"]
+    EXEC --> EVIDENCE["Collect Evidence"]
+    EVIDENCE --> ASSESS["Assess Quality"]
     ASSESS --> SCORE{"Score >= 70?"}
 
     SCORE -->|"Yes"| QUALITY_MET["QUALITY_MET"]
-    SCORE -->|"No"| OSC{"Oscillating?<br/>(alternating scores)"}
+    SCORE -->|"No"| OSC{"Oscillating?"}
 
     OSC -->|"Yes"| OSCILLATION["OSCILLATION"]
-    OSC -->|"No"| STAG{"Stagnating?<br/>(variance < 2.0)"}
+    OSC -->|"No"| STAG{"Stagnating?"}
 
     STAG -->|"Yes"| STAGNATION["STAGNATION"]
-    STAG -->|"No"| IMPROV{"Improvement<br/>>= 5 points?"}
+    STAG -->|"No"| IMPROV{"Improvement >= 5?"}
 
     IMPROV -->|"No"| INSUFFICIENT["INSUFFICIENT_IMPROVEMENT"]
     IMPROV -->|"Yes"| MAX{"Iteration >= 5?"}
 
     MAX -->|"Yes"| MAX_ITER["MAX_ITERATIONS"]
-    MAX -->|"No"| PAL["Generate PAL<br/>Review Signal"]
+    MAX -->|"No"| PAL["Generate PAL Review Signal"]
     PAL --> FEEDBACK["Incorporate Feedback"]
     FEEDBACK --> NEXT["Prepare Next Context"]
     NEXT --> EXEC
 
-    QUALITY_MET --> FINAL["Final PAL<br/>Validation Signal"]
+    QUALITY_MET --> FINAL["Final PAL Validation Signal"]
     OSCILLATION --> DEBUG["PAL Debug Signal"]
     STAGNATION --> DEBUG
 
@@ -646,30 +646,13 @@ SuperClaude integrates with powerful MCP servers for enhanced capabilities:
 ```mermaid
 flowchart TB
     subgraph PAL["PAL MCP - 11 Collaborative Tools"]
-        direction TB
-        subgraph Analysis["Analysis"]
-            P1["chat"]
-            P2["thinkdeep"]
-            P3["debug"]
-        end
-        subgraph Planning["Planning"]
-            P4["planner"]
-            P5["precommit"]
-        end
-        subgraph Validation["Validation"]
-            P6["codereview"]
-            P7["consensus"]
-            P8["challenge"]
-        end
-        subgraph Utility["Utility"]
-            P9["apilookup"]
-            P10["listmodels"]
-            P11["clink"]
-        end
+        P1["chat"] & P2["thinkdeep"] & P3["debug"]
+        P4["planner"] & P5["precommit"]
+        P6["codereview"] & P7["consensus"] & P8["challenge"]
+        P9["apilookup"] & P10["listmodels"] & P11["clink"]
     end
 
     subgraph Rube["Rube MCP - 500+ App Integrations"]
-        direction TB
         R1["SEARCH_TOOLS"]
         R2["MULTI_EXECUTE"]
         R3["CREATE_PLAN"]
