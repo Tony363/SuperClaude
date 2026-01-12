@@ -1,19 +1,21 @@
 ---
 name: sc-principles
-description: Enforce KISS and Pure Function principles through mandatory validation gates. Detects complexity violations, impure functions in business logic, and I/O mixed with logic.
+description: Enforce KISS, Purity, SOLID, and Let It Crash principles through mandatory validation gates. Detects complexity violations, impure functions, design anti-patterns, and error handling issues.
 ---
 
 # /sc:principles - Code Principles Validator
 
-Mandatory validation skill enforcing two fundamental software engineering principles:
+Mandatory validation skill enforcing four fundamental software engineering principles:
 
 1. **KISS (Keep It Simple, Stupid)** - Code should be as simple as possible
 2. **Functional Core, Imperative Shell** - Business logic must be pure; I/O belongs at edges
+3. **SOLID** - Single Responsibility, Open-Closed, Liskov Substitution, Interface Segregation, Dependency Inversion
+4. **Let It Crash** - Fail fast for bugs; handle errors explicitly at boundaries
 
 ## Quick Start
 
 ```bash
-# Full validation (KISS + Purity)
+# Full validation (all four principles)
 /sc:principles src/
 
 # KISS only validation
@@ -21,6 +23,12 @@ Mandatory validation skill enforcing two fundamental software engineering princi
 
 # Purity only validation
 /sc:principles src/ --purity-only
+
+# SOLID only validation
+/sc:principles src/ --solid-only
+
+# Let It Crash only validation
+/sc:principles src/ --crash-only
 
 # Strict mode (warnings become errors)
 /sc:principles src/ --strict
@@ -40,7 +48,9 @@ Mandatory validation skill enforcing two fundamental software engineering princi
 2. ANALYZE
    ├── Parse AST for each file
    ├── Calculate complexity metrics (KISS)
-   └── Detect I/O patterns (Purity)
+   ├── Detect I/O patterns (Purity)
+   ├── Check structural patterns (SOLID)
+   └── Analyze error handling (Let It Crash)
 
 3. VALIDATE
    ├── Compare against thresholds
@@ -94,17 +104,75 @@ The "Functional Core, Imperative Shell" pattern:
 | Side Effects | `print()`, `logging.*`, `logger.*` |
 | Async I/O | `async def`, `await`, `async for`, `async with` |
 
+### SOLID Gate
+
+Detects structural violations of SOLID design principles.
+
+| Principle | Detection | Severity | Description |
+|-----------|-----------|----------|-------------|
+| SRP | File >300 lines, class with >5 public methods | warning | Single Responsibility - one reason to change |
+| OCP | `if/elif` chains on type, `isinstance` cascades | warning | Open-Closed - extend, don't modify |
+| LSP | Override that raises `NotImplementedError` | error | Liskov Substitution - honor contracts |
+| ISP | Interface/protocol with >7 methods | warning | Interface Segregation - small interfaces |
+| DIP | Direct instantiation in business logic | warning | Dependency Inversion - depend on abstractions |
+
+**Code Smells to Flag:**
+
+| Smell | Principle | Recommended Fix |
+|-------|-----------|-----------------|
+| File >300 lines | SRP | Extract responsibilities into modules |
+| if/else type chains | OCP | Strategy pattern or registry |
+| Override that throws | LSP | Honor base contract or don't inherit |
+| 10+ method interface | ISP | Split into focused interfaces |
+| `new Service()` in logic | DIP | Dependency injection |
+
+### Let It Crash Gate
+
+Detects anti-patterns in error handling based on the "Let It Crash" philosophy.
+
+| Pattern | Severity | Description |
+|---------|----------|-------------|
+| Bare `except:` | error | Catches all exceptions including KeyboardInterrupt |
+| `except Exception:` (no re-raise) | warning | Swallows errors without handling |
+| `except: pass` | error | Silent failure, debugging nightmare |
+| Defensive `if not x: return` chains | warning | Masks root cause of bugs |
+| Nested try/except fallbacks | warning | Complex error paths, hard to debug |
+
+**When to Let It Crash:**
+- Validation failures → crash with clear error
+- Programming errors → surface immediately
+- Internal operations → let them fail
+
+**When to Handle Errors (exceptions to rule):**
+- Data persistence → protect against data loss
+- External APIs → retry, fallback, graceful degradation
+- Resource cleanup → RAII, finally blocks
+- User-facing operations → graceful error messages
+
+**Not Flagged (appropriate handling):**
+- Error handling in `*/adapters/*`, `*/api/*`, `*/cli/*` paths
+- Explicit logging before swallowing
+- Re-raise after logging
+
 ## Flags
 
 | Flag | Type | Default | Description |
 |------|------|---------|-------------|
 | `--kiss-only` | bool | false | Run only KISS validation |
 | `--purity-only` | bool | false | Run only purity validation |
+| `--solid-only` | bool | false | Run only SOLID validation |
+| `--crash-only` | bool | false | Run only Let It Crash validation |
+| `--no-kiss` | bool | false | Skip KISS validation |
+| `--no-purity` | bool | false | Skip purity validation |
+| `--no-solid` | bool | false | Skip SOLID validation |
+| `--no-crash` | bool | false | Skip Let It Crash validation |
 | `--threshold` | int | 10 | Max cyclomatic complexity |
 | `--max-cognitive` | int | 15 | Max cognitive complexity |
 | `--max-lines` | int | 50 | Max function line count |
 | `--max-depth` | int | 4 | Max nesting depth |
 | `--max-params` | int | 5 | Max parameter count |
+| `--max-file-lines` | int | 300 | Max file line count (SRP) |
+| `--max-interface-methods` | int | 7 | Max interface methods (ISP) |
 | `--strict` | bool | false | Treat all warnings as errors |
 | `--core-only` | bool | false | Only validate core layer files |
 | `--all` | bool | false | Analyze all files, not just changed |
@@ -247,6 +315,72 @@ def get_user_discount(user_id: int) -> float:
     return discount
 ```
 
+### For SOLID Violations
+
+1. **SRP (Single Responsibility)** - Extract into modules
+2. **OCP (Open-Closed)** - Use strategy pattern or registry
+3. **LSP (Liskov Substitution)** - Honor base contracts
+4. **ISP (Interface Segregation)** - Split fat interfaces
+5. **DIP (Dependency Inversion)** - Inject dependencies
+
+**Before (OCP violation):**
+```python
+def process_payment(payment_type, amount):
+    if payment_type == "credit":
+        return process_credit(amount)
+    elif payment_type == "debit":
+        return process_debit(amount)
+    elif payment_type == "crypto":  # New type = code change!
+        return process_crypto(amount)
+```
+
+**After (OCP compliant):**
+```python
+PROCESSORS = {
+    "credit": process_credit,
+    "debit": process_debit,
+    "crypto": process_crypto,  # Add here, no function change
+}
+
+def process_payment(payment_type, amount):
+    processor = PROCESSORS.get(payment_type)
+    if not processor:
+        raise ValueError(f"Unknown payment type: {payment_type}")
+    return processor(amount)
+```
+
+### For Let It Crash Violations
+
+1. **Remove catch-all blocks** - Let bugs surface
+2. **Remove defensive guards** - Validate at boundaries instead
+3. **Flatten try/except** - Handle at edges, not everywhere
+
+**Before (catch-all anti-pattern):**
+```python
+def get_user(user_id):
+    try:
+        user = db.query(User).get(user_id)
+        return user
+    except:  # BAD: catches everything, hides bugs
+        return None
+```
+
+**After (let it crash):**
+```python
+def get_user(user_id):
+    # Let database errors surface - they indicate real problems
+    return db.query(User).get(user_id)
+
+# Handle at the boundary (API layer)
+@app.get("/users/{user_id}")
+def api_get_user(user_id: int):
+    try:
+        return get_user(user_id)
+    except DBError as e:
+        logger.error("Database error", error=e, user_id=user_id)
+        raise HTTPException(500, "Database unavailable")
+```
+
 ## Examples
 
 ### Example 1: Full Validation
@@ -339,7 +473,8 @@ python -m pytest .claude/skills/sc-principles/tests/ -v
 
 ---
 
-**Version**: 1.1.0
-**Validators**: `validate_kiss.py`, `validate_purity.py`
+**Version**: 2.0.0
+**Validators**: `validate_kiss.py`, `validate_purity.py`, `validate_solid.py` (heuristic), `validate_crash.py` (heuristic)
 **Agent**: `code-warden`
-**Tests**: 27 passing
+**Traits**: `solid-aligned`, `crash-resilient`
+**Tests**: 27 passing (KISS + Purity)
