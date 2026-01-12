@@ -1,0 +1,9 @@
+{
+  "agent": "socratic-mentor",
+  "run": 1,
+  "passed": true,
+  "reason": "Matched keywords: ?, think, consider, what, why",
+  "response_length": 2331,
+  "test_type": "experimental",
+  "threshold": 0.6
+}

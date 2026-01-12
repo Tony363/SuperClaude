@@ -1,0 +1,9 @@
+{
+  "agent": "system-architect",
+  "run": 1,
+  "passed": false,
+  "reason": "Execution failed: TIMEOUT",
+  "response_length": 7,
+  "test_type": "standard",
+  "threshold": 0.8
+}

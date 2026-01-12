@@ -1,0 +1,484 @@
+I am now adopting the **Backend Architect** persona. Let me design a comprehensive REST API endpoint for user authentication.
+
+## REST API Design: User Authentication Endpoint
+
+### Overview
+
+I'll design a production-ready authentication API with login, logout, token refresh, and registration endpoints following REST principles and security best practices.
+
+---
+
+### 1. Authentication Endpoints
+
+#### POST `/api/v1/auth/login`
+
+**Purpose**: Authenticate user credentials and issue JWT tokens.
+
+```http
+POST /api/v1/auth/login
+Content-Type: application/json
+```
+
+**Request Schema**:
+```json
+{
+  "email": "user@example.com",
+  "password": "SecureP@ssw0rd!"
+}
+```
+
+**Success Response (200 OK)**:
+```json
+{
+  "status": "success",
+  "data": {
+    "user": {
+      "id": "usr_2xK9mPqR4",
+      "email": "user@example.com",
+      "name": "John Doe",
+      "roles": ["user"]
+    },
+    "tokens": {
+      "access_token": "eyJhbGciOiJSUzI1NiIs...",
+      "refresh_token": "eyJhbGciOiJSUzI1NiIs...",
+      "token_type": "Bearer",
+      "expires_in": 900
+    }
+  }
+}
+```
+
+---
+
+#### POST `/api/v1/auth/register`
+
+**Purpose**: Create a new user account.
+
+```http
+POST /api/v1/auth/register
+Content-Type: application/json
+```
+
+**Request Schema**:
+```json
+{
+  "email": "newuser@example.com",
+  "password": "SecureP@ssw0rd!",
+  "password_confirmation": "SecureP@ssw0rd!",
+  "name": "Jane Doe"
+}
+```
+
+**Success Response (201 Created)**:
+```json
+{
+  "status": "success",
+  "data": {
+    "user": {
+      "id": "usr_3yL0nQsT5",
+      "email": "newuser@example.com",
+      "name": "Jane Doe",
+      "roles": ["user"],
+      "email_verified": false
+    },
+    "message": "Registration successful. Please verify your email."
+  }
+}
+```
+
+---
+
+#### POST `/api/v1/auth/refresh`
+
+**Purpose**: Refresh access token using refresh token.
+
+```http
+POST /api/v1/auth/refresh
+Content-Type: application/json
+Authorization: Bearer <refresh_token>
+```
+
+**Request Schema**:
+```json
+{
+  "refresh_token": "eyJhbGciOiJSUzI1NiIs..."
+}
+```
+
+**Success Response (200 OK)**:
+```json
+{
+  "status": "success",
+  "data": {
+    "access_token": "eyJhbGciOiJSUzI1NiIs...",
+    "token_type": "Bearer",
+    "expires_in": 900
+  }
+}
+```
+
+---
+
+#### POST `/api/v1/auth/logout`
+
+**Purpose**: Invalidate user session and tokens.
+
+```http
+POST /api/v1/auth/logout
+Authorization: Bearer <access_token>
+```
+
+**Success Response (200 OK)**:
+```json
+{
+  "status": "success",
+  "message": "Successfully logged out"
+}
+```
+
+---
+
+### 2. Error Handling
+
+**Standard Error Response Schema**:
+```json
+{
+  "status": "error",
+  "error": {
+    "code": "AUTH_001",
+    "message": "Human-readable error message",
+    "details": {}
+  },
+  "request_id": "req_abc123xyz"
+}
+```
+
+**Error Codes and HTTP Status Mapping**:
+
+| HTTP Status | Error Code | Description |
+|-------------|------------|-------------|
+| 400 | `VALIDATION_ERROR` | Invalid request body or parameters |
+| 401 | `AUTH_INVALID_CREDENTIALS` | Wrong email or password |
+| 401 | `AUTH_TOKEN_EXPIRED` | Access/refresh token has expired |
+| 401 | `AUTH_TOKEN_INVALID` | Malformed or tampered token |
+| 403 | `AUTH_ACCOUNT_DISABLED` | User account is suspended |
+| 403 | `AUTH_EMAIL_NOT_VERIFIED` | Email verification required |
+| 409 | `AUTH_EMAIL_EXISTS` | Email already registered |
+| 422 | `AUTH_WEAK_PASSWORD` | Password doesn't meet requirements |
+| 429 | `RATE_LIMIT_EXCEEDED` | Too many requests |
+| 500 | `INTERNAL_ERROR` | Server-side error |
+
+**Example Error Responses**:
+
+**401 - Invalid Credentials**:
+```json
+{
+  "status": "error",
+  "error": {
+    "code": "AUTH_INVALID_CREDENTIALS",
+    "message": "Invalid email or password"
+  },
+  "request_id": "req_f7g8h9j0"
+}
+```
+
+**422 - Validation Failure**:
+```json
+{
+  "status": "error",
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "message": "Request validation failed",
+    "details": {
+      "email": ["Must be a valid email address"],
+      "password": ["Must be at least 8 characters", "Must contain uppercase letter"]
+    }
+  },
+  "request_id": "req_k1l2m3n4"
+}
+```
+
+**429 - Rate Limited**:
+```json
+{
+  "status": "error",
+  "error": {
+    "code": "RATE_LIMIT_EXCEEDED",
+    "message": "Too many login attempts. Try again in 300 seconds."
+  },
+  "request_id": "req_o5p6q7r8"
+}
+```
+
+---
+
+### 3. OpenAPI Specification
+
+```yaml
+openapi: 3.0.3
+info:
+  title: User Authentication API
+  version: 1.0.0
+  description: RESTful API for user authentication
+
+servers:
+  - url: https://api.example.com/api/v1
+
+paths:
+  /auth/login:
+    post:
+      summary: Authenticate user
+      tags: [Authentication]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Successful authentication
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+
+  /auth/register:
+    post:
+      summary: Register new user
+      tags: [Authentication]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '201':
+          description: User created
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /auth/refresh:
+    post:
+      summary: Refresh access token
+      tags: [Authentication]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshRequest'
+      responses:
+        '200':
+          description: Token refreshed
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /auth/logout:
+    post:
+      summary: Logout user
+      tags: [Authentication]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Successfully logged out
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+          maxLength: 255
+        password:
+          type: string
+          minLength: 8
+          maxLength: 128
+
+    RegisterRequest:
+      type: object
+      required: [email, password, password_confirmation, name]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 8
+          pattern: '^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&]).{8,}$'
+        password_confirmation:
+          type: string
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+
+    RefreshRequest:
+      type: object
+      required: [refresh_token]
+      properties:
+        refresh_token:
+          type: string
+
+    LoginResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [success]
+        data:
+          type: object
+          properties:
+            user:
+              $ref: '#/components/schemas/User'
+            tokens:
+              $ref: '#/components/schemas/Tokens'
+
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+        name:
+          type: string
+        roles:
+          type: array
+          items:
+            type: string
+
+    Tokens:
+      type: object
+      properties:
+        access_token:
+          type: string
+        refresh_token:
+          type: string
+        token_type:
+          type: string
+          enum: [Bearer]
+        expires_in:
+          type: integer
+          description: Access token TTL in seconds
+
+    ErrorResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [error]
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+            details:
+              type: object
+        request_id:
+          type: string
+
+  responses:
+    Unauthorized:
+      description: Authentication failed
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    ValidationError:
+      description: Validation failed
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Conflict:
+      description: Resource conflict
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    RateLimited:
+      description: Rate limit exceeded
+      headers:
+        Retry-After:
+          schema:
+            type: integer
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+```
+
+---
+
+### 4. Security Considerations
+
+| Concern | Implementation |
+|---------|----------------|
+| **Password Storage** | bcrypt with cost factor 12+ |
+| **Token Signing** | RS256 (asymmetric) for production |
+| **Access Token TTL** | 15 minutes (900 seconds) |
+| **Refresh Token TTL** | 7 days (rotated on use) |
+| **Rate Limiting** | 5 attempts per 15 min per IP for login |
+| **Brute Force Protection** | Account lockout after 10 failed attempts |
+| **Token Revocation** | Redis blocklist for invalidated tokens |
+| **HTTPS Only** | All endpoints require TLS |
+| **CORS** | Restrict to allowed origins |
+| **Input Validation** | Strict schema validation on all inputs |
+
+---
+
+### 5. Request Headers
+
+**Required Headers**:
+```http
+Content-Type: application/json
+Accept: application/json
+X-Request-ID: <client-generated-uuid>  # Optional, for tracing
+```
+
+**Authentication Header** (protected endpoints):
+```http
+Authorization: Bearer <access_token>
+```
+
+**Response Headers**:
+```http
+X-Request-ID: req_abc123xyz
+X-RateLimit-Limit: 100
+X-RateLimit-Remaining: 95
+X-RateLimit-Reset: 1704067200
+```
+
+---
+
+### Summary
+
+This authentication API design follows REST best practices with:
+
+- **Four endpoints**: `/login`, `/register`, `/refresh`, `/logout`
+- **JWT-based authentication** with short-lived access tokens and rotated refresh tokens
+- **Comprehensive error handling** with standardized error codes and HTTP status mapping
+- **Security by design**: rate limiting, password requirements, token expiration, account lockout
+- **OpenAPI 3.0 specification** for documentation and client code generation
+
+The design prioritizes security, scalability, and developer experience while remaining stateless for horizontal scaling.

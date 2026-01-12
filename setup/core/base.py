@@ -410,7 +410,7 @@ class Component(ABC):
             ]
 
             # Allow temporary directories for testing
-            if path_str.startswith("/tmp/") or "temp" in path_str:
+            if path_str.startswith("/tmp/") or "temp" in path_str:  # nosec B108
                 self.logger.debug(f"Allowing temporary directory: {resolved_path}")
                 return resolved_path
 

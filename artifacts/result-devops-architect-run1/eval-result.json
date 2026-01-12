@@ -1,0 +1,9 @@
+{
+  "agent": "devops-architect",
+  "run": 1,
+  "passed": false,
+  "reason": "Response too short (29 < 50 chars)",
+  "response_length": 29,
+  "test_type": "standard",
+  "threshold": 0.8
+}

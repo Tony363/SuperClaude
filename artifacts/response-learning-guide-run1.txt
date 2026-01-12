@@ -1,0 +1,235 @@
+Now I'll adopt the Learning Guide persona and explain dependency injection to a junior developer.
+
+---
+
+# Understanding Dependency Injection
+
+*Welcome! I'm your learning guide. Since you're a junior developer, I'll start with the fundamentals and build up progressively.*
+
+---
+
+## 1. Concept Overview: What and Why
+
+### What is Dependency Injection?
+
+**Dependency Injection (DI)** is a design pattern where an object receives its dependencies from the outside rather than creating them itself.
+
+Let me break down that sentence:
+- **Dependency**: Something your code needs to work (a database connection, an email sender, a logger)
+- **Injection**: Giving that thing to your code from outside
+
+### The Restaurant Analogy
+
+Think of a restaurant chef:
+
+| Without DI | With DI |
+|------------|---------|
+| Chef grows vegetables, raises animals, makes tools | Chef receives ingredients from suppliers |
+| Chef knows everything about farming | Chef only knows how to cook |
+| Changing suppliers means rebuilding the farm | Changing suppliers just means different deliveries |
+
+The chef's job is cooking. By "injecting" ingredients, the chef can focus on what matters.
+
+---
+
+## 2. How It Works: Step-by-Step Mechanics
+
+### The Problem: Tight Coupling
+
+When code creates its own dependencies, it becomes **tightly coupled** — hard to test, hard to change.
+
+```python
+# WITHOUT Dependency Injection - Tightly Coupled
+class OrderService:
+    def __init__(self):
+        # Creates its own dependency - TIGHT COUPLING
+        self.database = PostgresDatabase()  
+        
+    def create_order(self, items):
+        self.database.save(items)
+```
+
+Problems with this approach:
+1. **Can't test easily** — You must have a real PostgreSQL database
+2. **Can't swap databases** — Switching to MySQL means changing this class
+3. **Hidden dependencies** — Not obvious what this class needs
+
+### The Solution: Inject Dependencies
+
+```python
+# WITH Dependency Injection - Loosely Coupled
+class OrderService:
+    def __init__(self, database):  # Receives dependency from outside
+        self.database = database
+        
+    def create_order(self, items):
+        self.database.save(items)
+```
+
+Benefits:
+1. **Easy to test** — Pass a fake database
+2. **Easy to swap** — Pass any database that has a `save()` method
+3. **Clear dependencies** — The constructor tells you what's needed
+
+---
+
+## 3. Worked Example: A Complete Python Demonstration
+
+Here's a practical example — a notification system:
+
+```python
+from abc import ABC, abstractmethod
+
+
+# Step 1: Define an interface (what a notifier must do)
+class Notifier(ABC):
+    @abstractmethod
+    def send(self, message: str, recipient: str) -> bool:
+        """Send a notification. Return True if successful."""
+        pass
+
+
+# Step 2: Create concrete implementations
+class EmailNotifier(Notifier):
+    def send(self, message: str, recipient: str) -> bool:
+        print(f"Sending EMAIL to {recipient}: {message}")
+        # Real implementation would use SMTP
+        return True
+
+
+class SMSNotifier(Notifier):
+    def send(self, message: str, recipient: str) -> bool:
+        print(f"Sending SMS to {recipient}: {message}")
+        # Real implementation would use Twilio, etc.
+        return True
+
+
+# Step 3: The service that RECEIVES its dependency
+class UserService:
+    def __init__(self, notifier: Notifier):  # <-- DEPENDENCY INJECTION
+        self.notifier = notifier
+    
+    def register_user(self, email: str, name: str):
+        # Business logic here...
+        print(f"Registering user: {name}")
+        
+        # Use the injected notifier (we don't know or care which type)
+        self.notifier.send(
+            message=f"Welcome, {name}!",
+            recipient=email
+        )
+
+
+# Step 4: Wire it up (the "composition root")
+if __name__ == "__main__":
+    # For production: use real email
+    email_notifier = EmailNotifier()
+    user_service = UserService(notifier=email_notifier)
+    user_service.register_user("alice@example.com", "Alice")
+    
+    print("---")
+    
+    # Easy to swap: use SMS instead
+    sms_notifier = SMSNotifier()
+    user_service_sms = UserService(notifier=sms_notifier)
+    user_service_sms.register_user("+1234567890", "Bob")
+```
+
+**Output:**
+```
+Registering user: Alice
+Sending EMAIL to alice@example.com: Welcome, Alice!
+---
+Registering user: Bob
+Sending SMS to +1234567890: Welcome, Bob!
+```
+
+### Testing Becomes Simple
+
+```python
+# For testing: use a fake/mock
+class FakeNotifier(Notifier):
+    def __init__(self):
+        self.sent_messages = []  # Track what was sent
+    
+    def send(self, message: str, recipient: str) -> bool:
+        self.sent_messages.append((message, recipient))
+        return True
+
+
+def test_register_user_sends_notification():
+    # Arrange
+    fake = FakeNotifier()
+    service = UserService(notifier=fake)
+    
+    # Act
+    service.register_user("test@test.com", "Test User")
+    
+    # Assert
+    assert len(fake.sent_messages) == 1
+    assert "Welcome, Test User!" in fake.sent_messages[0][0]
+    print("Test passed!")
+
+
+test_register_user_sends_notification()
+```
+
+---
+
+## 4. Three Types of Dependency Injection
+
+| Type | How It Works | Example |
+|------|--------------|---------|
+| **Constructor Injection** | Pass via `__init__` | `Service(database)` |
+| **Setter Injection** | Pass via method | `service.set_database(db)` |
+| **Interface Injection** | Implement an interface | Less common in Python |
+
+**Constructor injection** (shown above) is the most common and recommended approach because dependencies are clear and the object is always in a valid state.
+
+---
+
+## 5. Practice Exercise
+
+**Try this yourself:** Modify the example to add a `SlackNotifier` that posts messages to a Slack channel.
+
+1. Create a `SlackNotifier` class that implements `Notifier`
+2. Inject it into `UserService`
+3. Verify it works without changing `UserService` at all
+
+This exercise reinforces the key insight: **UserService doesn't change when you add new notification types.**
+
+---
+
+## 6. Key Takeaways
+
+| Principle | Meaning |
+|-----------|---------|
+| **Inversion of Control** | Don't create dependencies, receive them |
+| **Depend on abstractions** | Accept interfaces, not concrete classes |
+| **Single Responsibility** | Classes do one thing; wiring happens elsewhere |
+
+---
+
+## 7. When to Use DI
+
+**Use DI when:**
+- You need to test code that uses external services
+- You want to swap implementations (dev vs. prod vs. test)
+- You want clear, explicit dependencies
+
+**Skip DI for:**
+- Simple value objects or data classes
+- Code that will never need alternative implementations
+- Small scripts where simplicity matters more
+
+---
+
+## Further Resources
+
+- **Python `dataclasses` with DI**: Using `@dataclass` for clean injection
+- **Dependency Injection frameworks**: `dependency-injector`, `injector` (for larger projects)
+- **SOLID principles**: DI is the "D" in SOLID (Dependency Inversion Principle)
+
+---
+
+*Feel free to ask if any part needs more explanation or if you'd like to explore a specific aspect deeper.*

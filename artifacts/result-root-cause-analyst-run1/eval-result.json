@@ -1,0 +1,9 @@
+{
+  "agent": "root-cause-analyst",
+  "run": 1,
+  "passed": true,
+  "reason": "Matched keywords: None, cache, check, return, if",
+  "response_length": 3408,
+  "test_type": "standard",
+  "threshold": 0.8
+}

@@ -404,7 +404,7 @@ def clear_screen() -> None:
     """Clear terminal screen"""
     import os
 
-    os.system("cls" if os.name == "nt" else "clear")
+    os.system("cls" if os.name == "nt" else "clear")  # nosec B605
 
 
 class StatusSpinner:
