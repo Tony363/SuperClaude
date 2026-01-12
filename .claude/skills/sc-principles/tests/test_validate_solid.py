@@ -1,10 +1,7 @@
 #!/usr/bin/env python3
 """Tests for SOLID validator."""
 
-import tempfile
 from pathlib import Path
-
-import pytest
 
 from scripts.validate_solid import (
     SOLIDThresholds,
@@ -103,8 +100,7 @@ def process(type_name):
         test_file = tmp_path / "type_switch.py"
         test_file.write_text(code)
 
-        violations = analyze_file_solid(test_file, SOLIDThresholds())
-
+        _ = analyze_file_solid(test_file, SOLIDThresholds())
         # This is harder to detect reliably, may not flag
         # The validator uses heuristics
 

@@ -1,10 +1,7 @@
 #!/usr/bin/env python3
 """Tests for Let It Crash validator."""
 
-import tempfile
 from pathlib import Path
-
-import pytest
 
 from scripts.validate_crash import (
     CrashThresholds,
@@ -66,8 +63,7 @@ def swallows_error():
         test_file = tmp_path / "swallowed.py"
         test_file.write_text(code)
 
-        violations = analyze_file_crash(test_file, CrashThresholds())
-
+        _ = analyze_file_crash(test_file, CrashThresholds())
         # In core paths, this would be flagged
         # In shell paths, it might be acceptable
 
@@ -152,8 +148,7 @@ def external_api_call():
         test_file = adapters_dir / "external.py"
         test_file.write_text(code)
 
-        violations = analyze_file_crash(test_file, CrashThresholds())
-
+        _ = analyze_file_crash(test_file, CrashThresholds())
         # Shell paths should have fewer/no violations for error handling
         # The severity should be warning, not error
 
@@ -173,8 +168,7 @@ def get_user(id: int):
         test_file = api_dir / "routes.py"
         test_file.write_text(code)
 
-        violations = analyze_file_crash(test_file, CrashThresholds())
-
+        _ = analyze_file_crash(test_file, CrashThresholds())
         # API handlers can catch and convert exceptions
 
 
