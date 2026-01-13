@@ -76,7 +76,9 @@ class TestWorktreeSkillStructure:
         frontmatter = parse_skill_frontmatter(worktree_skill_path)
 
         assert "name" in frontmatter, "Missing 'name' in frontmatter"
-        assert frontmatter["name"] == "sc-worktree", f"Expected name 'sc-worktree', got '{frontmatter['name']}'"
+        assert frontmatter["name"] == "sc-worktree", (
+            f"Expected name 'sc-worktree', got '{frontmatter['name']}'"
+        )
 
         assert "description" in frontmatter, "Missing 'description' in frontmatter"
         assert len(frontmatter["description"]) > 20, "Description too short"
@@ -115,8 +117,9 @@ class TestWorktreeCommands:
         """Verify create command is documented."""
         content = worktree_skill_path.read_text()
 
-        assert "create <task-id>" in content.lower() or "create `<task-id>`" in content.lower(), \
+        assert "create <task-id>" in content.lower() or "create `<task-id>`" in content.lower(), (
             "Create command should be documented"
+        )
         assert "git worktree add" in content, "Create should mention git worktree add"
 
     def test_cleanup_command_documented(self, worktree_skill_path: Path):
@@ -124,16 +127,18 @@ class TestWorktreeCommands:
         content = worktree_skill_path.read_text()
 
         assert "cleanup" in content.lower(), "Cleanup command should be documented"
-        assert "git worktree remove" in content or "git worktree prune" in content, \
+        assert "git worktree remove" in content or "git worktree prune" in content, (
             "Cleanup should mention git worktree remove/prune"
+        )
 
     def test_propose_command_documented(self, worktree_skill_path: Path):
         """Verify propose command is documented."""
         content = worktree_skill_path.read_text()
 
         assert "propose" in content.lower(), "Propose command should be documented"
-        assert "pr" in content.lower() or "pull request" in content.lower(), \
+        assert "pr" in content.lower() or "pull request" in content.lower(), (
             "Propose should mention PR creation"
+        )
 
 
 class TestWorktreeNamingConvention:
@@ -162,15 +167,15 @@ class TestWorktreeSafetyGuarantees:
         content = worktree_skill_path.read_text().lower()
 
         # Should explicitly mention no auto-merge
-        assert "no auto-merge" in content or "human review" in content, \
+        assert "no auto-merge" in content or "human review" in content, (
             "Should document no auto-merge / human review policy"
+        )
 
     def test_isolation_documented(self, worktree_skill_path: Path):
         """Verify isolation is documented."""
         content = worktree_skill_path.read_text().lower()
 
-        assert "isolation" in content or "isolated" in content, \
-            "Should document worktree isolation"
+        assert "isolation" in content or "isolated" in content, "Should document worktree isolation"
 
 
 class TestWorktreeMCPIntegration:
@@ -180,12 +185,12 @@ class TestWorktreeMCPIntegration:
         """Verify PAL MCP integration is documented."""
         content = worktree_skill_path.read_text()
 
-        assert "PAL MCP" in content or "mcp__pal" in content, \
-            "Should document PAL MCP integration"
+        assert "PAL MCP" in content or "mcp__pal" in content, "Should document PAL MCP integration"
 
     def test_rube_mcp_documented(self, worktree_skill_path: Path):
         """Verify Rube MCP integration is documented."""
         content = worktree_skill_path.read_text()
 
-        assert "Rube MCP" in content or "mcp__rube" in content, \
+        assert "Rube MCP" in content or "mcp__rube" in content, (
             "Should document Rube MCP integration"
+        )
