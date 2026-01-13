@@ -59,12 +59,21 @@ commands:
     prefix: /sc:document
     file: document.md
     description: "Documentation generation and maintenance"
-    aliases: [docs, readme]
+    aliases: [docs]
     flags:
       - "--api: Generate API documentation"
-      - "--readme: Update README"
       - "--guide: Create user guide"
       - "--changelog: Generate changelog"
+
+  - name: readme
+    prefix: /sc:readme
+    file: readme.md
+    description: "Auto-update README.md based on git diff with PAL consensus"
+    aliases: [readme-sync, doc-sync]
+    flags:
+      - "--base=BRANCH: Base branch to compare (default: main)"
+      - "--preview: Preview changes without writing"
+      - "--consensus: Force PAL consensus for all changes"
 
   - name: improve
     prefix: /sc:improve
@@ -164,8 +173,8 @@ commands:
 # MCP Integration for commands
 mcp_integration:
   pal:
-    codereview: "Used by /sc:implement --pal-review, /sc:pr-fix fix validation"
-    consensus: "Used by /sc:implement --consensus"
+    codereview: "Used by /sc:implement --pal-review, /sc:pr-fix fix validation, /sc:readme verification"
+    consensus: "Used by /sc:implement --consensus, /sc:readme --consensus"
     debug: "Used by /sc:analyze --deep, /sc:pr-fix CI failure diagnosis"
     precommit: "Used by /sc:git --commit"
 
