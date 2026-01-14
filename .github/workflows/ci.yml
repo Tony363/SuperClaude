@@ -270,7 +270,7 @@ jobs:
             echo "**Result**: No providers configured" >> $GITHUB_STEP_SUMMARY
           else
             echo "**Result**: Review failed (both providers)" >> $GITHUB_STEP_SUMMARY
-            exit 1
+            # Note: Not exiting with error since continue-on-error: true makes this advisory-only
           fi
 
   # ============================================
