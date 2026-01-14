@@ -1,0 +1,313 @@
+# SuperClaude PAL MCP Multi-Model Consensus Review
+# Manual workflow for deep, multi-model analysis of PRs
+# Uses PAL MCP with Gemini and OpenAI models for consensus validation
+# Dual Provider: AWS Bedrock (Primary) + Anthropic API (Fallback)
+
+name: PAL Consensus Review
+
+on:
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 'PR number to review'
+        required: true
+        type: number
+      review_type:
+        description: 'Review type'
+        required: false
+        default: 'full'
+        type: choice
+        options:
+          - full
+          - security
+          - performance
+
+jobs:
+  consensus-review:
+    name: Multi-Model Consensus Review
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: read
+
+    env:
+      BEDROCK_CONFIGURED: ${{ secrets.AWS_BEARER_TOKEN_BEDROCK != '' }}
+      ANTHROPIC_KEY_SET: ${{ secrets.ANTHROPIC_API_KEY != '' }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate provider configuration
+        id: validate_providers
+        run: |
+          if [[ "${{ env.BEDROCK_CONFIGURED }}" != "true" ]] && [[ "${{ env.ANTHROPIC_KEY_SET }}" != "true" ]]; then
+            echo "::error::No Claude API provider configured (AWS Bedrock or Anthropic API). Cannot proceed."
+            exit 1
+          fi
+          echo "Provider check passed:"
+          echo "  - Bedrock: ${{ env.BEDROCK_CONFIGURED }}"
+          echo "  - Anthropic: ${{ env.ANTHROPIC_KEY_SET }}"
+
+      - name: Get PR details
+        id: pr_details
+        run: |
+          PR_DATA=$(gh pr view ${{ inputs.pr_number }} --json title,body,baseRefName,headRefName,files --jq '{title: .title, base: .baseRefName, head: .headRefName, files: [.files[].path] | length}')
+          echo "pr_title=$(echo $PR_DATA | jq -r '.title')" >> $GITHUB_OUTPUT
+          echo "base_branch=$(echo $PR_DATA | jq -r '.base')" >> $GITHUB_OUTPUT
+          echo "head_branch=$(echo $PR_DATA | jq -r '.head')" >> $GITHUB_OUTPUT
+          echo "files_count=$(echo $PR_DATA | jq -r '.files')" >> $GITHUB_OUTPUT
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup PAL MCP configuration
+        run: |
+          cat > /tmp/pal-mcp-config.json << 'EOF'
+          {
+            "mcpServers": {
+              "pal": {
+                "command": "uvx",
+                "args": ["--from", "git+https://github.com/BeehiveInnovations/pal-mcp-server.git", "pal-mcp-server"],
+                "env": {
+                  "GEMINI_API_KEY": "${{ secrets.GEMINI_API_KEY }}",
+                  "OPENAI_API_KEY": "${{ secrets.OPENAI_API_KEY }}"
+                }
+              }
+            }
+          }
+          EOF
+
+      - name: PAL Consensus Review (AWS Bedrock - Primary)
+        if: env.BEDROCK_CONFIGURED == 'true'
+        id: bedrock_review
+        uses: anthropics/claude-code-action@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          use_bedrock: "true"
+          show_full_output: true
+          max_turns: 25
+          prompt: |
+            # SuperClaude Multi-Model Consensus Review
+
+            **Repository**: ${{ github.repository }}
+            **PR Number**: #${{ inputs.pr_number }}
+            **PR Title**: ${{ steps.pr_details.outputs.pr_title }}
+            **Base Branch**: ${{ steps.pr_details.outputs.base_branch }}
+            **Head Branch**: ${{ steps.pr_details.outputs.head_branch }}
+            **Files Changed**: ${{ steps.pr_details.outputs.files_count }}
+            **Review Type**: ${{ inputs.review_type }}
+
+            ## Instructions
+
+            You are performing a deep, multi-model consensus review of this PR for SuperClaude.
+
+            ### Step 1: Examine the PR
+            Use `gh pr diff ${{ inputs.pr_number }}` to get the full diff.
+
+            ### Step 2: Run PAL MCP Consensus
+            Use the `mcp__pal__consensus` tool to get multi-model perspectives.
+
+            Configure consensus with models:
+            - gemini-2.5-pro (for/neutral stance)
+            - gpt-4o (against/critical stance)
+
+            Review type focus:
+            - **full**: Security, code quality, performance, architecture
+            - **security**: Deep security analysis, vulnerability assessment
+            - **performance**: Efficiency, resource usage, scalability
+
+            ### Step 3: Use Additional PAL Tools (as needed)
+            - `mcp__pal__codereview` for systematic code review
+            - `mcp__pal__thinkdeep` for complex architectural decisions
+            - `mcp__pal__chat` for clarifications
+
+            ### Step 4: Post Comprehensive Results
+            Post findings using `gh pr comment` with this format:
+
+            ```markdown
+            ## PAL MCP Multi-Model Consensus Review (via AWS Bedrock)
+
+            **Review Type**: ${{ inputs.review_type }}
+
+            ### Executive Summary
+            [High-level assessment from consensus]
+
+            ### Multi-Model Consensus
+
+            #### Areas of Agreement
+            [Points where models agreed]
+
+            #### Areas of Divergence
+            [Points where models disagreed and why]
+
+            ### Critical Issues
+            [Any blocking issues]
+
+            ### Security Assessment
+            [Security-specific findings]
+
+            ### Performance Analysis
+            [Performance-specific findings]
+
+            ### Architecture Review
+            [Architecture-specific findings]
+
+            ### Recommendations
+            [Actionable recommendations from consensus]
+
+            ### Review Summary
+            | Category | Consensus Rating |
+            |----------|------------------|
+            | Security | /5 |
+            | Code Quality | /5 |
+            | Architecture | /5 |
+            | Testing | /5 |
+            | Overall | /5 |
+
+            ---
+            *Multi-model consensus review using PAL MCP (AWS Bedrock)*
+            *Models consulted: gemini-2.5-pro, gpt-4o*
+            ```
+
+          claude_args: >-
+            --mcp-config /tmp/pal-mcp-config.json
+            --allowed-tools
+            "Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*),mcp__pal__codereview,mcp__pal__consensus,mcp__pal__chat,mcp__pal__thinkdeep,mcp__pal__listmodels"
+        env:
+          AWS_BEARER_TOKEN_BEDROCK: ${{ secrets.AWS_BEARER_TOKEN_BEDROCK }}
+          AWS_REGION: ${{ secrets.AWS_REGION || 'us-east-1' }}
+          CLAUDE_CODE_USE_BEDROCK: "1"
+
+      - name: PAL Consensus Review (Anthropic API - Fallback)
+        if: env.ANTHROPIC_KEY_SET == 'true' && (env.BEDROCK_CONFIGURED != 'true' || steps.bedrock_review.outcome != 'success')
+        id: anthropic_review
+        uses: anthropics/claude-code-action@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          show_full_output: true
+          max_turns: 25
+          prompt: |
+            # SuperClaude Multi-Model Consensus Review
+
+            **Repository**: ${{ github.repository }}
+            **PR Number**: #${{ inputs.pr_number }}
+            **PR Title**: ${{ steps.pr_details.outputs.pr_title }}
+            **Base Branch**: ${{ steps.pr_details.outputs.base_branch }}
+            **Head Branch**: ${{ steps.pr_details.outputs.head_branch }}
+            **Files Changed**: ${{ steps.pr_details.outputs.files_count }}
+            **Review Type**: ${{ inputs.review_type }}
+
+            ## Instructions
+
+            You are performing a deep, multi-model consensus review of this PR for SuperClaude.
+
+            ### Step 1: Examine the PR
+            Use `gh pr diff ${{ inputs.pr_number }}` to get the full diff.
+
+            ### Step 2: Run PAL MCP Consensus
+            Use the `mcp__pal__consensus` tool to get multi-model perspectives.
+
+            Configure consensus with models:
+            - gemini-2.5-pro (for/neutral stance)
+            - gpt-4o (against/critical stance)
+
+            Review type focus:
+            - **full**: Security, code quality, performance, architecture
+            - **security**: Deep security analysis, vulnerability assessment
+            - **performance**: Efficiency, resource usage, scalability
+
+            ### Step 3: Use Additional PAL Tools (as needed)
+            - `mcp__pal__codereview` for systematic code review
+            - `mcp__pal__thinkdeep` for complex architectural decisions
+            - `mcp__pal__chat` for clarifications
+
+            ### Step 4: Post Comprehensive Results
+            Post findings using `gh pr comment` with this format:
+
+            ```markdown
+            ## PAL MCP Multi-Model Consensus Review (via Anthropic API - Fallback)
+
+            **Review Type**: ${{ inputs.review_type }}
+
+            ### Executive Summary
+            [High-level assessment from consensus]
+
+            ### Multi-Model Consensus
+
+            #### Areas of Agreement
+            [Points where models agreed]
+
+            #### Areas of Divergence
+            [Points where models disagreed and why]
+
+            ### Critical Issues
+            [Any blocking issues]
+
+            ### Security Assessment
+            [Security-specific findings]
+
+            ### Performance Analysis
+            [Performance-specific findings]
+
+            ### Architecture Review
+            [Architecture-specific findings]
+
+            ### Recommendations
+            [Actionable recommendations from consensus]
+
+            ### Review Summary
+            | Category | Consensus Rating |
+            |----------|------------------|
+            | Security | /5 |
+            | Code Quality | /5 |
+            | Architecture | /5 |
+            | Testing | /5 |
+            | Overall | /5 |
+
+            ---
+            *Multi-model consensus review using PAL MCP (Anthropic API - Fallback)*
+            *Models consulted: gemini-2.5-pro, gpt-4o*
+            ```
+
+          claude_args: >-
+            --mcp-config /tmp/pal-mcp-config.json
+            --allowed-tools
+            "Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*),mcp__pal__codereview,mcp__pal__consensus,mcp__pal__chat,mcp__pal__thinkdeep,mcp__pal__listmodels"
+
+      - name: Review status
+        if: always()
+        run: |
+          echo "## PAL MCP Multi-Model Consensus Review Status" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**PR**: #${{ inputs.pr_number }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Review Type**: ${{ inputs.review_type }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          BEDROCK_STATUS="${{ steps.bedrock_review.outcome || 'skipped' }}"
+          ANTHROPIC_STATUS="${{ steps.anthropic_review.outcome || 'skipped' }}"
+
+          echo "| Provider | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|----------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| AWS Bedrock (Primary) | $BEDROCK_STATUS |" >> $GITHUB_STEP_SUMMARY
+          echo "| Anthropic API (Fallback) | $ANTHROPIC_STATUS |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [[ "$BEDROCK_STATUS" == "success" ]] || [[ "$ANTHROPIC_STATUS" == "success" ]]; then
+            echo "**Result**: Multi-model consensus review completed and posted to PR" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "**Result**: Review failed (both providers)" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Consensus Features:**" >> $GITHUB_STEP_SUMMARY
+          echo "- Multi-model perspectives (Gemini + GPT-4o)" >> $GITHUB_STEP_SUMMARY
+          echo "- Systematic code review via PAL MCP" >> $GITHUB_STEP_SUMMARY
+          echo "- Deep thinking for complex decisions" >> $GITHUB_STEP_SUMMARY
+          echo "- Comprehensive security, performance, architecture analysis" >> $GITHUB_STEP_SUMMARY
