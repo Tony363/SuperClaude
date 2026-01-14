@@ -53,6 +53,227 @@ jobs:
           python scripts/validate_schema.py
 
   # ============================================
+  # Claude Code Review - Dual Provider (Bedrock + Anthropic)
+  # ============================================
+  claude-review:
+    name: Claude Code Review
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # Only run on PRs, skip dependabot
+    if: github.event_name == 'pull_request' && github.actor != 'dependabot[bot]'
+    needs: [quality]
+    continue-on-error: true
+
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: read
+
+    env:
+      BEDROCK_CONFIGURED: ${{ secrets.AWS_BEARER_TOKEN_BEDROCK != '' }}
+      ANTHROPIC_KEY_SET: ${{ secrets.ANTHROPIC_API_KEY != '' }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate provider configuration
+        id: validate_providers
+        run: |
+          if [[ "${{ env.BEDROCK_CONFIGURED }}" != "true" ]] && [[ "${{ env.ANTHROPIC_KEY_SET }}" != "true" ]]; then
+            echo "::warning::No Claude API provider configured (AWS Bedrock or Anthropic API). Skipping review."
+            echo "skip_review=true" >> $GITHUB_OUTPUT
+          else
+            echo "skip_review=false" >> $GITHUB_OUTPUT
+            echo "Provider check passed:"
+            echo "  - Bedrock: ${{ env.BEDROCK_CONFIGURED }}"
+            echo "  - Anthropic: ${{ env.ANTHROPIC_KEY_SET }}"
+          fi
+
+      - name: Get PR context
+        if: steps.validate_providers.outputs.skip_review != 'true'
+        id: pr_context
+        run: |
+          echo "pr_number=${{ github.event.pull_request.number }}" >> $GITHUB_OUTPUT
+          echo "pr_title=${{ github.event.pull_request.title }}" >> $GITHUB_OUTPUT
+
+          # Get files changed count
+          FILES_CHANGED=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | wc -l | tr -d ' ')
+          echo "files_changed=$FILES_CHANGED" >> $GITHUB_OUTPUT
+
+          # Get diff statistics
+          DIFF_STATS=$(git diff --stat origin/${{ github.base_ref }}...HEAD | tail -1)
+          echo "diff_stats=$DIFF_STATS" >> $GITHUB_OUTPUT
+
+          # Get list of Python files changed (first 20)
+          PYTHON_FILES=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | grep '\.py$' | head -20 | tr '\n' ',' | sed 's/,$//')
+          echo "python_files=$PYTHON_FILES" >> $GITHUB_OUTPUT
+
+          # Check if tests were modified
+          TESTS_MODIFIED=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | grep '^tests/' | wc -l | tr -d ' ')
+          echo "tests_modified=${TESTS_MODIFIED:-0}" >> $GITHUB_OUTPUT
+
+      - name: Claude Review (AWS Bedrock - Primary)
+        if: steps.validate_providers.outputs.skip_review != 'true' && env.BEDROCK_CONFIGURED == 'true'
+        id: bedrock_review
+        uses: anthropics/claude-code-action@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          use_bedrock: "true"
+          show_full_output: true
+          max_turns: 20
+          prompt: |
+            # SuperClaude PR Code Review
+
+            **Repository**: ${{ github.repository }}
+            **PR Number**: #${{ steps.pr_context.outputs.pr_number }}
+            **PR Title**: ${{ steps.pr_context.outputs.pr_title }}
+            **Files Changed**: ${{ steps.pr_context.outputs.files_changed }}
+            **Diff Stats**: ${{ steps.pr_context.outputs.diff_stats }}
+            **Python Files**: ${{ steps.pr_context.outputs.python_files }}
+            **Tests Modified**: ${{ steps.pr_context.outputs.tests_modified }}
+
+            ## Review Instructions
+
+            1. First, get the full diff using: `gh pr diff ${{ steps.pr_context.outputs.pr_number }}`
+
+            2. Review the changes focusing on:
+               - **Code Quality**: Clarity, maintainability, best practices
+               - **Security**: Potential vulnerabilities, input validation
+               - **Performance**: Efficiency concerns, resource usage
+               - **Architecture**: Design patterns, SOLID principles
+
+            3. Post your findings as a PR comment using `gh pr comment` with this format:
+
+            ```markdown
+            ## Claude Code Review (via AWS Bedrock)
+
+            ### Overview
+            [Brief summary of changes reviewed]
+
+            ### Critical Issues
+            [Any blocking issues that must be fixed]
+
+            ### High Priority
+            [Important improvements recommended]
+
+            ### Medium Priority
+            [Suggested improvements]
+
+            ### Positive Observations
+            [Good patterns and practices observed]
+
+            ### Review Summary
+            | Category | Rating |
+            |----------|--------|
+            | Security | /5 |
+            | Code Quality | /5 |
+            | Architecture | /5 |
+            | Testing | /5 |
+
+            *Generated by Claude Code Review (AWS Bedrock)*
+            ```
+
+          claude_args: >-
+            --allowed-tools
+            "Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*),Read,Glob,Grep"
+        env:
+          AWS_BEARER_TOKEN_BEDROCK: ${{ secrets.AWS_BEARER_TOKEN_BEDROCK }}
+          AWS_REGION: ${{ secrets.AWS_REGION || 'us-east-1' }}
+          CLAUDE_CODE_USE_BEDROCK: "1"
+
+      - name: Claude Review (Anthropic API - Fallback)
+        if: steps.validate_providers.outputs.skip_review != 'true' && env.ANTHROPIC_KEY_SET == 'true' && (env.BEDROCK_CONFIGURED != 'true' || steps.bedrock_review.outcome != 'success')
+        id: anthropic_review
+        uses: anthropics/claude-code-action@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          show_full_output: true
+          max_turns: 20
+          prompt: |
+            # SuperClaude PR Code Review
+
+            **Repository**: ${{ github.repository }}
+            **PR Number**: #${{ steps.pr_context.outputs.pr_number }}
+            **PR Title**: ${{ steps.pr_context.outputs.pr_title }}
+            **Files Changed**: ${{ steps.pr_context.outputs.files_changed }}
+            **Diff Stats**: ${{ steps.pr_context.outputs.diff_stats }}
+            **Python Files**: ${{ steps.pr_context.outputs.python_files }}
+            **Tests Modified**: ${{ steps.pr_context.outputs.tests_modified }}
+
+            ## Review Instructions
+
+            1. First, get the full diff using: `gh pr diff ${{ steps.pr_context.outputs.pr_number }}`
+
+            2. Review the changes focusing on:
+               - **Code Quality**: Clarity, maintainability, best practices
+               - **Security**: Potential vulnerabilities, input validation
+               - **Performance**: Efficiency concerns, resource usage
+               - **Architecture**: Design patterns, SOLID principles
+
+            3. Post your findings as a PR comment using `gh pr comment` with this format:
+
+            ```markdown
+            ## Claude Code Review (via Anthropic API - Fallback)
+
+            ### Overview
+            [Brief summary of changes reviewed]
+
+            ### Critical Issues
+            [Any blocking issues that must be fixed]
+
+            ### High Priority
+            [Important improvements recommended]
+
+            ### Medium Priority
+            [Suggested improvements]
+
+            ### Positive Observations
+            [Good patterns and practices observed]
+
+            ### Review Summary
+            | Category | Rating |
+            |----------|--------|
+            | Security | /5 |
+            | Code Quality | /5 |
+            | Architecture | /5 |
+            | Testing | /5 |
+
+            *Generated by Claude Code Review (Anthropic API - Fallback)*
+            ```
+
+          claude_args: >-
+            --allowed-tools
+            "Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*),Read,Glob,Grep"
+
+      - name: Review status
+        if: always() && steps.validate_providers.outputs.skip_review != 'true'
+        run: |
+          echo "## Claude Code Review Status" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          BEDROCK_STATUS="${{ steps.bedrock_review.outcome || 'skipped' }}"
+          ANTHROPIC_STATUS="${{ steps.anthropic_review.outcome || 'skipped' }}"
+
+          echo "| Provider | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|----------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| AWS Bedrock (Primary) | $BEDROCK_STATUS |" >> $GITHUB_STEP_SUMMARY
+          echo "| Anthropic API (Fallback) | $ANTHROPIC_STATUS |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [[ "$BEDROCK_STATUS" == "success" ]] || [[ "$ANTHROPIC_STATUS" == "success" ]]; then
+            echo "**Result**: Review completed successfully" >> $GITHUB_STEP_SUMMARY
+          elif [[ "$BEDROCK_STATUS" == "skipped" ]] && [[ "$ANTHROPIC_STATUS" == "skipped" ]]; then
+            echo "**Result**: No providers configured" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "**Result**: Review failed (both providers)" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
+
+  # ============================================
   # Test Matrix - Python 3.8 through 3.12
   # ============================================
   test:
