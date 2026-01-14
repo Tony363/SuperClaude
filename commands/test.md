@@ -36,7 +36,7 @@ Key behaviors:
 - Support continuous watch mode for development
 
 ## Testing Stack Guidance
-- **Web Intelligence**: Invoke LinkUp via `/sc:test --linkup --query "<search terms>"` for web insights and citation gathering; complement with Playwright/Cypress for large suites
+- **Web Intelligence**: Invoke Rube MCP's LINKUP_SEARCH via `/sc:test --linkup --query "<search terms>"` for web insights and citation gathering; complement with Playwright/Cypress for large suites
 - **QA Specialist Persona**: Activated for test analysis and quality assessment
 - **Enhanced Capabilities**: Cross-browser testing guidance, visual validation strategies, performance checks
 
@@ -67,10 +67,10 @@ Key behaviors:
 # Unit tests for specific directory with detailed coverage metrics
 ```
 
-### LinkUp Web Search
+### Web Search (via Rube MCP)
 ```
 /sc:test --linkup --query "pytest asyncio best practices"
-# Executes LinkUp searches through Rube MCP to collect current guidance
+# Executes LINKUP_SEARCH through Rube MCP to collect current guidance
 # Returns sourced answers and citations for follow-up testing steps
 ```
 

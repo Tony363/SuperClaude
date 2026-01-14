@@ -77,8 +77,7 @@ Commands compose with flags:
 ### MCP Integration
 External capabilities via MCP servers:
 - PAL for consensus and review
-- Rube for 500+ app integrations
-- LinkUp for current information
+- Rube for 500+ app integrations (including LINKUP_SEARCH for web search)
 
 ## 5. Efficiency
 

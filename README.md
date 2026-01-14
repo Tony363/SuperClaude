@@ -2,14 +2,15 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/version-7.0.0-blue" alt="Version">
-  <img src="https://img.shields.io/badge/agents-33-orange" alt="Agents">
-  <img src="https://img.shields.io/badge/skills-28-green" alt="Skills">
+  <img src="https://img.shields.io/badge/agents-35-orange" alt="Agents">
+  <img src="https://img.shields.io/badge/skills-30-green" alt="Skills">
   <img src="https://img.shields.io/badge/commands-14-purple" alt="Commands">
   <img src="https://img.shields.io/badge/modes-6-teal" alt="Modes">
+  <img src="https://img.shields.io/badge/python_core-3200_lines-red" alt="Core">
   <img src="https://img.shields.io/badge/license-MIT-lightgrey" alt="License">
 </p>
 
-**A config-first meta-framework for Claude Code that provides 33 specialized agent personas (16 core + 10 traits + 7 extensions), 14 structured commands, 28 skills, and comprehensive MCP integration with quality-driven iterative workflows.**
+**A config-first meta-framework for Claude Code that provides 35 specialized agent personas (16 core + 12 traits + 7 extensions), 14 structured commands, 30 skills, and comprehensive MCP integration with quality-driven iterative workflows.**
 
 SuperClaude transforms Claude Code into a powerful development platform with specialized agent prompts, signal-based loop orchestration, and multi-model consensus capabilities. The core interface is markdown and YAML configuration files, with a Python orchestration layer for advanced workflows including quality gates, termination detection, and PAL MCP integration.
 
@@ -21,6 +22,7 @@ SuperClaude transforms Claude Code into a powerful development platform with spe
 - [Key Features](#key-features)
 - [Architecture](#architecture)
 - [Core Orchestration Layer](#core-orchestration-layer)
+- [Core API Reference](#core-api-reference)
 - [Installation](#installation)
 - [Quick Start](#quick-start)
 - [Agent System](#agent-system)
@@ -30,6 +32,7 @@ SuperClaude transforms Claude Code into a powerful development platform with spe
 - [Skills System](#skills-system)
 - [Quality System](#quality-system)
 - [Quality Gates](#quality-gates)
+- [Metrics System](#metrics-system)
 - [Type System](#type-system)
 - [Configuration](#configuration)
 - [Directory Structure](#directory-structure)
@@ -42,14 +45,15 @@ SuperClaude transforms Claude Code into a powerful development platform with spe
 
 SuperClaude is a meta-prompt framework that enhances Claude Code with:
 
-- **33 Specialized Agents**: 16 core + 10 composable traits + 7 domain extensions (tiered architecture)
-- **28 Claude Skills**: 8 agent personas + 17 command workflows + 3 utility skills
+- **35 Specialized Agents**: 16 core + 12 composable traits + 7 domain extensions (tiered architecture)
+- **30 Active Skills**: 8 agent personas + 19 command workflows + 3 utility skills (plus 106 deprecated)
 - **14 Structured Commands**: analyze, implement, test, design, document, and more
 - **6 Framework Modes**: normal, brainstorming, introspection, task_management, token_efficiency, orchestration
-- **MCP Integration**: PAL (11 tools), Rube (500+ apps via Composio), LinkUp (web search)
+- **MCP Integration**: PAL (11 tools), Rube (500+ apps via Composio, including web search)
 - **Quality Gates**: KISS validator, Purity validator, and iterative quality loop
-- **Core Orchestration**: Python layer for loop management, PAL integration, and skill learning
+- **Core Orchestration**: ~3,200 lines Python for loop management, PAL integration, and skill learning
 - **Signal-Based Architecture**: Structured communication between components
+- **Metrics System**: Callback-based operational metrics with Prometheus/StatsD integration
 
 ---
 
@@ -79,12 +83,12 @@ SuperClaude v7.0.0 is a **config-first hybrid framework**:
 
 ### Tiered Agent Architecture
 
-33 agents organized in a tiered system for composable expertise:
+35 agents organized in a tiered system for composable expertise:
 
 | Tier | Count | Purpose | Examples |
 |------|-------|---------|----------|
 | **Core** | 16 | High-priority generalists | general-purpose, root-cause-analyst, refactoring-expert, security-engineer |
-| **Traits** | 10 | Composable modifiers | security-first, performance-first, test-driven, minimal-changes, mcp-pal-enabled, mcp-rube-enabled |
+| **Traits** | 12 | Composable modifiers | security-first, performance-first, test-driven, minimal-changes, solid-aligned, crash-resilient, mcp-pal-enabled, mcp-rube-enabled |
 | **Extensions** | 7 | Domain specialists | typescript-expert, golang-expert, rust-expert, react-specialist, kubernetes-specialist, data-engineer, ml-engineer |
 
 **Why Tiered?** The v7 architecture provides a lean, composable system. Core agents handle most tasks, traits modify behavior (e.g., `@security-engineer +security-first`), and extensions provide deep domain expertise when needed.
@@ -147,7 +151,6 @@ flowchart TB
     subgraph MCP["MCP Integrations"]
         PAL["PAL MCP<br/>11 tools"]
         RUBE["Rube MCP<br/>500+ apps"]
-        LINKUP["LinkUp<br/>Web search"]
     end
 
     REQ --> CLAUDE
@@ -162,7 +165,6 @@ flowchart TB
     TERM --> PALINT
     PALINT <--> PAL
     EXEC <--> RUBE
-    EXEC <--> LINKUP
     Config --> Runtime
 
     style User fill:#e8f5e9
@@ -282,6 +284,233 @@ The orchestrator uses structured signals for component communication:
 
 ---
 
+## Core API Reference
+
+Complete API documentation for the SuperClaude Python orchestration layer (`core/` module).
+
+### Module Exports
+
+```python
+from core import (
+    # Types
+    TerminationReason,      # Enum: 8 loop termination conditions
+    LoopConfig,             # Dataclass: Loop configuration
+    LoopResult,             # Dataclass: Final loop result
+    IterationResult,        # Dataclass: Single iteration result
+    QualityAssessment,      # Dataclass: Quality score + improvements
+    # Functions
+    detect_oscillation,     # Check for alternating score pattern
+    detect_stagnation,      # Check for flat score pattern
+    # Classes
+    QualityAssessor,        # Quality scoring wrapper
+    PALReviewSignal,        # PAL MCP signal generator
+    LoopOrchestrator,       # Main loop controller
+)
+```
+
+### LoopOrchestrator
+
+The main controller for `--loop` functionality.
+
+```python
+class LoopOrchestrator:
+    """
+    Lightweight agentic loop orchestrator.
+
+    Thread Safety: NOT thread-safe. Create new instance per task/thread.
+    """
+
+    def __init__(
+        self,
+        config: Optional[LoopConfig] = None,
+        logger: Optional[logging.Logger] = None,
+        metrics_emitter: Optional[MetricsEmitter] = None,
+    ) -> None:
+        """
+        Initialize the loop orchestrator.
+
+        Args:
+            config: Loop configuration (defaults to LoopConfig())
+            logger: Logger instance for structured logging
+            metrics_emitter: Callback for operational metrics
+        """
+
+    def run(
+        self,
+        initial_context: dict[str, Any],
+        skill_invoker: Callable[[dict[str, Any]], dict[str, Any]],
+    ) -> LoopResult:
+        """
+        Execute the agentic loop.
+
+        Args:
+            initial_context: Task context with:
+                - task: Description of what to implement
+                - improvements_needed: Initial improvements (optional)
+                - changed_files: Already modified files (optional)
+            skill_invoker: Function that invokes Skills via Claude Code
+                Should return dict with: changes, tests, lint, changed_files
+
+        Returns:
+            LoopResult with final output, assessment, and history
+        """
+```
+
+**Usage Example:**
+
+```python
+from core import LoopOrchestrator, LoopConfig
+
+config = LoopConfig(
+    max_iterations=3,
+    quality_threshold=70.0,
+    pal_review_enabled=True,
+)
+
+orchestrator = LoopOrchestrator(config)
+
+def my_skill_invoker(context):
+    return {
+        "changes": [...],
+        "tests": {"ran": True, "passed": 10, "failed": 0},
+        "lint": {"ran": True, "errors": 0},
+        "changed_files": ["src/module.py"],
+    }
+
+result = orchestrator.run(
+    initial_context={"task": "Implement user authentication"},
+    skill_invoker=my_skill_invoker,
+)
+
+print(f"Final score: {result.final_assessment.overall_score}")
+print(f"Termination: {result.termination_reason.value}")
+```
+
+### QualityAssessor
+
+Wraps `evidence_gate.py` for quality scoring.
+
+```python
+class QualityAssessor:
+    def __init__(self, threshold: float = 70.0) -> None
+    def assess(self, context: dict[str, Any]) -> QualityAssessment
+```
+
+**Scoring Breakdown (Fallback Mode):**
+
+| Component | Points | Condition |
+|-----------|--------|-----------|
+| File changes | 30 | Any changes detected |
+| Tests executed | 25 | Tests ran |
+| Tests passing | 20 | All tests pass |
+| Lint clean | 15 | No lint errors |
+| Coverage | 10 | 80%+ coverage |
+
+### PALReviewSignal
+
+Generates signals for PAL MCP invocation.
+
+```python
+class PALReviewSignal:
+    TOOL_CODEREVIEW = "mcp__pal__codereview"
+    TOOL_DEBUG = "mcp__pal__debug"
+    TOOL_THINKDEEP = "mcp__pal__thinkdeep"
+    TOOL_CONSENSUS = "mcp__pal__consensus"
+
+    @staticmethod
+    def generate_review_signal(
+        iteration: int,
+        changed_files: list[str],
+        quality_assessment: QualityAssessment,
+        model: str = "gpt-5",
+        review_type: str = "auto",  # auto/quick/full
+    ) -> dict[str, Any]
+
+    @staticmethod
+    def generate_debug_signal(
+        iteration: int,
+        termination_reason: str,
+        score_history: list[float],
+        model: str = "gpt-5",
+    ) -> dict[str, Any]
+
+    @staticmethod
+    def generate_final_validation_signal(
+        changed_files: list[str],
+        quality_assessment: QualityAssessment,
+        iteration_count: int,
+        model: str = "gpt-5",
+    ) -> dict[str, Any]
+```
+
+### Termination Functions
+
+Safety mechanisms preventing infinite loops.
+
+```python
+def detect_oscillation(
+    score_history: list[float],
+    window: int = 3,
+    threshold: float = 2.0,
+) -> bool:
+    """Detect alternating up/down score pattern."""
+
+def detect_stagnation(
+    score_history: list[float],
+    window: int = 3,
+    threshold: float = 2.0,
+) -> bool:
+    """Detect flat score pattern (variance < threshold)."""
+
+def check_insufficient_improvement(
+    current_score: float,
+    previous_score: float,
+    min_improvement: float = 5.0,
+) -> bool:
+    """Check if improvement is too small to continue."""
+
+def should_terminate(
+    score_history: list[float],
+    config_oscillation_window: int = 3,
+    config_stagnation_threshold: float = 2.0,
+    config_min_improvement: float = 5.0,
+) -> tuple[bool, str]:
+    """Check all termination conditions. Returns (should_stop, reason)."""
+```
+
+**Examples:**
+
+```python
+# Oscillation detection
+scores = [50.0, 60.0, 55.0, 62.0, 58.0]  # Up/down pattern
+detect_oscillation(scores)  # True
+
+# Stagnation detection
+scores = [65.0, 65.5, 64.8, 65.2]  # All within 2.0 range
+detect_stagnation(scores)  # True
+```
+
+### Helper Functions
+
+```python
+# Create skill invocation signal
+def create_skill_invoker_signal(context: dict[str, Any]) -> dict[str, Any]
+
+# Merge PAL feedback into context
+def incorporate_pal_feedback(
+    context: dict[str, Any],
+    pal_result: dict[str, Any],
+) -> dict[str, Any]
+
+# Convenience function for quality assessment
+def assess_quality(
+    context: dict[str, Any],
+    threshold: float = 70.0
+) -> QualityAssessment
+```
+
+---
+
 ## Installation
 
 ### Option 1: Clone Repository
@@ -386,7 +615,7 @@ High-priority generalists for common tasks:
 | requirements-analyst | requirements, spec, user story | Requirements analysis |
 | socratic-mentor | mentor, coach, why | Guided discovery learning |
 
-### Traits (10)
+### Traits (12)
 
 Composable behavior modifiers that can be combined with any agent:
 
@@ -400,6 +629,8 @@ Composable behavior modifiers that can be combined with any agent:
 | legacy-friendly | Support older systems | `@devops-architect +legacy-friendly` |
 | cloud-native | Modern cloud patterns | `@system-architect +cloud-native` |
 | rapid-prototype | Fast iteration | `@frontend-architect +rapid-prototype` |
+| solid-aligned | Enforce SOLID design principles (SRP, OCP, LSP, ISP, DIP) | `@system-architect +solid-aligned` |
+| crash-resilient | Enforce "Let It Crash" error handling philosophy | `@backend-architect +crash-resilient` |
 | mcp-pal-enabled | Enables PAL MCP tools (consensus, debug, codereview) | `@security-engineer +mcp-pal-enabled` |
 | mcp-rube-enabled | Enables Rube MCP tools (500+ app integrations) | `@devops-architect +mcp-rube-enabled` |
 
@@ -660,21 +891,14 @@ flowchart TB
         R5["REMOTE_WORKBENCH"]
         R6["FIND_RECIPE"]
         R7["EXECUTE_RECIPE"]
-    end
-
-    subgraph LinkUp["LinkUp - Web Search"]
-        L1["Deep Web Search"]
-        L2["Sourced Answers"]
-        L3["Real-time Info"]
+        R8["LINKUP_SEARCH"]
     end
 
     TASK["SuperClaude Task"] --> PAL
     TASK --> Rube
-    TASK --> LinkUp
 
     style PAL fill:#e3f2fd
     style Rube fill:#fce4ec
-    style LinkUp fill:#e8f5e9
 ```
 
 ### PAL MCP (11 Tools)
@@ -737,22 +961,22 @@ sequenceDiagram
 | Social | X (Twitter), LinkedIn, Meta apps |
 | AI Tools | Various AI services and APIs |
 
-### LinkUp Search
+### Web Search (via Rube MCP)
 
-Web search capabilities for real-time information:
+Web search capabilities are available through Rube MCP's LINKUP_SEARCH tool:
 - Deep or standard search depth
 - Sourced answers with citations and URLs
-- Accessed via `LINKUP_SEARCH` tool in Rube MCP
+- Accessed via `LINKUP_SEARCH` tool in `RUBE_MULTI_EXECUTE_TOOL`
 
 ---
 
 ## Skills System
 
-SuperClaude includes 28 Claude Code skills in `.claude/skills/`:
+SuperClaude includes 30 active Claude Code skills in `.claude/skills/` (plus 106 deprecated):
 
 ```mermaid
 flowchart TB
-    subgraph Skills[".claude/skills/ (28 total)"]
+    subgraph Skills[".claude/skills/ (30 active)"]
         subgraph Agent["Agent Skills (8)"]
             A1["agent-data-engineer"]
             A2["agent-fullstack-developer"]
@@ -764,7 +988,7 @@ flowchart TB
             A8["agent-technical-writer"]
         end
 
-        subgraph Command["Command Skills (17)"]
+        subgraph Command["Command Skills (19)"]
             C1["sc-analyze"]
             C2["sc-brainstorm"]
             C3["sc-build"]
@@ -779,9 +1003,11 @@ flowchart TB
             C12["sc-mcp"]
             C13["sc-pr-fix"]
             C14["sc-principles"]
-            C15["sc-tdd"]
-            C16["sc-test"]
-            C17["sc-workflow"]
+            C15["sc-readme"]
+            C16["sc-tdd"]
+            C17["sc-test"]
+            C18["sc-workflow"]
+            C19["sc-worktree"]
         end
 
         subgraph Utility["Utility Skills (3)"]
@@ -813,8 +1039,9 @@ flowchart TB
 | Type | Pattern | Count | Purpose |
 |------|---------|-------|---------|
 | Agent Skills | `agent-*` | 8 | Specialized personas for domains |
-| Command Skills | `sc-*` | 17 | Structured workflow implementations |
+| Command Skills | `sc-*` | 19 | Structured workflow implementations |
 | Utility Skills | `ask`, `ask-multi`, `learned` | 3 | User interaction and learning |
+| Deprecated | `DEPRECATED/*` | 106 | Archived skills from previous versions |
 
 ### Skill Architecture
 
@@ -1042,6 +1269,130 @@ When violations are detected:
 - **Repository Pattern** - Isolate database operations
 - **Adapter Pattern** - Wrap external APIs
 - **Return Don't Print** - Return values, let callers handle output
+
+---
+
+## Metrics System
+
+SuperClaude includes a callback-based metrics system (`core/metrics.py`) that decouples the orchestrator from specific metrics backends.
+
+### MetricsEmitter Protocol
+
+```python
+@runtime_checkable
+class MetricsEmitter(Protocol):
+    """Protocol defining the interface for metrics emission."""
+
+    def __call__(
+        self,
+        metric_name: str,
+        value: Any,
+        tags: Optional[Dict[str, str]] = None,
+    ) -> None: ...
+```
+
+### Available Emitters
+
+| Emitter | Purpose | Use Case |
+|---------|---------|----------|
+| `noop_emitter` | Does nothing | Default when no emitter configured |
+| `InMemoryMetricsCollector` | Collects to list | Testing and debugging |
+| `LoggingMetricsEmitter` | Logs via Python logging | Simple production logging |
+
+### InMemoryMetricsCollector
+
+Testing utility for collecting and querying metrics:
+
+```python
+from core.metrics import InMemoryMetricsCollector
+
+collector = InMemoryMetricsCollector()
+orchestrator = LoopOrchestrator(config, metrics_emitter=collector)
+result = orchestrator.run(context, invoker)
+
+# Query collected metrics
+assert collector.get("loop.completed.count") == 1
+assert collector.get("loop.duration.seconds") > 0
+assert collector.count("loop.iteration.quality_score.gauge") == 3
+
+# Filter by tags
+error_metrics = collector.filter_by_tags(
+    "loop.errors.count",
+    {"reason": "skill_invocation"}
+)
+```
+
+### Emitted Metrics
+
+**Loop Orchestrator Metrics:**
+
+| Metric | Type | Description |
+|--------|------|-------------|
+| `loop.started.count` | counter | Loop initiated |
+| `loop.completed.count` | counter | Loop finished (tags: termination_reason) |
+| `loop.duration.seconds` | timing | Total loop time |
+| `loop.iterations.total.gauge` | gauge | Iterations executed |
+| `loop.quality_score.final.gauge` | gauge | Final quality score |
+| `loop.errors.count` | counter | Errors (tags: reason) |
+| `loop.iteration.duration.seconds` | timing | Per-iteration timing |
+| `loop.iteration.quality_score.gauge` | gauge | Per-iteration quality |
+| `loop.iteration.quality_delta.gauge` | gauge | Quality change per iteration |
+
+**Skill Learning Metrics:**
+
+| Metric | Type | Description |
+|--------|------|-------------|
+| `learning.skills.applied.count` | counter | Skills injected at start |
+| `learning.skills.extracted.count` | counter | Skills learned (tags: domain, success) |
+| `learning.skills.promoted.count` | counter | Skills auto-promoted (tags: reason) |
+
+### Naming Convention
+
+```
+<component>.<subject>.<unit>
+```
+
+| Suffix | Type | Use Case |
+|--------|------|----------|
+| `.count` | counter | Events (incremental) |
+| `.gauge` | gauge | Current state (point-in-time) |
+| `.seconds` | timing | Duration measurement |
+
+### Integration Examples
+
+**Prometheus:**
+
+```python
+from prometheus_client import Counter, Gauge
+
+counters, gauges = {}, {}
+
+def prometheus_emitter(name, value, tags=None):
+    labels = tags or {}
+    if name.endswith('.count'):
+        if name not in counters:
+            counters[name] = Counter(name.replace('.', '_'), '', list(labels.keys()))
+        counters[name].labels(**labels).inc(value)
+    elif name.endswith('.gauge'):
+        if name not in gauges:
+            gauges[name] = Gauge(name.replace('.', '_'), '', list(labels.keys()))
+        gauges[name].labels(**labels).set(value)
+```
+
+**StatsD:**
+
+```python
+import statsd
+client = statsd.StatsClient()
+
+def statsd_emitter(name, value, tags=None):
+    if name.endswith('.count'):
+        client.incr(name, value)
+    elif name.endswith('.gauge'):
+        client.gauge(name, value)
+    elif name.endswith('.seconds'):
+        client.timing(name, value * 1000)  # Convert to ms
+```
 
 ---
 
@@ -1294,8 +1645,7 @@ servers:
   rube:
     integrations: 500+
     categories: [development, communication, productivity, google, microsoft]
-  linkup:
-    type: web_search
+    # Web search available via LINKUP_SEARCH tool
 ```
 
 ### config/consensus_policies.yaml
@@ -1384,8 +1734,7 @@ SuperClaude/
 │
 ├── mcp/                         # MCP integration guides
 │   ├── MCP_Pal.md               # PAL MCP (11 tools)
-│   ├── MCP_Rube.md              # Rube MCP (500+ apps)
-│   ├── MCP_LinkUp.md            # LinkUp web search
+│   ├── MCP_Rube.md              # Rube MCP (500+ apps, including web search)
 │   └── MCP_Zen.md               # Zen MCP
 │
 ├── tests/                       # Test suite
@@ -1534,7 +1883,7 @@ MIT License - see [LICENSE](LICENSE) for details.
 ## Acknowledgments
 
 - Claude Code team at Anthropic
-- MCP server developers (PAL, Rube/Composio, LinkUp)
+- MCP server developers (PAL, Rube/Composio)
 - All contributors to the SuperClaude framework
 
 ---
@@ -1542,5 +1891,5 @@ MIT License - see [LICENSE](LICENSE) for details.
 <p align="center">
   <strong>SuperClaude v7.0.0</strong><br>
   Config-First Meta-Framework for Claude Code<br>
-  <em>33 Agents (16 Core + 10 Traits + 7 Extensions) | 28 Skills | 14 Commands | 6 Modes | Quality-Driven Loops</em>
+  <em>35 Agents (16 Core + 12 Traits + 7 Extensions) | 30 Skills | 14 Commands | 6 Modes | Quality-Driven Loops</em>
 </p>

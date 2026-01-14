@@ -22,12 +22,12 @@ class MCPDocsComponent(Component):
         self.selected_servers: list[str] = []
 
         # Map documentation categories to files
+        # Note: LinkUp web search is accessed via Rube MCP's LINKUP_SEARCH tool
         self.server_docs_map = {
             "pal": "MCP_Pal.md",
             "rube": "MCP_Rube.md",
-            "linkup": "MCP_LinkUp.md",
         }
-        self.default_doc_servers = ["pal", "rube", "linkup"]
+        self.default_doc_servers = ["pal", "rube"]
 
         super().__init__(install_dir, Path(""))
 

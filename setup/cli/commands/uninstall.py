@@ -76,7 +76,7 @@ def verify_superclaude_file(file_path: Path, component: str) -> bool:
                 "MODE_Task_Management.md",
                 "MODE_Token_Efficiency.md",
             ],
-            "mcp_docs": ["MCP_Pal.md", "MCP_Rube.md", "MCP_LinkUp.md"],
+            "mcp_docs": ["MCP_Pal.md", "MCP_Rube.md"],
         }
 
         # For commands component, verify it's in the sc/ subdirectory

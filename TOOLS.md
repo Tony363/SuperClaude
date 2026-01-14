@@ -84,9 +84,9 @@ mcp__pal__consensus({
 
 **Supported Apps:** Slack, GitHub, Gmail, Google Sheets, Jira, Notion, Teams, and 500+ more.
 
-### LinkUp (Web Search)
+### Web Search (via Rube MCP)
 
-Web search integration via Rube MCP:
+Web search is available through Rube MCP's LINKUP_SEARCH tool:
 
 ```python
 RUBE_MULTI_EXECUTE_TOOL({
@@ -164,7 +164,7 @@ Each agent has access to appropriate tools based on their role:
 - Workflow recipes
 - OAuth-protected APIs
 
-### When to Use LinkUp
+### When to Use Web Search (LINKUP_SEARCH)
 - Current information lookup
 - Latest documentation
 - Recent updates
