@@ -24,7 +24,7 @@ Use these tools directly via Claude Code's tool invocation:
 - **Workflow dispatch** - create tickets, update sprints, trigger CI/CD pipelines
 - **Notification fan-out** - post release notes or QA status updates across tools
 - **Data sync** - coordinate artifacts (docs, dashboards, sheets) with changes
-- **Web search** - LinkUp integration for sourced answers and citations
+- **Web search** - LINKUP_SEARCH tool for sourced answers and citations
 
 ## Usage Examples
 
@@ -44,14 +44,48 @@ Use mcp__rube__RUBE_MULTI_EXECUTE_TOOL with:
   sync_response_to_workbench: false
 ```
 
-### Web Search (LinkUp)
+### Web Search (LINKUP_SEARCH)
+
+Rube MCP includes the LINKUP_SEARCH tool for deep web search with sourced answers, citations, and URLs.
+
+#### Parameters
+
+| Parameter | Values | Description |
+|-----------|--------|-------------|
+| `query` | string | The search query |
+| `depth` | `"deep"`, `"standard"` | Search thoroughness (use "deep" for comprehensive results) |
+| `output_type` | `"sourcedAnswer"`, `"searchResults"`, `"structured"` | Response format |
+
+#### When to Use
+
+- Current library/framework versions and documentation
+- Latest API syntax and best practices
+- Recent security updates and vulnerabilities
+- Error messages and deprecation warnings
+- External service status and configuration
+
+#### Simple Search
 ```
 Use mcp__rube__RUBE_MULTI_EXECUTE_TOOL with:
   tools: [{"tool_slug": "LINKUP_SEARCH", "arguments": {
-    "query": "your search query",
+    "query": "pytest asyncio best practices 2025",
     "depth": "deep",
     "output_type": "sourcedAnswer"
   }}]
+  session_id: "<from RUBE_SEARCH_TOOLS>"
+  memory: {}
+  sync_response_to_workbench: false
+```
+
+#### Batch Searches
+```
+Use mcp__rube__RUBE_MULTI_EXECUTE_TOOL with:
+  tools: [
+    {"tool_slug": "LINKUP_SEARCH", "arguments": {"query": "React 19 new features", "depth": "deep", "output_type": "sourcedAnswer"}},
+    {"tool_slug": "LINKUP_SEARCH", "arguments": {"query": "TypeScript 5.4 changes", "depth": "deep", "output_type": "sourcedAnswer"}}
+  ]
+  session_id: "<from RUBE_SEARCH_TOOLS>"
+  memory: {}
 ```
 
 ## Configuration

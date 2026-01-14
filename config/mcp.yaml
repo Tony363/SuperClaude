@@ -38,3 +38,4 @@ servers:
 
   rube:
     note: "Use mcp__rube__RUBE_SEARCH_TOOLS, mcp__rube__RUBE_MULTI_EXECUTE_TOOL"
+    # Web search is available via LINKUP_SEARCH tool in RUBE_MULTI_EXECUTE_TOOL

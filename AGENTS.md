@@ -23,11 +23,11 @@
 - **Current Time**: October 2025
 - **Note**: Claude doesn't have real-time clock access but is aware we're in October 2025
 
-### 🌐 Web Search Instructions - CRITICAL
+### Web Search Instructions - CRITICAL
 
-**IMPORTANT: Built-in WebSearch is DISABLED. You MUST use LinkUp via Rube MCP for ALL web searches.**
+**IMPORTANT: Built-in WebSearch is DISABLED. You MUST use Rube MCP's LINKUP_SEARCH tool for ALL web searches.**
 
-**Simple LinkUp Call:**
+**Simple Web Search Call:**
 ```
 // mcp__rube__RUBE_MULTI_EXECUTE_TOOL
 {
@@ -60,7 +60,7 @@
 - Error messages and deprecation warnings
 - External service status and configuration
 
-**Remember**: Your training data is static. LinkUp gives you CURRENT information. Use it liberally when information might have changed.
+**Remember**: Your training data is static. Rube MCP's LINKUP_SEARCH gives you CURRENT information. Use it liberally when information might have changed.
 
 ## Project Structure & Module Organization
 - `SuperClaude/` contains the orchestrator: `Commands/` for `/sc:` playbooks, `ModelRouter/` for

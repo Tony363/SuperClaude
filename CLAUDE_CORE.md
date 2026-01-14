@@ -34,8 +34,7 @@ Commands follow the `/sc:command` syntax:
 
 ### MCP Integrations
 - **PAL MCP**: consensus, thinkdeep, codereview, debug, planner
-- **Rube MCP**: 500+ app integrations
-- **LinkUp**: Web search for current information
+- **Rube MCP**: 500+ app integrations (including LINKUP_SEARCH for web search)
 
 ## Operational Guidelines
 

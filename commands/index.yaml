@@ -180,9 +180,7 @@ mcp_integration:
 
   rube:
     tools: "Available for /sc:workflow automation"
-
-  linkup:
-    search: "Available for /sc:brainstorm research"
+    linkup_search: "Web search available for /sc:brainstorm, /sc:test research via LINKUP_SEARCH tool"
 
 # Quality gates
 quality_gates:

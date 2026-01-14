@@ -19,7 +19,7 @@ Test execution with coverage analysis and quality reporting.
 # Watch mode with auto-fix
 /sc:test --watch --fix
 
-# Web search for testing guidance
+# Web search for testing guidance (uses Rube MCP's LINKUP_SEARCH)
 /sc:test --linkup --query "pytest asyncio best practices"
 ```
 
@@ -39,8 +39,8 @@ Test execution with coverage analysis and quality reporting.
 | `--coverage` | bool | false | Generate coverage report |
 | `--watch` | bool | false | Continuous watch mode |
 | `--fix` | bool | false | Auto-fix simple failures |
-| `--linkup` | bool | false | Web search for guidance |
-| `--query` | string | - | Search query for LinkUp |
+| `--linkup` | bool | false | Web search for guidance (via Rube MCP) |
+| `--query` | string | - | Search query for LINKUP_SEARCH |
 
 ## Personas Activated
 
@@ -94,9 +94,13 @@ mcp__pal__consensus(
 ### Rube Usage Patterns
 
 ```bash
-# Search for testing best practices (--linkup)
-mcp__rube__RUBE_SEARCH_TOOLS(queries=[
-    {"use_case": "web search for testing patterns", "known_fields": "query:pytest fixtures"}
+# Search for testing best practices (--linkup flag uses LINKUP_SEARCH)
+mcp__rube__RUBE_MULTI_EXECUTE_TOOL(tools=[
+    {"tool_slug": "LINKUP_SEARCH", "arguments": {
+        "query": "pytest fixtures best practices",
+        "depth": "deep",
+        "output_type": "sourcedAnswer"
+    }}
 ])
 
 # Post test results to Slack

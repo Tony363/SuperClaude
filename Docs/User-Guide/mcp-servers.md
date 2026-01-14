@@ -1,8 +1,8 @@
 # MCP Server Integrations
 
-SuperClaude ships with three Model Context Protocol (MCP) servers. This guide
-explains how to configure each one and how they behave now that mock fallbacks
-have been removed.
+SuperClaude ships with two Model Context Protocol (MCP) servers: PAL and Rube.
+This guide explains how to configure each one and how they behave now that mock
+fallbacks have been removed.
 
 ## 1. Configuration Overview
 
@@ -13,7 +13,7 @@ have been removed.
 - Server-specific environment variables:
   - `SC_PAL_OFFLINE=1` to force PAL into offline mode (requires manual executor
     registration).
-  - `SC_RUBE_API_KEY` for Rube automation calls and LinkUp web searches.
+  - `SC_RUBE_API_KEY` for Rube automation calls (including LINKUP_SEARCH web searches).
 
 ## 2. PAL Integration (Consensus)
 
@@ -40,14 +40,16 @@ See `CLAUDE.md` for usage patterns and when to use each tool.
 - Errors bubble up with actionable messages (e.g., missing token, HTTP failure)
   so automation scripts can abort cleanly.
 
-## 4. LinkUp Web Intelligence (via Rube)
+## 4. Web Search (via Rube MCP)
+
+Web search is available through Rube MCP's LINKUP_SEARCH tool:
 
 - Pass `--linkup` (or the legacy `--browser`) to commands such as `/sc:test` to
-  perform LinkUp searches through the active Rube session.
+  perform web searches through the active Rube session.
 - Configure defaults under `servers.rube.linkup` in `mcp.yaml` to adjust depth,
   output type, concurrency, and throttle behaviour.
 - When `SC_RUBE_MODE=dry-run` is set the integration echoes payloads instead of
-  contacting LinkUp, allowing offline validation.
+  making web search calls, allowing offline validation.
 
 ## 5. Troubleshooting
 
@@ -55,5 +57,5 @@ See `CLAUDE.md` for usage patterns and when to use each tool.
 - Use `python -m SuperClaude.MCP --list` to confirm available integrations, or
   `python -m SuperClaude.MCP --describe rube --json` for structured metadata.
 - Run `python benchmarks/run_benchmarks.py --suite integration` after changing
-  MCP settings; the suite exercises Rube and LinkUp paths alongside the main
-  workflow tests.
+  MCP settings; the suite exercises Rube paths (including LINKUP_SEARCH) alongside
+  the main workflow tests.
