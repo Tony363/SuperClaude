@@ -132,6 +132,10 @@ SuperClaude/Implementation/
 # Project specific
 # Legacy capitalized Tests folder was deprecated; keep actual test suites tracked.
 # (Removing prior ignore entry prevents accidental exclusion of tests/ quality gates.)
+
+# Agentic loop demo output (tic tac toe game)
+tests/tictactoe_demo/
+
 ClaudeDocs/
 temp/
 tmp/
