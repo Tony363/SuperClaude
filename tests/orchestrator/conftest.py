@@ -1,9 +1,8 @@
 """Test fixtures for Orchestrator tests."""
 
 import pytest
-from datetime import datetime
 
-from SuperClaude.Orchestrator.evidence import EvidenceCollector, TestResult
+from SuperClaude.Orchestrator.evidence import EvidenceCollector
 
 
 @pytest.fixture

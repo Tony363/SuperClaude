@@ -16,7 +16,8 @@ Usage:
         pass
 """
 
-from typing import Any, Callable, Awaitable
+from typing import Any, Awaitable, Callable
+
 from .evidence import EvidenceCollector
 
 # Type alias for SDK hook callbacks

@@ -2,15 +2,15 @@
 
 import pytest
 
+from SuperClaude.Orchestrator.evidence import EvidenceCollector
 from SuperClaude.Orchestrator.hooks import (
-    create_sdk_hooks,
-    create_safety_hooks,
+    DANGEROUS_PATTERNS,
     create_evidence_hooks,
     create_logging_hooks,
+    create_safety_hooks,
+    create_sdk_hooks,
     merge_hooks,
-    DANGEROUS_PATTERNS,
 )
-from SuperClaude.Orchestrator.evidence import EvidenceCollector
 
 
 class TestDangerousPatterns:

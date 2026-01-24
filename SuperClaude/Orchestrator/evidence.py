@@ -4,10 +4,10 @@ Evidence Collector - Accumulates evidence from SDK hooks during execution.
 Evidence is collected via PostToolUse hooks and used for quality assessment.
 """
 
-from dataclasses import dataclass, field
-from typing import Any
-from datetime import datetime
 import re
+from dataclasses import dataclass, field
+from datetime import datetime
+from typing import Any
 
 
 @dataclass

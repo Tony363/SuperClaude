@@ -23,13 +23,13 @@ Usage:
 import asyncio
 import logging
 from dataclasses import dataclass, field
-from typing import Any, AsyncIterator, Callable
 from datetime import datetime
 from enum import Enum
+from typing import Any, Callable
 
 from .evidence import EvidenceCollector
 from .hooks import create_sdk_hooks, merge_hooks
-from .quality import assess_quality, QualityAssessment, QualityConfig
+from .quality import QualityAssessment, QualityConfig, assess_quality
 
 # Logger for this module
 logger = logging.getLogger(__name__)
@@ -139,7 +139,7 @@ async def run_agentic_loop(
     """
     # Import SDK here to allow graceful handling if not installed
     try:
-        from claude_agent_sdk import query, ClaudeAgentOptions
+        from claude_agent_sdk import ClaudeAgentOptions, query
     except ImportError:
         raise ImportError(
             "Official Anthropic Agent SDK not installed. "
@@ -169,7 +169,6 @@ async def run_agentic_loop(
     loop_start = datetime.now()
 
     termination_reason = TerminationReason.MAX_ITERATIONS
-    final_assessment: QualityAssessment | None = None
 
     for iteration in range(effective_max):
         iteration_start = datetime.now()
@@ -200,7 +199,6 @@ async def run_agentic_loop(
 
         # Assess quality using evidence collected by hooks
         assessment = assess_quality(evidence, quality_config)
-        final_assessment = assessment
         score_history.append(assessment.score)
 
         # Record iteration result
@@ -288,7 +286,7 @@ def _build_iteration_prompt(
 
     if iteration > 0 and history:
         last = history[-1]
-        prompt += f"\n\n---\n"
+        prompt += "\n\n---\n"
         prompt += f"This is iteration {iteration + 1}. "
         prompt += f"Previous iteration scored {last.score:.1f}/100.\n"
 

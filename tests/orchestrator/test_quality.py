@@ -1,15 +1,13 @@
 """Tests for quality assessment in SuperClaude.Orchestrator.quality."""
 
-import pytest
-
+from SuperClaude.Orchestrator.evidence import EvidenceCollector
 from SuperClaude.Orchestrator.quality import (
-    assess_quality,
-    compare_assessments,
     QualityAssessment,
     QualityBand,
     QualityConfig,
+    assess_quality,
+    compare_assessments,
 )
-from SuperClaude.Orchestrator.evidence import EvidenceCollector
 
 
 class TestQualityBand:

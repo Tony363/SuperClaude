@@ -1,12 +1,10 @@
 """Tests for EvidenceCollector in SuperClaude.Orchestrator.evidence."""
 
-import pytest
 from datetime import datetime
 
 from SuperClaude.Orchestrator.evidence import (
-    EvidenceCollector,
-    FileChange,
     CommandResult,
+    FileChange,
     TestResult,
 )
 

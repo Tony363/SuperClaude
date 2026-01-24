@@ -4,9 +4,9 @@ import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 
 from SuperClaude.Orchestrator.loop_runner import (
+    IterationResult,
     LoopConfig,
     LoopResult,
-    IterationResult,
     TerminationReason,
     _build_iteration_prompt,
     _is_oscillating,
