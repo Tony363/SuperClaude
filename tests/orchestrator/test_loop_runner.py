@@ -1,7 +1,8 @@
 """Tests for loop runner in SuperClaude.Orchestrator.loop_runner."""
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 
 from SuperClaude.Orchestrator.loop_runner import (
     IterationResult,
