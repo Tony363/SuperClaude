@@ -490,7 +490,7 @@ jobs:
         run: |
           pip install pytest pytest-cov
           # Checkout just for tests (wheel is already installed)
-          git clone --depth 1 https://github.com/${{ github.repository }} repo
+          git clone --depth 1 https://x-access-token:${{ github.token }}@github.com/${{ github.repository }} repo
           cd repo
           pytest tests/core/ -v --tb=short -x
 
