@@ -25,6 +25,8 @@ jobs:
   codeql:
     name: CodeQL Analysis
     runs-on: ubuntu-latest
+    # Skip on forks/repos without Code Security enabled (requires paid feature)
+    if: github.repository == 'Tony363/SuperClaude'
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
