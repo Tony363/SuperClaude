@@ -1,0 +1,207 @@
+#!/usr/bin/env python3
+"""
+SuperClaude Loop CLI - Run agentic loops with the Official Anthropic Agent SDK.
+
+Usage:
+    superclaude-loop "Implement user authentication" --max-iterations 3
+    superclaude-loop "Fix the bug in auth.py" --threshold 80
+    superclaude-loop "Refactor the database module" --model opus
+
+This CLI provides a simple interface to SuperClaude's agentic loop system.
+For programmatic use, import directly from SuperClaude.Orchestrator.
+"""
+
+import argparse
+import asyncio
+import json
+import sys
+from datetime import datetime
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Run SuperClaude agentic loop with Official Anthropic Agent SDK",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  superclaude-loop "Implement user authentication"
+  superclaude-loop "Fix the login bug" --max-iterations 5
+  superclaude-loop "Add tests for auth.py" --threshold 80 --model sonnet
+  superclaude-loop "Refactor database" --output result.json
+
+For more options, use: superclaude-loop --help
+        """,
+    )
+
+    parser.add_argument(
+        "task",
+        help="Task description for Claude to execute",
+    )
+
+    parser.add_argument(
+        "-n",
+        "--max-iterations",
+        type=int,
+        default=3,
+        help="Maximum number of iterations (default: 3, max: 5)",
+    )
+
+    parser.add_argument(
+        "-t",
+        "--threshold",
+        type=float,
+        default=70.0,
+        help="Quality threshold to achieve (default: 70.0)",
+    )
+
+    parser.add_argument(
+        "-m",
+        "--model",
+        default="sonnet",
+        choices=["sonnet", "opus", "haiku"],
+        help="Claude model to use (default: sonnet)",
+    )
+
+    parser.add_argument(
+        "--timeout",
+        type=float,
+        default=None,
+        help="Overall timeout in seconds (default: no timeout)",
+    )
+
+    parser.add_argument(
+        "-o",
+        "--output",
+        help="Output file for JSON results (default: print to stdout)",
+    )
+
+    parser.add_argument(
+        "-v",
+        "--verbose",
+        action="store_true",
+        help="Enable verbose logging",
+    )
+
+    parser.add_argument(
+        "--pal-review",
+        action="store_true",
+        help="Enable PAL MCP reviews between iterations",
+    )
+
+    args = parser.parse_args()
+
+    # Set up logging
+    if args.verbose:
+        import logging
+
+        logging.basicConfig(
+            level=logging.INFO,
+            format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        )
+
+    # Import here to catch import errors gracefully
+    try:
+        from SuperClaude.Orchestrator import run_agentic_loop, LoopConfig
+    except ImportError as e:
+        print(f"Error: Failed to import SuperClaude Orchestrator: {e}", file=sys.stderr)
+        print(
+            "Make sure you have installed the orchestrator dependencies:",
+            file=sys.stderr,
+        )
+        print("  pip install SuperClaude[orchestrator]", file=sys.stderr)
+        sys.exit(1)
+
+    # Build configuration
+    config = LoopConfig(
+        max_iterations=min(args.max_iterations, 5),  # Enforce hard max
+        quality_threshold=args.threshold,
+        model=args.model,
+        timeout_seconds=args.timeout,
+        pal_review_enabled=args.pal_review,
+    )
+
+    # Progress callback
+    def on_iteration(result):
+        print(
+            f"  Iteration {result.iteration + 1}: "
+            f"score={result.score:.1f}, "
+            f"duration={result.duration_seconds:.1f}s"
+        )
+        if result.improvements:
+            for imp in result.improvements[:2]:
+                print(f"    - {imp}")
+
+    # Run the loop
+    print(f"Starting agentic loop...")
+    print(f"  Task: {args.task[:80]}{'...' if len(args.task) > 80 else ''}")
+    print(f"  Max iterations: {config.max_iterations}")
+    print(f"  Quality threshold: {config.quality_threshold}")
+    print(f"  Model: {config.model}")
+    print()
+
+    start_time = datetime.now()
+
+    try:
+        result = asyncio.run(
+            run_agentic_loop(
+                task=args.task,
+                config=config,
+                on_iteration=on_iteration,
+            )
+        )
+    except Exception as e:
+        print(f"\nError during execution: {e}", file=sys.stderr)
+        if args.verbose:
+            import traceback
+
+            traceback.print_exc()
+        sys.exit(1)
+
+    # Print summary
+    print()
+    print("=" * 50)
+    print("LOOP COMPLETE")
+    print("=" * 50)
+    print(f"  Status: {result.status}")
+    print(f"  Reason: {result.reason.value}")
+    print(f"  Final Score: {result.final_score:.1f}/100")
+    print(f"  Iterations: {result.total_iterations}")
+    print(f"  Duration: {result.total_duration_seconds:.1f}s")
+
+    if result.passed:
+        print("\n  Quality threshold achieved!")
+    else:
+        print(f"\n  Did not reach threshold ({config.quality_threshold})")
+
+    # Output JSON if requested
+    if args.output:
+        output_data = {
+            "status": result.status,
+            "reason": result.reason.value,
+            "final_score": result.final_score,
+            "total_iterations": result.total_iterations,
+            "total_duration_seconds": result.total_duration_seconds,
+            "passed": result.passed,
+            "iteration_history": [
+                {
+                    "iteration": r.iteration,
+                    "score": r.score,
+                    "improvements": r.improvements,
+                    "duration_seconds": r.duration_seconds,
+                }
+                for r in result.iteration_history
+            ],
+            "evidence_summary": result.evidence_summary,
+        }
+
+        with open(args.output, "w") as f:
+            json.dump(output_data, f, indent=2)
+
+        print(f"\n  Results written to: {args.output}")
+
+    # Exit with appropriate code
+    sys.exit(0 if result.passed else 1)
+
+
+if __name__ == "__main__":
+    main()
