@@ -106,16 +106,12 @@ class EvidenceCollector:
     def record_file_write(self, path: str, lines_changed: int = 0) -> None:
         """Record a file write operation."""
         self.files_written.append(path)
-        self.file_changes.append(
-            FileChange(path=path, action="write", lines_changed=lines_changed)
-        )
+        self.file_changes.append(FileChange(path=path, action="write", lines_changed=lines_changed))
 
     def record_file_edit(self, path: str, lines_changed: int = 0) -> None:
         """Record a file edit operation."""
         self.files_edited.append(path)
-        self.file_changes.append(
-            FileChange(path=path, action="edit", lines_changed=lines_changed)
-        )
+        self.file_changes.append(FileChange(path=path, action="edit", lines_changed=lines_changed))
 
     def record_file_read(self, path: str) -> None:
         """Record a file read operation."""

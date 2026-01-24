@@ -142,8 +142,7 @@ async def run_agentic_loop(
         from claude_agent_sdk import ClaudeAgentOptions, query
     except ImportError:
         raise ImportError(
-            "Official Anthropic Agent SDK not installed. "
-            "Install with: pip install claude-agent-sdk"
+            "Official Anthropic Agent SDK not installed. Install with: pip install claude-agent-sdk"
         )
 
     if config is None:

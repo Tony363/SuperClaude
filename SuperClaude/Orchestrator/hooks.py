@@ -66,10 +66,8 @@ def create_sdk_hooks(evidence: EvidenceCollector) -> dict[str, list[dict]]:
 
     # Merge hook configurations
     return {
-        "PreToolUse": safety_hooks.get("PreToolUse", [])
-        + evidence_hooks.get("PreToolUse", []),
-        "PostToolUse": safety_hooks.get("PostToolUse", [])
-        + evidence_hooks.get("PostToolUse", []),
+        "PreToolUse": safety_hooks.get("PreToolUse", []) + evidence_hooks.get("PreToolUse", []),
+        "PostToolUse": safety_hooks.get("PostToolUse", []) + evidence_hooks.get("PostToolUse", []),
         "Stop": evidence_hooks.get("Stop", []),
         "SubagentStop": evidence_hooks.get("SubagentStop", []),
     }
