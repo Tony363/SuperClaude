@@ -1,15 +1,15 @@
 """Tests for Obsidian artifact writer."""
 
-import pytest
-from pathlib import Path
 from datetime import datetime
 
-from setup.services.obsidian_config import ObsidianConfig, VaultConfig, ArtifactConfig
+import pytest
+
 from setup.services.obsidian_artifact import (
     DecisionRecord,
     ObsidianArtifactWriter,
     extract_decisions_from_evidence,
 )
+from setup.services.obsidian_config import ArtifactConfig, ObsidianConfig, VaultConfig
 
 
 class TestDecisionRecord:

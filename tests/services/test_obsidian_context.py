@@ -1,11 +1,8 @@
 """Tests for Obsidian context generator."""
 
 import pytest
-from pathlib import Path
-from datetime import datetime
 
-from setup.services.obsidian_config import ObsidianConfig, VaultConfig, ContextConfig
-from setup.services.obsidian_vault import ObsidianNote, ObsidianVaultService
+from setup.services.obsidian_config import ObsidianConfig, VaultConfig
 from setup.services.obsidian_context import ObsidianContextGenerator, generate_obsidian_context
 
 

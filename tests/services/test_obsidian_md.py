@@ -1,7 +1,6 @@
 """Tests for Obsidian CLAUDE.md integration service."""
 
 import pytest
-from pathlib import Path
 
 from setup.services.obsidian_md import ObsidianMdService, setup_obsidian_integration
 

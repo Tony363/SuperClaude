@@ -1,7 +1,8 @@
 """Tests for Obsidian vault service."""
 
-import pytest
 from pathlib import Path
+
+import pytest
 
 from setup.services.obsidian_config import ObsidianConfig, VaultConfig
 from setup.services.obsidian_vault import ObsidianNote, ObsidianVaultService

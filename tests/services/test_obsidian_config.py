@@ -1,18 +1,15 @@
 """Tests for Obsidian configuration service."""
 
-import pytest
 from pathlib import Path
-from unittest.mock import patch
+
+import pytest
 
 from setup.services.obsidian_config import (
+    ArtifactConfig,
+    ContextConfig,
     ObsidianConfig,
     ObsidianConfigService,
     VaultConfig,
-    ContextConfig,
-    ArtifactConfig,
-    NoteConfig,
-    RelevanceFilter,
-    BacklinksConfig,
 )
 
 
