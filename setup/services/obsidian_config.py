@@ -54,9 +54,7 @@ class ContextConfig:
     """Configuration for context extraction from vault."""
 
     relevance_filter: RelevanceFilter = field(default_factory=RelevanceFilter)
-    extract_fields: list[str] = field(
-        default_factory=lambda: ["summary", "tags", "category"]
-    )
+    extract_fields: list[str] = field(default_factory=lambda: ["summary", "tags", "category"])
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "ContextConfig":
@@ -90,9 +88,7 @@ class ArtifactConfig:
 
     sync_on: str = "task_completion"  # "task_completion", "manual", "never"
     types: list[str] = field(default_factory=lambda: ["decisions"])
-    output_paths: dict[str, str] = field(
-        default_factory=lambda: {"decisions": "Claude/Decisions/"}
-    )
+    output_paths: dict[str, str] = field(default_factory=lambda: {"decisions": "Claude/Decisions/"})
     backlinks: BacklinksConfig = field(default_factory=BacklinksConfig)
 
     @classmethod
@@ -223,9 +219,7 @@ class ObsidianConfigService:
             return self._config_cache
 
         if not self.config_exists():
-            self.logger.debug(
-                f"No Obsidian config found at {self.config_path}"
-            )
+            self.logger.debug(f"No Obsidian config found at {self.config_path}")
             return None
 
         try:

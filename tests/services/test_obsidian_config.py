@@ -25,11 +25,13 @@ class TestVaultConfig:
 
     def test_from_dict_custom(self):
         """Test VaultConfig with custom values."""
-        config = VaultConfig.from_dict({
-            "path": "/custom/vault",
-            "read_paths": ["Notes/", "Projects/"],
-            "output_base": "AI/",
-        })
+        config = VaultConfig.from_dict(
+            {
+                "path": "/custom/vault",
+                "read_paths": ["Notes/", "Projects/"],
+                "output_base": "AI/",
+            }
+        )
         assert config.path == Path("/custom/vault")
         assert config.read_paths == ["Notes/", "Projects/"]
         assert config.output_base == "AI/"
@@ -52,10 +54,12 @@ class TestContextConfig:
 
     def test_from_dict_custom(self):
         """Test ContextConfig with custom values."""
-        config = ContextConfig.from_dict({
-            "relevance_filter": {"type": "tags", "field": "topics"},
-            "extract_fields": ["title", "status"],
-        })
+        config = ContextConfig.from_dict(
+            {
+                "relevance_filter": {"type": "tags", "field": "topics"},
+                "extract_fields": ["title", "status"],
+            }
+        )
         assert config.relevance_filter.type == "tags"
         assert config.relevance_filter.field == "topics"
         assert config.extract_fields == ["title", "status"]
@@ -78,9 +82,7 @@ class TestArtifactConfig:
 
     def test_from_dict_backlinks_disabled(self):
         """Test ArtifactConfig with backlinks disabled."""
-        config = ArtifactConfig.from_dict({
-            "backlinks": {"enabled": False}
-        })
+        config = ArtifactConfig.from_dict({"backlinks": {"enabled": False}})
         assert config.backlinks.enabled is False
 
 
@@ -89,9 +91,7 @@ class TestObsidianConfig:
 
     def test_from_dict_minimal(self):
         """Test ObsidianConfig with minimal vault config."""
-        config = ObsidianConfig.from_dict({
-            "vault": {"path": "~/Documents/Obsidian"}
-        })
+        config = ObsidianConfig.from_dict({"vault": {"path": "~/Documents/Obsidian"}})
         assert config.vault.path == Path.home() / "Documents" / "Obsidian"
         assert config.context is not None
         assert config.artifacts is not None
@@ -99,23 +99,25 @@ class TestObsidianConfig:
 
     def test_from_dict_full(self):
         """Test ObsidianConfig with full configuration."""
-        config = ObsidianConfig.from_dict({
-            "vault": {
-                "path": "/vault",
-                "read_paths": ["KB/"],
-                "output_base": "Output/",
-            },
-            "context": {
-                "relevance_filter": {"type": "path", "field": "folder"},
-            },
-            "artifacts": {
-                "sync_on": "manual",
-                "types": ["decisions", "notes"],
-            },
-            "notes": {
-                "format": "minimal",
-            },
-        })
+        config = ObsidianConfig.from_dict(
+            {
+                "vault": {
+                    "path": "/vault",
+                    "read_paths": ["KB/"],
+                    "output_base": "Output/",
+                },
+                "context": {
+                    "relevance_filter": {"type": "path", "field": "folder"},
+                },
+                "artifacts": {
+                    "sync_on": "manual",
+                    "types": ["decisions", "notes"],
+                },
+                "notes": {
+                    "format": "minimal",
+                },
+            }
+        )
         assert config.vault.read_paths == ["KB/"]
         assert config.context.relevance_filter.type == "path"
         assert config.artifacts.sync_on == "manual"

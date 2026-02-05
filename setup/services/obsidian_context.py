@@ -84,12 +84,10 @@ Generated: {datetime.now().isoformat()}
 To add context:
 1. Create notes in your `Knowledge/` folder
 2. Add frontmatter with `project: {self.project_name}`
-3. Or tag notes with `#{self.project_name.lower().replace(' ', '-')}`
+3. Or tag notes with `#{self.project_name.lower().replace(" ", "-")}`
 """
 
-    def _generate_full_context(
-        self, notes: list[ObsidianNote], config: ObsidianConfig
-    ) -> str:
+    def _generate_full_context(self, notes: list[ObsidianNote], config: ObsidianConfig) -> str:
         """Generate full context from notes."""
         lines = [
             "# Obsidian Knowledge Context",
@@ -121,9 +119,7 @@ To add context:
 
         return "\n".join(lines)
 
-    def _group_by_category(
-        self, notes: list[ObsidianNote]
-    ) -> dict[str, list[ObsidianNote]]:
+    def _group_by_category(self, notes: list[ObsidianNote]) -> dict[str, list[ObsidianNote]]:
         """Group notes by category."""
         grouped: dict[str, list[ObsidianNote]] = {}
 
@@ -143,9 +139,7 @@ To add context:
 
         return sorted_grouped
 
-    def _format_note(
-        self, note: ObsidianNote, config: ObsidianConfig
-    ) -> list[str]:
+    def _format_note(self, note: ObsidianNote, config: ObsidianConfig) -> list[str]:
         """Format a single note for context output."""
         lines = [f"### {note.title}"]
 

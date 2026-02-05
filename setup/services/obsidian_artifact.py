@@ -124,9 +124,7 @@ class ObsidianArtifactWriter:
             self.logger.error(f"Failed to write decision artifact: {e}")
             return None
 
-    def _generate_decision_content(
-        self, decision: DecisionRecord, config: ObsidianConfig
-    ) -> str:
+    def _generate_decision_content(self, decision: DecisionRecord, config: ObsidianConfig) -> str:
         """Generate markdown content for a decision."""
         lines = []
 
@@ -207,9 +205,7 @@ class ObsidianArtifactWriter:
                 tags.append(decision.project.lower().replace(" ", "-"))
             frontmatter["tags"] = tags
         if "related" in includes and decision.source_notes:
-            frontmatter["related"] = [
-                f"[[{note}]]" for note in decision.source_notes
-            ]
+            frontmatter["related"] = [f"[[{note}]]" for note in decision.source_notes]
 
         # Add any extra metadata
         for key, value in decision.metadata.items():
@@ -329,25 +325,19 @@ def extract_decisions_from_evidence(
 
         # Check for PAL consensus tool
         if "consensus" in tool_name.lower():
-            decision = _parse_consensus_decision(
-                invocation, project_name, session_id
-            )
+            decision = _parse_consensus_decision(invocation, project_name, session_id)
             if decision:
                 decisions.append(decision)
 
         # Check for PAL thinkdeep tool
         elif "thinkdeep" in tool_name.lower():
-            decision = _parse_thinkdeep_decision(
-                invocation, project_name, session_id
-            )
+            decision = _parse_thinkdeep_decision(invocation, project_name, session_id)
             if decision:
                 decisions.append(decision)
 
         # Check for architecture patterns in other tools
         elif "architecture" in str(invocation.get("tool_input", {})).lower():
-            decision = _parse_architecture_decision(
-                invocation, project_name, session_id
-            )
+            decision = _parse_architecture_decision(invocation, project_name, session_id)
             if decision:
                 decisions.append(decision)
 

@@ -98,9 +98,7 @@ class ObsidianMdService:
 
             if success:
                 note_count = generator.get_note_count()
-                self.logger.success(
-                    f"Obsidian context integrated ({note_count} notes)"
-                )
+                self.logger.success(f"Obsidian context integrated ({note_count} notes)")
 
             return success
 

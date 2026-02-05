@@ -80,9 +80,7 @@ class ObsidianVaultService:
     """Service for reading and parsing Obsidian vault notes."""
 
     # Regex to match YAML frontmatter block
-    FRONTMATTER_PATTERN = re.compile(
-        r"^---\s*\n(.*?)\n---\s*\n?", re.DOTALL
-    )
+    FRONTMATTER_PATTERN = re.compile(r"^---\s*\n(.*?)\n---\s*\n?", re.DOTALL)
 
     # Regex to extract inline tags (#tag)
     TAG_PATTERN = re.compile(r"(?:^|\s)#([a-zA-Z0-9_/-]+)")
@@ -145,9 +143,7 @@ class ObsidianVaultService:
         self.logger.debug(f"Found {len(notes)} notes in vault")
         return notes
 
-    def filter_by_project(
-        self, notes: list[ObsidianNote], project_name: str
-    ) -> list[ObsidianNote]:
+    def filter_by_project(self, notes: list[ObsidianNote], project_name: str) -> list[ObsidianNote]:
         """
         Filter notes by project name.
 
@@ -226,10 +222,8 @@ class ObsidianVaultService:
                 try:
                     frontmatter = yaml.safe_load(match.group(1)) or {}
                 except yaml.YAMLError:
-                    self.logger.debug(
-                        f"Invalid YAML frontmatter in {relative_path}"
-                    )
-                body = content[match.end():]
+                    self.logger.debug(f"Invalid YAML frontmatter in {relative_path}")
+                body = content[match.end() :]
 
             # Extract title (from frontmatter or first heading or filename)
             title = frontmatter.get("title", "")
@@ -298,10 +292,7 @@ class ObsidianVaultService:
         """
         all_notes = self.scan_knowledge_folder()
         tag_lower = tag.lower()
-        return [
-            n for n in all_notes
-            if any(t.lower() == tag_lower for t in n.tags)
-        ]
+        return [n for n in all_notes if any(t.lower() == tag_lower for t in n.tags)]
 
     def get_notes_by_category(self, category: str) -> list[ObsidianNote]:
         """
@@ -315,7 +306,4 @@ class ObsidianVaultService:
         """
         all_notes = self.scan_knowledge_folder()
         category_lower = category.lower()
-        return [
-            n for n in all_notes
-            if n.category and n.category.lower() == category_lower
-        ]
+        return [n for n in all_notes if n.category and n.category.lower() == category_lower]

@@ -316,9 +316,7 @@ class TestExtractDecisionsFromEvidence:
         tool_invocations = [
             {
                 "tool_name": "mcp__pal__consensus",
-                "tool_input": {
-                    "question": "Should we use microservices or monolith?"
-                },
+                "tool_input": {"question": "Should we use microservices or monolith?"},
                 "tool_output": "Consensus: Use microservices for scalability...",
             }
         ]
@@ -340,9 +338,7 @@ class TestExtractDecisionsFromEvidence:
         tool_invocations = [
             {
                 "tool_name": "mcp__pal__thinkdeep",
-                "tool_input": {
-                    "topic": "Database scaling strategies"
-                },
+                "tool_input": {"topic": "Database scaling strategies"},
                 "tool_output": "Analysis: Consider horizontal scaling...",
             }
         ]
@@ -362,9 +358,7 @@ class TestExtractDecisionsFromEvidence:
         tool_invocations = [
             {
                 "tool_name": "Bash",
-                "tool_input": {
-                    "command": "echo 'architecture review'"
-                },
+                "tool_input": {"command": "echo 'architecture review'"},
                 "tool_output": "architecture decisions...",
             }
         ]
