@@ -133,7 +133,7 @@ flowchart TB
     end
 
     subgraph Config["Configuration Layer"]
-        AGENTS[("agents/<br/>16 core + 10 traits + 7 ext")]
+        AGENTS[("agents/<br/>16 core + 12 traits + 7 ext")]
         COMMANDS[("commands/<br/>14 templates")]
         SKILLS[(".claude/skills/<br/>28 skills")]
         YAML[("config/<br/>6 YAML files")]
@@ -181,7 +181,7 @@ SuperClaude uses a layered file-based architecture:
 1. **CLAUDE.md** - Master system prompt loaded by Claude Code
 2. **agents/index.yaml** - Agent registry with triggers, categories, and selection weights
 3. **agents/core/*.md** - 16 core agent persona prompts
-4. **agents/traits/*.md** - 10 composable behavior modifier prompts
+4. **agents/traits/*.md** - 12 composable behavior modifier prompts
 5. **agents/extensions/*.md** - 7 domain specialist prompts
 6. **commands/index.yaml** - Command registry with flags and aliases
 7. **commands/*.md** - 14 command templates
@@ -1675,10 +1675,10 @@ SuperClaude/
 ├── pyproject.toml               # Python project config
 │
 ├── .claude/
-│   └── skills/                  # 28 Claude Code skills
+│   └── skills/                  # 30 Claude Code skills
 │       ├── agent-*/             # 8 agent persona skills
 │       │   └── SKILL.md
-│       ├── sc-*/                # 17 command skills
+│       ├── sc-*/                # 19 command skills
 │       │   ├── SKILL.md
 │       │   └── scripts/         # Optional tool implementations
 │       ├── ask/                 # Single-select questions
@@ -1692,7 +1692,7 @@ SuperClaude/
 │   │   ├── root-cause-analyst.md
 │   │   ├── refactoring-expert.md
 │   │   └── ...
-│   ├── traits/                  # 10 composable trait prompts
+│   ├── traits/                  # 12 composable trait prompts
 │   │   ├── security-first.md
 │   │   ├── performance-first.md
 │   │   ├── test-driven.md
@@ -1731,6 +1731,23 @@ SuperClaude/
 │   ├── types.py                 # Core types (159 lines)
 │   ├── skill_learning_integration.py
 │   └── skill_persistence.py
+│
+├── SuperClaude/
+│   └── Orchestrator/            # SDK-based orchestration
+│       ├── __init__.py
+│       ├── evidence.py          # Evidence collection
+│       ├── hooks.py             # SDK hook integration
+│       ├── loop_runner.py       # Agentic loop runner
+│       ├── quality.py           # Quality assessment
+│       └── obsidian_hooks.py    # Obsidian vault sync hooks
+│
+├── setup/
+│   └── services/                # Installation services
+│       ├── obsidian_config.py   # Obsidian config management
+│       ├── obsidian_vault.py    # Vault reading/scanning
+│       ├── obsidian_context.py  # Context generation
+│       ├── obsidian_artifact.py # Decision artifact writing
+│       └── obsidian_md.py       # CLAUDE.md integration
 │
 ├── mcp/                         # MCP integration guides
 │   ├── MCP_Pal.md               # PAL MCP (11 tools)
