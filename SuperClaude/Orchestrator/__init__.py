@@ -13,11 +13,13 @@ Key Components:
     - create_sdk_hooks(): Factory for safety and evidence collection hooks
     - run_agentic_loop(): Main entry point for iterative execution
     - assess_quality(): Scores output based on collected evidence
+    - create_obsidian_hooks(): Factory for Obsidian vault integration hooks
 """
 
 from .evidence import EvidenceCollector
 from .hooks import create_evidence_hooks, create_safety_hooks, create_sdk_hooks
 from .loop_runner import LoopConfig, LoopResult, run_agentic_loop
+from .obsidian_hooks import create_obsidian_hooks, merge_obsidian_hooks
 from .quality import QualityAssessment, assess_quality
 
 __all__ = [
@@ -30,4 +32,7 @@ __all__ = [
     "run_agentic_loop",
     "LoopResult",
     "LoopConfig",
+    # Obsidian integration
+    "create_obsidian_hooks",
+    "merge_obsidian_hooks",
 ]
