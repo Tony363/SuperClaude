@@ -142,6 +142,9 @@ tests/e2e/workspaces/
 artifacts/e2e/
 /tmp/e2e_test_*
 
+# Rust build artifacts
+daemon/target/
+
 ClaudeDocs/
 temp/
 tmp/
