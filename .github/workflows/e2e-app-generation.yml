@@ -1,0 +1,294 @@
+# E2E Application Generation Tests
+# Verifies SuperClaude can generate complete, working applications
+#
+# Schedule: Weekly (Monday 4am UTC)
+# Manual dispatch: For specific apps or multiple runs
+# Timeout: 30 minutes per test
+
+name: E2E App Generation
+
+on:
+  schedule:
+    # Run weekly on Monday at 4am UTC
+    - cron: '0 4 * * 1'
+
+  workflow_dispatch:
+    inputs:
+      app:
+        description: 'Specific app to test (leave empty for all)'
+        required: false
+        type: string
+      runs_per_app:
+        description: 'Number of runs per app (1-5)'
+        required: false
+        default: '3'
+        type: string
+      threshold:
+        description: 'Pass rate threshold (0.0-1.0)'
+        required: false
+        default: '0.67'
+        type: string
+
+concurrency:
+  group: e2e-app-generation-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  DEFAULT_RUNS: 3
+  DEFAULT_THRESHOLD: '0.67'
+
+jobs:
+  # ============================================================
+  # Setup: Determine which apps to test
+  # ============================================================
+  setup:
+    name: Setup Test Matrix
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+      runs: ${{ steps.set-matrix.outputs.runs }}
+      threshold: ${{ steps.set-matrix.outputs.threshold }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install PyYAML
+        run: pip install pyyaml
+
+      - name: Determine test matrix
+        id: set-matrix
+        run: |
+          # Get configuration
+          RUNS="${{ github.event.inputs.runs_per_app || env.DEFAULT_RUNS }}"
+          THRESHOLD="${{ github.event.inputs.threshold || env.DEFAULT_THRESHOLD }}"
+          SPECIFIC_APP="${{ github.event.inputs.app }}"
+
+          echo "runs=$RUNS" >> $GITHUB_OUTPUT
+          echo "threshold=$THRESHOLD" >> $GITHUB_OUTPUT
+
+          # Generate matrix from e2e_apps.yaml
+          python3 << 'EOF'
+          import yaml
+          import json
+          import os
+
+          with open('evals/e2e_apps.yaml', 'r') as f:
+              config = yaml.safe_load(f)
+
+          specific_app = os.environ.get('SPECIFIC_APP', '').strip()
+          runs = int(os.environ.get('RUNS', '3'))
+
+          apps = []
+          for app_name, app_config in config.get('apps', {}).items():
+              if specific_app and app_name != specific_app:
+                  continue
+              apps.append({
+                  'name': app_name,
+                  'language': app_config.get('language', 'python'),
+              })
+
+          # Create matrix: app × run combinations
+          matrix = {
+              'include': []
+          }
+          for app in apps:
+              for run in range(1, runs + 1):
+                  matrix['include'].append({
+                      'app': app['name'],
+                      'language': app['language'],
+                      'run': run
+                  })
+
+          # Output matrix
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+              f.write(f"matrix={json.dumps(matrix)}\n")
+
+          print(f"Generated matrix with {len(matrix['include'])} jobs")
+          print(f"Apps: {[a['name'] for a in apps]}")
+          print(f"Runs per app: {runs}")
+          EOF
+        env:
+          SPECIFIC_APP: ${{ github.event.inputs.app }}
+          RUNS: ${{ github.event.inputs.runs_per_app || env.DEFAULT_RUNS }}
+
+  # ============================================================
+  # E2E Test: Generate and validate each application
+  # ============================================================
+  e2e-test:
+    name: "${{ matrix.app }} #${{ matrix.run }}"
+    needs: setup
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      max-parallel: 5
+      matrix: ${{ fromJson(needs.setup.outputs.matrix) }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Setup Node.js
+        if: matrix.language == 'node'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Setup Rust
+        if: matrix.language == 'rust'
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install dependencies
+        run: |
+          pip install pyyaml
+          npm install -g @anthropic-ai/claude-code
+
+      - name: Run E2E test
+        id: e2e
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          echo "=== Running E2E test for ${{ matrix.app }} (run ${{ matrix.run }}) ==="
+
+          # Run the E2E test
+          python tests/e2e/runner.py \
+            --app "${{ matrix.app }}" \
+            --runs 1 \
+            --output "artifacts/e2e" \
+            --keep-workdir || true
+
+          # Check result
+          RESULT_FILE="artifacts/e2e/result-${{ matrix.app }}-run1/e2e-result.json"
+          if [[ -f "$RESULT_FILE" ]]; then
+            PASSED=$(jq -r '.passed' "$RESULT_FILE")
+            REASON=$(jq -r '.reason' "$RESULT_FILE")
+
+            echo "passed=$PASSED" >> $GITHUB_OUTPUT
+            echo "reason=$REASON" >> $GITHUB_OUTPUT
+
+            if [[ "$PASSED" == "true" ]]; then
+              echo "=== PASS: $REASON ==="
+            else
+              echo "=== FAIL: $REASON ==="
+            fi
+          else
+            echo "passed=false" >> $GITHUB_OUTPUT
+            echo "reason=No result file generated" >> $GITHUB_OUTPUT
+            echo "=== FAIL: No result file generated ==="
+          fi
+
+      - name: Rename result for run number
+        run: |
+          # Rename result directory to include actual run number
+          if [[ -d "artifacts/e2e/result-${{ matrix.app }}-run1" ]]; then
+            mv "artifacts/e2e/result-${{ matrix.app }}-run1" \
+               "artifacts/e2e/result-${{ matrix.app }}-run${{ matrix.run }}"
+          fi
+
+      - name: Upload result artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: result-${{ matrix.app }}-run${{ matrix.run }}
+          path: artifacts/e2e/result-${{ matrix.app }}-run${{ matrix.run }}/
+          retention-days: 14
+
+      - name: Upload workdir on failure
+        if: steps.e2e.outputs.passed == 'false'
+        uses: actions/upload-artifact@v4
+        with:
+          name: workdir-${{ matrix.app }}-run${{ matrix.run }}
+          path: /tmp/e2e_test_${{ matrix.app }}*/
+          retention-days: 7
+
+  # ============================================================
+  # Compute Pass Rates: Aggregate results
+  # ============================================================
+  compute-pass-rates:
+    name: Compute Pass Rates
+    needs: [setup, e2e-test]
+    if: always() && needs.setup.result == 'success'
+    runs-on: ubuntu-latest
+    outputs:
+      all_passed: ${{ steps.compute.outputs.all_passed }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download all result artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts/e2e/
+          pattern: result-*
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Compute pass rates
+        id: compute
+        run: |
+          THRESHOLD="${{ needs.setup.outputs.threshold }}"
+
+          echo "=== Computing pass rates (threshold: $THRESHOLD) ==="
+
+          # Run the pass rate calculator
+          python scripts/compute_e2e_pass_rates.py \
+            --input artifacts/e2e/ \
+            --threshold "$THRESHOLD" \
+            --format console
+
+          # Generate markdown report for GitHub summary
+          python scripts/compute_e2e_pass_rates.py \
+            --input artifacts/e2e/ \
+            --threshold "$THRESHOLD" \
+            --format markdown \
+            --output "$GITHUB_STEP_SUMMARY"
+
+          # Get JSON result for output
+          python scripts/compute_e2e_pass_rates.py \
+            --input artifacts/e2e/ \
+            --threshold "$THRESHOLD" \
+            --format json > results.json
+
+          ALL_PASSED=$(jq -r '.all_passed' results.json)
+          echo "all_passed=$ALL_PASSED" >> $GITHUB_OUTPUT
+
+      - name: Upload aggregated results
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-aggregated-results
+          path: results.json
+          retention-days: 30
+
+  # ============================================================
+  # Final Status
+  # ============================================================
+  status:
+    name: Final Status
+    needs: [compute-pass-rates]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check results
+        run: |
+          if [[ "${{ needs.compute-pass-rates.outputs.all_passed }}" == "true" ]]; then
+            echo "All apps met their pass rate thresholds!"
+            exit 0
+          else
+            echo "Some apps failed to meet pass rate thresholds"
+            echo "See the Compute Pass Rates job for details"
+            exit 1
+          fi

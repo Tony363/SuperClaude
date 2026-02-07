@@ -136,6 +136,12 @@ SuperClaude/Implementation/
 # Agentic loop demo output (tic tac toe game)
 tests/tictactoe_demo/
 
+# E2E test output (generated apps and results)
+tests/e2e/output/
+tests/e2e/workspaces/
+artifacts/e2e/
+/tmp/e2e_test_*
+
 ClaudeDocs/
 temp/
 tmp/
