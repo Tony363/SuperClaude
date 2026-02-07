@@ -1,0 +1,372 @@
+syntax = "proto3";
+
+package superclaude.v1;
+
+import "google/protobuf/timestamp.proto";
+
+// Main SuperClaude orchestration service
+service SuperClaudeService {
+  // Execution lifecycle
+  rpc StartExecution(StartExecutionRequest) returns (StartExecutionResponse);
+  rpc StopExecution(StopExecutionRequest) returns (StopExecutionResponse);
+  rpc PauseExecution(PauseExecutionRequest) returns (PauseExecutionResponse);
+  rpc ResumeExecution(ResumeExecutionRequest) returns (ResumeExecutionResponse);
+
+  // Monitoring
+  rpc GetStatus(GetStatusRequest) returns (GetStatusResponse);
+  rpc ListExecutions(ListExecutionsRequest) returns (ListExecutionsResponse);
+  rpc StreamEvents(StreamEventsRequest) returns (stream AgentEvent);
+
+  // Configuration
+  rpc GetConfiguration(GetConfigurationRequest) returns (GetConfigurationResponse);
+  rpc UpdateConfiguration(UpdateConfigurationRequest) returns (UpdateConfigurationResponse);
+
+  // Obsidian integration (metadata only - files on disk)
+  rpc ListObsidianNotes(ListObsidianNotesRequest) returns (ListObsidianNotesResponse);
+  rpc GetObsidianNote(GetObsidianNoteRequest) returns (GetObsidianNoteResponse);
+
+  // Health check
+  rpc Ping(PingRequest) returns (PingResponse);
+}
+
+// ============================================================================
+// Core Event Type (oneof for efficient streaming)
+// ============================================================================
+
+message AgentEvent {
+  string execution_id = 1;
+  google.protobuf.Timestamp timestamp = 2;
+
+  oneof event {
+    IterationStarted iteration_started = 10;
+    IterationCompleted iteration_completed = 11;
+    ToolInvoked tool_invoked = 12;
+    FileChanged file_changed = 13;
+    TestResult test_result = 14;
+    ScoreUpdated score_updated = 15;
+    StateChanged state_changed = 16;
+    SubagentSpawned subagent_spawned = 17;
+    SubagentCompleted subagent_completed = 18;
+    ArtifactWritten artifact_written = 19;
+    LogMessage log_message = 20;
+    ErrorOccurred error = 21;
+  }
+}
+
+// ============================================================================
+// Event Payloads
+// ============================================================================
+
+message IterationStarted {
+  int32 iteration = 1;
+  int32 depth = 2;  // Tree depth for visualization
+  string node_id = 3;  // Unique ID for tree node
+}
+
+message IterationCompleted {
+  int32 iteration = 1;
+  float score = 2;
+  repeated string improvements = 3;
+  QualityDimensions dimensions = 4;
+  float duration_seconds = 5;
+  string node_id = 6;
+}
+
+message ToolInvoked {
+  string tool_name = 1;
+  string summary = 2;  // Brief description, not full output
+  bool blocked = 3;
+  string block_reason = 4;
+  int32 depth = 5;
+  string node_id = 6;
+  string parent_node_id = 7;
+}
+
+message FileChanged {
+  string path = 1;
+  FileAction action = 2;
+  int32 lines_added = 3;
+  int32 lines_removed = 4;
+  string node_id = 5;
+}
+
+enum FileAction {
+  FILE_ACTION_UNSPECIFIED = 0;
+  FILE_ACTION_READ = 1;
+  FILE_ACTION_WRITE = 2;
+  FILE_ACTION_EDIT = 3;
+  FILE_ACTION_DELETE = 4;
+}
+
+message TestResult {
+  string framework = 1;
+  int32 passed = 2;
+  int32 failed = 3;
+  int32 skipped = 4;
+  float coverage_percent = 5;
+  repeated string failed_tests = 6;
+  string node_id = 7;
+}
+
+message ScoreUpdated {
+  float old_score = 1;
+  float new_score = 2;
+  string reason = 3;
+  QualityDimensions dimensions = 4;
+}
+
+message StateChanged {
+  ExecutionState old_state = 1;
+  ExecutionState new_state = 2;
+  string reason = 3;
+}
+
+message SubagentSpawned {
+  string subagent_id = 1;
+  string subagent_type = 2;
+  string task_summary = 3;
+  int32 depth = 4;
+  string node_id = 5;
+  string parent_node_id = 6;
+}
+
+message SubagentCompleted {
+  string subagent_id = 1;
+  bool success = 2;
+  string result_summary = 3;
+  string node_id = 4;
+}
+
+message ArtifactWritten {
+  string obsidian_path = 1;  // Relative path in vault
+  string artifact_type = 2;  // "decision", "evidence", "summary"
+  string title = 3;
+}
+
+message LogMessage {
+  LogLevel level = 1;
+  string message = 2;
+  string source = 3;
+}
+
+enum LogLevel {
+  LOG_LEVEL_UNSPECIFIED = 0;
+  LOG_LEVEL_DEBUG = 1;
+  LOG_LEVEL_INFO = 2;
+  LOG_LEVEL_WARN = 3;
+  LOG_LEVEL_ERROR = 4;
+}
+
+message ErrorOccurred {
+  string error_type = 1;
+  string message = 2;
+  string traceback = 3;
+  bool recoverable = 4;
+}
+
+message QualityDimensions {
+  float code_changes = 1;
+  float tests_run = 2;
+  float tests_pass = 3;
+  float coverage = 4;
+  float no_errors = 5;
+}
+
+// ============================================================================
+// Execution Control
+// ============================================================================
+
+message StartExecutionRequest {
+  string task = 1;
+  string project_root = 2;
+  ExecutionConfig config = 3;
+}
+
+message StartExecutionResponse {
+  string execution_id = 1;
+  ExecutionState state = 2;
+  google.protobuf.Timestamp started_at = 3;
+}
+
+message StopExecutionRequest {
+  string execution_id = 1;
+  bool force = 2;  // Force immediate termination
+}
+
+message StopExecutionResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message PauseExecutionRequest {
+  string execution_id = 1;
+}
+
+message PauseExecutionResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message ResumeExecutionRequest {
+  string execution_id = 1;
+}
+
+message ResumeExecutionResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+// ============================================================================
+// Configuration
+// ============================================================================
+
+message ExecutionConfig {
+  int32 max_iterations = 1;
+  float quality_threshold = 2;
+  string model = 3;  // "sonnet", "opus", "haiku"
+  float timeout_seconds = 4;
+  bool pal_review_enabled = 5;
+  float min_improvement = 6;
+}
+
+message GetConfigurationRequest {}
+
+message GetConfigurationResponse {
+  ExecutionConfig default_config = 1;
+  ObsidianConfig obsidian_config = 2;
+  repeated string available_models = 3;
+}
+
+message UpdateConfigurationRequest {
+  ExecutionConfig config = 1;
+  ObsidianConfig obsidian_config = 2;
+}
+
+message UpdateConfigurationResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+// ============================================================================
+// Status & Monitoring
+// ============================================================================
+
+message GetStatusRequest {
+  string execution_id = 1;
+}
+
+message GetStatusResponse {
+  ExecutionStatus status = 1;
+}
+
+message ListExecutionsRequest {
+  bool include_completed = 1;
+  int32 limit = 2;
+}
+
+message ListExecutionsResponse {
+  repeated ExecutionSummary executions = 1;
+}
+
+message ExecutionSummary {
+  string execution_id = 1;
+  string task = 2;
+  ExecutionState state = 3;
+  int32 current_iteration = 4;
+  float current_score = 5;
+  google.protobuf.Timestamp started_at = 6;
+}
+
+message ExecutionStatus {
+  string execution_id = 1;
+  string task = 2;
+  ExecutionState state = 3;
+  int32 current_iteration = 4;
+  int32 max_iterations = 5;
+  float current_score = 6;
+  float quality_threshold = 7;
+  string termination_reason = 8;
+  EvidenceSummary evidence = 9;
+  google.protobuf.Timestamp started_at = 10;
+  google.protobuf.Timestamp ended_at = 11;
+}
+
+enum ExecutionState {
+  EXECUTION_STATE_UNSPECIFIED = 0;
+  EXECUTION_STATE_PENDING = 1;
+  EXECUTION_STATE_RUNNING = 2;
+  EXECUTION_STATE_PAUSED = 3;
+  EXECUTION_STATE_COMPLETED = 4;
+  EXECUTION_STATE_FAILED = 5;
+  EXECUTION_STATE_CANCELLED = 6;
+}
+
+message EvidenceSummary {
+  repeated string files_written = 1;
+  repeated string files_edited = 2;
+  int32 commands_run = 3;
+  bool tests_run = 4;
+  int32 tests_passed = 5;
+  int32 tests_failed = 6;
+  int32 subagents_spawned = 7;
+}
+
+message StreamEventsRequest {
+  string execution_id = 1;
+  bool include_history = 2;  // Send past events first
+}
+
+// ============================================================================
+// Obsidian Integration
+// ============================================================================
+
+message ObsidianConfig {
+  string vault_path = 1;
+  repeated string read_paths = 2;
+  string output_base = 3;
+  string sync_on = 4;  // "task_completion", "manual", "never"
+  bool backlinks_enabled = 5;
+}
+
+message ListObsidianNotesRequest {
+  string project_filter = 1;
+  string tag_filter = 2;
+  int32 limit = 3;
+}
+
+message ListObsidianNotesResponse {
+  repeated ObsidianNoteSummary notes = 1;
+}
+
+message ObsidianNoteSummary {
+  string relative_path = 1;
+  string title = 2;
+  repeated string tags = 3;
+  string summary = 4;
+  string project = 5;
+  google.protobuf.Timestamp modified_at = 6;
+}
+
+message GetObsidianNoteRequest {
+  string relative_path = 1;
+}
+
+message GetObsidianNoteResponse {
+  string relative_path = 1;
+  string title = 2;
+  string content = 3;
+  repeated string tags = 4;
+  string project = 5;
+}
+
+// ============================================================================
+// Health Check
+// ============================================================================
+
+message PingRequest {}
+
+message PingResponse {
+  string version = 1;
+  int32 active_executions = 2;
+  google.protobuf.Timestamp uptime_since = 3;
+}

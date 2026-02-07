@@ -1,0 +1,60 @@
+[package]
+name = "superclaude-daemon"
+version = "0.1.0"
+edition = "2021"
+authors = ["Tony"]
+description = "SuperClaude orchestration daemon - manages AI agent executions"
+license = "MIT"
+
+[[bin]]
+name = "superclaude-daemon"
+path = "src/main.rs"
+
+[dependencies]
+# gRPC
+tonic = { version = "0.12", features = ["transport"] }
+prost = "0.13"
+prost-types = "0.13"
+
+# Async runtime
+tokio = { version = "1", features = ["full"] }
+tokio-stream = { version = "0.1", features = ["sync"] }
+futures = "0.3"
+
+# File watching
+notify = "6.1"
+notify-debouncer-mini = "0.4"
+
+# Process management
+which = "6.0"
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Utilities
+anyhow = "1.0"
+thiserror = "1.0"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+chrono = { version = "0.4", features = ["serde"] }
+uuid = { version = "1.0", features = ["v4"] }
+dashmap = "6.0"
+parking_lot = "0.12"
+
+# Unix socket support
+hyper-util = { version = "0.1", features = ["tokio"] }
+tower = "0.5"
+
+# Async utilities
+async-stream = "0.3"
+
+# Platform-specific
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
+
+[build-dependencies]
+tonic-build = "0.12"
+
+[features]
+default = []
