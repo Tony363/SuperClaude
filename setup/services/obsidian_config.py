@@ -8,7 +8,12 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-import yaml
+try:
+    import yaml
+except ImportError as _yaml_err:
+    raise ImportError(
+        "Obsidian integration requires PyYAML. Install with: pip install pyyaml"
+    ) from _yaml_err
 
 from ..utils.logger import get_logger
 
