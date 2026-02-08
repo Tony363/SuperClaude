@@ -103,7 +103,7 @@ class MCPDocsComponent(Component):
             }
         }
 
-    def install(self, config: dict = None, **kwargs) -> bool:
+    def _install(self, config: dict[str, Any]) -> bool:
         """Install documentation files."""
         if not self.selected_servers:
             self.selected_servers = self.default_doc_servers
@@ -111,7 +111,7 @@ class MCPDocsComponent(Component):
         files = self.get_files_to_install()
         if not files:
             self.logger.info("No documentation files to install")
-            return True
+            return self._post_install()
 
         for source, target in files:
             try:
@@ -131,7 +131,23 @@ class MCPDocsComponent(Component):
             # CLAUDEMdService may not be available; imports are optional
             pass
 
-        return True
+        return self._post_install()
+
+    def _post_install(self) -> bool:
+        """Post-install setup for MCP docs component."""
+        try:
+            # Update metadata with MCP docs configuration
+            metadata_mods = self.get_metadata_modifications()
+            self.settings_manager.update_metadata(metadata_mods)
+            self.logger.info("Updated metadata with MCP docs configuration")
+            return True
+        except Exception as e:
+            self.logger.error(f"Failed to complete MCP docs post-install: {e}")
+            return False
+
+    def get_dependencies(self) -> list[str]:
+        """MCP docs depends on core component."""
+        return ["core"]
 
     def uninstall(self) -> bool:
         """Remove documentation files."""
@@ -141,14 +157,15 @@ class MCPDocsComponent(Component):
                 target.unlink()
         return True
 
-    def validate_installation(self, installSubPath: Path | None = None) -> bool:
+    def validate_installation(self, installSubPath: Path | None = None) -> tuple[bool, list[str]]:
         """Verify documentation files exist."""
         if not self.selected_servers:
-            return True
+            return True, []
+        errors = []
         for server_name in self.selected_servers:
             doc_file = self.server_docs_map.get(server_name)
             if doc_file:
                 target = self.install_dir / doc_file
                 if not target.exists():
-                    return False
-        return True
+                    errors.append(f"Missing documentation file: {doc_file}")
+        return len(errors) == 0, errors

@@ -143,7 +143,10 @@ artifacts/e2e/
 /tmp/e2e_test_*
 
 # Rust build artifacts
+target/
 daemon/target/
+crates/dashboard/frontend/dist/
+crates/dashboard/gen/
 
 ClaudeDocs/
 temp/
@@ -234,3 +237,13 @@ TODO.txt
 # Development artifacts (should not be in repo)
 package-lock.json
 uv.lock
+
+# File-based skill persistence (no SQLite)
+.claude/skills/learned/
+.claude/feedback/
+
+# Examples (standalone demos, not part of the framework)
+examples/
+
+# Documentation artifacts
+Docs/

@@ -203,9 +203,13 @@ class Installer:
 
         component = self.components[component_name]
 
-        # Skip if already installed and not in update mode
+        # Skip if already installed, files are intact, and not in update mode
         if component_name in self.installed_components and not config.get("update_mode"):
-            return True
+            valid, _ = component.validate_installation()
+            if valid:
+                return True
+            self.logger.info(f"Reinstalling {component_name} (installed files missing)")
+            self.installed_components.discard(component_name)
 
         # Check prerequisites
         success, errors = component.validate_prerequisites()

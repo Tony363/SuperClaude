@@ -178,10 +178,9 @@ class AgentsComponent(Component):
 
     def _get_source_dir(self) -> Path:
         """Get source directory for agent files"""
-        # Assume we're in SuperClaude/setup/components/agents.py
-        # and agent files are in SuperClaude/SuperClaude/Agents/
+        # Agent markdown files live in the top-level agents/core/ directory
         project_root = Path(__file__).parent.parent.parent
-        return project_root / "SuperClaude" / "Agents"
+        return project_root / "agents" / "core"
 
     def get_size_estimate(self) -> int:
         """Get estimated installation size"""

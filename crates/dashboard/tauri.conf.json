@@ -1,0 +1,25 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "SuperClaude Dashboard",
+  "version": "0.1.0",
+  "identifier": "com.superclaude.dashboard",
+  "build": {
+    "devUrl": "http://localhost:1420",
+    "frontendDist": "frontend/dist"
+  },
+  "app": {
+    "withGlobalTauri": true,
+    "windows": [{
+      "title": "SuperClaude Dashboard",
+      "width": 1280,
+      "height": 800,
+      "minWidth": 960,
+      "minHeight": 600,
+      "resizable": true,
+      "fullscreen": false
+    }],
+    "security": {
+      "csp": null
+    }
+  }
+}

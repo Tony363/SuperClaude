@@ -1,0 +1,41 @@
+[package]
+name = "superclaude-dashboard-frontend"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "SuperClaude Dashboard — Leptos WASM frontend"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+leptos = { version = "0.7", features = ["csr"] }
+
+# Workspace shared
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+# Shared types (WASM-safe)
+superclaude-core = { path = "../../superclaude-core", default-features = false }
+
+# Web APIs
+wasm-bindgen = "0.2"
+wasm-bindgen-futures = "0.4"
+serde-wasm-bindgen = "0.6"
+js-sys = "0.3"
+web-sys = { version = "0.3", features = [
+    "Window",
+    "Document",
+    "Element",
+    "HtmlElement",
+    "console",
+] }
+
+# Logging
+console_error_panic_hook = "0.1"
+console_log = "1"
+log = "0.4"
+
+# Utilities
+gloo-timers = { version = "0.3", features = ["futures"] }

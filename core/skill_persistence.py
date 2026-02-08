@@ -8,7 +8,7 @@ Enables cross-session learning by:
 4. Gating skill promotion through quality thresholds
 
 Architecture:
-    SkillStore (SQLite) ─> SkillExtractor ─> SkillRetriever
+    SkillStore (YAML files) ─> SkillExtractor ─> SkillRetriever
                               │
                               v
                        PromotionGate (PAL/tests)
@@ -16,23 +16,29 @@ Architecture:
                               v
                     .claude/skills/learned/
 
+Storage:
+    - Skills: ~/.claude/skills/learned/{skill-id}/metadata.yaml
+    - Feedback: ~/.claude/feedback/{session-id}.jsonl
+    - Applications: ~/.claude/feedback/{skill-id}_applications.jsonl
+
 Compatible with Python 3.9+
 """
 
 from __future__ import annotations
 
+import fcntl
 import hashlib
 import json
-import sqlite3
 import sys
-import threading
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
-# Thread-local storage for SQLite connections
-_local = threading.local()
+try:
+    import yaml
+except ImportError:
+    yaml = None  # type: ignore
 
 
 @dataclass
@@ -151,36 +157,52 @@ class IterationFeedback:
         return cls(**data)
 
 
+@dataclass
+class SkillApplication:
+    """Record of a skill being applied in a session."""
+
+    skill_id: str
+    session_id: str
+    applied_at: str
+    was_helpful: Optional[bool]
+    quality_impact: Optional[float]
+    feedback: str
+
+    def to_dict(self) -> dict[str, Any]:
+        return asdict(self)
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> SkillApplication:
+        return cls(**data)
+
+
 class SkillStore:
     """
-    SQLite-backed persistent storage for learned skills.
+    File-based persistent storage for learned skills.
 
-    Thread-safe with connection-per-thread pattern.
+    Uses YAML files for skills and JSONL for feedback/applications.
+    Thread-safe with file locking.
     """
 
-    DEFAULT_DB_PATH = Path.home() / ".claude" / "learned_skills.db"
+    DEFAULT_SKILLS_DIR = Path.home() / ".claude" / "skills" / "learned"
+    DEFAULT_FEEDBACK_DIR = Path.home() / ".claude" / "feedback"
 
-    def __init__(self, db_path: Optional[Path] = None):
-        self.db_path = db_path or self.DEFAULT_DB_PATH
-        self.db_path.parent.mkdir(parents=True, exist_ok=True)
-        self._init_schema()
+    def __init__(
+        self,
+        skills_dir: Optional[Path] = None,
+        feedback_dir: Optional[Path] = None,
+    ):
+        self.skills_dir = skills_dir or self.DEFAULT_SKILLS_DIR
+        self.feedback_dir = feedback_dir or self.DEFAULT_FEEDBACK_DIR
+        self.skills_dir.mkdir(parents=True, exist_ok=True)
+        self.feedback_dir.mkdir(parents=True, exist_ok=True)
 
-    def _get_connection(self) -> sqlite3.Connection:
-        """Get thread-local database connection with WAL mode for concurrency."""
-        if not hasattr(_local, "connection") or _local.connection is None:
-            _local.connection = sqlite3.connect(
-                str(self.db_path), check_same_thread=False, timeout=30.0
-            )
-            _local.connection.row_factory = sqlite3.Row
-            # Enable WAL mode for better concurrent access
-            _local.connection.execute("PRAGMA journal_mode=WAL")
-        return _local.connection
+        # In-memory cache for skills (loaded on first access)
+        self._skills_cache: Optional[Dict[str, LearnedSkill]] = None
 
     def close(self) -> None:
-        """Close the thread-local database connection."""
-        if hasattr(_local, "connection") and _local.connection is not None:
-            _local.connection.close()
-            _local.connection = None
+        """No-op for API compatibility with SQLite version."""
+        pass
 
     def __enter__(self) -> "SkillStore":
         return self
@@ -188,135 +210,152 @@ class SkillStore:
     def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
         self.close()
 
-    def _init_schema(self) -> None:
-        """Initialize database schema."""
-        conn = self._get_connection()
-        conn.executescript("""
-            CREATE TABLE IF NOT EXISTS learned_skills (
-                skill_id TEXT PRIMARY KEY,
-                name TEXT NOT NULL,
-                description TEXT,
-                triggers TEXT,  -- JSON array
-                domain TEXT,
-                source_session TEXT,
-                source_repo TEXT,
-                learned_at TEXT,
-                patterns TEXT,  -- JSON array
-                anti_patterns TEXT,  -- JSON array
-                quality_score REAL,
-                iteration_count INTEGER,
-                provenance TEXT,  -- JSON object
-                applicability_conditions TEXT,  -- JSON array
-                promoted INTEGER DEFAULT 0,
-                promotion_reason TEXT,
-                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-                updated_at TEXT DEFAULT CURRENT_TIMESTAMP
-            );
+    def _load_skills(self) -> Dict[str, LearnedSkill]:
+        """Load all skills from disk into memory."""
+        if self._skills_cache is not None:
+            return self._skills_cache
 
-            CREATE TABLE IF NOT EXISTS iteration_feedback (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                session_id TEXT NOT NULL,
-                iteration INTEGER,
-                quality_before REAL,
-                quality_after REAL,
-                improvements_applied TEXT,  -- JSON array
-                improvements_needed TEXT,  -- JSON array
-                changed_files TEXT,  -- JSON array
-                test_results TEXT,  -- JSON object
-                duration_seconds REAL,
-                success INTEGER,
-                termination_reason TEXT,
-                timestamp TEXT,
-                created_at TEXT DEFAULT CURRENT_TIMESTAMP
-            );
+        skills = {}
+        for skill_dir in self.skills_dir.iterdir():
+            if not skill_dir.is_dir():
+                continue
 
-            CREATE TABLE IF NOT EXISTS skill_applications (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                skill_id TEXT NOT NULL,
-                session_id TEXT NOT NULL,
-                applied_at TEXT,
-                was_helpful INTEGER,  -- 1=yes, 0=no, NULL=unknown
-                quality_impact REAL,  -- delta in quality score
-                feedback TEXT,
-                FOREIGN KEY (skill_id) REFERENCES learned_skills(skill_id)
-            );
+            metadata_path = skill_dir / "metadata.yaml"
+            if not metadata_path.exists():
+                # Try JSON fallback for backwards compatibility
+                metadata_path = skill_dir / "metadata.json"
 
-            CREATE INDEX IF NOT EXISTS idx_feedback_session
-                ON iteration_feedback(session_id);
-            CREATE INDEX IF NOT EXISTS idx_skills_domain
-                ON learned_skills(domain);
-            CREATE INDEX IF NOT EXISTS idx_skills_promoted
-                ON learned_skills(promoted);
-            CREATE INDEX IF NOT EXISTS idx_applications_skill
-                ON skill_applications(skill_id);
-        """)
-        conn.commit()
+            if not metadata_path.exists():
+                continue
+
+            try:
+                content = metadata_path.read_text()
+                if metadata_path.suffix == ".yaml":
+                    if yaml is None:
+                        # Fallback to JSON if PyYAML not available
+                        data = json.loads(content)
+                    else:
+                        data = yaml.safe_load(content)
+                else:
+                    data = json.loads(content)
+
+                skill = LearnedSkill.from_dict(data)
+                skills[skill.skill_id] = skill
+            except (json.JSONDecodeError, yaml.YAMLError if yaml else Exception, KeyError) as e:
+                print(
+                    f"[SkillStore] Failed to load skill from {metadata_path}: {e}",
+                    file=sys.stderr,
+                )
+                continue
+
+        self._skills_cache = skills
+        return skills
+
+    def _invalidate_cache(self) -> None:
+        """Invalidate the skills cache after writes."""
+        self._skills_cache = None
+
+    def _write_with_lock(self, path: Path, content: str) -> bool:
+        """Write content to file with exclusive lock."""
+        try:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            with open(path, "w") as f:
+                fcntl.flock(f.fileno(), fcntl.LOCK_EX)
+                try:
+                    f.write(content)
+                    f.flush()
+                    return True
+                finally:
+                    fcntl.flock(f.fileno(), fcntl.LOCK_UN)
+        except (IOError, OSError) as e:
+            print(f"[SkillStore] Failed to write {path}: {e}", file=sys.stderr)
+            return False
+
+    def _append_jsonl(self, path: Path, data: dict) -> bool:
+        """Append a JSONL record with lock."""
+        try:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            with open(path, "a") as f:
+                fcntl.flock(f.fileno(), fcntl.LOCK_EX)
+                try:
+                    f.write(json.dumps(data) + "\n")
+                    f.flush()
+                    return True
+                finally:
+                    fcntl.flock(f.fileno(), fcntl.LOCK_UN)
+        except (IOError, OSError) as e:
+            print(f"[SkillStore] Failed to append to {path}: {e}", file=sys.stderr)
+            return False
+
+    def _read_jsonl(self, path: Path) -> List[dict]:
+        """Read all records from a JSONL file."""
+        if not path.exists():
+            return []
+
+        records = []
+        try:
+            with open(path, "r") as f:
+                for line in f:
+                    line = line.strip()
+                    if line:
+                        try:
+                            records.append(json.loads(line))
+                        except json.JSONDecodeError:
+                            continue
+        except (IOError, OSError) as e:
+            print(f"[SkillStore] Failed to read {path}: {e}", file=sys.stderr)
+
+        return records
 
     # --- Skill CRUD Operations ---
 
     def save_skill(self, skill: LearnedSkill) -> bool:
         """Save or update a learned skill. Returns True on success."""
-        conn = self._get_connection()
+        skill_dir = self.skills_dir / skill.skill_id
+        metadata_path = skill_dir / "metadata.yaml"
+
         try:
-            conn.execute(
-                """
-                INSERT OR REPLACE INTO learned_skills (
-                    skill_id, name, description, triggers, domain,
-                    source_session, source_repo, learned_at, patterns,
-                    anti_patterns, quality_score, iteration_count,
-                    provenance, applicability_conditions, promoted,
-                    promotion_reason, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """,
-                (
-                    skill.skill_id,
-                    skill.name,
-                    skill.description,
-                    json.dumps(skill.triggers),
-                    skill.domain,
-                    skill.source_session,
-                    skill.source_repo,
-                    skill.learned_at,
-                    json.dumps(skill.patterns),
-                    json.dumps(skill.anti_patterns),
-                    skill.quality_score,
-                    skill.iteration_count,
-                    json.dumps(skill.provenance),
-                    json.dumps(skill.applicability_conditions),
-                    1 if skill.promoted else 0,
-                    skill.promotion_reason,
-                    datetime.now(timezone.utc).isoformat(),
-                ),
-            )
-            conn.commit()
+            skill_dir.mkdir(parents=True, exist_ok=True)
+
+            # Write metadata
+            if yaml is not None:
+                content = yaml.safe_dump(skill.to_dict(), default_flow_style=False, sort_keys=False)
+            else:
+                content = json.dumps(skill.to_dict(), indent=2)
+
+            if not self._write_with_lock(metadata_path, content):
+                return False
+
+            # Write SKILL.md
+            skill_md_path = skill_dir / "SKILL.md"
+            if not self._write_with_lock(skill_md_path, skill.to_skill_md()):
+                return False
+
+            self._invalidate_cache()
             return True
-        except sqlite3.Error as e:
+
+        except (IOError, OSError) as e:
             print(f"[SkillStore] Failed to save skill {skill.skill_id}: {e}", file=sys.stderr)
             return False
 
     def get_skill(self, skill_id: str) -> Optional[LearnedSkill]:
         """Retrieve a skill by ID."""
-        conn = self._get_connection()
-        row = conn.execute(
-            "SELECT * FROM learned_skills WHERE skill_id = ?", (skill_id,)
-        ).fetchone()
-        return self._row_to_skill(row) if row else None
+        skills = self._load_skills()
+        return skills.get(skill_id)
 
     def get_promoted_skills(self) -> list[LearnedSkill]:
         """Get all promoted skills."""
-        conn = self._get_connection()
-        rows = conn.execute(
-            "SELECT * FROM learned_skills WHERE promoted = 1 ORDER BY quality_score DESC"
-        ).fetchall()
-        return [self._row_to_skill(row) for row in rows]
+        skills = self._load_skills()
+        promoted = [s for s in skills.values() if s.promoted]
+        promoted.sort(key=lambda s: s.quality_score, reverse=True)
+        return promoted
 
     def get_skills_by_domain(self, domain: str) -> list[LearnedSkill]:
         """Get skills matching a domain."""
-        conn = self._get_connection()
-        rows = conn.execute(
-            "SELECT * FROM learned_skills WHERE domain = ? ORDER BY quality_score DESC", (domain,)
-        ).fetchall()
-        return [self._row_to_skill(row) for row in rows]
+        skills = self._load_skills()
+        domain_skills = [s for s in skills.values() if s.domain == domain]
+        domain_skills.sort(key=lambda s: s.quality_score, reverse=True)
+        return domain_skills
 
     def search_skills(
         self,
@@ -326,117 +365,54 @@ class SkillStore:
         promoted_only: bool = False,
     ) -> List[LearnedSkill]:
         """Search skills by trigger keywords and filters."""
-        conn = self._get_connection()
+        skills = self._load_skills()
 
-        sql = "SELECT * FROM learned_skills WHERE quality_score >= ?"
-        params: list[Any] = [min_quality]
-
-        if domain:
-            sql += " AND domain = ?"
-            params.append(domain)
-
-        if promoted_only:
-            sql += " AND promoted = 1"
-
-        sql += " ORDER BY quality_score DESC"
-
-        rows = conn.execute(sql, params).fetchall()
+        # Apply filters
+        candidates = []
+        for skill in skills.values():
+            if skill.quality_score < min_quality:
+                continue
+            if domain and skill.domain != domain:
+                continue
+            if promoted_only and not skill.promoted:
+                continue
+            candidates.append(skill)
 
         # Filter by trigger match
         query_terms = set(query.lower().split())
         results = []
-        for row in rows:
-            skill = self._row_to_skill(row)
+        for skill in candidates:
             skill_triggers = set(t.lower() for t in skill.triggers)
             if query_terms & skill_triggers:
                 results.append(skill)
 
+        # Sort by quality
+        results.sort(key=lambda s: s.quality_score, reverse=True)
         return results
-
-    def _row_to_skill(self, row: sqlite3.Row) -> LearnedSkill:
-        """Convert database row to LearnedSkill object."""
-        return LearnedSkill(
-            skill_id=row["skill_id"],
-            name=row["name"],
-            description=row["description"] or "",
-            triggers=json.loads(row["triggers"] or "[]"),
-            domain=row["domain"] or "",
-            source_session=row["source_session"] or "",
-            source_repo=row["source_repo"] or "",
-            learned_at=row["learned_at"] or "",
-            patterns=json.loads(row["patterns"] or "[]"),
-            anti_patterns=json.loads(row["anti_patterns"] or "[]"),
-            quality_score=row["quality_score"] or 0.0,
-            iteration_count=row["iteration_count"] or 0,
-            provenance=json.loads(row["provenance"] or "{}"),
-            applicability_conditions=json.loads(row["applicability_conditions"] or "[]"),
-            promoted=bool(row["promoted"]),
-            promotion_reason=row["promotion_reason"] or "",
-        )
 
     # --- Iteration Feedback ---
 
     def save_feedback(self, feedback: IterationFeedback) -> bool:
         """Record iteration feedback for learning. Returns True on success."""
-        conn = self._get_connection()
-        try:
-            conn.execute(
-                """
-                INSERT INTO iteration_feedback (
-                    session_id, iteration, quality_before, quality_after,
-                    improvements_applied, improvements_needed, changed_files,
-                    test_results, duration_seconds, success, termination_reason,
-                    timestamp
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """,
-                (
-                    feedback.session_id,
-                    feedback.iteration,
-                    feedback.quality_before,
-                    feedback.quality_after,
-                    json.dumps(feedback.improvements_applied),
-                    json.dumps(feedback.improvements_needed),
-                    json.dumps(feedback.changed_files),
-                    json.dumps(feedback.test_results),
-                    feedback.duration_seconds,
-                    1 if feedback.success else 0,
-                    feedback.termination_reason,
-                    feedback.timestamp,
-                ),
-            )
-            conn.commit()
-            return True
-        except sqlite3.Error as e:
-            print(
-                f"[SkillStore] Failed to save feedback for session {feedback.session_id}: {e}",
-                file=sys.stderr,
-            )
-            return False
+        feedback_path = self.feedback_dir / f"{feedback.session_id}.jsonl"
+        return self._append_jsonl(feedback_path, feedback.to_dict())
 
     def get_session_feedback(self, session_id: str) -> list[IterationFeedback]:
         """Get all feedback for a session."""
-        conn = self._get_connection()
-        rows = conn.execute(
-            "SELECT * FROM iteration_feedback WHERE session_id = ? ORDER BY iteration",
-            (session_id,),
-        ).fetchall()
-        return [
-            IterationFeedback(
-                session_id=row["session_id"],
-                iteration=row["iteration"],
-                quality_before=row["quality_before"],
-                quality_after=row["quality_after"],
-                improvements_applied=json.loads(row["improvements_applied"] or "[]"),
-                improvements_needed=json.loads(row["improvements_needed"] or "[]"),
-                changed_files=json.loads(row["changed_files"] or "[]"),
-                test_results=json.loads(row["test_results"] or "{}"),
-                duration_seconds=row["duration_seconds"],
-                success=bool(row["success"]),
-                termination_reason=row["termination_reason"] or "",
-                timestamp=row["timestamp"] or "",
-            )
-            for row in rows
-        ]
+        feedback_path = self.feedback_dir / f"{session_id}.jsonl"
+        records = self._read_jsonl(feedback_path)
+        feedbacks = []
+        for record in records:
+            try:
+                feedbacks.append(IterationFeedback.from_dict(record))
+            except (KeyError, TypeError) as e:
+                print(
+                    f"[SkillStore] Invalid feedback record in {feedback_path}: {e}",
+                    file=sys.stderr,
+                )
+                continue
+        feedbacks.sort(key=lambda f: f.iteration)
+        return feedbacks
 
     # --- Skill Application Tracking ---
 
@@ -449,110 +425,63 @@ class SkillStore:
         feedback: str = "",
     ) -> bool:
         """Record when a skill was applied and its effectiveness. Returns True on success."""
-        conn = self._get_connection()
-        try:
-            conn.execute(
-                """
-                INSERT INTO skill_applications (
-                    skill_id, session_id, applied_at, was_helpful,
-                    quality_impact, feedback
-                ) VALUES (?, ?, ?, ?, ?, ?)
-            """,
-                (
-                    skill_id,
-                    session_id,
-                    datetime.now(timezone.utc).isoformat(),
-                    1 if was_helpful else (0 if was_helpful is False else None),
-                    quality_impact,
-                    feedback,
-                ),
-            )
-            conn.commit()
-            return True
-        except sqlite3.Error as e:
-            print(
-                f"[SkillStore] Failed to record application for skill {skill_id}: {e}",
-                file=sys.stderr,
-            )
-            return False
+        app_path = self.feedback_dir / f"{skill_id}_applications.jsonl"
+        application = SkillApplication(
+            skill_id=skill_id,
+            session_id=session_id,
+            applied_at=datetime.now(timezone.utc).isoformat(),
+            was_helpful=was_helpful,
+            quality_impact=quality_impact,
+            feedback=feedback,
+        )
+        return self._append_jsonl(app_path, application.to_dict())
 
     def get_skill_effectiveness(self, skill_id: str) -> Dict[str, Any]:
         """Calculate skill effectiveness metrics."""
-        conn = self._get_connection()
-        row = conn.execute(
-            """
-            SELECT
-                COUNT(*) as applications,
-                SUM(CASE WHEN was_helpful = 1 THEN 1 ELSE 0 END) as helpful_count,
-                SUM(CASE WHEN was_helpful = 0 THEN 1 ELSE 0 END) as unhelpful_count,
-                AVG(quality_impact) as avg_quality_impact
-            FROM skill_applications
-            WHERE skill_id = ?
-        """,
-            (skill_id,),
-        ).fetchone()
+        app_path = self.feedback_dir / f"{skill_id}_applications.jsonl"
+        records = self._read_jsonl(app_path)
+
+        applications = 0
+        helpful_count = 0
+        unhelpful_count = 0
+        quality_impacts = []
+
+        for record in records:
+            applications += 1
+            was_helpful = record.get("was_helpful")
+            if was_helpful is True:
+                helpful_count += 1
+            elif was_helpful is False:
+                unhelpful_count += 1
+
+            quality_impact = record.get("quality_impact")
+            if quality_impact is not None:
+                quality_impacts.append(quality_impact)
+
+        avg_quality_impact = sum(quality_impacts) / len(quality_impacts) if quality_impacts else 0.0
+        success_rate = helpful_count / applications if applications > 0 else 0.0
 
         return {
-            "applications": row["applications"] or 0,
-            "helpful_count": row["helpful_count"] or 0,
-            "unhelpful_count": row["unhelpful_count"] or 0,
-            "success_rate": (
-                (row["helpful_count"] or 0) / row["applications"] if row["applications"] else 0
-            ),
-            "avg_quality_impact": row["avg_quality_impact"] or 0.0,
+            "applications": applications,
+            "helpful_count": helpful_count,
+            "unhelpful_count": unhelpful_count,
+            "success_rate": success_rate,
+            "avg_quality_impact": avg_quality_impact,
         }
 
     def get_bulk_skill_effectiveness(self, skill_ids: List[str]) -> Dict[str, Dict[str, Any]]:
         """
-        Calculate skill effectiveness metrics for multiple skills in one query.
+        Calculate skill effectiveness metrics for multiple skills.
 
         Returns a dict mapping skill_id -> effectiveness metrics.
-        This avoids N+1 queries when scoring multiple skills.
+        This avoids N+1 queries by computing all at once.
         """
         if not skill_ids:
             return {}
 
-        conn = self._get_connection()
-        placeholders = ",".join("?" for _ in skill_ids)
-        # SQL query uses parameterized placeholders (? chars), safe from injection
-        query = f"""
-            SELECT
-                skill_id,
-                COUNT(*) as applications,
-                SUM(CASE WHEN was_helpful = 1 THEN 1 ELSE 0 END) as helpful_count,
-                SUM(CASE WHEN was_helpful = 0 THEN 1 ELSE 0 END) as unhelpful_count,
-                AVG(quality_impact) as avg_quality_impact
-            FROM skill_applications
-            WHERE skill_id IN ({placeholders})
-            GROUP BY skill_id
-        """  # nosec B608
-        rows = conn.execute(
-            query,
-            skill_ids,
-        ).fetchall()
-
-        results: Dict[str, Dict[str, Any]] = {}
-        for row in rows:
-            apps = row["applications"] or 0
-            helpful = row["helpful_count"] or 0
-            results[row["skill_id"]] = {
-                "applications": apps,
-                "helpful_count": helpful,
-                "unhelpful_count": row["unhelpful_count"] or 0,
-                "success_rate": helpful / apps if apps else 0,
-                "avg_quality_impact": row["avg_quality_impact"] or 0.0,
-            }
-
-        # Fill in missing skill_ids with default values
+        results = {}
         for skill_id in skill_ids:
-            if skill_id not in results:
-                results[skill_id] = {
-                    "applications": 0,
-                    "helpful_count": 0,
-                    "unhelpful_count": 0,
-                    "success_rate": 0,
-                    "avg_quality_impact": 0.0,
-                }
+            results[skill_id] = self.get_skill_effectiveness(skill_id)
 
         return results
 
@@ -930,18 +859,28 @@ class PromotionGate:
         # Keep skill.name in SKILL.md content for human readability
         skill_dir = self.skills_dir / skill.skill_id
         skill_md_path = skill_dir / "SKILL.md"
-        metadata_path = skill_dir / "metadata.json"
+        metadata_path = skill_dir / "metadata.yaml"
 
         try:
             # Create skill directory and files
             skill_dir.mkdir(parents=True, exist_ok=True)
-            skill_md_path.write_text(skill.to_skill_md())
-            metadata_path.write_text(json.dumps(skill.to_dict(), indent=2))
 
-            # Save to database only after files are successfully written
+            # Write SKILL.md
+            if not self.store._write_with_lock(skill_md_path, skill.to_skill_md()):
+                raise IOError("Failed to write SKILL.md")
+
+            # Write metadata
+            if yaml is not None:
+                content = yaml.safe_dump(skill.to_dict(), default_flow_style=False, sort_keys=False)
+            else:
+                content = json.dumps(skill.to_dict(), indent=2)
+
+            if not self.store._write_with_lock(metadata_path, content):
+                raise IOError("Failed to write metadata")
+
+            # Save to store (updates cache)
             if not self.store.save_skill(skill):
-                # DB save failed, rollback files
-                raise IOError("Database save failed")
+                raise IOError("Failed to update skill store")
 
             return skill_md_path
 
@@ -966,17 +905,14 @@ class PromotionGate:
 
     def list_pending(self) -> List[LearnedSkill]:
         """List skills pending promotion review."""
-        conn = self.store._get_connection()
-        rows = conn.execute(
-            """
-            SELECT * FROM learned_skills
-            WHERE promoted = 0 AND quality_score >= ?
-            ORDER BY quality_score DESC
-        """,
-            (self.MIN_QUALITY_SCORE - 10,),
-        ).fetchall()
-
-        return [self.store._row_to_skill(row) for row in rows]
+        skills = self.store._load_skills()
+        pending = [
+            s
+            for s in skills.values()
+            if not s.promoted and s.quality_score >= (self.MIN_QUALITY_SCORE - 10)
+        ]
+        pending.sort(key=lambda s: s.quality_score, reverse=True)
+        return pending
 
 
 # --- Convenience Functions ---

@@ -72,8 +72,8 @@ class ModesComponent(Component):
         files_to_install = self.get_files_to_install()
 
         if not files_to_install:
-            self.logger.warning("No mode files found to install")
-            return False
+            self.logger.info("No markdown mode files to install (modes managed by Python behavioral_manager)")
+            return self._post_install()
 
         # Copy mode files
         success_count = 0

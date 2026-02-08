@@ -1,0 +1,13 @@
+{"run_id":"1770503297-80775328","line":365,"new":{"module_name":"events_snapshots","snapshot_name":"error_event","metadata":{"source":"crates/superclaude-runtime/tests/events_snapshots.rs","assertion_line":365,"expression":"normalized"},"snapshot":"error_type: FileNotFoundError\nevent_type: error\nmessage: \"File 'config.yaml' not found\"\nrecoverable: true\ntraceback: \"  at src/main.rs:42\""},"old":{"module_name":"events_snapshots","metadata":{},"snapshot":"---\nerror_type: FileNotFoundError\nevent_type: error\nmessage: File 'config.yaml' not found\nrecoverable: true\ntraceback: \"  at src/main.rs:42\""}}
+{"run_id":"1770503357-592102924","line":333,"new":null,"old":null}
+{"run_id":"1770503357-592102924","line":170,"new":null,"old":null}
+{"run_id":"1770503357-592102924","line":365,"new":null,"old":null}
+{"run_id":"1770503357-592102924","line":301,"new":null,"old":null}
+{"run_id":"1770503357-592102924","line":273,"new":null,"old":null}
+{"run_id":"1770503357-592102924","line":92,"new":null,"old":null}
+{"run_id":"1770503357-592102924","line":137,"new":null,"old":null}
+{"run_id":"1770503357-592102924","line":209,"new":null,"old":null}
+{"run_id":"1770503357-592102924","line":51,"new":null,"old":null}
+{"run_id":"1770503357-592102924","line":241,"new":null,"old":null}
+{"run_id":"1770503357-592102924","line":393,"new":null,"old":null}
+{"run_id":"1770503357-592102924","line":420,"new":null,"old":null}

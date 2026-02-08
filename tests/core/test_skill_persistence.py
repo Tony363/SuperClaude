@@ -21,9 +21,10 @@ from core.skill_persistence import (
 
 @pytest.fixture
 def temp_db(tmp_path):
-    """Create a temporary database for testing."""
-    db_path = tmp_path / "test_skills.db"
-    store = SkillStore(db_path)
+    """Create a temporary file-based store for testing."""
+    skills_dir = tmp_path / "skills" / "learned"
+    feedback_dir = tmp_path / "feedback"
+    store = SkillStore(skills_dir=skills_dir, feedback_dir=feedback_dir)
     yield store
     store.close()
 
@@ -98,15 +99,14 @@ def high_quality_skill():
 class TestSkillStore:
     """Tests for SkillStore."""
 
-    def test_init_creates_database(self, tmp_path):
-        """Test that initializing SkillStore creates parent directory."""
-        db_path = tmp_path / "subdir" / "skills.db"
-        store = SkillStore(db_path)
-        # Parent directory should be created on init
-        assert db_path.parent.exists()
-        # Database file is created lazily on first connection
-        conn = store._get_connection()
-        assert conn is not None
+    def test_init_creates_directories(self, tmp_path):
+        """Test that initializing SkillStore creates parent directories."""
+        skills_dir = tmp_path / "subdir" / "skills" / "learned"
+        feedback_dir = tmp_path / "subdir" / "feedback"
+        store = SkillStore(skills_dir=skills_dir, feedback_dir=feedback_dir)
+        # Directories should be created on init
+        assert skills_dir.exists()
+        assert feedback_dir.exists()
         store.close()
 
     def test_save_and_get_skill(self, temp_db, sample_skill):
@@ -216,16 +216,18 @@ class TestSkillStore:
 
     def test_context_manager(self, tmp_path):
         """Test SkillStore as context manager."""
-        db_path = tmp_path / "context_test.db"
-        with SkillStore(db_path) as _store:
-            # Trigger connection to create the database
-            _store._get_connection()
-            assert db_path.parent.exists()
+        skills_dir = tmp_path / "context_test" / "skills" / "learned"
+        feedback_dir = tmp_path / "context_test" / "feedback"
+        with SkillStore(skills_dir=skills_dir, feedback_dir=feedback_dir) as _store:
+            # Directories should be created
+            assert skills_dir.exists()
+            assert feedback_dir.exists()
 
     def test_close_method(self, tmp_path):
         """Test explicit close method."""
-        db_path = tmp_path / "close_test.db"
-        store = SkillStore(db_path)
+        skills_dir = tmp_path / "close_test" / "skills" / "learned"
+        feedback_dir = tmp_path / "close_test" / "feedback"
+        store = SkillStore(skills_dir=skills_dir, feedback_dir=feedback_dir)
         store.close()
         # Should not raise even if called again
         store.close()
@@ -424,10 +426,14 @@ class TestConvenienceFunctions:
 
     def test_get_default_store(self, tmp_path, monkeypatch):
         """Test get_default_store returns a store."""
-        # Override the default path
+        # Override the default paths
         monkeypatch.setattr(
-            "core.skill_persistence.SkillStore.DEFAULT_DB_PATH",
-            tmp_path / "default_test.db",
+            "core.skill_persistence.SkillStore.DEFAULT_SKILLS_DIR",
+            tmp_path / "default_test" / "skills" / "learned",
+        )
+        monkeypatch.setattr(
+            "core.skill_persistence.SkillStore.DEFAULT_FEEDBACK_DIR",
+            tmp_path / "default_test" / "feedback",
         )
         store = get_default_store()
         assert store is not None
@@ -436,8 +442,12 @@ class TestConvenienceFunctions:
     def test_learn_from_session_no_data(self, tmp_path, monkeypatch):
         """Test learn_from_session with no data returns None."""
         monkeypatch.setattr(
-            "core.skill_persistence.SkillStore.DEFAULT_DB_PATH",
-            tmp_path / "learn_test.db",
+            "core.skill_persistence.SkillStore.DEFAULT_SKILLS_DIR",
+            tmp_path / "learn_test" / "skills" / "learned",
+        )
+        monkeypatch.setattr(
+            "core.skill_persistence.SkillStore.DEFAULT_FEEDBACK_DIR",
+            tmp_path / "learn_test" / "feedback",
         )
         result = learn_from_session("nonexistent-session")
         assert result is None
@@ -445,8 +455,12 @@ class TestConvenienceFunctions:
     def test_retrieve_skills_for_task(self, tmp_path, monkeypatch):
         """Test retrieve_skills_for_task works."""
         monkeypatch.setattr(
-            "core.skill_persistence.SkillStore.DEFAULT_DB_PATH",
-            tmp_path / "retrieve_test.db",
+            "core.skill_persistence.SkillStore.DEFAULT_SKILLS_DIR",
+            tmp_path / "retrieve_test" / "skills" / "learned",
+        )
+        monkeypatch.setattr(
+            "core.skill_persistence.SkillStore.DEFAULT_FEEDBACK_DIR",
+            tmp_path / "retrieve_test" / "feedback",
         )
         # Should return empty list when no skills exist
         result = retrieve_skills_for_task("implement auth")
