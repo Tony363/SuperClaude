@@ -117,11 +117,8 @@ SuperClaude/Implementation/
 *.backup
 *.bak
 
-# Archived Python SDK (kept for test compatibility with v5.x tests)
-# The archive/ folder contains the deprecated Python SDK from v5.x
-# SuperClaude v6.0+ is pure prompts/config - archive needed for test imports
-# Note: archive/ is tracked because tests import from SuperClaude.* which
-# uses compatibility shims that delegate to archive/python-sdk-v5/
+# Archived SDK removed in v7 - prevent accidental re-creation
+archive/
 
 # Test fixtures (not needed in repo)
 .home/
@@ -132,9 +129,6 @@ SuperClaude/Implementation/
 # Project specific
 # Legacy capitalized Tests folder was deprecated; keep actual test suites tracked.
 # (Removing prior ignore entry prevents accidental exclusion of tests/ quality gates.)
-
-# Agentic loop demo output (tic tac toe game)
-tests/tictactoe_demo/
 
 # E2E test output (generated apps and results)
 tests/e2e/output/
@@ -241,9 +235,6 @@ uv.lock
 # File-based skill persistence (no SQLite)
 .claude/skills/learned/
 .claude/feedback/
-
-# Examples (standalone demos, not part of the framework)
-examples/
 
 # Documentation artifacts
 Docs/

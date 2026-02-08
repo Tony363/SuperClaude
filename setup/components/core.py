@@ -310,11 +310,11 @@ class CoreComponent(Component):
         return None
 
     def _get_source_dir(self):
-        """Get source directory for framework files"""
-        # Assume we're in SuperClaude/setup/components/core.py
-        # and framework files are in SuperClaude/SuperClaude/Core/
-        project_root = Path(__file__).parent.parent.parent
-        return project_root / "SuperClaude" / "Core"
+        """Get source directory for framework files.
+
+        Core .md files (AGENTS.md, PRINCIPLES.md, etc.) live at the project root.
+        """
+        return Path(__file__).parent.parent.parent
 
     def get_size_estimate(self) -> int:
         """Get estimated installation size"""

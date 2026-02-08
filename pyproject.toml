@@ -4,12 +4,12 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "SuperClaude"
-version = "6.0.0"
+version = "7.0.0"
 authors = [
     {name = "NomenAK", email = "anton.knoery@gmail.com"},
     {name = "Mithun Gowda B", email = "mithungowda.b7411@gmail.com"}
 ]
-description = "SuperClaude Framework - Config-first meta-framework for Claude Code with 130+ specialized agent personas"
+description = "SuperClaude Framework - Config-first meta-framework for Claude Code with 33 specialized agent personas"
 readme = "README.md"
 license = {text = "MIT"}
 requires-python = ">=3.10"
@@ -25,7 +25,6 @@ keywords = ["claude", "ai", "framework", "mcp", "agents", "prompts", "claude-cod
 # No required dependencies - config-first architecture
 # Use optional dependency groups for Python functionality:
 #   pip install .[runtime]  - Loop orchestration
-#   pip install .[cli]      - Legacy CLI
 #   pip install .[full]     - All features
 dependencies = []
 
@@ -50,20 +49,11 @@ runtime = [
     "pyyaml>=6.0",
     "aiofiles>=23.0",
 ]
-# CLI dependencies for legacy command-line interface
-cli = [
-    "rich>=13.0",
-    "click>=8.1",
-    "python-dotenv>=1.0",
-]
 # Full installation with all optional dependencies
 full = [
     "claude-agent-sdk>=0.1.0",  # Official Anthropic Agent SDK
     "pyyaml>=6.0",
     "aiofiles>=23.0",
-    "rich>=13.0",
-    "click>=8.1",
-    "python-dotenv>=1.0",
     "watchdog>=3.0",
     "gitpython>=3.1",
     "jinja2>=3.1",
@@ -89,7 +79,7 @@ include-package-data = true
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["SuperClaude*", "agents*", "commands*", "config*", "mcp*", "core*", "setup*"]
+include = ["SuperClaude*"]
 exclude = ["tests*", ".git*"]
 
 [tool.setuptools.package-data]
@@ -100,9 +90,7 @@ exclude = ["tests*", ".git*"]
 target-version = "py310"
 line-length = 100
 
-# Exclude archived legacy code from linting
 exclude = [
-    "archive/",
     ".git",
     ".venv",
     "__pycache__",
@@ -114,8 +102,3 @@ exclude = [
 select = ["E", "F", "W", "I"]
 # Ignore line length - many legitimate long lines in CLI output with color codes
 ignore = ["E501"]
-
-[tool.ruff.lint.per-file-ignores]
-# SuperClaude compatibility layer intentionally uses sys.path.insert() before imports
-# and wildcard imports for re-exporting archived SDK modules
-"SuperClaude/**/*.py" = ["E402", "F403", "F401"]

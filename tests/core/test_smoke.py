@@ -39,7 +39,7 @@ class TestPackageImport:
         """main() should return an integer exit code."""
         from SuperClaude.__main__ import main
 
-        result = main()
+        result = main([])
         assert isinstance(result, int)
 
 
@@ -54,12 +54,7 @@ class TestModuleExecution:
             text=True,
             timeout=10,
         )
-        # Exit code 1 is expected (archive not available)
-        # Just verify it doesn't crash with unhandled exception
-        assert result.returncode in (0, 1)
-        # Should not have Python traceback in stderr for expected failures
-        if result.returncode == 1:
-            assert "Traceback" not in result.stderr or "ImportError" in result.stderr
+        assert result.returncode == 0
 
     def test_module_execution_message(self):
         """python -m SuperClaude should provide helpful message."""
@@ -69,11 +64,8 @@ class TestModuleExecution:
             text=True,
             timeout=10,
         )
-        # Should mention Claude Code or archive if not available
-        output = result.stdout + result.stderr
-        # When archive is missing, should give guidance
-        if result.returncode == 1:
-            assert "Claude Code" in output or "archive" in output.lower()
+        assert "Claude Code" in result.stdout
+        assert "/sc:" in result.stdout
 
 
 class TestExtrasGating:
@@ -113,17 +105,12 @@ class TestExtrasGating:
 class TestEntryPointBehavior:
     """Tests for entry point behavior and error handling."""
 
-    def test_main_handles_missing_archive(self):
-        """main() should handle missing archive gracefully."""
+    def test_main_returns_zero(self):
+        """main() should return 0 when called with no arguments."""
         from SuperClaude.__main__ import main
 
-        # Should not raise an exception
-        try:
-            exit_code = main()
-            assert isinstance(exit_code, int)
-        except SystemExit as e:
-            # SystemExit is acceptable if it has a code
-            assert e.code is not None
+        exit_code = main([])
+        assert exit_code == 0
 
     def test_subprocess_import_isolation(self):
         """Import in subprocess should not pollute parent environment."""

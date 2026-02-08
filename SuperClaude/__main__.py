@@ -1,70 +1,122 @@
 """
-SuperClaude main entry point compatibility module.
+SuperClaude v7 CLI entry point.
 
-Provides backward compatibility with the archived Python SDK CLI.
-For v6, the recommended approach is using Claude Code with /sc: commands directly.
+Dispatches to setup operations (install, update, uninstall, backup, clean, agent)
+when given a subcommand, or shows usage info when invoked without arguments.
+
+Usage:
+    python -m SuperClaude install [options]
+    python -m SuperClaude update [options]
+    python -m SuperClaude uninstall [options]
+    python -m SuperClaude backup [options]
+    python -m SuperClaude clean [options]
+    python -m SuperClaude agent [options]
 """
 
-import importlib.util
+import argparse
+import importlib
 import sys
 from pathlib import Path
 
+from SuperClaude import __version__
 
-def main() -> int:
+DEFAULT_INSTALL_DIR = Path.home() / ".claude"
+
+_OPERATIONS = {
+    "install": "Install SuperClaude framework components",
+    "update": "Update existing SuperClaude installation",
+    "uninstall": "Remove SuperClaude installation",
+    "backup": "Backup and restore operations",
+    "clean": "Clean corrupted metadata, cache, and temporary files",
+    "agent": "Interact with the agent system",
+}
+
+
+def _load_operation(name: str):
+    """Dynamically import a setup CLI operation module."""
+    try:
+        return importlib.import_module(f"setup.cli.commands.{name}")
+    except ImportError as e:
+        print(f"Error: could not load '{name}' module: {e}", file=sys.stderr)
+        return None
+
+
+def _create_global_parser() -> argparse.ArgumentParser:
+    """Create shared parser for global flags used by all subcommands."""
+    p = argparse.ArgumentParser(add_help=False)
+    p.add_argument("--verbose", "-v", action="store_true", help="Enable verbose logging")
+    p.add_argument("--quiet", "-q", action="store_true", help="Suppress non-error output")
+    p.add_argument(
+        "--install-dir",
+        type=Path,
+        default=DEFAULT_INSTALL_DIR,
+        help=f"Target installation directory (default: {DEFAULT_INSTALL_DIR})",
+    )
+    p.add_argument("--dry-run", action="store_true", help="Simulate without making changes")
+    p.add_argument("--force", action="store_true", help="Force execution, skipping checks")
+    p.add_argument("--yes", "-y", action="store_true", help="Answer yes to all prompts")
+    return p
+
+
+def main(argv: list[str] | None = None) -> int:
+    """Main entry point for the SuperClaude CLI.
+
+    Args:
+        argv: Command-line arguments to parse. Uses sys.argv[1:] if None.
     """
-    Main entry point for SuperClaude CLI.
+    global_parser = _create_global_parser()
 
-    Returns:
-        Exit code (0 for success, non-zero for failure)
-    """
-    _archive_path = Path(__file__).parent.parent / "archive" / "python-sdk-v5"
+    parser = argparse.ArgumentParser(
+        prog="SuperClaude",
+        description=f"SuperClaude v{__version__} - Framework Management CLI",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        parents=[global_parser],
+    )
+    parser.add_argument("--version", action="version", version=f"SuperClaude {__version__}")
 
-    if not _archive_path.exists():
-        print("SuperClaude CLI requires the archived SDK.")
-        print("For v6, use Claude Code with /sc: commands directly.")
+    subparsers = parser.add_subparsers(
+        dest="operation",
+        title="Operations",
+        description="Available operations",
+    )
+
+    # Register each operation's subparser and collect run functions
+    operations = {}
+    for name, desc in _OPERATIONS.items():
+        mod = _load_operation(name)
+        if mod and hasattr(mod, "register_parser") and hasattr(mod, "run"):
+            mod.register_parser(subparsers, global_parser)
+            operations[name] = mod.run
+        else:
+            subparsers.add_parser(name, help=desc, parents=[global_parser])
+            operations[name] = None
+
+    args = parser.parse_args(argv)
+
+    if not args.operation:
+        print(f"SuperClaude v{__version__}")
         print()
-        print("If you need CLI functionality, ensure the archive directory exists:")
-        print(f"  {_archive_path}")
-        return 1
+        print("For framework management (install/update/uninstall):")
+        print("  python -m SuperClaude install")
+        print()
+        print("For Claude Code /sc: commands:")
+        print("  Run 'claude' to start, then use /sc:implement, /sc:test, etc.")
+        print()
+        print("Run 'python -m SuperClaude --help' for all options.")
+        return 0
 
-    # Load the archived __main__.py using importlib to avoid self-import
-    # when running as python -m SuperClaude
-    archived_main_path = _archive_path / "__main__.py"
-    if not archived_main_path.exists():
-        print(f"Archived CLI not found: {archived_main_path}")
+    run_func = operations.get(args.operation)
+    if run_func is None:
+        print(f"Error: operation '{args.operation}' is not available.", file=sys.stderr)
         return 1
 
     try:
-        # Use importlib to load the specific file, avoiding name collision
-        spec = importlib.util.spec_from_file_location(
-            "archived_superclaude_main", archived_main_path
-        )
-        if spec is None or spec.loader is None:
-            print("Failed to load archived CLI module spec.")
-            return 1
-
-        archived_module = importlib.util.module_from_spec(spec)
-
-        # Add archive to path for its dependencies
-        if str(_archive_path) not in sys.path:
-            sys.path.insert(0, str(_archive_path))
-
-        spec.loader.exec_module(archived_module)
-
-        if hasattr(archived_module, "main"):
-            return archived_module.main()
-        else:
-            print("Archived CLI module has no main() function.")
-            return 1
-
-    except ImportError as e:
-        print(f"Failed to load CLI: {e}")
-        print()
-        print("The CLI requires additional dependencies. Install with:")
-        print("  pip install .[cli]")
-        return 1
+        return run_func(args)
+    except KeyboardInterrupt:
+        print("\nOperation cancelled.")
+        return 130
     except Exception as e:
-        print(f"Error running archived CLI: {e}")
+        print(f"Error: {e}", file=sys.stderr)
         return 1
 
 

@@ -239,12 +239,14 @@ class CommandsComponent(Component):
 
         return len(errors) == 0, errors
 
-    def _get_source_dir(self) -> Path:
-        """Get source directory for command files"""
-        # Assume we're in SuperClaude/setup/components/commands.py
-        # and command files are in SuperClaude/SuperClaude/Commands/
-        project_root = Path(__file__).parent.parent.parent
-        return project_root / "SuperClaude" / "Commands"
+    def _get_source_dir(self) -> Path | None:
+        """Get source directory for command files.
+
+        In v7, /sc: commands are defined as skills (.claude/skills/sc-*/)
+        and are installed by the agents component. This component is retained
+        for backward compatibility but has no source files to install.
+        """
+        return None
 
     def get_size_estimate(self) -> int:
         """Get estimated installation size"""
