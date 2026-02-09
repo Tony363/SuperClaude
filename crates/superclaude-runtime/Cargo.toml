@@ -1,0 +1,61 @@
+[package]
+name = "superclaude-runtime"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[lib]
+name = "superclaude_runtime"
+path = "src/lib.rs"
+
+[[bin]]
+name = "superclaude-runtime"
+path = "src/main.rs"
+
+[dependencies]
+# Serialization
+serde = { workspace = true }
+serde_json = { workspace = true }
+serde_yaml = { workspace = true }
+
+# Async + HTTP
+tokio = { workspace = true }
+reqwest = { version = "0.12", features = ["json", "stream"] }
+futures = { workspace = true }
+eventsource-stream = "0.2"
+
+# Utilities
+regex = "1.0"
+chrono = { workspace = true }
+uuid = { workspace = true }
+walkdir = "2.0"
+fs2 = "0.4"  # File locking (fcntl equivalent)
+dirs = "5.0"  # Home directory access
+md5 = "0.7"  # For generating file hashes in Obsidian integration
+
+# Error handling + logging
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+
+# CLI
+clap = { version = "4", features = ["derive"] }
+
+# YAML frontmatter parsing
+gray_matter = { workspace = true }
+lazy_static = "1.4"
+once_cell = "1.19"
+
+# gRPC (for daemon communication)
+tonic = { workspace = true }
+prost = { workspace = true }
+
+# Internal workspace crates
+superclaude-proto = { workspace = true }
+
+[dev-dependencies]
+# Testing
+insta = { version = "1.0", features = ["yaml"] }
+tempfile = "3.0"

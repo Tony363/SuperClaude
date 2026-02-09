@@ -206,9 +206,9 @@ def try_mccabe_complexity(file_path: Path, threshold: int) -> dict[str, int]:
                         complexity = int(parts[-1].strip().split()[0])
                         result[func_name] = complexity
                     except (ValueError, IndexError):
-                        pass
+                        pass  # Skip unparseable radon output lines
     except (subprocess.SubprocessError, FileNotFoundError):
-        pass
+        pass  # radon not installed; skip complexity analysis
     return result
 
 
@@ -353,7 +353,7 @@ def find_python_files(scope_root: Path, changed_only: bool = True) -> list[Path]
             if py_files:
                 return py_files
         except (subprocess.SubprocessError, FileNotFoundError):
-            pass
+            pass  # Fall back to rglob below when git is unavailable
 
     return list(scope_root.rglob("*.py"))
 

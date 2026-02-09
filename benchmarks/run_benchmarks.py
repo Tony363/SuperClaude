@@ -60,49 +60,27 @@ def _cli_case(name: str, command: Sequence[str], description: str) -> BenchmarkC
 
 SUITES: Mapping[str, list[BenchmarkCase]] = {
     "smoke": [
-        _pytest_case(
-            "version-tests",
-            "tests/test_version.py",
-            "Validate version metadata stays in sync.",
-        ),
         _cli_case(
             "cli-help",
             (sys.executable, "-m", "SuperClaude", "--help"),
             "Ensure the SuperClaude CLI responds to --help.",
         ),
+        _pytest_case(
+            "core-smoke",
+            "tests/core/test_smoke.py",
+            "Run core module smoke tests.",
+        ),
     ],
     "integration": [
         _pytest_case(
-            "integration-tests",
-            "tests/test_integration.py",
-            "Exercise high-level integration tests.",
+            "core-tests",
+            "tests/core/",
+            "Exercise core module tests.",
         ),
         _pytest_case(
-            "worktree-tests",
-            "tests/test_worktree_state.py",
-            "Check worktree guardrail behaviour.",
-        ),
-    ],
-    "generated": [
-        _cli_case(
-            "generated-validation",
-            (
-                sys.executable,
-                "-m",
-                "SuperClaude.Quality.generated_validator",
-                "--fail-on-errors",
-            ),
-            "Validate generated implementation documents.",
-        ),
-        _pytest_case(
-            "evidence-store-tests",
-            "tests/telemetry/test_evidence_store.py",
-            "Test SQLite evidence store functionality.",
-        ),
-        _pytest_case(
-            "generated-validator-tests",
-            "tests/quality/test_generated_validator.py",
-            "Test generated document validator.",
+            "orchestrator-tests",
+            "tests/orchestrator/",
+            "Exercise orchestrator tests.",
         ),
     ],
     "full": [
@@ -119,15 +97,6 @@ SUITES: Mapping[str, list[BenchmarkCase]] = {
             "benchmark-report",
             (sys.executable, "scripts/report_agent_usage.py"),
             "Generate the agent usage report to confirm telemetry parsing.",
-        ),
-        _cli_case(
-            "generated-validation",
-            (
-                sys.executable,
-                "-m",
-                "SuperClaude.Quality.generated_validator",
-            ),
-            "Validate generated implementation documents.",
         ),
     ],
 }

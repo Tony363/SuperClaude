@@ -130,6 +130,25 @@ class TestLearningLoopOrchestrator:
         # May or may not find skills depending on matching
         assert "task" in result
 
+    def test_inject_skills_with_matching(self, learning_orchestrator, sample_skill):
+        """Test skill injection when retriever finds matching skills."""
+        from unittest.mock import patch
+
+        # Mock retriever to return a matching skill
+        with patch.object(
+            learning_orchestrator.retriever,
+            "retrieve",
+            return_value=[(sample_skill, 0.85)],
+        ):
+            context = {"task": "test task"}
+            result = learning_orchestrator._inject_relevant_skills(context)
+
+        assert "learned_skills" in result
+        assert len(result["learned_skills"]) == 1
+        assert result["learned_skills"][0]["name"] == sample_skill.name
+        assert "learning_context" in result
+        assert len(learning_orchestrator._applied_skills) == 1
+
     def test_inject_skills_empty_when_none(self, learning_orchestrator):
         """Test skill injection returns original context when no skills match."""
         context = {"task": "completely unrelated task xyz123"}
@@ -171,8 +190,12 @@ class TestUtilityFunctions:
     def test_list_pending_skills(self, tmp_path, monkeypatch):
         """Test listing pending skills."""
         monkeypatch.setattr(
-            "core.skill_persistence.SkillStore.DEFAULT_DB_PATH",
-            tmp_path / "pending_test.db",
+            "core.skill_persistence.SkillStore.DEFAULT_SKILLS_DIR",
+            tmp_path / "skills",
+        )
+        monkeypatch.setattr(
+            "core.skill_persistence.SkillStore.DEFAULT_FEEDBACK_DIR",
+            tmp_path / "feedback",
         )
         # Should return empty list when no skills
         pending = list_pending_skills()
@@ -181,8 +204,12 @@ class TestUtilityFunctions:
     def test_get_skill_stats(self, tmp_path, monkeypatch):
         """Test getting skill statistics."""
         monkeypatch.setattr(
-            "core.skill_persistence.SkillStore.DEFAULT_DB_PATH",
-            tmp_path / "stats_test.db",
+            "core.skill_persistence.SkillStore.DEFAULT_SKILLS_DIR",
+            tmp_path / "skills",
+        )
+        monkeypatch.setattr(
+            "core.skill_persistence.SkillStore.DEFAULT_FEEDBACK_DIR",
+            tmp_path / "feedback",
         )
         stats = get_skill_stats()
         assert "total_skills" in stats
@@ -190,14 +217,124 @@ class TestUtilityFunctions:
         assert "total_applications" in stats
         assert stats["total_skills"] == 0
 
+    def test_get_skill_stats_with_data(self, tmp_path, monkeypatch):
+        """Test getting skill statistics with actual skills and feedback."""
+        import json
+
+        skills_dir = tmp_path / "skills"
+        feedback_dir = tmp_path / "feedback"
+        monkeypatch.setattr(
+            "core.skill_persistence.SkillStore.DEFAULT_SKILLS_DIR",
+            skills_dir,
+        )
+        monkeypatch.setattr(
+            "core.skill_persistence.SkillStore.DEFAULT_FEEDBACK_DIR",
+            feedback_dir,
+        )
+
+        # Create a skill directory with metadata matching LearnedSkill fields
+        skill_dir = skills_dir / "test-skill-1"
+        skill_dir.mkdir(parents=True)
+        (skill_dir / "metadata.yaml").write_text(
+            "skill_id: test-skill-1\nname: Test Skill\ndescription: A test\n"
+            "triggers: [test]\ndomain: testing\nsource_session: sess-1\n"
+            "source_repo: test-repo\nlearned_at: '2025-01-01T00:00:00'\n"
+            "patterns: []\nanti_patterns: []\nquality_score: 85.0\n"
+            "iteration_count: 3\nprovenance: {}\n"
+            "applicability_conditions: []\npromoted: true\n"
+        )
+
+        # Create feedback file
+        feedback_dir.mkdir(parents=True)
+        with open(feedback_dir / "session-1.jsonl", "w") as f:
+            f.write(json.dumps({"iteration": 0, "score": 75}) + "\n")
+            f.write(json.dumps({"iteration": 1, "score": 85}) + "\n")
+
+        # Create application file
+        with open(feedback_dir / "test-skill-1_applications.jsonl", "w") as f:
+            f.write(json.dumps({"was_helpful": True}) + "\n")
+            f.write(json.dumps({"was_helpful": False}) + "\n")
+
+        stats = get_skill_stats()
+        assert stats["total_skills"] == 1
+        assert stats["promoted_skills"] == 1
+        assert stats["avg_quality"] == 85.0
+        assert stats["total_feedback_records"] == 2
+        assert stats["total_applications"] == 2
+        assert stats["helpful_applications"] == 1
+        assert stats["success_rate"] == 0.5
+
     def test_promote_skill_nonexistent(self, tmp_path, monkeypatch):
         """Test promoting a non-existent skill returns False."""
         monkeypatch.setattr(
-            "core.skill_persistence.SkillStore.DEFAULT_DB_PATH",
-            tmp_path / "promote_test.db",
+            "core.skill_persistence.SkillStore.DEFAULT_SKILLS_DIR",
+            tmp_path / "skills",
+        )
+        monkeypatch.setattr(
+            "core.skill_persistence.SkillStore.DEFAULT_FEEDBACK_DIR",
+            tmp_path / "feedback",
         )
         result = promote_skill("nonexistent-skill-id")
         assert result is False
+
+    def test_promote_skill_existing(self, tmp_path, monkeypatch):
+        """Test promoting an existing skill returns True when gate passes."""
+        from unittest.mock import patch
+
+        skills_dir = tmp_path / "skills"
+        feedback_dir = tmp_path / "feedback"
+        monkeypatch.setattr(
+            "core.skill_persistence.SkillStore.DEFAULT_SKILLS_DIR",
+            skills_dir,
+        )
+        monkeypatch.setattr(
+            "core.skill_persistence.SkillStore.DEFAULT_FEEDBACK_DIR",
+            feedback_dir,
+        )
+
+        # Create a skill directory with metadata
+        skill_dir = skills_dir / "promote-me"
+        skill_dir.mkdir(parents=True)
+        (skill_dir / "metadata.yaml").write_text(
+            "skill_id: promote-me\nname: Promotable\ndescription: A skill\n"
+            "triggers: [test]\ndomain: testing\nsource_session: sess-1\n"
+            "source_repo: test-repo\nlearned_at: '2025-01-01T00:00:00'\n"
+            "patterns: []\nanti_patterns: []\nquality_score: 95.0\n"
+            "iteration_count: 5\nprovenance: {}\n"
+            "applicability_conditions: []\npromoted: false\n"
+        )
+
+        # Mock evaluate to approve promotion (bypasses MIN_APPLICATIONS check)
+        with patch(
+            "core.skill_persistence.PromotionGate.evaluate",
+            return_value=(True, "Meets all criteria"),
+        ):
+            result = promote_skill("promote-me", reason="test promotion")
+        assert result is True
+
+    def test_get_skill_stats_malformed_json(self, tmp_path, monkeypatch):
+        """Test get_skill_stats handles malformed JSON in application files."""
+        skills_dir = tmp_path / "skills"
+        feedback_dir = tmp_path / "feedback"
+        monkeypatch.setattr(
+            "core.skill_persistence.SkillStore.DEFAULT_SKILLS_DIR",
+            skills_dir,
+        )
+        monkeypatch.setattr(
+            "core.skill_persistence.SkillStore.DEFAULT_FEEDBACK_DIR",
+            feedback_dir,
+        )
+
+        # Create feedback dir with malformed application file
+        feedback_dir.mkdir(parents=True)
+        with open(feedback_dir / "bad-skill_applications.jsonl", "w") as f:
+            f.write("not valid json\n")
+            f.write("{malformed\n")
+
+        stats = get_skill_stats()
+        # Malformed lines should be counted as applications but not helpful
+        assert stats["total_applications"] == 2
+        assert stats["helpful_applications"] == 0
 
 
 # --- Run Learning Loop Tests ---
@@ -209,8 +346,12 @@ class TestRunLearningLoop:
     def test_run_learning_loop_basic(self, tmp_path, monkeypatch):
         """Test basic learning loop execution."""
         monkeypatch.setattr(
-            "core.skill_persistence.SkillStore.DEFAULT_DB_PATH",
-            tmp_path / "loop_test.db",
+            "core.skill_persistence.SkillStore.DEFAULT_SKILLS_DIR",
+            tmp_path / "skills",
+        )
+        monkeypatch.setattr(
+            "core.skill_persistence.SkillStore.DEFAULT_FEEDBACK_DIR",
+            tmp_path / "feedback",
         )
         result = run_learning_loop(
             task="test task",
@@ -226,8 +367,12 @@ class TestRunLearningLoop:
     def test_run_learning_loop_with_auto_promote(self, tmp_path, monkeypatch):
         """Test learning loop with auto-promote enabled."""
         monkeypatch.setattr(
-            "core.skill_persistence.SkillStore.DEFAULT_DB_PATH",
-            tmp_path / "autopromote_test.db",
+            "core.skill_persistence.SkillStore.DEFAULT_SKILLS_DIR",
+            tmp_path / "skills",
+        )
+        monkeypatch.setattr(
+            "core.skill_persistence.SkillStore.DEFAULT_FEEDBACK_DIR",
+            tmp_path / "feedback",
         )
         result = run_learning_loop(
             task="implement auth",
@@ -242,8 +387,12 @@ class TestRunLearningLoop:
     def test_run_learning_loop_disabled(self, tmp_path, monkeypatch):
         """Test learning loop with learning disabled."""
         monkeypatch.setattr(
-            "core.skill_persistence.SkillStore.DEFAULT_DB_PATH",
-            tmp_path / "disabled_test.db",
+            "core.skill_persistence.SkillStore.DEFAULT_SKILLS_DIR",
+            tmp_path / "skills",
+        )
+        monkeypatch.setattr(
+            "core.skill_persistence.SkillStore.DEFAULT_FEEDBACK_DIR",
+            tmp_path / "feedback",
         )
         result = run_learning_loop(
             task="simple task",

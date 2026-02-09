@@ -14,15 +14,8 @@ from ..services.claude_md import CLAUDEMdService
 class ModesComponent(Component):
     """SuperClaude behavioral modes component"""
 
-    MINIMAL_FILES = [
-        "MODE_Normal.md",
-        "MODE_Task_Management.md",
-        "MODE_Token_Efficiency.md",
-    ]
-
     def __init__(self, install_dir: Path | None = None):
         """Initialize modes component"""
-        self._selected_profile = "minimal"
         super().__init__(install_dir, Path(""))
 
     def get_metadata(self) -> dict[str, str]:
@@ -35,65 +28,13 @@ class ModesComponent(Component):
         }
 
     def _install(self, config: dict[str, Any]) -> bool:
-        """Install modes component"""
+        """Install modes component.
+
+        In v7, behavioral modes are managed by the Python behavioral_manager.
+        No markdown mode files need to be copied — this only registers metadata.
+        """
         self.logger.info("Installing SuperClaude behavioral modes...")
-
-        profile = (config or {}).get("memory_profile", "minimal").lower()
-        all_files = set(self._discover_component_files())
-
-        if profile == "full":
-            selected_files = sorted(all_files)
-            self.logger.debug("Using full memory profile for modes component")
-        else:
-            minimal_files = [fname for fname in self.MINIMAL_FILES if fname in all_files]
-            missing = [fname for fname in self.MINIMAL_FILES if fname not in all_files]
-            if missing:
-                self.logger.warning(
-                    "Minimal mode files missing from source directory: %s",
-                    missing,
-                )
-            selected_files = minimal_files or sorted(all_files)
-            self.logger.info(
-                "Applying minimal memory profile for modes component (%d files)",
-                len(selected_files),
-            )
-
-        self.component_files = selected_files
-        self._selected_profile = profile
-
-        # Validate installation
-        success, errors = self.validate_prerequisites()
-        if not success:
-            for error in errors:
-                self.logger.error(error)
-            return False
-
-        # Get files to install
-        files_to_install = self.get_files_to_install()
-
-        if not files_to_install:
-            self.logger.warning("No mode files found to install")
-            return False
-
-        # Copy mode files
-        success_count = 0
-        for source, target in files_to_install:
-            self.logger.debug(f"Copying {source.name} to {target}")
-
-            if self.file_manager.copy_file(source, target):
-                success_count += 1
-                self.logger.debug(f"Successfully copied {source.name}")
-            else:
-                self.logger.error(f"Failed to copy {source.name}")
-
-        if success_count != len(files_to_install):
-            self.logger.error(
-                f"Only {success_count}/{len(files_to_install)} mode files copied successfully"
-            )
-            return False
-
-        self.logger.success(f"Modes component installed successfully ({success_count} mode files)")
-
+        self.logger.info("Modes managed by Python behavioral_manager — no source files to copy")
         return self._post_install()
 
     def _post_install(self) -> bool:
@@ -171,6 +112,17 @@ class ModesComponent(Component):
         try:
             self.logger.info("Uninstalling SuperClaude modes component...")
 
+            # Strip mode @imports from CLAUDE.md before removing files
+            try:
+                files_to_strip = [f for _, f in self.get_files_to_install()]
+                filenames = [f.name for f in files_to_strip]
+                if filenames:
+                    manager = CLAUDEMdService(self.install_dir)
+                    manager.remove_imports(filenames)
+                    self.logger.debug("Stripped mode imports from CLAUDE.md")
+            except Exception as e:
+                self.logger.warning(f"Could not clean CLAUDE.md mode imports: {e}")
+
             # Remove mode files
             removed_count = 0
             for _, target in self.get_files_to_install():
@@ -207,14 +159,18 @@ class ModesComponent(Component):
         """Get dependencies"""
         return ["core"]
 
+    def validate_prerequisites(self, installSubPath: Path | None = None) -> tuple[bool, list[str]]:
+        """No prerequisites if mode source files don't exist yet."""
+        source_dir = self._get_source_dir()
+        if source_dir is None:
+            return True, []
+        return super().validate_prerequisites(installSubPath)
+
     def _get_source_dir(self) -> Path | None:
         """Get source directory for mode files"""
-        # Assume we're in SuperClaude/setup/components/modes.py
-        # and mode files are in SuperClaude/SuperClaude/Modes/
         project_root = Path(__file__).parent.parent.parent
         modes_dir = project_root / "SuperClaude" / "Modes"
 
-        # Return None if directory doesn't exist to prevent warning
         if not modes_dir.exists():
             return None
 

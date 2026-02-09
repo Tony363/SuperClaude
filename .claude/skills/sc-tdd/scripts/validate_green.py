@@ -115,7 +115,7 @@ def validate_green_state(scope_root: str, skip_full_suite: bool = False) -> dict
     # Step 2: Run full suite (unless skipped)
     if skip_full_suite:
         # Fast mode: trust targeted test, defer full suite
-        success, message = sm.transition(
+        sm.transition(
             state, TDDPhase.GREEN_CONFIRMED, evidence="Intent test passed (full suite deferred)"
         )
 

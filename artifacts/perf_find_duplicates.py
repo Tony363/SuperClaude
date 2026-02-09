@@ -115,14 +115,11 @@ def find_duplicates_set_trick(lst: List[Any]) -> List[Any]:
     Time Complexity: O(n)
     Space Complexity: O(n)
     """
-    seen = set()
-    # Item is duplicate if seen.add() returns None (item was already there)
-    # set.add() returns None always, so we use the walrus operator
-    return list(
-        {x for x in lst if x in seen or seen.add(x) is None and False}
-        if False
-        else {x for x in lst if x in seen or not seen.add(x)} - seen.union(set())
-    )
+    seen: set = set()
+    # Set-trick: seen.add() returns None (falsy), so `not seen.add(x)` is always True.
+    # Every element passes the filter; subtracting seen leaves only duplicates.
+    all_items = {x for x in lst if x in seen or not seen.add(x)}
+    return list(all_items - seen.union(set()))
 
 
 # Cleaner version of the set trick:

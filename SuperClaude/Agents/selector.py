@@ -8,9 +8,8 @@ Provides intelligent agent selection based on context, keywords, and task requir
 from __future__ import annotations
 
 import logging
-import re
 from dataclasses import dataclass, field
-from typing import Any, Optional
+from typing import Any
 
 from .registry import AgentRegistry
 

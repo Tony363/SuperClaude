@@ -1,0 +1,224 @@
+# E2E Application Generation Test Definitions
+# Each test generates a complete application and validates it works
+#
+# Structure:
+#   apps:
+#     <app-name>:
+#       description: "What the app does"
+#       prompt: "Generation prompt for Claude"
+#       language: python|node|rust
+#       validation:
+#         files_required: ["file1.py", "file2.py"]
+#         compile_check: true  # Run language-specific compile check
+#         test_execution: true  # Run tests if present
+#         functional_test: {...}  # Optional functional validation
+#       timeout_seconds: 300  # Default 300 (5 min)
+
+apps:
+  # ============================================
+  # Python Applications
+  # ============================================
+
+  python-cli-calculator:
+    description: "CLI calculator with basic math operations"
+    language: python
+    prompt: |
+      Create a Python CLI calculator application with the following requirements:
+
+      1. Create a file called `calculator.py` with a Calculator class that has:
+         - add(a, b) -> float
+         - subtract(a, b) -> float
+         - multiply(a, b) -> float
+         - divide(a, b) -> float (raise ValueError for division by zero)
+
+      2. Create a file called `test_calculator.py` with pytest tests that:
+         - Test all four operations with positive numbers
+         - Test operations with negative numbers
+         - Test division by zero raises ValueError
+
+      3. Add a `requirements.txt` with: pytest>=7.0.0
+
+      The code should use type hints and include docstrings.
+      Write clean, production-quality code.
+    validation:
+      files_required:
+        - calculator.py
+        - test_calculator.py
+        - requirements.txt
+      compile_check: true
+      test_execution: true
+    timeout_seconds: 300
+    type: standard
+
+  python-rest-api:
+    description: "Flask REST API with health endpoint"
+    language: python
+    prompt: |
+      Create a minimal Flask REST API with the following requirements:
+
+      1. Create `app.py` with:
+         - A Flask application
+         - GET /health endpoint returning {"status": "healthy", "version": "1.0.0"}
+         - GET /api/echo?message=<text> endpoint returning {"echo": "<text>"}
+
+      2. Create `test_app.py` with pytest tests that:
+         - Test /health returns 200 and correct JSON
+         - Test /api/echo returns the message
+         - Test /api/echo with no message returns 400
+
+      3. Create `requirements.txt` with: flask>=2.0.0, pytest>=7.0.0
+
+      Use type hints where applicable. Keep it minimal and clean.
+    validation:
+      files_required:
+        - app.py
+        - test_app.py
+        - requirements.txt
+      compile_check: true
+      test_execution: true
+      functional_test:
+        type: http
+        endpoint: /health
+        expected_status: 200
+        expected_json:
+          status: healthy
+    timeout_seconds: 360
+    type: standard
+
+  # ============================================
+  # Node.js/React Applications
+  # ============================================
+
+  react-todo-component:
+    description: "React TypeScript todo list component"
+    language: node
+    prompt: |
+      Create a React TypeScript todo list component with the following requirements:
+
+      1. Create `src/TodoList.tsx` with:
+         - A TodoList component that manages a list of todo items
+         - Each item has: id (string), text (string), completed (boolean)
+         - Methods to add, remove, and toggle todo items
+         - Display the list with checkboxes
+
+      2. Create `src/TodoList.test.tsx` with Jest tests that:
+         - Test adding a new todo
+         - Test removing a todo
+         - Test toggling completion status
+         - Test rendering the list
+
+      3. Create `src/types.ts` with TypeScript interfaces for TodoItem
+
+      4. Create `package.json` with dependencies:
+         - react, react-dom
+         - typescript
+         - @testing-library/react, @testing-library/jest-dom
+         - jest, ts-jest, @types/jest
+
+      5. Create `tsconfig.json` with strict TypeScript settings
+
+      Write clean, type-safe code following React best practices.
+    validation:
+      files_required:
+        - src/TodoList.tsx
+        - src/TodoList.test.tsx
+        - src/types.ts
+        - package.json
+        - tsconfig.json
+      compile_check: true
+      test_execution: true
+    timeout_seconds: 420
+    type: standard
+
+  node-cli-tool:
+    description: "Node.js CLI tool with argument parsing"
+    language: node
+    prompt: |
+      Create a Node.js CLI tool that converts text case with the following requirements:
+
+      1. Create `src/index.js` (or .ts) with:
+         - A CLI that accepts --input "text" and --case upper|lower|title
+         - Converts the input text to the specified case
+         - Outputs the result to stdout
+         - Shows help with --help
+
+      2. Create `src/converter.js` with pure functions:
+         - toUpperCase(text) -> string
+         - toLowerCase(text) -> string
+         - toTitleCase(text) -> string
+
+      3. Create `test/converter.test.js` with tests for all conversion functions
+
+      4. Create `package.json` with:
+         - A "bin" entry pointing to the CLI
+         - Test script using jest or mocha
+         - commander or yargs for argument parsing
+
+      Keep it simple and focused.
+    validation:
+      files_required:
+        - src/index.js
+        - src/converter.js
+        - test/converter.test.js
+        - package.json
+      compile_check: true
+      test_execution: true
+      functional_test:
+        type: cli
+        command: "node src/index.js --input 'hello world' --case upper"
+        expected_output: "HELLO WORLD"
+    timeout_seconds: 360
+    type: standard
+
+  # ============================================
+  # Rust Applications
+  # ============================================
+
+  rust-fibonacci:
+    description: "Rust fibonacci library with tests"
+    language: rust
+    prompt: |
+      Create a Rust library for Fibonacci sequence calculation.
+
+      IMPORTANT: Create files directly in the current directory. Do NOT use `cargo new`
+      or create any subdirectories. Put Cargo.toml at the root level.
+
+      1. Create `Cargo.toml` with:
+         - name = "fibonacci"
+         - version = "0.1.0"
+         - edition = "2021"
+
+      2. Create `src/lib.rs` with:
+         - fn fibonacci(n: u64) -> u64 - returns nth Fibonacci number
+         - fn fibonacci_sequence(n: usize) -> Vec<u64> - returns first n numbers
+         - Use efficient iterative implementation (not recursive)
+
+      3. Add comprehensive tests in src/lib.rs using #[cfg(test)] module:
+         - Test fibonacci(0) = 0, fibonacci(1) = 1
+         - Test fibonacci(10) = 55
+         - Test fibonacci_sequence(5) = [0, 1, 1, 2, 3]
+         - Test edge cases
+
+      Write idiomatic Rust with proper documentation comments (///)
+    validation:
+      files_required:
+        - Cargo.toml
+        - src/lib.rs
+      compile_check: true
+      test_execution: true
+    timeout_seconds: 300
+    type: standard
+
+# ============================================
+# Global Settings
+# ============================================
+settings:
+  default_timeout_seconds: 300
+  default_runs: 3
+  default_threshold: 0.67  # 2/3 must pass
+  thresholds:
+    critical: 1.0      # Must pass all runs
+    standard: 0.67     # Must pass 2/3
+    experimental: 0.5  # Must pass 1/2
+  cleanup_on_success: true
+  cleanup_on_failure: false  # Keep artifacts for debugging

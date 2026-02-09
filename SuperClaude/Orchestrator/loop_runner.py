@@ -27,9 +27,10 @@ from datetime import datetime
 from enum import Enum
 from typing import Any, Callable
 
+from .events_hooks import EventsTracker, create_events_hooks, create_iteration_callback
 from .evidence import EvidenceCollector
 from .hooks import create_sdk_hooks, merge_hooks
-from .quality import QualityAssessment, QualityConfig, assess_quality
+from .quality import QualityConfig, assess_quality
 
 # Logger for this module
 logger = logging.getLogger(__name__)
@@ -111,6 +112,8 @@ async def run_agentic_loop(
     config: LoopConfig | None = None,
     additional_hooks: dict[str, list[dict]] | None = None,
     on_iteration: Callable[[IterationResult], None] | None = None,
+    events_tracker: EventsTracker | None = None,
+    enable_events: bool = True,
 ) -> LoopResult:
     """
     Run SuperClaude's agentic loop using the Official Anthropic Agent SDK.
@@ -126,6 +129,8 @@ async def run_agentic_loop(
         config: Loop configuration (uses defaults if None)
         additional_hooks: Extra hooks to merge with default hooks
         on_iteration: Callback after each iteration completes
+        events_tracker: Optional EventsTracker for Zed panel integration
+        enable_events: Whether to enable events.jsonl writing (default: True)
 
     Returns:
         LoopResult with final score and iteration history
@@ -155,6 +160,27 @@ async def run_agentic_loop(
     evidence = EvidenceCollector()
     sdk_hooks = create_sdk_hooks(evidence)
 
+    # Initialize events tracker for Zed panel integration
+    tracker = events_tracker
+    if enable_events and tracker is None:
+        tracker = EventsTracker()
+
+    # Create and merge events hooks
+    if enable_events and tracker is not None:
+        events_hooks = create_events_hooks(evidence, tracker)
+        sdk_hooks = merge_hooks(sdk_hooks, events_hooks)
+
+        # Wrap on_iteration to also record events
+        user_callback = on_iteration
+        events_callback = create_iteration_callback(tracker)
+
+        def combined_callback(result: IterationResult) -> None:
+            events_callback(result)
+            if user_callback:
+                user_callback(result)
+
+        on_iteration = combined_callback
+
     # Merge additional hooks if provided
     if additional_hooks:
         sdk_hooks = merge_hooks(sdk_hooks, additional_hooks)
@@ -172,6 +198,10 @@ async def run_agentic_loop(
     for iteration in range(effective_max):
         iteration_start = datetime.now()
         logger.info(f"Starting iteration {iteration + 1}/{effective_max}")
+
+        # Record iteration start for Zed panel
+        if enable_events and tracker is not None:
+            tracker.record_iteration_start(iteration, depth=0)
 
         # Reset evidence for this iteration
         evidence.reset()
@@ -253,6 +283,16 @@ async def run_agentic_loop(
     total_duration = (datetime.now() - loop_start).total_seconds()
 
     status = "success" if termination_reason == TerminationReason.QUALITY_MET else "terminated"
+
+    # Record final state change for Zed panel
+    if enable_events and tracker is not None:
+        final_state = "completed" if status == "success" else "failed"
+        tracker.record_state_change(
+            old_state="running",
+            new_state=final_state,
+            reason=termination_reason.value,
+        )
+        tracker.flush()
 
     return LoopResult(
         status=status,

@@ -99,7 +99,7 @@ def detect_python_config(project_path: Path) -> "dict[str, Any]":
                         config["python_versions"] = ["3.12"]
 
         except Exception:
-            pass
+            pass  # Graceful fallback to default config if parsing fails
 
     return config
 
@@ -137,7 +137,7 @@ def detect_node_config(project_path: Path) -> "dict[str, Any]":
                 config["project_name"] = data["name"]
 
         except Exception:
-            pass
+            pass  # Graceful fallback to default config if parsing fails
 
     return config
 
@@ -163,7 +163,7 @@ def detect_go_config(project_path: Path) -> "dict[str, Any]":
                     config["go_versions"] = [major_minor, next_version]
                     break
         except Exception:
-            pass
+            pass  # Graceful fallback to default config if parsing fails
 
     return config
 
@@ -187,7 +187,7 @@ def detect_rust_config(project_path: Path) -> "dict[str, Any]":
                     config["msrv"] = msrv
                     break
         except Exception:
-            pass
+            pass  # Graceful fallback to default config if parsing fails
 
     return config
 
@@ -285,6 +285,7 @@ def generate_workflows(
         loader=FileSystemLoader(str(templates_path)),
         trim_blocks=True,
         lstrip_blocks=True,
+        autoescape=True,
     )
 
     created = []

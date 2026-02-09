@@ -96,7 +96,7 @@ class MCPComponent(Component):
             },
         }
 
-    def install(self, config: dict = None, **kwargs) -> bool:
+    def _install(self, config: dict[str, Any]) -> bool:
         """Display MCP tools information.
 
         No installation needed - just shows documentation about available tools.
@@ -118,7 +118,27 @@ class MCPComponent(Component):
         display_info("Usage: Call these tools directly in prompts or commands.")
         display_info("Example: 'Use mcp__rube__RUBE_SEARCH_TOOLS to find integrations'")
 
-        return True
+        return self._post_install()
+
+    def _post_install(self) -> bool:
+        """Post-install setup for MCP component."""
+        try:
+            # Update metadata with MCP configuration
+            metadata_mods = self.get_metadata_modifications()
+            self.settings_manager.update_metadata(metadata_mods)
+            self.logger.info("Updated metadata with MCP configuration")
+            return True
+        except Exception as e:
+            self.logger.error(f"Failed to complete MCP post-install: {e}")
+            return False
+
+    def get_dependencies(self) -> list[str]:
+        """MCP component has no dependencies."""
+        return []
+
+    def _get_source_dir(self) -> Path | None:
+        """No source directory needed - MCP tools are native to Claude Code."""
+        return None
 
     def uninstall(self) -> bool:
         """No uninstallation needed for native MCP tools."""
@@ -131,6 +151,6 @@ class MCPComponent(Component):
         display_info("Native MCP tools are updated with Claude Code.")
         return True
 
-    def validate_installation(self, installSubPath: Path | None = None) -> bool:
+    def validate_installation(self, installSubPath: Path | None = None) -> tuple[bool, list[str]]:
         """Native MCP tools are always available in Claude Code."""
-        return True
+        return True, []

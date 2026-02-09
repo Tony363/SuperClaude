@@ -159,7 +159,7 @@ def validate_response(
                     content = f.read_text()
                     file_contents.append(content)
                 except Exception:
-                    pass
+                    pass  # Skip unreadable files gracefully
 
             combined = " ".join(file_contents).lower()
             file_matched = []

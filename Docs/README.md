@@ -1,20 +1,16 @@
-# SuperClaude Documentation Hub
+# SuperClaude Documentation
 
-> This directory mirrors the structure described in the README and points to the
-> authoritative resources already shipped under `SuperClaude/Core`.
+## Docs
 
-## Quick Starts and Essentials
+- [Dashboard Guide](dashboard.md) — Using the SuperClaude Tauri dashboard.
+- [Quality Gates](quality-gates.md) — Validator thresholds and scoring rules.
 
-- [User Guide](User-Guide/README.md) — Daily workflows and command usage.
-- [API Reference](Reference/README.md) — Module-level integration notes.
-- [Developer Guide](Developer-Guide/README.md) — Architecture and contribution tips.
+## Demo Artifacts
 
-For the most detailed, always up-to-date information, consult the curated core
-documents:
+Architecture specs and SRDs created during demo sessions live in
+[`examples/docs-demos/`](../examples/docs-demos/).
 
-- [QUICKSTART](../SuperClaude/Core/QUICKSTART.md)
-- [CHEATSHEET](../SuperClaude/Core/CHEATSHEET.md)
-- [OPERATIONS Manual](../SuperClaude/Core/OPERATIONS.md)
+## Framework Reference
 
-These stubs anchor the documentation links advertised in `README.md` and will
-expand alongside the regenerated manuals.
+Canonical framework instructions (agents, flags, modes, MCP integration) are
+maintained in `~/.claude/` and `AGENTS.md` at the repository root.

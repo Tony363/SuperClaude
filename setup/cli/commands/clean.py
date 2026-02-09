@@ -217,6 +217,126 @@ class CleanCommand:
             display_error(f"  Failed to clean worktrees: {e}")
             return False
 
+    def clean_superclaude(self) -> bool:
+        """Clean SuperClaude-specific artifacts (skills, hooks, runtime dirs, metadata).
+
+        Removes:
+        - Skill directories matching sc-*/agent-* prefixes or known names
+        - Hook files installed by SuperClaude
+        - superclaude/ runtime directory
+        - feedback/ directory
+        - learned_skills.db, hooks.log, superclaude_env_vars.json,
+          .superclaude-metadata.json
+        """
+        success = True
+
+        # -- Skills --
+        skills_dir = self.install_dir / "skills"
+        if skills_dir.exists():
+            sc_prefixes = ("sc-", "agent-")
+            known_skill_dirs = ("ask", "ask-multi", "learned", "scripts")
+
+            for item in list(skills_dir.iterdir()):
+                if item.is_dir() and (
+                    item.name.startswith(sc_prefixes) or item.name in known_skill_dirs
+                ):
+                    if not self.dry_run:
+                        try:
+                            shutil.rmtree(item)
+                            self.cleaned_items.append(f"Skill: {item.name}")
+                            display_success(f"  Removed skill directory: {item.name}")
+                        except Exception as e:
+                            self.failed_items.append(f"skills/{item.name}: {e!s}")
+                            display_error(f"  Failed to remove skill {item.name}: {e}")
+                            success = False
+                    else:
+                        display_info(f"  [DRY RUN] Would remove skill directory: {item.name}")
+                elif item.is_file() and item.name == "README.md":
+                    if not self.dry_run:
+                        item.unlink()
+                        self.cleaned_items.append("Skill: README.md")
+                    else:
+                        display_info("  [DRY RUN] Would remove skills/README.md")
+
+            # Remove skills/ if empty
+            if not self.dry_run:
+                try:
+                    if skills_dir.exists() and not any(skills_dir.iterdir()):
+                        skills_dir.rmdir()
+                        display_success("  Removed empty skills directory")
+                except Exception:
+                    pass  # Best-effort cleanup; directory may be in use
+
+        # -- Hooks --
+        hooks_dir = self.install_dir / "hooks"
+        known_hooks = ("block-destructive-git.sh", "block-dangerous-ops.sh", "auto-format.sh")
+        if hooks_dir.exists():
+            for hook_name in known_hooks:
+                hook_path = hooks_dir / hook_name
+                if hook_path.exists():
+                    if not self.dry_run:
+                        try:
+                            hook_path.unlink()
+                            self.cleaned_items.append(f"Hook: {hook_name}")
+                            display_success(f"  Removed hook: {hook_name}")
+                        except Exception as e:
+                            self.failed_items.append(f"hooks/{hook_name}: {e!s}")
+                            success = False
+                    else:
+                        display_info(f"  [DRY RUN] Would remove hook: {hook_name}")
+
+            # Remove hooks/ if empty
+            if not self.dry_run:
+                try:
+                    if hooks_dir.exists() and not any(hooks_dir.iterdir()):
+                        hooks_dir.rmdir()
+                        display_success("  Removed empty hooks directory")
+                except Exception:
+                    pass  # Best-effort cleanup; directory may be in use
+
+        # -- Directories --
+        for dirname in ("superclaude", "feedback", "commands"):
+            dir_path = self.install_dir / dirname
+            if dir_path.exists() and dir_path.is_dir():
+                if not self.dry_run:
+                    try:
+                        shutil.rmtree(dir_path)
+                        self.cleaned_items.append(f"Directory: {dirname}/")
+                        display_success(f"  Removed {dirname}/ directory")
+                    except Exception as e:
+                        self.failed_items.append(f"{dirname}: {e!s}")
+                        display_error(f"  Failed to remove {dirname}/: {e}")
+                        success = False
+                else:
+                    display_info(f"  [DRY RUN] Would remove {dirname}/ directory")
+
+        # -- Loose files --
+        loose_files = [
+            "learned_skills.db",
+            "hooks.log",
+            "superclaude_env_vars.json",
+            ".superclaude-metadata.json",
+        ]
+        for filename in loose_files:
+            file_path = self.install_dir / filename
+            if file_path.exists():
+                if not self.dry_run:
+                    try:
+                        file_path.unlink()
+                        self.cleaned_items.append(f"File: {filename}")
+                        display_success(f"  Removed {filename}")
+                    except Exception as e:
+                        self.failed_items.append(f"{filename}: {e!s}")
+                        display_error(f"  Failed to remove {filename}: {e}")
+                        success = False
+                else:
+                    display_info(f"  [DRY RUN] Would remove {filename}")
+
+        if not self.cleaned_items and not self.dry_run:
+            display_info("  No SuperClaude artifacts found to clean")
+
+        return success
+
     def validate_installation(self) -> bool:
         """Validate installation state after cleaning."""
         display_info("\n🔍 Validating installation state...")
@@ -249,6 +369,7 @@ class CleanCommand:
                     self.args.cache,
                     self.args.logs,
                     self.args.worktrees,
+                    self.args.superclaude,
                 ]
             )
         )
@@ -262,6 +383,8 @@ class CleanCommand:
             operations.append(("log files", self.clean_logs))
         if clean_all or self.args.worktrees:
             operations.append(("git worktrees", self.clean_worktrees))
+        if clean_all or self.args.superclaude:
+            operations.append(("SuperClaude artifacts", self.clean_superclaude))
 
         # Confirm operation
         if not self.force and not self.dry_run:
@@ -348,6 +471,11 @@ Examples:
     clean_group.add_argument("--cache", action="store_true", help="Clean cache directories")
     clean_group.add_argument("--logs", action="store_true", help="Clean log files")
     clean_group.add_argument("--worktrees", action="store_true", help="Clean git worktrees")
+    clean_group.add_argument(
+        "--superclaude",
+        action="store_true",
+        help="Clean SuperClaude artifacts (skills, hooks, runtime dirs, learned_skills.db)",
+    )
 
     # Options
     options_group = parser.add_argument_group("options")

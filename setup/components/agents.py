@@ -83,6 +83,78 @@ class AgentsComponent(Component):
             self.logger.error(f"Failed to complete agents post-install: {e}")
             return False
 
+    # Known SuperClaude skill directory prefixes and names
+    KNOWN_SKILL_PREFIXES = ("sc-", "agent-")
+    KNOWN_SKILL_DIRS = ("ask", "ask-multi", "learned", "scripts")
+
+    def _uninstall_skills(self) -> int:
+        """Remove SuperClaude-installed skill directories, preserving user-created skills.
+
+        Only removes directories matching known SC prefixes (sc-*, agent-*) or
+        known names. Preserves any user-created skill directories.
+
+        Returns:
+            Number of skill directories removed
+        """
+        import shutil
+
+        skills_dir = self.install_dir / "skills"
+        removed = 0
+
+        if not skills_dir.exists():
+            return 0
+
+        for item in list(skills_dir.iterdir()):
+            if not item.is_dir():
+                # Remove README.md at skills root if it exists
+                if item.name == "README.md":
+                    if self.file_manager.remove_file(item):
+                        self.logger.debug("Removed skills/README.md")
+                continue
+
+            should_remove = (
+                item.name.startswith(self.KNOWN_SKILL_PREFIXES)
+                or item.name in self.KNOWN_SKILL_DIRS
+            )
+
+            if should_remove:
+                try:
+                    shutil.rmtree(item)
+                    removed += 1
+                    self.logger.debug(f"Removed skill directory: {item.name}")
+                except Exception as e:
+                    self.logger.warning(f"Could not remove skill directory {item.name}: {e}")
+
+        # Remove skills/ dir itself if now empty
+        try:
+            if skills_dir.exists() and not any(skills_dir.iterdir()):
+                skills_dir.rmdir()
+                self.logger.debug("Removed empty skills directory")
+        except Exception as e:
+            self.logger.warning(f"Could not remove skills directory: {e}")
+
+        return removed
+
+    def _uninstall_superclaude_dir(self) -> bool:
+        """Remove the ~/.claude/superclaude/ runtime directory.
+
+        Returns:
+            True if removed or didn't exist, False on error
+        """
+        import shutil
+
+        sc_dir = self.install_dir / "superclaude"
+        if not sc_dir.exists():
+            return True
+
+        try:
+            shutil.rmtree(sc_dir)
+            self.logger.debug("Removed superclaude/ directory")
+            return True
+        except Exception as e:
+            self.logger.warning(f"Could not remove superclaude/ directory: {e}")
+            return False
+
     def uninstall(self) -> bool:
         """Uninstall agents component"""
         try:
@@ -107,6 +179,14 @@ class AgentsComponent(Component):
                     self.logger.debug("Removed empty agents directory")
             except Exception as e:
                 self.logger.warning(f"Could not remove agents directory: {e}")
+
+            # Remove SuperClaude skill directories
+            skills_removed = self._uninstall_skills()
+            if skills_removed:
+                self.logger.info(f"Removed {skills_removed} skill directories")
+
+            # Remove superclaude/ runtime directory
+            self._uninstall_superclaude_dir()
 
             # Update metadata to remove agents component
             try:
@@ -178,10 +258,9 @@ class AgentsComponent(Component):
 
     def _get_source_dir(self) -> Path:
         """Get source directory for agent files"""
-        # Assume we're in SuperClaude/setup/components/agents.py
-        # and agent files are in SuperClaude/SuperClaude/Agents/
+        # Agent markdown files live in the top-level agents/core/ directory
         project_root = Path(__file__).parent.parent.parent
-        return project_root / "SuperClaude" / "Agents"
+        return project_root / "agents" / "core"
 
     def get_size_estimate(self) -> int:
         """Get estimated installation size"""

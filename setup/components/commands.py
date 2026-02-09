@@ -40,13 +40,18 @@ class CommandsComponent(Component):
         }
 
     def _install(self, config: dict[str, Any]) -> bool:
-        """Install commands component"""
+        """Install commands component.
+
+        In v7, commands are skills installed by the agents component.
+        This only migrates legacy commands and registers metadata.
+        """
         self.logger.info("Installing SuperClaude command definitions...")
 
         # Check for and migrate existing commands from old location
         self._migrate_existing_commands()
 
-        return super()._install(config)
+        self.logger.info("Commands are now skills — no source files to copy")
+        return self._post_install()
 
     def _post_install(self) -> bool:
         # Update metadata
@@ -208,28 +213,17 @@ class CommandsComponent(Component):
             return False
 
     def validate_installation(self) -> tuple[bool, list[str]]:
-        """Validate commands component installation"""
+        """Validate commands component installation.
+
+        In v7, commands are skills installed by the agents component.
+        Validation only checks metadata registration.
+        """
         errors = []
-
-        # Check if sc commands directory exists
-        commands_dir = self.install_dir / "commands" / "sc"
-        if not commands_dir.exists():
-            errors.append("SC commands directory not found")
-            return False, errors
-
-        # Check if all command files exist
-        for filename in self.component_files:
-            file_path = commands_dir / filename
-            if not file_path.exists():
-                errors.append(f"Missing command file: {filename}")
-            elif not file_path.is_file():
-                errors.append(f"Command file is not a regular file: {filename}")
 
         # Check metadata registration
         if not self.settings_manager.is_component_installed("commands"):
             errors.append("Commands component not registered in metadata")
         else:
-            # Check version matches
             installed_version = self.settings_manager.get_component_version("commands")
             expected_version = self.get_metadata()["version"]
             if installed_version != expected_version:
@@ -239,22 +233,29 @@ class CommandsComponent(Component):
 
         return len(errors) == 0, errors
 
-    def _get_source_dir(self) -> Path:
-        """Get source directory for command files"""
-        # Assume we're in SuperClaude/setup/components/commands.py
-        # and command files are in SuperClaude/SuperClaude/Commands/
-        project_root = Path(__file__).parent.parent.parent
-        return project_root / "SuperClaude" / "Commands"
+    def validate_prerequisites(self, installSubPath: Path | None = None) -> tuple[bool, list[str]]:
+        """No prerequisites — v7 commands are skills installed by the agents component."""
+        return True, []
+
+    def _get_source_dir(self) -> Path | None:
+        """Get source directory for command files.
+
+        In v7, /sc: commands are defined as skills (.claude/skills/sc-*/)
+        and are installed by the agents component. This component is retained
+        for backward compatibility but has no source files to install.
+        """
+        return None
 
     def get_size_estimate(self) -> int:
         """Get estimated installation size"""
         total_size = 0
         source_dir = self._get_source_dir()
 
-        for filename in self.component_files:
-            file_path = source_dir / filename
-            if file_path.exists():
-                total_size += file_path.stat().st_size
+        if source_dir:
+            for filename in self.component_files:
+                file_path = source_dir / filename
+                if file_path.exists():
+                    total_size += file_path.stat().st_size
 
         # Add overhead for directory and settings
         total_size += 5120  # ~5KB overhead

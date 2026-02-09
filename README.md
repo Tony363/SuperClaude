@@ -25,6 +25,7 @@ SuperClaude transforms Claude Code into a powerful development platform with spe
 - [Core API Reference](#core-api-reference)
 - [Installation](#installation)
 - [Quick Start](#quick-start)
+- [Dashboard](#dashboard)
 - [Agent System](#agent-system)
 - [Command System](#command-system)
 - [Loop Orchestration](#loop-orchestration)
@@ -587,6 +588,51 @@ With PAL MCP configured:
 User: Use PAL to review this code
 Claude: [Invokes mcp__pal__codereview for multi-model code review]
 ```
+
+---
+
+## Dashboard
+
+SuperClaude includes a native desktop dashboard for visualizing and controlling the agentic framework.
+
+### Features
+
+- **Feature Inventory** - Browse all 35 agents, 14 commands, 30+ skills, and 6 behavioral modes
+- **Live Monitor** - Real-time execution tracking with event streaming and quality score visualization
+- **Execution Control** - Start, stop, pause, and resume executions with configurable parameters
+- **Historical Metrics** - View past session data, event timelines, and performance trends
+
+### Quick Start
+
+```bash
+# Terminal 1: Start the daemon
+cargo run -p superclaude-daemon
+
+# Terminal 2: Launch the dashboard
+cd crates/dashboard
+cargo tauri dev
+```
+
+The dashboard window will open showing the Feature Inventory page. Navigate using the sidebar to access Monitor, Control, and History views.
+
+### Building for Production
+
+```bash
+cd crates/dashboard
+cargo tauri build
+
+# Output packages:
+# - Debian/Ubuntu: target/release/bundle/deb/superclaude-dashboard_*.deb
+# - Universal Linux: target/release/bundle/appimage/superclaude-dashboard_*.AppImage
+```
+
+### System Requirements
+
+- **OS**: Linux (tested on Manjaro/Arch, Ubuntu 22.04+)
+- **Dependencies**: webkit2gtk-4.1, libappindicator-gtk3, librsvg
+- **Runtime**: SuperClaude daemon running on port 50051
+
+See [Dashboard Documentation](Docs/dashboard.md) for detailed usage guide.
 
 ---
 

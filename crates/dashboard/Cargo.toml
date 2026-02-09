@@ -1,0 +1,38 @@
+[package]
+name = "superclaude-dashboard"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+# Tauri
+tauri = { version = "2", features = ["devtools"] }
+tauri-plugin-shell = "2"
+
+# Workspace crates
+superclaude-proto = { path = "../proto" }
+superclaude-core = { path = "../superclaude-core" }
+
+# gRPC client
+tonic = { workspace = true }
+prost = { workspace = true }
+prost-types = { workspace = true }
+tokio = { workspace = true }
+tokio-stream = { workspace = true }
+futures = { workspace = true }
+
+# Serialization
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+# State
+parking_lot = { workspace = true }
+
+# Logging
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+
+# Utils
+anyhow = { workspace = true }
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }

@@ -109,7 +109,6 @@ class MetricsEmitter(Protocol):
             value: Metric value (int, float, or other numeric type)
             tags: Optional key-value tags for metric dimensions
         """
-        ...
 
 
 def noop_emitter(
