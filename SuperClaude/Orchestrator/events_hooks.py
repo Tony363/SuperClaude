@@ -14,14 +14,11 @@ Event Format (compatible with Rust daemon):
 from __future__ import annotations
 
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from ..Telemetry.interfaces import MetricType
 from ..Telemetry.jsonl import JsonlTelemetryClient
 from .evidence import EvidenceCollector
-
-if TYPE_CHECKING:
-    from .loop_runner import IterationResult
 
 
 class EventsTracker:
@@ -633,7 +630,7 @@ def create_iteration_callback(
         Callback function for run_agentic_loop(on_iteration=...)
     """
 
-    def on_iteration(result: IterationResult) -> None:
+    def on_iteration(result: "IterationResult") -> None:  # noqa: F821
         """Called after each iteration completes."""
         # Extract quality dimensions from evidence
         dimensions = None
