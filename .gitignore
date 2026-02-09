@@ -25,7 +25,6 @@ MANIFEST
 
 # PyPI Publishing
 *.whl
-*.tar.gz
 twine.log
 .twine/
 
@@ -39,7 +38,7 @@ htmlcov/
 .nox/
 .coverage
 .coverage.*
-.cache
+.cache/
 nosetests.xml
 coverage.xml
 *.cover
@@ -73,6 +72,7 @@ venv.bak/
 ehthumbs.db
 Thumbs.db
 Desktop.ini
+$RECYCLE.BIN/
 
 # Logs
 logs/
@@ -81,10 +81,8 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# Node.js (if any frontend components)
+# Node.js
 node_modules/
-npm-debug.log
-yarn-error.log
 
 # Jupyter Notebook
 .ipynb_checkpoints
@@ -92,16 +90,8 @@ yarn-error.log
 # pyenv
 .python-version
 
-# pipenv
-Pipfile.lock
-
-# Poetry
-poetry.lock
-
 # Claude Code
-# Ignore all .claude/ contents by default (logs, history, local state)
 .claude/*
-# Track skills directory so users get them on clone
 !.claude/skills/
 CLAUDE.md
 
@@ -110,27 +100,16 @@ CLAUDE.md
 .superclaude/
 .sc-tdd/
 .superclaude_metrics/
-SuperClaude/Generated/
-SuperClaude/quarantine/
 .worktrees/
-SuperClaude/Implementation/
+archive/
 *.backup
 *.bak
 
-# Archived SDK removed in v7 - prevent accidental re-creation
-archive/
-
-# Test fixtures (not needed in repo)
+# Test fixtures and output
 .home/
 .fakehome/
 .tmp_cache/
 .tmp_logs/
-
-# Project specific
-# Legacy capitalized Tests folder was deprecated; keep actual test suites tracked.
-# (Removing prior ignore entry prevents accidental exclusion of tests/ quality gates.)
-
-# E2E test output (generated apps and results)
 tests/e2e/output/
 tests/e2e/workspaces/
 artifacts/e2e/
@@ -138,14 +117,8 @@ artifacts/e2e/
 
 # Rust build artifacts
 target/
-daemon/target/
 crates/dashboard/frontend/dist/
 crates/dashboard/gen/
-
-ClaudeDocs/
-temp/
-tmp/
-.cache/
 
 # Build artifacts
 *.tar.gz
@@ -154,15 +127,21 @@ tmp/
 *.pkg
 *.deb
 *.rpm
+*.msi
+*.exe
 
 # Documentation builds
 docs/_build/
 site/
+Docs/
+ClaudeDocs/
 
 # Temporary files
 *.tmp
 *.temp
 .temp/
+temp/
+tmp/
 
 # Security & API Keys
 .env
@@ -176,12 +155,11 @@ private/
 *.p12
 *.pfx
 
-# PyPI & Package Management
+# Package management locks
 uv.lock
 Pipfile.lock
 poetry.lock
-requirements-dev.txt
-requirements-test.txt
+package-lock.json
 
 # Development Tools
 .mypy_cache/
@@ -191,50 +169,18 @@ requirements-test.txt
 .flake8
 pyrightconfig.json
 .pylintrc
+requirements-dev.txt
+requirements-test.txt
 
 # Publishing & Release
 PYPI_SETUP_COMPLETE.md
 release-notes/
 changelog-temp/
 
-# Build artifacts (additional)
-*.deb
-*.rpm
-*.dmg
-*.pkg
-*.msi
-*.exe
-
-# IDE & Editor specific
-.vscode/settings.json
-.vscode/launch.json
-.idea/workspace.xml
-.idea/tasks.xml
-*.sublime-project
-*.sublime-workspace
-
-# System & OS
-.DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
-Thumbs.db
-Desktop.ini
-$RECYCLE.BIN/
-
 # Personal files
 CRUSH.md
 TODO.txt
 
-# Development artifacts (should not be in repo)
-package-lock.json
-uv.lock
-
 # File-based skill persistence (no SQLite)
 .claude/skills/learned/
 .claude/feedback/
-
-# Documentation artifacts
-Docs/

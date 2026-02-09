@@ -42,40 +42,24 @@ def verify_superclaude_file(file_path: Path, component: str) -> bool:
         True if safe to remove, False if uncertain (preserve by default)
     """
     try:
-        # Known SuperClaude file patterns by component
+        # Known SuperClaude file patterns by component (v7)
         superclaude_patterns = {
             "core": [
+                "AGENTS.md",
                 "CLAUDE.md",
+                "CLAUDE_CORE.md",
                 "FLAGS.md",
                 "PRINCIPLES.md",
-                "RULES.md",
-                "ORCHESTRATOR.md",
-                "SESSION_LIFECYCLE.md",
+                "QUICKSTART.md",
+                "RULES_CRITICAL.md",
+                "RULES_RECOMMENDED.md",
+                "TOOLS.md",
             ],
             "commands": [
                 # Commands are only in sc/ subdirectory
             ],
-            "agents": [
-                "backend-engineer.md",
-                "brainstorm-PRD.md",
-                "code-educator.md",
-                "code-refactorer.md",
-                "devops-engineer.md",
-                "frontend-specialist.md",
-                "performance-optimizer.md",
-                "python-ultimate-expert.md",
-                "qa-specialist.md",
-                "root-cause-analyzer.md",
-                "security-auditor.md",
-                "system-architect.md",
-                "technical-writer.md",
-            ],
-            "modes": [
-                "MODE_Brainstorming.md",
-                "MODE_Introspection.md",
-                "MODE_Task_Management.md",
-                "MODE_Token_Efficiency.md",
-            ],
+            "agents": None,  # Dynamic — any .md in agents/ dir is valid
+            "modes": [],  # No mode files in v7 (managed by Python behavioral_manager)
             "mcp_docs": ["MCP_Pal.md", "MCP_Rube.md"],
         }
 
@@ -83,10 +67,17 @@ def verify_superclaude_file(file_path: Path, component: str) -> bool:
         if component == "commands":
             return "commands/sc/" in str(file_path)
 
+        # For agents, accept any .md file in the agents directory
+        if component == "agents":
+            return file_path.suffix.lower() == ".md" and "agents" in str(file_path)
+
         # For other components, check against known file lists
         if component in superclaude_patterns:
-            filename = file_path.name
-            return filename in superclaude_patterns[component]
+            pattern_list = superclaude_patterns[component]
+            if pattern_list is not None:
+                filename = file_path.name
+                return filename in pattern_list
+            return False
 
         # For MCP component, it doesn't remove files but modifies .claude.json
         if component == "mcp":
@@ -519,29 +510,35 @@ def display_component_details(component: str, info: dict[str, Any]) -> dict[str,
     component_paths = {
         "core": {
             "files": [
+                "AGENTS.md",
                 "CLAUDE.md",
+                "CLAUDE_CORE.md",
                 "FLAGS.md",
                 "PRINCIPLES.md",
-                "RULES.md",
-                "ORCHESTRATOR.md",
-                "SESSION_LIFECYCLE.md",
+                "QUICKSTART.md",
+                "RULES_CRITICAL.md",
+                "RULES_RECOMMENDED.md",
+                "TOOLS.md",
             ],
-            "description": "Core framework files in ~/.claude/",
+            "description": "Core framework files, hooks, and runtime data in ~/.claude/",
         },
         "commands": {
-            "files": "commands/sc/*.md",
-            "description": "SuperClaude commands in ~/.claude/commands/sc/",
+            "files": "commands/sc/*.md (skills)",
+            "description": "SuperClaude commands/skills in ~/.claude/skills/sc-*/",
         },
         "agents": {
             "files": "agents/*.md",
-            "description": "Specialized AI agents in ~/.claude/agents/",
+            "description": "Specialized AI agents in ~/.claude/agents/, skills, and superclaude/",
         },
         "mcp": {
             "files": "MCP server configurations in .claude.json",
             "description": "MCP server configurations",
         },
         "mcp_docs": {"files": "MCP/*.md", "description": "MCP documentation files"},
-        "modes": {"files": "MODE_*.md", "description": "SuperClaude operational modes"},
+        "modes": {
+            "files": "(managed by Python behavioral_manager)",
+            "description": "SuperClaude behavioral modes (metadata only)",
+        },
     }
 
     if component in component_paths:
@@ -767,43 +764,85 @@ def perform_uninstall(
 
 
 def cleanup_installation_directory(install_dir: Path, args: argparse.Namespace) -> None:
-    """Clean up installation directory for complete uninstall"""
+    """Clean up SuperClaude-owned files/dirs for complete uninstall.
+
+    Uses an explicit allowlist approach: only removes items known to be
+    created by SuperClaude. Never touches Claude Code native items.
+    """
+    import shutil
+
     logger = get_logger()
     file_manager = FileService()
 
+    # Files owned by SuperClaude (safe to remove)
+    SUPERCLAUDE_OWNED_FILES = [
+        ".superclaude-metadata.json",
+        "superclaude_env_vars.json",
+        "hooks.log",
+        "learned_skills.db",
+        "MCP_Pal.md",
+        "MCP_Rube.md",
+    ]
+
+    # Directories owned by SuperClaude (safe to remove entirely)
+    SUPERCLAUDE_OWNED_DIRS = [
+        "superclaude",
+        "feedback",
+        "cache",
+    ]
+
+    # Directories conditionally preserved
+    CONDITIONAL_DIRS = {
+        "backups": "keep_backups",
+        "logs": "keep_logs",
+    }
+
     try:
-        # Preserve specific directories/files if requested
-        preserve_patterns = []
+        # Remove SC-owned files
+        for filename in SUPERCLAUDE_OWNED_FILES:
+            file_path = install_dir / filename
+            if file_path.exists():
+                if file_manager.remove_file(file_path):
+                    logger.debug(f"Removed: {filename}")
 
-        if args.keep_backups:
-            preserve_patterns.append("backups/*")
-        if args.keep_logs:
-            preserve_patterns.append("logs/*")
-        if args.keep_settings and not args.complete:
-            preserve_patterns.append("settings.json")
+        # Remove SC-owned directories
+        for dirname in SUPERCLAUDE_OWNED_DIRS:
+            dir_path = install_dir / dirname
+            if dir_path.exists() and dir_path.is_dir():
+                try:
+                    shutil.rmtree(dir_path)
+                    logger.debug(f"Removed directory: {dirname}")
+                except Exception as e:
+                    logger.warning(f"Could not remove {dirname}: {e}")
 
-        # Remove installation directory contents
-        if args.complete and not preserve_patterns:
-            # Complete removal
-            if file_manager.remove_directory(install_dir):
-                logger.info(f"Removed installation directory: {install_dir}")
-            else:
-                logger.warning(f"Could not remove installation directory: {install_dir}")
-        else:
-            # Selective removal
-            for item in install_dir.iterdir():
-                should_preserve = False
+        # Remove conditional directories (backups, logs) unless --keep-* flags
+        for dirname, keep_flag in CONDITIONAL_DIRS.items():
+            if getattr(args, keep_flag, False):
+                logger.debug(f"Preserving {dirname}/ (--{keep_flag.replace('_', '-')} specified)")
+                continue
+            dir_path = install_dir / dirname
+            if dir_path.exists() and dir_path.is_dir():
+                try:
+                    shutil.rmtree(dir_path)
+                    logger.debug(f"Removed directory: {dirname}")
+                except Exception as e:
+                    logger.warning(f"Could not remove {dirname}: {e}")
 
-                for pattern in preserve_patterns:
-                    if item.match(pattern):
-                        should_preserve = True
-                        break
+        # Remove external SC artifacts
+        restore_script = Path.home() / "restore_superclaude_env.sh"
+        if restore_script.exists():
+            if file_manager.remove_file(restore_script):
+                logger.debug("Removed ~/restore_superclaude_env.sh")
 
-                if not should_preserve:
-                    if item.is_file():
-                        file_manager.remove_file(item)
-                    elif item.is_dir():
-                        file_manager.remove_directory(item)
+        external_cache = Path.home() / ".cache" / "superclaude"
+        if external_cache.exists() and external_cache.is_dir():
+            try:
+                shutil.rmtree(external_cache)
+                logger.debug("Removed ~/.cache/superclaude/")
+            except Exception as e:
+                logger.warning(f"Could not remove ~/.cache/superclaude/: {e}")
+
+        logger.info("Cleanup of SuperClaude-owned files complete")
 
     except Exception as e:
         logger.error(f"Error during cleanup: {e}")

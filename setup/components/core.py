@@ -18,17 +18,13 @@ class CoreComponent(Component):
 
     MINIMAL_FILES = [
         "AGENTS.md",
-        "CHEATSHEET.md",
         "CLAUDE_CORE.md",
         "FLAGS.md",
         "PRINCIPLES.md",
         "QUICKSTART.md",
-        "RULES.md",
         "RULES_CRITICAL.md",
         "RULES_RECOMMENDED.md",
         "TOOLS.md",
-        "WORKFLOWS_SUMMARY.md",
-        "OPERATIONS_SUMMARY.md",
     ]
 
     def __init__(self, install_dir: Path | None = None):
@@ -162,10 +158,82 @@ class CoreComponent(Component):
 
         return True
 
+    # Known SuperClaude hook files (never remove user-created hooks)
+    KNOWN_HOOK_FILES = [
+        "block-destructive-git.sh",
+        "block-dangerous-ops.sh",
+        "auto-format.sh",
+    ]
+
+    def _uninstall_hooks(self) -> int:
+        """Remove known SuperClaude hook files, preserving user-created hooks.
+
+        Returns:
+            Number of hook files removed
+        """
+        hooks_dir = self.install_dir / "hooks"
+        removed = 0
+
+        if not hooks_dir.exists():
+            return 0
+
+        # Remove only known SC hook files
+        for hook_file in self.KNOWN_HOOK_FILES:
+            hook_path = hooks_dir / hook_file
+            if hook_path.exists():
+                if self.file_manager.remove_file(hook_path):
+                    removed += 1
+                    self.logger.debug(f"Removed hook: {hook_file}")
+                else:
+                    self.logger.warning(f"Could not remove hook: {hook_file}")
+
+        # Remove known SC hook subdirectories if they exist and are empty
+        for subdir in ("pre-commit", "post-commit", "pre-push"):
+            subdir_path = hooks_dir / subdir
+            if subdir_path.exists() and subdir_path.is_dir():
+                try:
+                    if not any(subdir_path.iterdir()):
+                        subdir_path.rmdir()
+                        self.logger.debug(f"Removed empty hook subdir: {subdir}")
+                except Exception as e:
+                    self.logger.warning(f"Could not remove hook subdir {subdir}: {e}")
+
+        # Remove hooks/ dir itself if now empty
+        try:
+            if hooks_dir.exists() and not any(hooks_dir.iterdir()):
+                hooks_dir.rmdir()
+                self.logger.debug("Removed empty hooks directory")
+        except Exception as e:
+            self.logger.warning(f"Could not remove hooks directory: {e}")
+
+        # Remove hooks.log
+        hooks_log = self.install_dir / "hooks.log"
+        if hooks_log.exists():
+            if self.file_manager.remove_file(hooks_log):
+                self.logger.debug("Removed hooks.log")
+
+        return removed
+
     def uninstall(self) -> bool:
         """Uninstall core component"""
         try:
             self.logger.info("Uninstalling SuperClaude core component...")
+
+            # Strip framework @imports from CLAUDE.md before removing files
+            try:
+                manager = CLAUDEMdService(self.install_dir)
+                manager.remove_imports(list(self.component_files))
+                self.logger.debug("Stripped framework imports from CLAUDE.md")
+
+                # Remove CLAUDE.md if it's empty or only contains the default header
+                if manager.claude_md_path.exists():
+                    content = manager.read_existing_content().strip()
+                    # Remove if empty or only the framework section remains
+                    if not content or not manager.extract_user_content(content).strip():
+                        self.file_manager.remove_file(manager.claude_md_path)
+                        self.logger.debug("Removed empty CLAUDE.md")
+            except Exception as e:
+                self.logger.warning(f"Could not clean CLAUDE.md imports: {e}")
 
             # Remove framework files
             removed_count = 0
@@ -176,6 +244,17 @@ class CoreComponent(Component):
                     self.logger.debug(f"Removed {filename}")
                 else:
                     self.logger.warning(f"Could not remove {filename}")
+
+            # Remove hooks
+            hooks_removed = self._uninstall_hooks()
+            if hooks_removed:
+                self.logger.info(f"Removed {hooks_removed} hook files")
+
+            # Remove learned_skills.db
+            learned_db = self.install_dir / "learned_skills.db"
+            if learned_db.exists():
+                if self.file_manager.remove_file(learned_db):
+                    self.logger.debug("Removed learned_skills.db")
 
             # Update metadata to remove core component
             try:
