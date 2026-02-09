@@ -504,36 +504,43 @@ def promote_skill(skill_id: str, reason: str = "") -> bool:
 def get_skill_stats() -> Dict[str, Any]:
     """Get overall skill learning statistics."""
     store = SkillStore()
-    conn = store._get_connection()
 
-    # Count skills
-    skill_counts = conn.execute("""
-        SELECT
-            COUNT(*) as total,
-            SUM(CASE WHEN promoted = 1 THEN 1 ELSE 0 END) as promoted,
-            AVG(quality_score) as avg_quality
-        FROM learned_skills
-    """).fetchone()
+    # Load all skills via file-based store
+    all_skills = store._load_skills()
+    total = len(all_skills)
+    promoted = sum(1 for s in all_skills.values() if s.promoted)
+    qualities = [s.quality_score for s in all_skills.values() if s.quality_score]
+    avg_quality = sum(qualities) / len(qualities) if qualities else 0.0
 
-    # Count feedback
-    feedback_count = conn.execute("SELECT COUNT(*) FROM iteration_feedback").fetchone()[0]
+    # Count feedback files
+    feedback_count = 0
+    if store.feedback_dir.exists():
+        for f in store.feedback_dir.glob("*.jsonl"):
+            if not f.name.endswith("_applications.jsonl"):
+                feedback_count += sum(1 for _ in f.open())
 
     # Count applications
-    app_stats = conn.execute("""
-        SELECT
-            COUNT(*) as total,
-            SUM(CASE WHEN was_helpful = 1 THEN 1 ELSE 0 END) as helpful
-        FROM skill_applications
-    """).fetchone()
+    total_apps = 0
+    helpful_apps = 0
+    if store.feedback_dir.exists():
+        for f in store.feedback_dir.glob("*_applications.jsonl"):
+            for line in f.open():
+                total_apps += 1
+                try:
+                    import json
+
+                    record = json.loads(line)
+                    if record.get("was_helpful"):
+                        helpful_apps += 1
+                except (json.JSONDecodeError, KeyError):
+                    pass  # Skip malformed lines
 
     return {
-        "total_skills": skill_counts["total"] or 0,
-        "promoted_skills": skill_counts["promoted"] or 0,
-        "avg_quality": skill_counts["avg_quality"] or 0.0,
-        "total_feedback_records": feedback_count or 0,
-        "total_applications": app_stats["total"] or 0,
-        "helpful_applications": app_stats["helpful"] or 0,
-        "success_rate": (
-            (app_stats["helpful"] or 0) / app_stats["total"] if app_stats["total"] else 0
-        ),
+        "total_skills": total,
+        "promoted_skills": promoted,
+        "avg_quality": avg_quality,
+        "total_feedback_records": feedback_count,
+        "total_applications": total_apps,
+        "helpful_applications": helpful_apps,
+        "success_rate": helpful_apps / total_apps if total_apps else 0,
     }

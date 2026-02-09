@@ -171,8 +171,12 @@ class TestUtilityFunctions:
     def test_list_pending_skills(self, tmp_path, monkeypatch):
         """Test listing pending skills."""
         monkeypatch.setattr(
-            "core.skill_persistence.SkillStore.DEFAULT_DB_PATH",
-            tmp_path / "pending_test.db",
+            "core.skill_persistence.SkillStore.DEFAULT_SKILLS_DIR",
+            tmp_path / "skills",
+        )
+        monkeypatch.setattr(
+            "core.skill_persistence.SkillStore.DEFAULT_FEEDBACK_DIR",
+            tmp_path / "feedback",
         )
         # Should return empty list when no skills
         pending = list_pending_skills()
@@ -181,8 +185,12 @@ class TestUtilityFunctions:
     def test_get_skill_stats(self, tmp_path, monkeypatch):
         """Test getting skill statistics."""
         monkeypatch.setattr(
-            "core.skill_persistence.SkillStore.DEFAULT_DB_PATH",
-            tmp_path / "stats_test.db",
+            "core.skill_persistence.SkillStore.DEFAULT_SKILLS_DIR",
+            tmp_path / "skills",
+        )
+        monkeypatch.setattr(
+            "core.skill_persistence.SkillStore.DEFAULT_FEEDBACK_DIR",
+            tmp_path / "feedback",
         )
         stats = get_skill_stats()
         assert "total_skills" in stats
@@ -193,8 +201,12 @@ class TestUtilityFunctions:
     def test_promote_skill_nonexistent(self, tmp_path, monkeypatch):
         """Test promoting a non-existent skill returns False."""
         monkeypatch.setattr(
-            "core.skill_persistence.SkillStore.DEFAULT_DB_PATH",
-            tmp_path / "promote_test.db",
+            "core.skill_persistence.SkillStore.DEFAULT_SKILLS_DIR",
+            tmp_path / "skills",
+        )
+        monkeypatch.setattr(
+            "core.skill_persistence.SkillStore.DEFAULT_FEEDBACK_DIR",
+            tmp_path / "feedback",
         )
         result = promote_skill("nonexistent-skill-id")
         assert result is False
@@ -209,8 +221,12 @@ class TestRunLearningLoop:
     def test_run_learning_loop_basic(self, tmp_path, monkeypatch):
         """Test basic learning loop execution."""
         monkeypatch.setattr(
-            "core.skill_persistence.SkillStore.DEFAULT_DB_PATH",
-            tmp_path / "loop_test.db",
+            "core.skill_persistence.SkillStore.DEFAULT_SKILLS_DIR",
+            tmp_path / "skills",
+        )
+        monkeypatch.setattr(
+            "core.skill_persistence.SkillStore.DEFAULT_FEEDBACK_DIR",
+            tmp_path / "feedback",
         )
         result = run_learning_loop(
             task="test task",
@@ -226,8 +242,12 @@ class TestRunLearningLoop:
     def test_run_learning_loop_with_auto_promote(self, tmp_path, monkeypatch):
         """Test learning loop with auto-promote enabled."""
         monkeypatch.setattr(
-            "core.skill_persistence.SkillStore.DEFAULT_DB_PATH",
-            tmp_path / "autopromote_test.db",
+            "core.skill_persistence.SkillStore.DEFAULT_SKILLS_DIR",
+            tmp_path / "skills",
+        )
+        monkeypatch.setattr(
+            "core.skill_persistence.SkillStore.DEFAULT_FEEDBACK_DIR",
+            tmp_path / "feedback",
         )
         result = run_learning_loop(
             task="implement auth",
@@ -242,8 +262,12 @@ class TestRunLearningLoop:
     def test_run_learning_loop_disabled(self, tmp_path, monkeypatch):
         """Test learning loop with learning disabled."""
         monkeypatch.setattr(
-            "core.skill_persistence.SkillStore.DEFAULT_DB_PATH",
-            tmp_path / "disabled_test.db",
+            "core.skill_persistence.SkillStore.DEFAULT_SKILLS_DIR",
+            tmp_path / "skills",
+        )
+        monkeypatch.setattr(
+            "core.skill_persistence.SkillStore.DEFAULT_FEEDBACK_DIR",
+            tmp_path / "feedback",
         )
         result = run_learning_loop(
             task="simple task",
