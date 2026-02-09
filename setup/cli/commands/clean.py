@@ -295,7 +295,7 @@ class CleanCommand:
                     pass
 
         # -- Directories --
-        for dirname in ("superclaude", "feedback"):
+        for dirname in ("superclaude", "feedback", "commands"):
             dir_path = self.install_dir / dirname
             if dir_path.exists() and dir_path.is_dir():
                 if not self.dry_run:

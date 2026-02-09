@@ -789,6 +789,7 @@ def cleanup_installation_directory(install_dir: Path, args: argparse.Namespace) 
         "superclaude",
         "feedback",
         "cache",
+        "commands",  # Legacy v5/v6 commands dir (v7 uses skills)
     ]
 
     # Directories conditionally preserved
