@@ -165,9 +165,7 @@ def validate_red_state(scope_root: str, allow_snapshots: bool = False) -> dict:
         )
 
         # Transition to RED_CONFIRMED
-        success, message = sm.transition(
-            state, TDDPhase.RED_CONFIRMED, evidence=f"Test failed: {result.signals}"
-        )
+        sm.transition(state, TDDPhase.RED_CONFIRMED, evidence=f"Test failed: {result.signals}")
 
         return {
             "allowed": True,

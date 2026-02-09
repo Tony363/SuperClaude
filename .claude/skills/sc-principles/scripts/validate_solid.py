@@ -448,7 +448,7 @@ def find_python_files(scope_root: Path, changed_only: bool = True) -> list[Path]
             if py_files:
                 return py_files
         except (subprocess.SubprocessError, FileNotFoundError):
-            pass
+            pass  # Fall back to rglob below when git is unavailable
 
     return list(scope_root.rglob("*.py"))
 

@@ -223,9 +223,7 @@ class RustValidator(BaseValidator):
         import re
 
         # cargo test format: "test result: ok. X passed; Y failed; Z ignored"
-        match = re.search(
-            r"test result: (ok|FAILED)\. (\d+) passed; (\d+) failed", output
-        )
+        match = re.search(r"test result: (ok|FAILED)\. (\d+) passed; (\d+) failed", output)
         if match:
             status, passed, failed = match.groups()
             return f"{passed} passed, {failed} failed"
@@ -240,9 +238,7 @@ class RustValidator(BaseValidator):
 
         return "test results unclear"
 
-    def run_functional_test(
-        self, workdir: Path, config: dict[str, Any]
-    ) -> ValidationResult | None:
+    def run_functional_test(self, workdir: Path, config: dict[str, Any]) -> ValidationResult | None:
         """Run binary if it's an executable project."""
         start_time = time.time()
         functional_config = config.get("validation", {}).get("functional_test")
