@@ -16,8 +16,8 @@ Key Components:
     - create_obsidian_hooks(): Factory for Obsidian vault integration hooks
 """
 
-from .evidence import EvidenceCollector
 from .events_hooks import EventsTracker, create_events_hooks, create_iteration_callback
+from .evidence import EvidenceCollector
 from .hooks import create_evidence_hooks, create_safety_hooks, create_sdk_hooks
 from .loop_runner import LoopConfig, LoopResult, run_agentic_loop
 from .obsidian_hooks import create_obsidian_hooks, merge_obsidian_hooks

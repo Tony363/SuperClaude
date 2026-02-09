@@ -38,6 +38,7 @@ __all__ = [
     "ConfigService",
     "FileService",
     "SettingsService",
+    # Obsidian integration (lazy-loaded)
     "ObsidianConfig",
     "ObsidianConfigService",
     "ObsidianVaultService",
