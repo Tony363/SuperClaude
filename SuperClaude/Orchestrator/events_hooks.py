@@ -13,12 +13,11 @@ Event Format (compatible with Rust daemon):
 
 from __future__ import annotations
 
-import uuid
 from pathlib import Path
 from typing import Any
 
-from ..Telemetry.jsonl import JsonlTelemetryClient
 from ..Telemetry.interfaces import MetricType
+from ..Telemetry.jsonl import JsonlTelemetryClient
 from .evidence import EvidenceCollector
 
 
@@ -73,12 +72,15 @@ class EventsTracker:
         self.current_depth = depth
         node_id = f"iter-{iteration}"
 
-        self.client.record_event("iteration_start", {
-            "event_type": "iteration_start",
-            "iteration": iteration,
-            "depth": depth,
-            "node_id": node_id,
-        })
+        self.client.record_event(
+            "iteration_start",
+            {
+                "event_type": "iteration_start",
+                "iteration": iteration,
+                "depth": depth,
+                "node_id": node_id,
+            },
+        )
 
         return node_id
 
@@ -147,16 +149,19 @@ class EventsTracker:
         # Generate a human-readable summary
         summary = self._summarize_tool(tool_name, tool_input, tool_output)
 
-        self.client.record_event("tool_use", {
-            "event_type": "tool_use",
-            "tool": tool_name,
-            "summary": summary,
-            "blocked": blocked,
-            "block_reason": block_reason,
-            "depth": self.current_depth + 1,
-            "node_id": node_id,
-            "parent_node_id": parent_node_id or f"iter-{self.current_iteration}",
-        })
+        self.client.record_event(
+            "tool_use",
+            {
+                "event_type": "tool_use",
+                "tool": tool_name,
+                "summary": summary,
+                "blocked": blocked,
+                "block_reason": block_reason,
+                "depth": self.current_depth + 1,
+                "node_id": node_id,
+                "parent_node_id": parent_node_id or f"iter-{self.current_iteration}",
+            },
+        )
 
         # Increment tool counter
         self.client.increment("tools.invoked")
@@ -184,14 +189,17 @@ class EventsTracker:
         """
         node_id = self._next_node_id("file")
 
-        self.client.record_event("file_change", {
-            "event_type": "file_change",
-            "path": path,
-            "action": action,
-            "lines_added": lines_added,
-            "lines_removed": lines_removed,
-            "node_id": node_id,
-        })
+        self.client.record_event(
+            "file_change",
+            {
+                "event_type": "file_change",
+                "path": path,
+                "action": action,
+                "lines_added": lines_added,
+                "lines_removed": lines_removed,
+                "node_id": node_id,
+            },
+        )
 
         return node_id
 
@@ -220,16 +228,19 @@ class EventsTracker:
         """
         node_id = self._next_node_id("test")
 
-        self.client.record_event("test_result", {
-            "event_type": "test_result",
-            "framework": framework,
-            "passed": passed,
-            "failed": failed,
-            "skipped": skipped,
-            "coverage": coverage,
-            "failed_tests": failed_tests or [],
-            "node_id": node_id,
-        })
+        self.client.record_event(
+            "test_result",
+            {
+                "event_type": "test_result",
+                "framework": framework,
+                "passed": passed,
+                "failed": failed,
+                "skipped": skipped,
+                "coverage": coverage,
+                "failed_tests": failed_tests or [],
+                "node_id": node_id,
+            },
+        )
 
         # Record metrics
         self.client.record_metric("tests.passed", passed, MetricType.GAUGE)
@@ -288,15 +299,18 @@ class EventsTracker:
         """
         node_id = self._next_node_id("subagent")
 
-        self.client.record_event("subagent_spawn", {
-            "event_type": "subagent_spawn",
-            "subagent_id": subagent_id,
-            "subagent_type": subagent_type,
-            "task": task,
-            "depth": self.current_depth + 1,
-            "node_id": node_id,
-            "parent_node_id": parent_node_id or f"iter-{self.current_iteration}",
-        })
+        self.client.record_event(
+            "subagent_spawn",
+            {
+                "event_type": "subagent_spawn",
+                "subagent_id": subagent_id,
+                "subagent_type": subagent_type,
+                "task": task,
+                "depth": self.current_depth + 1,
+                "node_id": node_id,
+                "parent_node_id": parent_node_id or f"iter-{self.current_iteration}",
+            },
+        )
 
         self.client.increment("subagents.spawned")
 
@@ -318,13 +332,16 @@ class EventsTracker:
             success: Whether the subagent succeeded
             result: Result summary
         """
-        self.client.record_event("subagent_complete", {
-            "event_type": "subagent_complete",
-            "subagent_id": subagent_id,
-            "node_id": node_id,
-            "success": success,
-            "result": result,
-        })
+        self.client.record_event(
+            "subagent_complete",
+            {
+                "event_type": "subagent_complete",
+                "subagent_id": subagent_id,
+                "node_id": node_id,
+                "success": success,
+                "result": result,
+            },
+        )
 
     def record_artifact(
         self,
@@ -340,12 +357,15 @@ class EventsTracker:
             artifact_type: Type (decision, evidence, summary)
             title: Human-readable title
         """
-        self.client.record_event("artifact", {
-            "event_type": "artifact",
-            "path": path,
-            "type": artifact_type,
-            "title": title,
-        })
+        self.client.record_event(
+            "artifact",
+            {
+                "event_type": "artifact",
+                "path": path,
+                "type": artifact_type,
+                "title": title,
+            },
+        )
 
     def record_error(
         self,
@@ -363,13 +383,16 @@ class EventsTracker:
             traceback: Stack trace if available
             recoverable: Whether execution can continue
         """
-        self.client.record_event("error", {
-            "event_type": "error",
-            "error_type": error_type,
-            "message": message,
-            "traceback": traceback,
-            "recoverable": recoverable,
-        })
+        self.client.record_event(
+            "error",
+            {
+                "event_type": "error",
+                "error_type": error_type,
+                "message": message,
+                "traceback": traceback,
+                "recoverable": recoverable,
+            },
+        )
 
     def record_log(
         self,
@@ -385,12 +408,15 @@ class EventsTracker:
             message: Log message
             source: Source of the log
         """
-        self.client.record_event("log", {
-            "event_type": "log",
-            "level": level,
-            "message": message,
-            "source": source,
-        })
+        self.client.record_event(
+            "log",
+            {
+                "event_type": "log",
+                "level": level,
+                "message": message,
+                "source": source,
+            },
+        )
 
     def record_state_change(
         self,
@@ -406,12 +432,15 @@ class EventsTracker:
             new_state: New state
             reason: Reason for the change
         """
-        self.client.record_event("state_change", {
-            "event_type": "state_change",
-            "old_state": old_state,
-            "new_state": new_state,
-            "reason": reason,
-        })
+        self.client.record_event(
+            "state_change",
+            {
+                "event_type": "state_change",
+                "old_state": old_state,
+                "new_state": new_state,
+                "reason": reason,
+            },
+        )
 
     def _summarize_tool(
         self,
@@ -525,7 +554,8 @@ def create_events_hooks(
             lines_removed = old_str.count("\n") + 1 if old_str else 0
             lines_added = new_str.count("\n") + 1 if new_str else 0
             tracker.record_file_change(
-                path, "edit",
+                path,
+                "edit",
                 lines_added=lines_added,
                 lines_removed=lines_removed,
             )

@@ -13,7 +13,6 @@ from SuperClaude.Orchestrator.events_hooks import (
 )
 from SuperClaude.Orchestrator.evidence import EvidenceCollector
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -64,7 +63,7 @@ class TestEventsTrackerInit:
     @patch("SuperClaude.Orchestrator.events_hooks.JsonlTelemetryClient")
     def test_init_custom_session_id(self, mock_cls):
         """Test initialization with custom session ID."""
-        tracker = EventsTracker(session_id="test-session-42")
+        _tracker = EventsTracker(session_id="test-session-42")  # noqa: F841
 
         call_kwargs = mock_cls.call_args[1]
         assert call_kwargs["session_id"] == "test-session-42"
@@ -196,7 +195,7 @@ class TestRecordToolUse:
         """Test recording a blocked tool invocation."""
         tracker = _make_tracker()
 
-        node_id = tracker.record_tool_use(
+        tracker.record_tool_use(
             tool_name="Bash",
             tool_input={"command": "rm -rf /"},
             blocked=True,
@@ -471,33 +470,25 @@ class TestSummarizeTool:
     def test_summarize_write(self):
         """Test summary for Write tool."""
         tracker = _make_tracker()
-        result = tracker._summarize_tool(
-            "Write", {"file_path": "src/main.py"}, None
-        )
+        result = tracker._summarize_tool("Write", {"file_path": "src/main.py"}, None)
         assert result == "Created src/main.py"
 
     def test_summarize_edit(self):
         """Test summary for Edit tool."""
         tracker = _make_tracker()
-        result = tracker._summarize_tool(
-            "Edit", {"file_path": "src/config.py"}, None
-        )
+        result = tracker._summarize_tool("Edit", {"file_path": "src/config.py"}, None)
         assert result == "Modified src/config.py"
 
     def test_summarize_read(self):
         """Test summary for Read tool."""
         tracker = _make_tracker()
-        result = tracker._summarize_tool(
-            "Read", {"file_path": "README.md"}, None
-        )
+        result = tracker._summarize_tool("Read", {"file_path": "README.md"}, None)
         assert result == "Read README.md"
 
     def test_summarize_bash(self):
         """Test summary for Bash tool."""
         tracker = _make_tracker()
-        result = tracker._summarize_tool(
-            "Bash", {"command": "pytest tests/"}, None
-        )
+        result = tracker._summarize_tool("Bash", {"command": "pytest tests/"}, None)
         assert result == "Ran: pytest tests/"
 
     def test_summarize_bash_truncates_long_commands(self):
@@ -511,25 +502,19 @@ class TestSummarizeTool:
     def test_summarize_grep(self):
         """Test summary for Grep tool."""
         tracker = _make_tracker()
-        result = tracker._summarize_tool(
-            "Grep", {"pattern": "def main"}, None
-        )
+        result = tracker._summarize_tool("Grep", {"pattern": "def main"}, None)
         assert result == "Searched for: def main"
 
     def test_summarize_glob(self):
         """Test summary for Glob tool."""
         tracker = _make_tracker()
-        result = tracker._summarize_tool(
-            "Glob", {"pattern": "**/*.py"}, None
-        )
+        result = tracker._summarize_tool("Glob", {"pattern": "**/*.py"}, None)
         assert result == "Found files: **/*.py"
 
     def test_summarize_task(self):
         """Test summary for Task tool."""
         tracker = _make_tracker()
-        result = tracker._summarize_tool(
-            "Task", {"description": "search codebase"}, None
-        )
+        result = tracker._summarize_tool("Task", {"description": "search codebase"}, None)
         assert result == "Spawned: search codebase"
 
     def test_summarize_unknown_tool(self):
@@ -565,7 +550,7 @@ class TestCreateEventsHooks:
         evidence = EvidenceCollector()
         mock_tracker_cls.return_value = _make_tracker()
 
-        hooks = create_events_hooks(evidence, tracker=None, session_id="sess-1")
+        create_events_hooks(evidence, tracker=None, session_id="sess-1")
 
         mock_tracker_cls.assert_called_once_with(session_id="sess-1")
 

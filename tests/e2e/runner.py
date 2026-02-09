@@ -16,7 +16,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 import shutil
 import subprocess
 import sys
@@ -31,7 +30,7 @@ _PROJECT_ROOT = Path(__file__).parent.parent.parent
 if str(_PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(_PROJECT_ROOT))
 
-import yaml
+import yaml  # noqa: E402
 
 
 @dataclass
@@ -216,9 +215,7 @@ def run_single_test(
     try:
         # Step 1: Generate the application
         print("\n[1/2] Generating application...")
-        gen_success, gen_message, gen_time = run_claude_generation(
-            prompt, workdir, timeout
-        )
+        gen_success, gen_message, gen_time = run_claude_generation(prompt, workdir, timeout)
         print(f"      {gen_message} ({gen_time:.1f}s)")
 
         if not gen_success:

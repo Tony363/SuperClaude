@@ -261,9 +261,7 @@ class PythonValidator(BaseValidator):
 
         return ", ".join(parts) if parts else "no tests found"
 
-    def run_functional_test(
-        self, workdir: Path, config: dict[str, Any]
-    ) -> ValidationResult | None:
+    def run_functional_test(self, workdir: Path, config: dict[str, Any]) -> ValidationResult | None:
         """Run HTTP functional test for Flask apps."""
         start_time = time.time()
         functional_config = config.get("validation", {}).get("functional_test")
@@ -289,12 +287,16 @@ class PythonValidator(BaseValidator):
 
             # Start the app
             app_process = subprocess.Popen(
-                [str(python_path), "-c", f"""
+                [
+                    str(python_path),
+                    "-c",
+                    f"""
 import sys
 sys.path.insert(0, '.')
 from app import app
 app.run(host='127.0.0.1', port={port}, debug=False)
-"""],
+""",
+                ],
                 cwd=workdir,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
@@ -306,8 +308,8 @@ app.run(host='127.0.0.1', port={port}, debug=False)
             time_module.sleep(2)
 
             # Make request
-            import urllib.request
             import json
+            import urllib.request
 
             endpoint = functional_config.get("endpoint", "/health")
             url = f"http://127.0.0.1:{port}{endpoint}"

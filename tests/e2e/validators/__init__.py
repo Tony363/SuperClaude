@@ -112,9 +112,7 @@ class BaseValidator(ABC):
         """
         ...
 
-    def run_functional_test(
-        self, workdir: Path, config: dict[str, Any]
-    ) -> ValidationResult | None:
+    def run_functional_test(self, workdir: Path, config: dict[str, Any]) -> ValidationResult | None:
         """Run optional functional tests (HTTP calls, CLI execution, etc.).
 
         Args:
@@ -208,9 +206,9 @@ class BaseValidator(ABC):
 
 
 # Import validators for convenience
-from tests.e2e.validators.python_validator import PythonValidator
-from tests.e2e.validators.node_validator import NodeValidator
-from tests.e2e.validators.rust_validator import RustValidator
+from tests.e2e.validators.node_validator import NodeValidator  # noqa: E402
+from tests.e2e.validators.python_validator import PythonValidator  # noqa: E402
+from tests.e2e.validators.rust_validator import RustValidator  # noqa: E402
 
 __all__ = [
     "BaseValidator",

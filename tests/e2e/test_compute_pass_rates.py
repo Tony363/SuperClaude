@@ -3,26 +3,21 @@
 from __future__ import annotations
 
 import json
-import tempfile
+import sys
 from pathlib import Path
 
-import pytest
-
-# Import from the script directly
-import sys
-
+# Add project root to path for imports when running as script
 _PROJECT_ROOT = Path(__file__).parent.parent.parent
 if str(_PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(_PROJECT_ROOT))
 
-from scripts.compute_e2e_pass_rates import (
+from scripts.compute_e2e_pass_rates import (  # noqa: E402
     compute_pass_rates,
     format_console,
     format_json,
     format_markdown,
     load_results,
 )
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -109,9 +104,7 @@ class TestLoadResults:
     def test_ignores_non_result_directories(self, tmp_path: Path):
         """Test ignores directories not matching result-* pattern."""
         (tmp_path / "other-dir").mkdir()
-        (tmp_path / "other-dir" / "e2e-result.json").write_text(
-            json.dumps(_make_result("other"))
-        )
+        (tmp_path / "other-dir" / "e2e-result.json").write_text(json.dumps(_make_result("other")))
 
         results = load_results(tmp_path)
 

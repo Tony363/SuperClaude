@@ -11,21 +11,18 @@ minutes per test as they invoke Claude to generate full applications.
 
 from __future__ import annotations
 
-import os
 from pathlib import Path
 from typing import Any
 
 import pytest
 
-from tests.e2e.runner import get_validator, run_claude_generation, run_single_test
+from tests.e2e.runner import get_validator, run_single_test
 
 
 class TestValidators:
     """Test validator functionality with pre-existing code."""
 
-    def test_python_validator_check_files(
-        self, python_validator, e2e_workdir: Path
-    ):
+    def test_python_validator_check_files(self, python_validator, e2e_workdir: Path):
         """Test Python validator file checking."""
         # Create test files
         (e2e_workdir / "calculator.py").write_text("# calculator")
@@ -41,9 +38,7 @@ class TestValidators:
         assert result.passed
         assert "2 required files found" in result.message
 
-    def test_python_validator_missing_files(
-        self, python_validator, e2e_workdir: Path
-    ):
+    def test_python_validator_missing_files(self, python_validator, e2e_workdir: Path):
         """Test Python validator detects missing files."""
         (e2e_workdir / "calculator.py").write_text("# calculator")
 
@@ -57,9 +52,7 @@ class TestValidators:
         assert not result.passed
         assert "missing.py" in result.message
 
-    def test_python_validator_compile_check_valid(
-        self, python_validator, e2e_workdir: Path
-    ):
+    def test_python_validator_compile_check_valid(self, python_validator, e2e_workdir: Path):
         """Test Python validator compile check with valid code."""
         (e2e_workdir / "valid.py").write_text("""
 def add(a: int, b: int) -> int:
@@ -70,9 +63,7 @@ def add(a: int, b: int) -> int:
         result = python_validator.compile_check(e2e_workdir, config)
         assert result.passed
 
-    def test_python_validator_compile_check_invalid(
-        self, python_validator, e2e_workdir: Path
-    ):
+    def test_python_validator_compile_check_invalid(self, python_validator, e2e_workdir: Path):
         """Test Python validator compile check with invalid code."""
         (e2e_workdir / "invalid.py").write_text("""
 def broken(
@@ -84,9 +75,7 @@ def broken(
         assert not result.passed
         assert "Syntax errors" in result.message
 
-    def test_node_validator_check_files(
-        self, node_validator, e2e_workdir: Path
-    ):
+    def test_node_validator_check_files(self, node_validator, e2e_workdir: Path):
         """Test Node validator file checking."""
         (e2e_workdir / "package.json").write_text('{"name": "test"}')
         (e2e_workdir / "src").mkdir()
@@ -101,9 +90,7 @@ def broken(
         result = node_validator.check_files(e2e_workdir, config)
         assert result.passed
 
-    def test_node_validator_ts_variant(
-        self, node_validator, e2e_workdir: Path
-    ):
+    def test_node_validator_ts_variant(self, node_validator, e2e_workdir: Path):
         """Test Node validator accepts .ts variant of .js files."""
         (e2e_workdir / "package.json").write_text('{"name": "test"}')
         (e2e_workdir / "src").mkdir()
@@ -119,9 +106,7 @@ def broken(
         result = node_validator.check_files(e2e_workdir, config)
         assert result.passed
 
-    def test_rust_validator_check_files(
-        self, rust_validator, e2e_workdir: Path
-    ):
+    def test_rust_validator_check_files(self, rust_validator, e2e_workdir: Path):
         """Test Rust validator file checking."""
         (e2e_workdir / "Cargo.toml").write_text('[package]\nname = "test"')
         (e2e_workdir / "src").mkdir()

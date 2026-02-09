@@ -131,18 +131,20 @@ class NodeValidator(BaseValidator):
         else:
             return self._javascript_syntax_check(workdir, start_time)
 
-    def _typescript_compile(
-        self, workdir: Path, start_time: float
-    ) -> ValidationResult:
+    def _typescript_compile(self, workdir: Path, start_time: float) -> ValidationResult:
         """Run TypeScript compiler to check for type errors."""
         try:
             # Check if tsc is available via npx
             # Use lenient flags to ignore unused variable warnings (common in generated code)
             result = subprocess.run(
                 [
-                    "npx", "tsc", "--noEmit",
-                    "--noUnusedLocals", "false",
-                    "--noUnusedParameters", "false",
+                    "npx",
+                    "tsc",
+                    "--noEmit",
+                    "--noUnusedLocals",
+                    "false",
+                    "--noUnusedParameters",
+                    "false",
                 ],
                 capture_output=True,
                 text=True,
@@ -183,9 +185,7 @@ class NodeValidator(BaseValidator):
                 duration_seconds=time.time() - start_time,
             )
 
-    def _javascript_syntax_check(
-        self, workdir: Path, start_time: float
-    ) -> ValidationResult:
+    def _javascript_syntax_check(self, workdir: Path, start_time: float) -> ValidationResult:
         """Run Node.js syntax check on JavaScript files."""
         js_files = list(workdir.glob("**/*.js"))
         # Exclude node_modules
@@ -302,9 +302,7 @@ class NodeValidator(BaseValidator):
 
         return "test results unclear"
 
-    def run_functional_test(
-        self, workdir: Path, config: dict[str, Any]
-    ) -> ValidationResult | None:
+    def run_functional_test(self, workdir: Path, config: dict[str, Any]) -> ValidationResult | None:
         """Run CLI functional test."""
         start_time = time.time()
         functional_config = config.get("validation", {}).get("functional_test")
@@ -334,7 +332,7 @@ class NodeValidator(BaseValidator):
                 return ValidationResult(
                     passed=True,
                     step="functional_test",
-                    message=f"CLI test passed: got expected output",
+                    message="CLI test passed: got expected output",
                     duration_seconds=time.time() - start_time,
                     details={"output": actual_output},
                 )
