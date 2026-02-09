@@ -486,7 +486,7 @@ def interactive_uninstall_selection(
         return None
 
     # For backwards compatibility, return only component list
-    components, cleanup_options = result
+    components, _cleanup_options = result
     return components
 
 
@@ -663,11 +663,10 @@ def create_uninstall_backup(install_dir: Path, components: list[str]) -> Path | 
         logger.info(f"Creating uninstall backup: {backup_path}")
 
         with tarfile.open(backup_path, "w:gz"):
-            for component in components:
+            for _component in components:
                 # Add component files to backup
                 SettingsService(install_dir)
                 # This would need component-specific backup logic
-                pass
 
         logger.success(f"Backup created: {backup_path}")
         return backup_path

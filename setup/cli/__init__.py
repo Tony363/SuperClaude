@@ -23,9 +23,8 @@ def __getattr__(name: str):
 
 
 __all__ = [
-    "BackupOperation",
-    "InstallOperation",
     "OperationBase",
-    "UninstallOperation",
-    "UpdateOperation",
+    # BackupOperation, InstallOperation, UninstallOperation, UpdateOperation
+    # are lazy-loaded via __getattr__ above and intentionally omitted from
+    # __all__ to avoid static analysis warnings.
 ]

@@ -58,7 +58,6 @@ class BaseValidator(ABC):
     @abstractmethod
     def language(self) -> str:
         """Return the language this validator handles."""
-        ...
 
     @abstractmethod
     def setup(self, workdir: Path, config: dict[str, Any]) -> ValidationResult:
@@ -71,7 +70,6 @@ class BaseValidator(ABC):
         Returns:
             ValidationResult indicating setup success/failure
         """
-        ...
 
     @abstractmethod
     def check_files(self, workdir: Path, config: dict[str, Any]) -> ValidationResult:
@@ -84,7 +82,6 @@ class BaseValidator(ABC):
         Returns:
             ValidationResult indicating file check success/failure
         """
-        ...
 
     @abstractmethod
     def compile_check(self, workdir: Path, config: dict[str, Any]) -> ValidationResult:
@@ -97,7 +94,6 @@ class BaseValidator(ABC):
         Returns:
             ValidationResult indicating compile check success/failure
         """
-        ...
 
     @abstractmethod
     def run_tests(self, workdir: Path, config: dict[str, Any]) -> ValidationResult:
@@ -110,7 +106,6 @@ class BaseValidator(ABC):
         Returns:
             ValidationResult indicating test execution success/failure
         """
-        ...
 
     def run_functional_test(self, workdir: Path, config: dict[str, Any]) -> ValidationResult | None:
         """Run optional functional tests (HTTP calls, CLI execution, etc.).
@@ -139,7 +134,6 @@ class BaseValidator(ABC):
         Args:
             workdir: Working directory to clean up
         """
-        ...
 
     def validate(self, workdir: Path, config: dict[str, Any]) -> ValidationReport:
         """Run all validation steps and return a complete report.

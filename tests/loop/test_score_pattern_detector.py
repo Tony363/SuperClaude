@@ -345,7 +345,6 @@ class TestRealWorldScenarios:
 
         # Each window of 3 might show oscillation
         # This is a challenge - the algorithm may flag this
-        final_window = scores[-3:]  # [59.0, 64.0] - wait, that's only 2
         final_window = scores[-4:-1]  # [61.0, 59.0, 64.0]
 
         # Up-down-up pattern might trigger oscillation

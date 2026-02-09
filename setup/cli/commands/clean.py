@@ -265,7 +265,7 @@ class CleanCommand:
                         skills_dir.rmdir()
                         display_success("  Removed empty skills directory")
                 except Exception:
-                    pass
+                    pass  # Best-effort cleanup; directory may be in use
 
         # -- Hooks --
         hooks_dir = self.install_dir / "hooks"
@@ -292,7 +292,7 @@ class CleanCommand:
                         hooks_dir.rmdir()
                         display_success("  Removed empty hooks directory")
                 except Exception:
-                    pass
+                    pass  # Best-effort cleanup; directory may be in use
 
         # -- Directories --
         for dirname in ("superclaude", "feedback", "commands"):

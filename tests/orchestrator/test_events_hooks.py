@@ -63,7 +63,8 @@ class TestEventsTrackerInit:
     @patch("SuperClaude.Orchestrator.events_hooks.JsonlTelemetryClient")
     def test_init_custom_session_id(self, mock_cls):
         """Test initialization with custom session ID."""
-        _tracker = EventsTracker(session_id="test-session-42")  # noqa: F841
+        tracker = EventsTracker(session_id="test-session-42")
+        assert tracker is not None
 
         call_kwargs = mock_cls.call_args[1]
         assert call_kwargs["session_id"] == "test-session-42"

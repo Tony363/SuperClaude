@@ -25,9 +25,10 @@ class TestPackageImport:
 
     def test_import_main_module(self):
         """SuperClaude.__main__ should be importable."""
-        import SuperClaude.__main__
+        import importlib
 
-        assert SuperClaude.__main__ is not None
+        main_mod = importlib.import_module("SuperClaude.__main__")
+        assert main_mod is not None
 
     def test_main_function_exists(self):
         """main() function should exist and be callable."""

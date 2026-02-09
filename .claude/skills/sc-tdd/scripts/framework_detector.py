@@ -159,7 +159,7 @@ class FrameworkDetector:
                         config_source="pyproject.toml",
                     )
             except (OSError, UnicodeDecodeError):
-                pass
+                pass  # File unreadable; continue detection with other frameworks
 
         # JavaScript/TypeScript: package.json
         package_json = self.scope_root / "package.json"
@@ -188,7 +188,7 @@ class FrameworkDetector:
                         config_source="package.json",
                     )
             except (OSError, json.JSONDecodeError, UnicodeDecodeError):
-                pass
+                pass  # File unreadable; continue detection with other frameworks
 
         # Go: go.mod
         go_mod = self.scope_root / "go.mod"

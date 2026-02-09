@@ -39,7 +39,6 @@ class TelemetryClient(Protocol):
             payload: Event data
             tags: Optional tags for categorization
         """
-        ...
 
     def record_metric(
         self,
@@ -57,7 +56,6 @@ class TelemetryClient(Protocol):
             kind: Type of metric (counter, gauge, timer, histogram)
             tags: Optional tags for categorization
         """
-        ...
 
     def increment(
         self,
@@ -74,12 +72,9 @@ class TelemetryClient(Protocol):
             value: Amount to increment (default: 1)
             tags: Optional tags for categorization
         """
-        ...
 
     def flush(self) -> None:
         """Flush any buffered telemetry data."""
-        ...
 
     def close(self) -> None:
         """Close the telemetry client and release resources."""
-        ...

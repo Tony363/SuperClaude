@@ -38,15 +38,6 @@ __all__ = [
     "ConfigService",
     "FileService",
     "SettingsService",
-    # Obsidian integration (lazy-loaded)
-    "ObsidianConfig",
-    "ObsidianConfigService",
-    "ObsidianVaultService",
-    "ObsidianNote",
-    "ObsidianContextGenerator",
-    "generate_obsidian_context",
-    "ObsidianMdService",
-    "setup_obsidian_integration",
-    "ObsidianArtifactWriter",
-    "DecisionRecord",
+    # Obsidian integration names are lazy-loaded via __getattr__ above
+    # and intentionally omitted from __all__ to avoid static analysis warnings.
 ]
