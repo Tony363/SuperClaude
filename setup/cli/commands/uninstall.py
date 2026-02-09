@@ -663,10 +663,8 @@ def create_uninstall_backup(install_dir: Path, components: list[str]) -> Path | 
         logger.info(f"Creating uninstall backup: {backup_path}")
 
         with tarfile.open(backup_path, "w:gz"):
-            for _component in components:
-                # Add component files to backup
-                SettingsService(install_dir)
-                # This would need component-specific backup logic
+            # Placeholder: component-specific backup logic would add files here
+            SettingsService(install_dir)
 
         logger.success(f"Backup created: {backup_path}")
         return backup_path
@@ -901,13 +899,8 @@ def run(args: argparse.Namespace) -> int:
 
         # Get components to uninstall using enhanced selection
         if args.components or args.complete:
-            # Non-interactive mode - use existing logic
+            # Non-interactive mode - args already contain cleanup settings
             components = get_components_to_uninstall(args, info["components"])
-            cleanup_options = {
-                "remove_mcp_configs": "mcp" in (components or []),
-                "cleanup_env_vars": args.cleanup_env,
-                "create_restore_script": not args.no_restore_script,
-            }
             if components is None:
                 logger.info("Uninstall cancelled by user")
                 return 0

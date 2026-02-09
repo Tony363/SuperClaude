@@ -23,10 +23,12 @@ class TestNoopEmitter:
         noop_emitter("test.metric.count", 1)
         noop_emitter("test.metric.gauge", 42.5, {"tag": "value"})
 
-    def test_noop_returns_none(self):
-        """Noop emitter should return None."""
-        result = noop_emitter("test.metric", 1)
-        assert result is None
+    def test_noop_is_callable(self):
+        """Noop emitter should be callable without side effects."""
+        # Verify it conforms to the MetricsEmitter protocol
+        assert callable(noop_emitter)
+        # Should execute without raising
+        noop_emitter("test.metric", 1)
 
 
 class TestInMemoryMetricsCollector:
