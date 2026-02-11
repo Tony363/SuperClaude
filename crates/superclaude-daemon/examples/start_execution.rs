@@ -19,7 +19,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let resp = client
         .start_execution(StartExecutionRequest {
             task: task.clone(),
-            project_root: "/home/tony/Desktop/SuperClaude".to_string(),
+            project_root: std::env::current_dir()
+                .unwrap_or_default()
+                .to_string_lossy()
+                .to_string(),
             config: Some(ExecutionConfig {
                 max_iterations: 5,
                 quality_threshold: 70.0,
@@ -49,10 +52,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             Ok(ev) => {
                 let evt = ev.event.as_ref().map(|e| format!("{e:?}")).unwrap_or_default();
                 // Truncate long events for readability
-                let display = if evt.len() > 200 {
-                    format!("{}...", &evt[..200])
-                } else {
-                    evt
+                let display = match evt.char_indices().nth(200) {
+                    Some((idx, _)) => format!("{}...", &evt[..idx]),
+                    None => evt,
                 };
                 println!("[{}] {display}", ev.execution_id);
             }

@@ -71,7 +71,7 @@ pub fn MonitorPage() -> impl IntoView {
                     view! {
                         <ErrorBanner
                             message="Daemon is offline. Start the daemon to monitor executions.".to_string()
-                            retry=retry_callback
+                            retry=Some(retry_callback)
                         />
                     }.into_any()
                 } else {

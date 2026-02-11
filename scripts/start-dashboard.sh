@@ -178,9 +178,15 @@ preflight() {
     if [[ -n "$port_pid" ]]; then
         local port_cmd
         port_cmd=$(ps -p "$port_pid" -o comm= 2>/dev/null || echo "unknown")
-        warn "Port $DASHBOARD_PORT occupied by '$port_cmd' (pid $port_pid) — killing it"
-        kill "$port_pid" 2>/dev/null || true
-        sleep 1
+        if [[ "$port_cmd" == *trunk* ]] || [[ "$port_cmd" == *superclaude* ]]; then
+            warn "Port $DASHBOARD_PORT occupied by '$port_cmd' (pid $port_pid) — killing it"
+            kill "$port_pid" 2>/dev/null || true
+            sleep 1
+        else
+            err "Port $DASHBOARD_PORT occupied by '$port_cmd' (pid $port_pid)"
+            err "  Kill it manually or use --kill flag"
+            missing=1
+        fi
     fi
 
     if [[ $missing -ne 0 ]]; then

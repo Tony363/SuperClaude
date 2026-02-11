@@ -184,6 +184,15 @@ impl Execution {
     }
 }
 
+/// Truncate a string to at most `max_chars` Unicode characters, appending '…'
+/// if truncated. Safe for multi-byte UTF-8 (never slices mid-character).
+fn truncate_str(s: &str, max_chars: usize) -> String {
+    match s.char_indices().nth(max_chars) {
+        Some((idx, _)) => format!("{}…", &s[..idx]),
+        None => s.to_string(),
+    }
+}
+
 impl ExecutionInner {
     async fn run_execution(self: Arc<Self>) -> Result<()> {
         info!(execution_id = %self.id, task = %self.task, "Starting execution");
@@ -389,11 +398,7 @@ impl ExecutionInner {
                     self.handle_tool_use(id, name, input, &node_id);
                 }
                 ContentBlock::Text { text } => {
-                    let truncated = if text.len() > 200 {
-                        format!("{}…", &text[..200])
-                    } else {
-                        text.clone()
-                    };
+                    let truncated = truncate_str(text, 200);
                     self.emit_event(AgentEvent {
                         execution_id: self.id.clone(),
                         timestamp: Self::now_timestamp(),
@@ -607,10 +612,10 @@ impl ExecutionInner {
     fn parse_pytest_summary(output: &str) -> Option<(String, i32, i32, i32)> {
         // Look for "N passed" anywhere in the output
         let passed_idx = output.find(" passed")?;
-        // Walk backwards to find the number
+        // Extract the number immediately before " passed" by splitting on non-digit chars
         let before = &output[..passed_idx];
-        let num_start = before.rfind(|c: char| !c.is_ascii_digit()).map(|i| i + 1).unwrap_or(0);
-        let passed: i32 = before[num_start..].parse().ok()?;
+        let num_str = before.rsplit(|c: char| !c.is_ascii_digit()).next().unwrap_or("");
+        let passed: i32 = num_str.parse().ok()?;
 
         let rest = &output[passed_idx..];
         let mut failed: i32 = 0;
@@ -675,11 +680,7 @@ impl ExecutionInner {
 
         // Log the result summary
         let result_text = event.result.as_deref().unwrap_or("");
-        let truncated = if result_text.len() > 300 {
-            format!("{}…", &result_text[..300])
-        } else {
-            result_text.to_string()
-        };
+        let truncated = truncate_str(result_text, 300);
 
         if !truncated.is_empty() {
             self.emit_event(AgentEvent {
@@ -717,20 +718,23 @@ impl ExecutionInner {
             })),
         });
 
-        // Emit score update
+        // Emit score update (single read lock for atomicity)
+        let score_reason = {
+            let ev = self.evidence.read();
+            format!(
+                "Heuristic: {} files, {} cmds, tests_run={}",
+                ev.files_written.len() + ev.files_edited.len(),
+                ev.commands_run,
+                ev.tests_run,
+            )
+        };
         self.emit_event(AgentEvent {
             execution_id: self.id.clone(),
             timestamp: Self::now_timestamp(),
             event: Some(agent_event::Event::ScoreUpdated(ScoreUpdated {
                 old_score,
                 new_score: score,
-                reason: format!(
-                    "Heuristic: {} files, {} cmds, tests_run={}",
-                    self.evidence.read().files_written.len()
-                        + self.evidence.read().files_edited.len(),
-                    self.evidence.read().commands_run,
-                    self.evidence.read().tests_run,
-                ),
+                reason: score_reason,
                 dimensions: None,
             })),
         });
@@ -750,14 +754,14 @@ impl ExecutionInner {
         let ev = self.evidence.read();
         let mut score: f32 = 0.0;
 
-        // Files produced: +30 base if any, +5 per file (max +20 extra)
+        // Files produced: +30 base if any, +5 per file (max +20 extra) → up to 50
         let file_count = (ev.files_written.len() + ev.files_edited.len()) as f32;
         if file_count > 0.0 {
             score += 30.0;
             score += (file_count * 5.0).min(20.0);
         }
 
-        // Tests run: +10, all pass: +10 more
+        // Tests run: +10, all pass: +10 more → up to 20
         if ev.tests_run {
             score += 10.0;
             if ev.tests_failed == 0 && ev.tests_passed > 0 {
@@ -765,8 +769,13 @@ impl ExecutionInner {
             }
         }
 
-        // Commands run: +2 per command (max +10)
+        // Commands run: +2 per command (max +10) → up to 10
         score += (ev.commands_run as f32 * 2.0).min(10.0);
+
+        // Completion bonus: +20 when files were produced and tests passed
+        if file_count > 0.0 && ev.tests_run && ev.tests_failed == 0 && ev.tests_passed > 0 {
+            score += 20.0;
+        }
 
         score.min(100.0)
     }

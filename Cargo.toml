@@ -6,7 +6,6 @@ members = [
     "crates/superclaude-daemon",
     "crates/superclaude-runtime",
     "crates/dashboard",
-    "crates/snake-game",
     # "crates/dashboard/frontend",  # Temporarily disabled - has missing dependency
 ]
 

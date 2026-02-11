@@ -93,7 +93,8 @@ fn main() -> anyhow::Result<()> {
     // Generate SKILL.md
     let md = skill.to_skill_md();
     println!("\n✓ Generated SKILL.md (first 200 chars):");
-    println!("{}", &md[..200.min(md.len())]);
+    let display_end = md.char_indices().nth(200).map(|(i, _)| i).unwrap_or(md.len());
+    println!("{}", &md[..display_end]);
 
     println!("\n✅ All operations successful!");
 
