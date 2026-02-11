@@ -10,7 +10,7 @@ use leptos::*;
 use wasm_bindgen::prelude::*;
 
 /// WASM entry point — mount the Leptos app.
-#[wasm_bindgen]
+#[wasm_bindgen(start)]
 pub fn hydrate() {
     console_error_panic_hook::set_once();
     console_log::init_with_level(log::Level::Debug).expect("error initializing logger");

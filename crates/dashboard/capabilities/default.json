@@ -1,0 +1,10 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Default capabilities for the SuperClaude Dashboard",
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    "shell:default"
+  ]
+}

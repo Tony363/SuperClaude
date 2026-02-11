@@ -53,7 +53,7 @@ fn state_name(state: i32) -> String {
     }
 }
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub async fn start_execution(
     task: String,
     config: Option<ExecutionConfigDto>,
@@ -85,7 +85,7 @@ pub async fn start_execution(
     })
 }
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub async fn stop_execution(
     execution_id: String,
     force: bool,
@@ -102,7 +102,7 @@ pub async fn stop_execution(
     Ok(resp.message)
 }
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub async fn pause_execution(
     execution_id: String,
     state: State<'_, AppState>,
@@ -115,7 +115,7 @@ pub async fn pause_execution(
     Ok(resp.message)
 }
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub async fn resume_execution(
     execution_id: String,
     state: State<'_, AppState>,
@@ -128,7 +128,7 @@ pub async fn resume_execution(
     Ok(resp.message)
 }
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub async fn list_executions(
     include_completed: bool,
     state: State<'_, AppState>,
@@ -156,7 +156,7 @@ pub async fn list_executions(
 }
 
 /// Subscribe to execution events — streams events via Tauri emit().
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub async fn subscribe_events(
     execution_id: String,
     app_handle: AppHandle,

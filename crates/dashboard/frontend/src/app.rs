@@ -50,10 +50,51 @@ pub fn App() -> impl IntoView {
         });
     }
 
-    // Listen for agent events
+    // Listen for agent events and update execution state
     {
         let state = state.clone();
         tauri_listen("agent-event", move |event: AgentEventDto| {
+            let eid = event.execution_id.clone();
+
+            match event.event_type.as_str() {
+                "iteration_started" | "iteration_completed" => {
+                    if let Some(iter) = event.data.get("iteration").and_then(|v| v.as_i64()) {
+                        state.executions.update(|execs| {
+                            if let Some(exec) = execs.iter_mut().find(|e| e.execution_id == eid) {
+                                exec.current_iteration = iter as i32;
+                            }
+                        });
+                    }
+                    if let Some(score) = event.data.get("score").and_then(|v| v.as_f64()) {
+                        state.executions.update(|execs| {
+                            if let Some(exec) = execs.iter_mut().find(|e| e.execution_id == eid) {
+                                exec.current_score = score as f32;
+                            }
+                        });
+                    }
+                }
+                "score_updated" => {
+                    if let Some(score) = event.data.get("new_score").and_then(|v| v.as_f64()) {
+                        state.executions.update(|execs| {
+                            if let Some(exec) = execs.iter_mut().find(|e| e.execution_id == eid) {
+                                exec.current_score = score as f32;
+                            }
+                        });
+                    }
+                }
+                "state_changed" => {
+                    if let Some(new_state) = event.data.get("new_state").and_then(|v| v.as_str()) {
+                        state.executions.update(|execs| {
+                            if let Some(exec) = execs.iter_mut().find(|e| e.execution_id == eid) {
+                                exec.state = new_state.to_string();
+                            }
+                        });
+                    }
+                }
+                _ => {}
+            }
+
+            // Always append to the event log
             state.events.update(|evts| evts.push(event));
         });
     }

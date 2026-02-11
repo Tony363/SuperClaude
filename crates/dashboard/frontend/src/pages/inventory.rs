@@ -87,7 +87,7 @@ pub fn InventoryPage() -> impl IntoView {
             {move || {
                 if state.inventory_loading.get() {
                     view! {
-                        <LoadingSpinner text=Some("Loading inventory...".to_string()) />
+                        <LoadingSpinner text="Loading inventory...".to_string() />
                     }.into_any()
                 } else {
                     view! {
@@ -99,7 +99,7 @@ pub fn InventoryPage() -> impl IntoView {
                                         <EmptyState
                                             title="No items found".to_string()
                                             message="Try adjusting your search or filters".to_string()
-                                            icon=Some("🔍".to_string())
+                                            icon="🔍".to_string()
                                         />
                                     }.into_any()
                                 } else {

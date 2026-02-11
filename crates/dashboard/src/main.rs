@@ -12,7 +12,22 @@ use tauri::Manager;
 fn main() {
     tracing_subscriber::fmt::init();
 
-    let project_root = PathBuf::from("/home/tony/Desktop/SuperClaude");
+    let project_root = std::env::var("SUPERCLAUDE_ROOT")
+        .map(PathBuf::from)
+        .unwrap_or_else(|_| {
+            // Fallback: derive from the executable location
+            // The binary lives at <project>/target/debug/superclaude-dashboard (or release/)
+            std::env::current_exe()
+                .ok()
+                .and_then(|exe| exe.canonicalize().ok())
+                .and_then(|p| {
+                    // Walk up from target/debug (or target/release) to project root
+                    p.ancestors()
+                        .find(|a| a.join("Cargo.toml").exists() && a.join("crates").exists())
+                        .map(PathBuf::from)
+                })
+                .unwrap_or_else(|| std::env::current_dir().expect("cannot determine project root"))
+        });
 
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
