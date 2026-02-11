@@ -15,7 +15,7 @@ pub fn ErrorBanner(
                 <p>{message}</p>
             </div>
             {retry.map(|cb| view! {
-                <button class="btn-secondary" on:click=move |_| cb(())>
+                <button class="btn-secondary" on:click=move |_| cb.run(())>
                     "Retry"
                 </button>
             })}

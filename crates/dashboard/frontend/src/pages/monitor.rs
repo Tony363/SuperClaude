@@ -43,7 +43,7 @@ pub fn MonitorPage() -> impl IntoView {
 
     let daemon_online = move || state.daemon_status.get().online;
 
-    let retry_daemon = move || {
+    let retry_callback = Callback::new(move |_: ()| {
         let state = state.clone();
         wasm_bindgen_futures::spawn_local(async move {
             match tauri_invoke_no_args::<DaemonStatusDto>("ping_daemon").await {
@@ -57,7 +57,7 @@ pub fn MonitorPage() -> impl IntoView {
                 }
             }
         });
-    };
+    });
 
     view! {
         <div>
@@ -71,7 +71,7 @@ pub fn MonitorPage() -> impl IntoView {
                     view! {
                         <ErrorBanner
                             message="Daemon is offline. Start the daemon to monitor executions.".to_string()
-                            retry=Some(Callback::new(move |_| retry_daemon()))
+                            retry=Some(retry_callback)
                         />
                     }.into_any()
                 } else {

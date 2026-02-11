@@ -1,10 +1,13 @@
 [package]
 name = "superclaude-dashboard-frontend"
-version.workspace = true
-edition.workspace = true
-authors.workspace = true
-license.workspace = true
+version = "0.1.0"
+edition = "2021"
+authors = ["Tony"]
+license = "MIT"
 description = "SuperClaude Dashboard — Leptos WASM frontend"
+
+# Opt out of parent workspace so Trunk can build independently
+[workspace]
 
 [lib]
 crate-type = ["cdylib", "rlib"]
@@ -12,12 +15,9 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 leptos = { version = "0.7", features = ["csr"] }
 
-# Workspace shared
-serde = { workspace = true }
-serde_json = { workspace = true }
-
-# Shared types (WASM-safe)
-superclaude-core = { path = "../../superclaude-core", default-features = false }
+# Serialization (pinned — not using workspace)
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
 
 # Web APIs
 wasm-bindgen = "0.2"

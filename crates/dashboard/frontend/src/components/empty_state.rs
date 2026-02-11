@@ -15,7 +15,7 @@ pub fn EmptyState(
             <h3>{title}</h3>
             <p>{message}</p>
             {action.map(|(label, cb)| view! {
-                <button class="btn-primary" on:click=move |_| cb(())>
+                <button class="btn-primary" on:click=move |_| cb.run(())>
                     {label}
                 </button>
             })}

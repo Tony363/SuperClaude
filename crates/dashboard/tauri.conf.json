@@ -5,7 +5,9 @@
   "identifier": "com.superclaude.dashboard",
   "build": {
     "devUrl": "http://localhost:1420",
-    "frontendDist": "frontend/dist"
+    "frontendDist": "frontend/dist",
+    "beforeDevCommand": "cd dashboard/frontend && trunk serve --port 1420",
+    "beforeBuildCommand": "cd dashboard/frontend && trunk build --release"
   },
   "app": {
     "withGlobalTauri": true,

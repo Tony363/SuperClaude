@@ -25,7 +25,7 @@ pub async fn get_historical_metrics(
 }
 
 /// Get events for a specific execution.
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub async fn get_execution_events(
     execution_id: String,
     state: State<'_, AppState>,
