@@ -2,7 +2,6 @@
 
 from core.pal_integration import (
     PALReviewSignal,
-    _detect_pattern,
     incorporate_pal_feedback,
 )
 from core.types import QualityAssessment
@@ -125,45 +124,70 @@ class TestGenerateReviewSignal:
         assert params["next_step_required"] is True
         assert params["relevant_files"] == ["main.py", "utils.py"]
 
-
-class TestGenerateDebugSignal:
-    """Tests for PALReviewSignal.generate_debug_signal() method."""
-
-    def test_basic_debug_signal(self):
-        """Debug signal should have required structure."""
-        signal = PALReviewSignal.generate_debug_signal(
-            iteration=3,
-            termination_reason="oscillation",
-            score_history=[50.0, 60.0, 52.0, 61.0],
+    def test_default_model(self):
+        """Default model should be gpt-5."""
+        assessment = QualityAssessment(overall_score=60.0, passed=False)
+        signal = PALReviewSignal.generate_review_signal(
+            iteration=0,
+            changed_files=["main.py"],
+            quality_assessment=assessment,
         )
-        assert signal["action_required"] is True
-        assert signal["tool"] == "mcp__pal__debug"
-        assert signal["iteration"] == 3
-        assert "oscillation" in signal["instruction"]
+        assert signal["model"] == "gpt-5"
 
-    def test_debug_context(self):
-        """Debug context should include history and pattern."""
-        scores = [50.0, 60.0, 52.0, 61.0]
-        signal = PALReviewSignal.generate_debug_signal(
-            iteration=3,
-            termination_reason="oscillation",
-            score_history=scores,
+    def test_iteration_in_instruction(self):
+        """Instruction should include the 1-based iteration number."""
+        assessment = QualityAssessment(overall_score=60.0, passed=False)
+        signal = PALReviewSignal.generate_review_signal(
+            iteration=2,
+            changed_files=["main.py"],
+            quality_assessment=assessment,
         )
-        context = signal["context"]
-        assert context["termination_reason"] == "oscillation"
-        assert context["score_history"] == scores
-        assert "pattern" in context
+        assert "iteration 3" in signal["instruction"]
 
-    def test_debug_parameters(self):
-        """Debug parameters should not require next step."""
-        signal = PALReviewSignal.generate_debug_signal(
-            iteration=3,
-            termination_reason="stagnation",
-            score_history=[65.0, 65.5, 65.2],
+    def test_improvements_capped_at_5_in_context(self):
+        """Improvements in context should be capped at 5."""
+        assessment = QualityAssessment(
+            overall_score=40.0,
+            passed=False,
+            improvements_needed=[f"issue {i}" for i in range(10)],
         )
-        params = signal["parameters"]
-        assert params["next_step_required"] is False
-        assert params["total_steps"] == 1
+        signal = PALReviewSignal.generate_review_signal(
+            iteration=0,
+            changed_files=["main.py"],
+            quality_assessment=assessment,
+        )
+        assert len(signal["context"]["improvements_needed"]) == 5
+
+    def test_auto_review_boundary_score_50(self):
+        """Score of exactly 50 should get quick review on early iteration."""
+        assessment = QualityAssessment(overall_score=50.0, passed=False)
+        signal = PALReviewSignal.generate_review_signal(
+            iteration=0,
+            changed_files=["main.py"],
+            quality_assessment=assessment,
+        )
+        assert signal["review_type"] == "quick"
+
+    def test_auto_review_iteration_boundary(self):
+        """Iteration 2 (3rd, 0-indexed) with score >= 50 should get full."""
+        assessment = QualityAssessment(overall_score=60.0, passed=False)
+        signal = PALReviewSignal.generate_review_signal(
+            iteration=2,
+            changed_files=["main.py"],
+            quality_assessment=assessment,
+        )
+        assert signal["review_type"] == "full"
+
+    def test_empty_files_list(self):
+        """Should handle empty changed files list."""
+        assessment = QualityAssessment(overall_score=60.0, passed=False)
+        signal = PALReviewSignal.generate_review_signal(
+            iteration=0,
+            changed_files=[],
+            quality_assessment=assessment,
+        )
+        assert signal["files"] == []
+        assert signal["parameters"]["relevant_files"] == []
 
 
 class TestGenerateFinalValidationSignal:
@@ -213,37 +237,58 @@ class TestGenerateFinalValidationSignal:
         assert params["step_number"] == 2
         assert "Quality score: 85.0" in params["findings"]
 
+    def test_final_custom_model(self):
+        """Final validation signal should use provided model."""
+        assessment = QualityAssessment(overall_score=85.0, passed=True)
+        signal = PALReviewSignal.generate_final_validation_signal(
+            changed_files=["main.py"],
+            quality_assessment=assessment,
+            iteration_count=1,
+            model="claude-3-opus",
+        )
+        assert signal["model"] == "claude-3-opus"
 
-class TestDetectPattern:
-    """Tests for _detect_pattern helper function."""
+    def test_final_iteration_value(self):
+        """Final signal iteration should be iteration_count - 1."""
+        assessment = QualityAssessment(overall_score=85.0, passed=True)
+        signal = PALReviewSignal.generate_final_validation_signal(
+            changed_files=["main.py"],
+            quality_assessment=assessment,
+            iteration_count=4,
+        )
+        assert signal["iteration"] == 3
 
-    def test_insufficient_data(self):
-        """Single score should return insufficient_data."""
-        assert _detect_pattern([50.0]) == "insufficient_data"
+    def test_final_instruction_mentions_iteration_count(self):
+        """Final instruction should mention iteration count."""
+        assessment = QualityAssessment(overall_score=85.0, passed=True)
+        signal = PALReviewSignal.generate_final_validation_signal(
+            changed_files=["main.py"],
+            quality_assessment=assessment,
+            iteration_count=3,
+        )
+        assert "3 iteration(s)" in signal["instruction"]
 
-    def test_empty_list(self):
-        """Empty list should return insufficient_data."""
-        assert _detect_pattern([]) == "insufficient_data"
+    def test_final_all_changed_files_included(self):
+        """All changed files should be included in final signal."""
+        assessment = QualityAssessment(overall_score=85.0, passed=True)
+        files = ["a.py", "b.py", "c.py"]
+        signal = PALReviewSignal.generate_final_validation_signal(
+            changed_files=files,
+            quality_assessment=assessment,
+            iteration_count=2,
+        )
+        assert signal["files"] == files
+        assert signal["parameters"]["relevant_files"] == files
 
-    def test_oscillating_pattern(self):
-        """Alternating up/down should return oscillating."""
-        scores = [50.0, 60.0, 52.0, 63.0]
-        assert _detect_pattern(scores) == "oscillating"
-
-    def test_stagnating_pattern(self):
-        """Flat scores should return stagnating."""
-        scores = [65.0, 65.5, 65.2]
-        assert _detect_pattern(scores) == "stagnating"
-
-    def test_improving_pattern(self):
-        """Increasing scores should return improving."""
-        scores = [50.0, 55.0, 60.0, 65.0]
-        assert _detect_pattern(scores) == "improving"
-
-    def test_declining_pattern(self):
-        """Decreasing scores should return declining."""
-        scores = [70.0, 60.0, 55.0]
-        assert _detect_pattern(scores) == "declining"
+    def test_final_quality_band_in_context(self):
+        """Final context should include quality band."""
+        assessment = QualityAssessment(overall_score=85.0, passed=True, band="excellent")
+        signal = PALReviewSignal.generate_final_validation_signal(
+            changed_files=["main.py"],
+            quality_assessment=assessment,
+            iteration_count=1,
+        )
+        assert signal["context"]["quality_band"] == "excellent"
 
 
 class TestIncorporatePalFeedback:
@@ -324,3 +369,80 @@ class TestIncorporatePalFeedback:
         }
         result = incorporate_pal_feedback(context, feedback)
         assert result["improvements_needed"].count("Fix bug") == 1
+
+    def test_empty_description_skipped(self):
+        """Issues with empty descriptions should be skipped."""
+        context = {"improvements_needed": []}
+        feedback = {
+            "issues_found": [
+                {"severity": "critical", "description": ""},
+                {"severity": "high", "description": ""},
+                {"severity": "medium", "description": ""},
+            ]
+        }
+        result = incorporate_pal_feedback(context, feedback)
+        assert result["improvements_needed"] == []
+
+    def test_unknown_severity_ignored(self):
+        """Issues with unknown severity should not be added."""
+        context = {"improvements_needed": []}
+        feedback = {
+            "issues_found": [
+                {"severity": "low", "description": "Minor style issue"},
+                {"severity": "info", "description": "FYI note"},
+            ]
+        }
+        result = incorporate_pal_feedback(context, feedback)
+        assert result["improvements_needed"] == []
+
+    def test_missing_improvements_key_in_context(self):
+        """Should handle context without improvements_needed key."""
+        context = {"task": "implement"}
+        feedback = {
+            "issues_found": [
+                {"severity": "critical", "description": "Security flaw"},
+            ]
+        }
+        result = incorporate_pal_feedback(context, feedback)
+        assert "Security flaw" in result["improvements_needed"]
+
+    def test_missing_severity_field_in_issue(self):
+        """Issues missing severity field should not crash."""
+        context = {"improvements_needed": []}
+        feedback = {
+            "issues_found": [
+                {"description": "No severity"},
+            ]
+        }
+        result = incorporate_pal_feedback(context, feedback)
+        assert result["improvements_needed"] == []
+
+    def test_missing_description_field_in_issue(self):
+        """Issues missing description field should not crash."""
+        context = {"improvements_needed": []}
+        feedback = {
+            "issues_found": [
+                {"severity": "critical"},
+            ]
+        }
+        result = incorporate_pal_feedback(context, feedback)
+        assert result["improvements_needed"] == []
+
+    def test_mixed_severities_ordering(self):
+        """Critical and high should precede medium issues."""
+        context = {"improvements_needed": []}
+        feedback = {
+            "issues_found": [
+                {"severity": "medium", "description": "Style issue"},
+                {"severity": "critical", "description": "Injection flaw"},
+                {"severity": "high", "description": "Memory leak"},
+            ]
+        }
+        result = incorporate_pal_feedback(context, feedback)
+        improvements = result["improvements_needed"]
+        # Critical and high are prepended (in order), medium is appended
+        style_idx = improvements.index("Style issue")
+        injection_idx = improvements.index("Injection flaw")
+        leak_idx = improvements.index("Memory leak")
+        assert injection_idx < style_idx
+        assert leak_idx < style_idx

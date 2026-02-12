@@ -20,9 +20,6 @@ class TerminationReason(Enum):
 
     QUALITY_MET = "quality_threshold_met"
     MAX_ITERATIONS = "max_iterations_reached"
-    INSUFFICIENT_IMPROVEMENT = "insufficient_improvement"
-    STAGNATION = "score_stagnation"
-    OSCILLATION = "score_oscillation"
     ERROR = "improver_error"
     HUMAN_ESCALATION = "requires_human_review"
     TIMEOUT = "timeout"
@@ -36,10 +33,7 @@ class LoopConfig:
     Attributes:
         max_iterations: Requested maximum iterations (default 3, capped at 5)
         hard_max_iterations: Absolute cap that CANNOT be overridden (5)
-        min_improvement: Minimum score improvement to continue (5.0 points)
         quality_threshold: Target quality score to meet (70.0)
-        oscillation_window: Number of scores to check for oscillation (3)
-        stagnation_threshold: Score variance below which = stagnation (2.0)
         timeout_seconds: Wall-clock timeout (optional)
         pal_review_enabled: Enable PAL MCP review within loop iterations
         pal_model: Model to use for PAL reviews
@@ -47,10 +41,7 @@ class LoopConfig:
 
     max_iterations: int = 3
     hard_max_iterations: int = 5  # P0 SAFETY: Cannot be overridden
-    min_improvement: float = 5.0
     quality_threshold: float = 70.0
-    oscillation_window: int = 3
-    stagnation_threshold: float = 2.0
     timeout_seconds: Optional[float] = None
     pal_review_enabled: bool = True
     pal_model: str = "gpt-5"

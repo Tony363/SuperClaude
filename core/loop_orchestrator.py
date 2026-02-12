@@ -24,11 +24,6 @@ from typing import Any, Callable, Dict, Optional
 from .metrics import MetricsEmitter, noop_emitter
 from .pal_integration import PALReviewSignal, incorporate_pal_feedback
 from .quality_assessment import QualityAssessor
-from .termination import (
-    check_insufficient_improvement,
-    detect_oscillation,
-    detect_stagnation,
-)
 from .types import (
     IterationResult,
     LoopConfig,
@@ -45,7 +40,7 @@ class LoopOrchestrator:
     This class implements the --loop functionality that was archived
     in v5's QualityScorer.agentic_loop(). It provides:
 
-    - Safety mechanisms (hard max, oscillation/stagnation detection)
+    - Safety mechanisms (hard max, timeout)
     - Quality-driven iteration (stop when threshold met)
     - PAL MCP integration within loop (not just after)
     - Signal-based skill invocation (Claude Code processes signals)
@@ -219,58 +214,7 @@ class LoopOrchestrator:
                 )
                 break
 
-            # 4. Check termination conditions
-            if detect_oscillation(
-                self.score_history,
-                self.config.oscillation_window,
-            ):
-                self.logger.info("Oscillation detected.", extra=log_context)
-                termination_reason = TerminationReason.OSCILLATION
-                self._record_iteration(
-                    iteration=iteration,
-                    assessment=assessment,
-                    time_taken=time.monotonic() - iter_start,
-                    success=False,
-                    termination="oscillation",
-                    changed_files=changed_files,
-                )
-                break
-
-            if detect_stagnation(
-                self.score_history,
-                self.config.oscillation_window,
-                self.config.stagnation_threshold,
-            ):
-                self.logger.info("Stagnation detected.", extra=log_context)
-                termination_reason = TerminationReason.STAGNATION
-                self._record_iteration(
-                    iteration=iteration,
-                    assessment=assessment,
-                    time_taken=time.monotonic() - iter_start,
-                    success=False,
-                    termination="stagnation",
-                    changed_files=changed_files,
-                )
-                break
-
-            if iteration > 0 and check_insufficient_improvement(
-                self.score_history[-1],
-                self.score_history[-2],
-                self.config.min_improvement,
-            ):
-                self.logger.info("Insufficient improvement detected.", extra=log_context)
-                termination_reason = TerminationReason.INSUFFICIENT_IMPROVEMENT
-                self._record_iteration(
-                    iteration=iteration,
-                    assessment=assessment,
-                    time_taken=time.monotonic() - iter_start,
-                    success=False,
-                    termination="insufficient_improvement",
-                    changed_files=changed_files,
-                )
-                break
-
-            # 5. Generate PAL review signal (if enabled and not last iteration)
+            # 4. Generate PAL review signal (if enabled and not last iteration)
             pal_signal = None
             if self.config.pal_review_enabled and iteration < self.config.max_iterations - 1:
                 self.logger.debug("Generating PAL review signal.", extra=log_context)
@@ -281,7 +225,7 @@ class LoopOrchestrator:
                     model=self.config.pal_model,
                 )
 
-            # 6. Record iteration
+            # 5. Record iteration
             self._record_iteration(
                 iteration=iteration,
                 assessment=assessment,
@@ -292,7 +236,7 @@ class LoopOrchestrator:
                 pal_signal=pal_signal,
             )
 
-            # 7. Prepare next iteration context
+            # 6. Prepare next iteration context
             current_context = self._prepare_next_iteration(
                 current_context,
                 assessment,
@@ -313,24 +257,6 @@ class LoopOrchestrator:
             )
             if self.iteration_history:
                 self.iteration_history[-1].pal_review = final_signal
-
-        elif termination_reason in (
-            TerminationReason.OSCILLATION,
-            TerminationReason.STAGNATION,
-        ):
-            # Debug signal for stuck loops
-            self.logger.debug(
-                "Generating PAL debug signal for stuck loop.",
-                extra={"loop_id": self.loop_id, "reason": termination_reason.value},
-            )
-            debug_signal = PALReviewSignal.generate_debug_signal(
-                iteration=len(self.iteration_history) - 1,
-                termination_reason=termination_reason.value,
-                score_history=self.score_history,
-                model=self.config.pal_model,
-            )
-            if self.iteration_history:
-                self.iteration_history[-1].pal_review = debug_signal
 
         total_time = time.monotonic() - self._start_time
         final_tags = {"termination_reason": termination_reason.value}

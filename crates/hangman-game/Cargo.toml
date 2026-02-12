@@ -1,0 +1,15 @@
+[package]
+name = "hangman-game"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+anyhow.workspace = true
+rand = "0.8"
+colored = "2.1"
+
+[[bin]]
+name = "hangman"
+path = "src/main.rs"

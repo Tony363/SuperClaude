@@ -274,8 +274,6 @@ class TestExtractAndSaveSkill:
         [
             (TerminationReason.QUALITY_MET, True),
             (TerminationReason.MAX_ITERATIONS, False),
-            (TerminationReason.OSCILLATION, False),
-            (TerminationReason.STAGNATION, False),
             (TerminationReason.ERROR, False),
             (TerminationReason.TIMEOUT, False),
         ],

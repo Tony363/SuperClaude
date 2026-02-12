@@ -6,7 +6,7 @@
   <img src="https://img.shields.io/badge/skills-30-green" alt="Skills">
   <img src="https://img.shields.io/badge/commands-14-purple" alt="Commands">
   <img src="https://img.shields.io/badge/modes-6-teal" alt="Modes">
-  <img src="https://img.shields.io/badge/python_core-3100_lines-red" alt="Core">
+  <img src="https://img.shields.io/badge/python_core-2800_lines-red" alt="Core">
   <img src="https://img.shields.io/badge/license-MIT-lightgrey" alt="License">
 </p>
 
@@ -51,8 +51,8 @@ SuperClaude is a meta-prompt framework that enhances Claude Code with:
 - **14 Structured Commands**: analyze, implement, test, design, document, and more
 - **6 Framework Modes**: normal, brainstorming, introspection, task_management, token_efficiency, orchestration
 - **MCP Integration**: PAL (11 tools), Rube (500+ apps via Composio, including web search)
-- **Quality Gates**: KISS validator, Purity validator, and iterative quality loop
-- **Core Orchestration**: ~3,100 lines Python for loop management, PAL integration, and skill learning
+- **Quality Gates**: KISS, Purity, SOLID, and Let It Crash validators with iterative quality loop
+- **Core Orchestration**: ~2,800 lines Python for loop management, PAL integration, and skill learning
 - **Signal-Based Architecture**: Structured communication between components
 - **Metrics System**: Callback-based operational metrics with Prometheus/StatsD integration
 
@@ -144,7 +144,7 @@ flowchart TB
         direction TB
         LOOP["LoopOrchestrator<br/>Max 5 iterations"]
         QUALITY["QualityAssessor<br/>9 dimensions"]
-        TERM["Termination Detection<br/>8 conditions"]
+        TERM["Termination Detection<br/>5 conditions"]
         PALINT["PAL Integration<br/>Signal generation"]
         LEARN["Skill Learning<br/>Pattern extraction"]
     end
@@ -201,11 +201,11 @@ SuperClaude v7.0.0 includes a Python orchestration layer in `core/` for advanced
 
 | Module | Lines | Purpose |
 |--------|-------|---------|
-| `loop_orchestrator.py` | ~480 | Manages iterative improvement with quality gates |
+| `loop_orchestrator.py` | ~410 | Manages iterative improvement with quality gates |
 | `quality_assessment.py` | ~265 | 9-dimension quality scoring with evidence collection |
-| `pal_integration.py` | ~265 | PAL MCP signal generation (review, debug, validation) |
-| `termination.py` | ~150 | Termination condition detection (oscillation, stagnation) |
-| `types.py` | ~160 | Core type definitions (TerminationReason, LoopConfig, etc.) |
+| `pal_integration.py` | ~175 | PAL MCP signal generation (review, debug, validation) |
+| `types.py` | ~150 | Core type definitions (TerminationReason, LoopConfig, etc.) |
+| `metrics.py` | ~225 | Callback-based metrics protocol and emitters |
 | `skill_learning_integration.py` | ~550 | Skill extraction from successful executions |
 | `skill_persistence.py` | ~980 | Skill storage, retrieval, and promotion |
 
@@ -228,10 +228,9 @@ stateDiagram-v2
         CheckThreshold --> CheckTermination: score < 70
 
         state CheckTermination <<choice>>
-        CheckTermination --> Oscillation: alternating scores
-        CheckTermination --> Stagnation: flat scores (var < 2.0)
-        CheckTermination --> Insufficient: improvement < 5 pts
-        CheckTermination --> MaxIterations: iteration >= 5
+        CheckTermination --> MaxIterations: iteration >= max
+        CheckTermination --> Timeout: wall-clock exceeded
+        CheckTermination --> Error: skill execution failure
         CheckTermination --> Continue: OK to iterate
 
         Continue --> PALReview: Generate signal
@@ -242,12 +241,10 @@ stateDiagram-v2
     Initialize --> Loop
 
     Success --> FinalValidation: PAL final signal
-    Oscillation --> DebugSignal: PAL debug signal
-    Stagnation --> DebugSignal
-    Insufficient --> [*]
     MaxIterations --> [*]
+    Timeout --> [*]
+    Error --> [*]
     FinalValidation --> [*]
-    DebugSignal --> [*]
 
     note right of Initialize
         Triggered by /sc&#58;implement --loop
@@ -258,7 +255,6 @@ stateDiagram-v2
 
 - **Safety**: Hard maximum of 5 iterations (cannot be overridden via `hard_max_iterations`)
 - **Quality-Driven**: Stops when score >= 70 (configurable threshold)
-- **Pattern Detection**: Detects oscillation (alternating scores) and stagnation (flat scores)
 - **PAL Integration**: Generates review signals within loop for external validation
 - **Signal-Based**: Communicates with Claude Code via structured signals
 - **Evidence Collection**: Tracks changes, tests, lint results, and file modifications
@@ -294,14 +290,11 @@ Complete API documentation for the SuperClaude Python orchestration layer (`core
 ```python
 from core import (
     # Types
-    TerminationReason,      # Enum: 8 loop termination conditions
+    TerminationReason,      # Enum: 5 loop termination conditions
     LoopConfig,             # Dataclass: Loop configuration
     LoopResult,             # Dataclass: Final loop result
     IterationResult,        # Dataclass: Single iteration result
     QualityAssessment,      # Dataclass: Quality score + improvements
-    # Functions
-    detect_oscillation,     # Check for alternating score pattern
-    detect_stagnation,      # Check for flat score pattern
     # Classes
     QualityAssessor,        # Quality scoring wrapper
     PALReviewSignal,        # PAL MCP signal generator
@@ -442,53 +435,6 @@ class PALReviewSignal:
         iteration_count: int,
         model: str = "gpt-5",
     ) -> dict[str, Any]
-```
-
-### Termination Functions
-
-Safety mechanisms preventing infinite loops.
-
-```python
-def detect_oscillation(
-    score_history: list[float],
-    window: int = 3,
-    threshold: float = 2.0,
-) -> bool:
-    """Detect alternating up/down score pattern."""
-
-def detect_stagnation(
-    score_history: list[float],
-    window: int = 3,
-    threshold: float = 2.0,
-) -> bool:
-    """Detect flat score pattern (variance < threshold)."""
-
-def check_insufficient_improvement(
-    current_score: float,
-    previous_score: float,
-    min_improvement: float = 5.0,
-) -> bool:
-    """Check if improvement is too small to continue."""
-
-def should_terminate(
-    score_history: list[float],
-    config_oscillation_window: int = 3,
-    config_stagnation_threshold: float = 2.0,
-    config_min_improvement: float = 5.0,
-) -> tuple[bool, str]:
-    """Check all termination conditions. Returns (should_stop, reason)."""
-```
-
-**Examples:**
-
-```python
-# Oscillation detection
-scores = [50.0, 60.0, 55.0, 62.0, 58.0]  # Up/down pattern
-detect_oscillation(scores)  # True
-
-# Stagnation detection
-scores = [65.0, 65.5, 64.8, 65.2]  # All within 2.0 range
-detect_stagnation(scores)  # True
 ```
 
 ### Helper Functions
@@ -863,59 +809,44 @@ flowchart TD
     ASSESS --> SCORE{"Score >= 70?"}
 
     SCORE -->|"Yes"| QUALITY_MET["QUALITY_MET"]
-    SCORE -->|"No"| OSC{"Oscillating?"}
-
-    OSC -->|"Yes"| OSCILLATION["OSCILLATION"]
-    OSC -->|"No"| STAG{"Stagnating?"}
-
-    STAG -->|"Yes"| STAGNATION["STAGNATION"]
-    STAG -->|"No"| IMPROV{"Improvement >= 5?"}
-
-    IMPROV -->|"No"| INSUFFICIENT["INSUFFICIENT_IMPROVEMENT"]
-    IMPROV -->|"Yes"| MAX{"Iteration >= 5?"}
+    SCORE -->|"No"| MAX{"Iteration >= max?"}
 
     MAX -->|"Yes"| MAX_ITER["MAX_ITERATIONS"]
-    MAX -->|"No"| PAL["Generate PAL Review Signal"]
+    MAX -->|"No"| TMOUT{"Timeout?"}
+
+    TMOUT -->|"Yes"| TIMEOUT_TERM["TIMEOUT"]
+    TMOUT -->|"No"| PAL["Generate PAL Review Signal"]
     PAL --> FEEDBACK["Incorporate Feedback"]
     FEEDBACK --> NEXT["Prepare Next Context"]
     NEXT --> EXEC
 
     QUALITY_MET --> FINAL["Final PAL Validation Signal"]
-    OSCILLATION --> DEBUG["PAL Debug Signal"]
-    STAGNATION --> DEBUG
 
     FINAL --> DONE["Return LoopResult"]
-    DEBUG --> DONE
     MAX_ITER --> DONE
-    INSUFFICIENT --> DONE
+    TIMEOUT_TERM --> DONE
 
     style QUALITY_MET fill:#4caf50,color:#fff
     style MAX_ITER fill:#ff9800,color:#fff
-    style OSCILLATION fill:#f44336,color:#fff
-    style STAGNATION fill:#f44336,color:#fff
-    style INSUFFICIENT fill:#ff9800,color:#fff
+    style TIMEOUT_TERM fill:#f44336,color:#fff
 ```
 
-### All 8 Termination Reasons
+### All 5 Termination Reasons
 
 | Reason | Trigger | PAL Signal |
 |--------|---------|------------|
 | `QUALITY_MET` | Score >= threshold (70) | Final validation |
 | `MAX_ITERATIONS` | Iteration >= 5 (hard cap) | None |
-| `INSUFFICIENT_IMPROVEMENT` | Score gain < 5 points | None |
-| `STAGNATION` | Score variance < 2.0 over window | Debug signal |
-| `OSCILLATION` | Alternating score pattern | Debug signal |
 | `ERROR` | Skill execution failure | None |
 | `HUMAN_ESCALATION` | Requires human review | None |
 | `TIMEOUT` | Wall-clock time exceeded | None |
 
 ### PAL Signal Types
 
-The loop orchestrator generates three types of PAL signals:
+The loop orchestrator generates two types of PAL signals:
 
 1. **Review Signal** - Within-loop review for quality improvement
-2. **Debug Signal** - When loop terminates due to oscillation/stagnation
-3. **Final Validation Signal** - After successful completion (score >= 70)
+2. **Final Validation Signal** - After successful completion (score >= 70)
 
 ---
 
@@ -1271,6 +1202,40 @@ Enforces "Functional Core, Imperative Shell" architectural pattern. Located at `
 python .claude/skills/sc-principles/scripts/validate_purity.py --scope-root . --json
 ```
 
+### SOLID Validator
+
+Enforces SOLID design principles via AST analysis. Located at `.claude/skills/sc-principles/scripts/validate_solid.py`.
+
+| Principle | Check | Threshold | Severity |
+|-----------|-------|-----------|----------|
+| SRP (Single Responsibility) | File length | > 300 lines | error |
+| SRP (Single Responsibility) | Class public methods | > 5 | error |
+| OCP (Open/Closed) | isinstance cascades | > 2 chained | error |
+| LSP (Liskov Substitution) | NotImplementedError in overrides | Any | error |
+| ISP (Interface Segregation) | Fat interfaces/protocols | > 7 methods | error |
+| DIP (Dependency Inversion) | Direct instantiation in business logic | Any | warning |
+
+**Usage:**
+```bash
+python .claude/skills/sc-principles/scripts/validate_solid.py --scope-root . --json
+```
+
+### Let It Crash Validator
+
+Enforces the "Let It Crash" error handling philosophy by detecting anti-patterns. Located at `.claude/skills/sc-principles/scripts/validate_crash.py`.
+
+| Anti-Pattern | Description | Severity |
+|--------------|-------------|----------|
+| Bare `except:` | Catches all exceptions without specificity | error |
+| `except Exception` without re-raise | Swallows exceptions silently | error |
+| `except: pass` | Silent failure hiding bugs | error |
+| Nested try/except cascades | Deeply nested error handling (> 2 levels) | error |
+
+**Usage:**
+```bash
+python .claude/skills/sc-principles/scripts/validate_crash.py --scope-root . --json
+```
+
 ### Pre-commit Integration
 
 Add to `.pre-commit-config.yaml`:
@@ -1289,6 +1254,20 @@ repos:
       - id: purity-check
         name: Purity Validation
         entry: python .claude/skills/sc-principles/scripts/validate_purity.py --scope-root . --json
+        language: python
+        types: [python]
+        pass_filenames: false
+
+      - id: solid-check
+        name: SOLID Validation
+        entry: python .claude/skills/sc-principles/scripts/validate_solid.py --scope-root . --json
+        language: python
+        types: [python]
+        pass_filenames: false
+
+      - id: crash-check
+        name: Let It Crash Validation
+        entry: python .claude/skills/sc-principles/scripts/validate_crash.py --scope-root . --json
         language: python
         types: [python]
         pass_filenames: false
@@ -1455,9 +1434,6 @@ class TerminationReason(Enum):
     """Reasons for loop termination."""
     QUALITY_MET = "quality_threshold_met"          # Score >= 70
     MAX_ITERATIONS = "max_iterations_reached"      # Hard cap at 5
-    INSUFFICIENT_IMPROVEMENT = "insufficient_improvement"  # < 5 point gain
-    STAGNATION = "score_stagnation"               # Variance < 2.0
-    OSCILLATION = "score_oscillation"             # Alternating scores
     ERROR = "improver_error"                      # Skill execution failure
     HUMAN_ESCALATION = "requires_human_review"    # Needs human input
     TIMEOUT = "timeout"                           # Wall-clock exceeded
@@ -1471,10 +1447,7 @@ class LoopConfig:
     """Configuration for the agentic loop."""
     max_iterations: int = 3           # Requested max (user-configurable)
     hard_max_iterations: int = 5      # P0 SAFETY: Cannot be overridden
-    min_improvement: float = 5.0      # Minimum score improvement to continue
     quality_threshold: float = 70.0   # Target score to meet
-    oscillation_window: int = 3       # Number of scores to check for oscillation
-    stagnation_threshold: float = 2.0 # Score variance below which = stagnation
     timeout_seconds: Optional[float]  # Wall-clock timeout (optional)
     pal_review_enabled: bool = True   # Enable PAL MCP review within loop
     pal_model: str = "gpt-5"          # Model to use for PAL reviews
@@ -1772,11 +1745,11 @@ SuperClaude/
 │
 ├── core/                        # Python orchestration layer
 │   ├── __init__.py
-│   ├── loop_orchestrator.py     # Loop management (~480 lines)
+│   ├── loop_orchestrator.py     # Loop management (~410 lines)
 │   ├── quality_assessment.py    # Quality scoring
 │   ├── pal_integration.py       # PAL MCP signals
-│   ├── termination.py           # Termination detection
-│   ├── types.py                 # Core types (159 lines)
+│   ├── metrics.py               # Callback-based metrics protocol
+│   ├── types.py                 # Core types (150 lines)
 │   ├── skill_learning_integration.py
 │   └── skill_persistence.py
 │

@@ -77,45 +77,6 @@ class TestPALReviewSignalDuringLoop:
         assert signal["tool"] == "mcp__pal__codereview"
 
 
-class TestPALDebugSignalOnTermination:
-    """Tests for PAL debug signal generation on problematic termination."""
-
-    def test_debug_signal_on_oscillation(self):
-        """Debug signal should be generated when oscillation detected."""
-        signal = PALReviewSignal.generate_debug_signal(
-            iteration=4,
-            termination_reason="oscillation",
-            score_history=[50.0, 60.0, 52.0, 63.0, 55.0],
-        )
-
-        assert signal["tool"] == "mcp__pal__debug"
-        assert signal["action_required"] is True
-        assert "oscillation" in signal["instruction"]
-        assert signal["context"]["termination_reason"] == "oscillation"
-
-    def test_debug_signal_on_stagnation(self):
-        """Debug signal should be generated when stagnation detected."""
-        signal = PALReviewSignal.generate_debug_signal(
-            iteration=4,
-            termination_reason="stagnation",
-            score_history=[65.0, 65.5, 65.2, 65.3, 65.1],
-        )
-
-        assert signal["tool"] == "mcp__pal__debug"
-        assert signal["context"]["termination_reason"] == "stagnation"
-        assert signal["context"]["score_history"] == [65.0, 65.5, 65.2, 65.3, 65.1]
-
-    def test_debug_signal_includes_pattern_analysis(self):
-        """Debug signal should include pattern analysis."""
-        signal = PALReviewSignal.generate_debug_signal(
-            iteration=4,
-            termination_reason="oscillation",
-            score_history=[50.0, 60.0, 52.0, 63.0],
-        )
-
-        assert "pattern" in signal["context"]
-
-
 class TestPALFeedbackIncorporation:
     """Tests for incorporating PAL feedback into loop context."""
 

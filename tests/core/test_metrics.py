@@ -122,6 +122,52 @@ class TestInMemoryMetricsCollector:
         collector = InMemoryMetricsCollector()
         assert isinstance(collector, MetricsEmitter)
 
+    def test_default_tags_empty_dict(self):
+        """Tags should default to empty dict when not provided."""
+        collector = InMemoryMetricsCollector()
+        collector("test.metric", 1)
+        assert collector.metrics[0]["tags"] == {}
+
+    def test_filter_by_tags_multiple_tag_match(self):
+        """filter_by_tags should require all specified tags to match."""
+        collector = InMemoryMetricsCollector()
+        collector("m", 1, {"a": "1", "b": "2"})
+        collector("m", 2, {"a": "1", "b": "3"})
+        collector("m", 3, {"a": "1"})
+
+        results = collector.filter_by_tags("m", {"a": "1", "b": "2"})
+        assert len(results) == 1
+        assert results[0]["value"] == 1
+
+    def test_filter_by_tags_wrong_name(self):
+        """filter_by_tags should not match different metric names."""
+        collector = InMemoryMetricsCollector()
+        collector("correct", 1, {"env": "prod"})
+        results = collector.filter_by_tags("wrong", {"env": "prod"})
+        assert results == []
+
+    def test_records_various_value_types(self):
+        """Should handle int, float, and string values."""
+        collector = InMemoryMetricsCollector()
+        collector("int.metric", 42)
+        collector("float.metric", 3.14)
+        collector("str.metric", "hello")
+
+        assert collector.get("int.metric") == 42
+        assert collector.get("float.metric") == 3.14
+        assert collector.get("str.metric") == "hello"
+
+    def test_get_with_interleaved_metrics(self):
+        """get() should return correct value when metrics are interleaved."""
+        collector = InMemoryMetricsCollector()
+        collector("a", 1)
+        collector("b", 10)
+        collector("a", 2)
+        collector("b", 20)
+
+        assert collector.get("a") == 2
+        assert collector.get("b") == 20
+
 
 class TestLoggingMetricsEmitter:
     """Tests for the logging-based metrics emitter."""

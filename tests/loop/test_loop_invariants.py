@@ -1,7 +1,7 @@
 """Tests for loop invariants - deterministic validation of loop mechanics.
 
 Tests the core loop behavior without requiring actual Claude execution:
-- Termination conditions (quality_met, oscillation, stagnation, max_iterations)
+- Termination conditions (quality_met, max_iterations)
 - Safety caps (hard max 5 iterations)
 - Score history tracking
 - Changed files accumulation
@@ -53,7 +53,7 @@ class TestLoopTerminationMaxIterations:
         """Loop should terminate at max iterations if quality never met."""
         # Scores that improve but never reach threshold
         assessor = FixtureAssessor(scores=[50.0, 60.0, 65.0, 68.0, 69.0])
-        config = LoopConfig(max_iterations=3, quality_threshold=95.0, min_improvement=1.0)
+        config = LoopConfig(max_iterations=3, quality_threshold=95.0)
         orchestrator = LoopOrchestrator(config)
 
         with patch.object(orchestrator, "assessor", assessor):
@@ -65,7 +65,7 @@ class TestLoopTerminationMaxIterations:
     def test_hard_max_5_cannot_be_exceeded(self, fixture_skill_invoker):
         """Even if config specifies more, hard max of 5 is enforced."""
         assessor = FixtureAssessor(scores=[50.0, 55.0, 60.0, 65.0, 68.0, 70.0, 72.0])
-        config = LoopConfig(max_iterations=10, quality_threshold=95.0, min_improvement=1.0)
+        config = LoopConfig(max_iterations=10, quality_threshold=95.0)
         orchestrator = LoopOrchestrator(config)
 
         # Verify config was capped
@@ -75,94 +75,6 @@ class TestLoopTerminationMaxIterations:
             result = orchestrator.run({"task": "implement"}, fixture_skill_invoker)
 
         assert result.total_iterations <= 5
-
-
-class TestLoopTerminationOscillation:
-    """Tests for termination when oscillation is detected."""
-
-    def test_terminates_on_oscillation(self, fixture_assessor_oscillating, fixture_skill_invoker):
-        """Loop should terminate when scores oscillate."""
-        config = LoopConfig(max_iterations=5, quality_threshold=90.0)
-        orchestrator = LoopOrchestrator(config)
-
-        with patch.object(orchestrator, "assessor", fixture_assessor_oscillating):
-            result = orchestrator.run({"task": "implement"}, fixture_skill_invoker)
-
-        assert result.termination_reason == TerminationReason.OSCILLATION
-
-    def test_oscillation_pattern_detected(self, fixture_skill_invoker):
-        """Alternating up/down pattern should trigger oscillation."""
-        # Clear oscillation: up, down, up, down
-        assessor = FixtureAssessor(scores=[50.0, 60.0, 52.0, 63.0])
-        config = LoopConfig(max_iterations=5, quality_threshold=90.0)
-        orchestrator = LoopOrchestrator(config)
-
-        with patch.object(orchestrator, "assessor", assessor):
-            result = orchestrator.run({"task": "implement"}, fixture_skill_invoker)
-
-        assert result.termination_reason == TerminationReason.OSCILLATION
-
-
-class TestLoopTerminationStagnation:
-    """Tests for termination when stagnation is detected."""
-
-    def test_terminates_on_stagnation(self, fixture_assessor_stagnating, fixture_skill_invoker):
-        """Loop should terminate when scores stagnate."""
-        config = LoopConfig(
-            max_iterations=5,
-            quality_threshold=90.0,
-            min_improvement=0.1,  # Low to let stagnation detection trigger
-        )
-        orchestrator = LoopOrchestrator(config)
-
-        with patch.object(orchestrator, "assessor", fixture_assessor_stagnating):
-            result = orchestrator.run({"task": "implement"}, fixture_skill_invoker)
-
-        assert result.termination_reason == TerminationReason.STAGNATION
-
-    def test_stagnation_pattern_detected(self, fixture_skill_invoker):
-        """Flat scores with low variance should trigger stagnation."""
-        # Plateau with variance < 2.0
-        assessor = FixtureAssessor(scores=[65.0, 65.5, 65.2, 65.3])
-        config = LoopConfig(max_iterations=5, quality_threshold=90.0, min_improvement=0.1)
-        orchestrator = LoopOrchestrator(config)
-
-        with patch.object(orchestrator, "assessor", assessor):
-            result = orchestrator.run({"task": "implement"}, fixture_skill_invoker)
-
-        assert result.termination_reason == TerminationReason.STAGNATION
-
-
-class TestLoopTerminationInsufficientImprovement:
-    """Tests for termination when improvement is insufficient."""
-
-    def test_terminates_on_insufficient_improvement(
-        self, fixture_assessor_insufficient_improvement, fixture_skill_invoker
-    ):
-        """Loop should terminate when improvement is below threshold."""
-        config = LoopConfig(
-            max_iterations=5,
-            quality_threshold=90.0,
-            min_improvement=10.0,  # Require 10+ points per iteration
-        )
-        orchestrator = LoopOrchestrator(config)
-
-        with patch.object(orchestrator, "assessor", fixture_assessor_insufficient_improvement):
-            result = orchestrator.run({"task": "implement"}, fixture_skill_invoker)
-
-        assert result.termination_reason == TerminationReason.INSUFFICIENT_IMPROVEMENT
-
-    def test_small_improvement_triggers_termination(self, fixture_skill_invoker):
-        """Improvement of only +2 should trigger termination with min_improvement=10."""
-        assessor = FixtureAssessor(scores=[50.0, 52.0])  # Only +2
-        config = LoopConfig(max_iterations=5, quality_threshold=90.0, min_improvement=10.0)
-        orchestrator = LoopOrchestrator(config)
-
-        with patch.object(orchestrator, "assessor", assessor):
-            result = orchestrator.run({"task": "implement"}, fixture_skill_invoker)
-
-        assert result.termination_reason == TerminationReason.INSUFFICIENT_IMPROVEMENT
-        assert result.total_iterations == 2
 
 
 class TestLoopTerminationError:
@@ -321,7 +233,7 @@ class TestLoopSafetyInvariants:
         assessor = FixtureAssessor(
             scores=[50.0, 55.0, 60.0, 65.0, 68.0, 70.0, 72.0, 74.0, 76.0, 78.0]
         )
-        config = LoopConfig(max_iterations=5, quality_threshold=95.0, min_improvement=1.0)
+        config = LoopConfig(max_iterations=5, quality_threshold=95.0)
         orchestrator = LoopOrchestrator(config)
 
         with patch.object(orchestrator, "assessor", assessor):
@@ -343,9 +255,6 @@ class TestLoopSafetyInvariants:
         assert result.termination_reason in [
             TerminationReason.QUALITY_MET,
             TerminationReason.MAX_ITERATIONS,
-            TerminationReason.OSCILLATION,
-            TerminationReason.STAGNATION,
-            TerminationReason.INSUFFICIENT_IMPROVEMENT,
             TerminationReason.ERROR,
             TerminationReason.TIMEOUT,
             TerminationReason.HUMAN_ESCALATION,

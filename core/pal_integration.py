@@ -6,7 +6,6 @@ loop iterations, not just after loop completion.
 
 This enables:
 - Per-iteration code review via mcp__pal__codereview
-- Debugging assistance via mcp__pal__debug when stuck
 - Consensus building via mcp__pal__consensus for architecture
 """
 
@@ -87,52 +86,6 @@ class PALReviewSignal:
         }
 
     @staticmethod
-    def generate_debug_signal(
-        iteration: int,
-        termination_reason: str,
-        score_history: list[float],
-        model: str = "gpt-5",
-    ) -> dict[str, Any]:
-        """
-        Generate a PAL debug signal when loop is stuck.
-
-        Used when oscillation or stagnation is detected to
-        diagnose why improvements aren't converging.
-
-        Args:
-            iteration: Current iteration number
-            termination_reason: Why the loop is stopping
-            score_history: History of quality scores
-            model: Model to use for debugging
-
-        Returns:
-            Signal dict for Claude Code to process
-        """
-        return {
-            "action_required": True,
-            "tool": PALReviewSignal.TOOL_DEBUG,
-            "iteration": iteration,
-            "instruction": (
-                f"Loop terminated due to {termination_reason}. "
-                f"Diagnose why improvements aren't converging."
-            ),
-            "model": model,
-            "context": {
-                "termination_reason": termination_reason,
-                "score_history": score_history,
-                "pattern": _detect_pattern(score_history),
-            },
-            "parameters": {
-                "step": f"Diagnose {termination_reason} in improvement loop",
-                "step_number": 1,
-                "total_steps": 1,
-                "next_step_required": False,
-                "findings": "",
-                "hypothesis": f"Loop stuck due to {termination_reason}",
-            },
-        }
-
-    @staticmethod
     def generate_final_validation_signal(
         changed_files: list[str],
         quality_assessment: QualityAssessment,
@@ -180,47 +133,6 @@ class PALReviewSignal:
                 "relevant_files": changed_files,
             },
         }
-
-
-def _detect_pattern(score_history: list[float]) -> str:
-    """
-    Detect the pattern in score history for debugging.
-
-    Args:
-        score_history: List of quality scores
-
-    Returns:
-        Pattern description
-    """
-    if len(score_history) < 2:
-        return "insufficient_data"
-
-    # Check for oscillation
-    directions = []
-    for i in range(1, len(score_history)):
-        diff = score_history[i] - score_history[i - 1]
-        if abs(diff) > 2.0:
-            directions.append("up" if diff > 0 else "down")
-
-    if len(directions) >= 2:
-        alternating = all(directions[i] != directions[i + 1] for i in range(len(directions) - 1))
-        if alternating:
-            return "oscillating"
-
-    # Check for stagnation
-    recent = score_history[-3:] if len(score_history) >= 3 else score_history
-    if max(recent) - min(recent) < 2.0:
-        return "stagnating"
-
-    # Check for declining
-    if len(score_history) >= 2 and score_history[-1] < score_history[0]:
-        return "declining"
-
-    # Check for improving
-    if len(score_history) >= 2 and score_history[-1] > score_history[0]:
-        return "improving"
-
-    return "mixed"
 
 
 def incorporate_pal_feedback(

@@ -282,3 +282,163 @@ class TestTestResult:
         assert result.failed == 0
         assert result.skipped == 0
         assert result.coverage == 0.0
+
+
+class TestEvidenceToDict:
+    """Tests for EvidenceCollector.to_dict() serialization."""
+
+    def test_empty_evidence_to_dict(self, empty_evidence):
+        """Empty evidence should produce valid dict."""
+        d = empty_evidence.to_dict()
+        assert d["files_written"] == []
+        assert d["files_edited"] == []
+        assert d["total_files_modified"] == 0
+        assert d["tests_run"] is False
+        assert d["tests_passed"] == 0
+        assert d["tests_failed"] == 0
+        assert d["all_tests_passing"] is False
+        assert d["subagents_spawned"] == 0
+
+    def test_populated_evidence_to_dict(self, evidence_with_passing_tests):
+        """Populated evidence should have correct values."""
+        d = evidence_with_passing_tests.to_dict()
+        assert "src/feature.py" in d["files_written"]
+        assert d["tests_run"] is True
+        assert d["tests_passed"] == 10
+        assert d["all_tests_passing"] is True
+        assert d["commands_run"] == 1
+
+    def test_to_dict_end_time_none(self, empty_evidence):
+        """end_time should be None when not finalized."""
+        d = empty_evidence.to_dict()
+        assert d["end_time"] is None
+
+    def test_to_dict_end_time_set(self, empty_evidence):
+        """end_time should be ISO formatted when set."""
+        empty_evidence.end_time = datetime(2025, 1, 1, 12, 0, 0)
+        d = empty_evidence.to_dict()
+        assert d["end_time"] == "2025-01-01T12:00:00"
+
+    def test_to_dict_start_time_format(self, empty_evidence):
+        """start_time should be ISO formatted."""
+        d = empty_evidence.to_dict()
+        assert isinstance(d["start_time"], str)
+        # Should be parseable as ISO
+        datetime.fromisoformat(d["start_time"])
+
+
+class TestResetPreservesSession:
+    """Tests for reset() behavior."""
+
+    def test_reset_preserves_session_id(self, evidence_with_files):
+        """Reset should preserve session ID."""
+        evidence_with_files.session_id = "test-session"
+        evidence_with_files.reset()
+        assert evidence_with_files.session_id == "test-session"
+
+    def test_reset_preserves_start_time(self, evidence_with_files):
+        """Reset should preserve start time."""
+        start = evidence_with_files.start_time
+        evidence_with_files.reset()
+        assert evidence_with_files.start_time == start
+
+    def test_reset_clears_subagents(self, empty_evidence):
+        """Reset should clear subagent tracking."""
+        empty_evidence.subagents_spawned = 3
+        empty_evidence.subagent_results = [{"id": "a"}, {"id": "b"}]
+        empty_evidence.reset()
+        assert empty_evidence.subagents_spawned == 0
+        assert empty_evidence.subagent_results == []
+
+    def test_reset_clears_tool_invocations(self, empty_evidence):
+        """Reset should clear tool invocations."""
+        empty_evidence.record_tool_invocation("Read", {"path": "a.py"}, "ok")
+        empty_evidence.reset()
+        assert empty_evidence.tool_invocations == []
+
+
+class TestNonTestCommandParsing:
+    """Tests for commands that should NOT be parsed as test output."""
+
+    def test_ls_command_not_parsed(self, empty_evidence):
+        """ls command should not be parsed as test output."""
+        empty_evidence.record_command(
+            command="ls -la",
+            output="total 42\n-rw-r--r-- 1 user user 100 test.py",
+        )
+        assert empty_evidence.tests_run is False
+
+    def test_git_command_not_parsed(self, empty_evidence):
+        """git command should not be parsed as test output."""
+        empty_evidence.record_command(
+            command="git status",
+            output="On branch main",
+        )
+        assert empty_evidence.tests_run is False
+
+    def test_python_script_not_parsed(self, empty_evidence):
+        """Regular python scripts should not be parsed as test output."""
+        empty_evidence.record_command(
+            command="python main.py",
+            output="Hello World",
+        )
+        assert empty_evidence.tests_run is False
+
+
+class TestEdgeCaseParsing:
+    """Edge cases for test output parsing."""
+
+    def test_pytest_only_failed(self, empty_evidence):
+        """pytest with only failures should parse correctly."""
+        empty_evidence.record_command(
+            command="pytest tests/",
+            output="===== 3 failed in 1.0s =====",
+        )
+        result = empty_evidence.test_results[0]
+        assert result.passed == 0
+        assert result.failed == 3
+
+    def test_cargo_test_with_failures(self, empty_evidence):
+        """cargo test with failures should parse correctly."""
+        empty_evidence.record_command(
+            command="cargo test",
+            output="test result: FAILED. 8 passed; 2 failed; 0 ignored",
+        )
+        result = empty_evidence.test_results[0]
+        assert result.passed == 8
+        assert result.failed == 2
+
+    def test_go_test_all_fail(self, empty_evidence):
+        """go test with all failures should parse correctly."""
+        empty_evidence.record_command(
+            command="go test ./...",
+            output="FAIL\tpkg/auth\t0.5s\nFAIL\tpkg/api\t0.3s",
+        )
+        result = empty_evidence.test_results[0]
+        assert result.passed == 0
+        assert result.failed == 2
+
+    def test_multiple_test_runs(self, empty_evidence):
+        """Multiple test runs should all be recorded."""
+        empty_evidence.record_command("pytest tests/unit", "5 passed")
+        empty_evidence.record_command("pytest tests/integration", "3 passed, 1 failed")
+        assert len(empty_evidence.test_results) == 2
+        assert empty_evidence.total_tests_passed == 8
+        assert empty_evidence.total_tests_failed == 1
+
+    def test_tool_output_truncated(self, empty_evidence):
+        """Large tool output should be truncated in invocations."""
+        big_output = "x" * 5000
+        empty_evidence.record_tool_invocation("Bash", {"cmd": "ls"}, big_output)
+        assert len(empty_evidence.tool_invocations[0]["tool_output"]) <= 1000
+
+    def test_file_deduplication_in_total(self, empty_evidence):
+        """Same file written and edited should count once."""
+        empty_evidence.record_file_write("main.py")
+        empty_evidence.record_file_edit("main.py")
+        assert empty_evidence.total_files_modified == 1
+
+    def test_command_duration_recorded(self, empty_evidence):
+        """Duration should be stored in command result."""
+        empty_evidence.record_command("ls", "files", exit_code=0, duration_ms=150)
+        assert empty_evidence.commands_run[0].duration_ms == 150

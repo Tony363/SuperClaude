@@ -79,7 +79,6 @@ def build_config(context: dict[str, Any]) -> "LoopConfig":
     return LoopConfig(
         max_iterations=context.get("max_iterations", 3),
         quality_threshold=context.get("quality_threshold", 70.0),
-        min_improvement=context.get("min_improvement", 5.0),
         pal_review_enabled=context.get("pal_review", True),
         pal_model=context.get("pal_model", "gpt-5"),
         timeout_seconds=context.get("timeout_seconds"),
@@ -183,8 +182,6 @@ def create_signal_only_response(context: dict[str, Any]) -> dict[str, Any]:
         ),
         "safety": {
             "hard_max_iterations": 5,
-            "detect_oscillation": True,
-            "detect_stagnation": True,
         },
     }
 

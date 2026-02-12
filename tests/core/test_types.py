@@ -23,9 +23,6 @@ class TestTerminationReason:
         expected = [
             "QUALITY_MET",
             "MAX_ITERATIONS",
-            "INSUFFICIENT_IMPROVEMENT",
-            "STAGNATION",
-            "OSCILLATION",
             "ERROR",
             "HUMAN_ESCALATION",
             "TIMEOUT",
@@ -37,9 +34,25 @@ class TestTerminationReason:
         """QUALITY_MET should have the expected value."""
         assert TerminationReason.QUALITY_MET.value == "quality_threshold_met"
 
-    def test_oscillation_value(self):
-        """OSCILLATION should have the expected value."""
-        assert TerminationReason.OSCILLATION.value == "score_oscillation"
+    def test_max_iterations_value(self):
+        """MAX_ITERATIONS should have the expected value."""
+        assert TerminationReason.MAX_ITERATIONS.value == "max_iterations_reached"
+
+    def test_error_value(self):
+        """ERROR should have the expected value."""
+        assert TerminationReason.ERROR.value == "improver_error"
+
+    def test_human_escalation_value(self):
+        """HUMAN_ESCALATION should have the expected value."""
+        assert TerminationReason.HUMAN_ESCALATION.value == "requires_human_review"
+
+    def test_timeout_value(self):
+        """TIMEOUT should have the expected value."""
+        assert TerminationReason.TIMEOUT.value == "timeout"
+
+    def test_enum_count(self):
+        """Should have exactly 5 termination reasons after simplification."""
+        assert len(TerminationReason) == 5
 
 
 class TestLoopConfig:
@@ -50,10 +63,7 @@ class TestLoopConfig:
         config = LoopConfig()
         assert config.max_iterations == 3
         assert config.hard_max_iterations == 5
-        assert config.min_improvement == 5.0
         assert config.quality_threshold == 70.0
-        assert config.oscillation_window == 3
-        assert config.stagnation_threshold == 2.0
         assert config.timeout_seconds is None
         assert config.pal_review_enabled is True
         assert config.pal_model == "gpt-5"
@@ -87,6 +97,21 @@ class TestLoopConfig:
         """Timeout can be configured."""
         config = LoopConfig(timeout_seconds=300.0)
         assert config.timeout_seconds == 300.0
+
+    def test_pal_model_default(self):
+        """Default PAL model should be gpt-5."""
+        config = LoopConfig()
+        assert config.pal_model == "gpt-5"
+
+    def test_pal_model_custom(self):
+        """Custom PAL model should be preserved."""
+        config = LoopConfig(pal_model="claude-3-opus")
+        assert config.pal_model == "claude-3-opus"
+
+    def test_hard_max_value_below_does_not_cap(self):
+        """max_iterations below hard_max should not be altered."""
+        config = LoopConfig(max_iterations=1)
+        assert config.max_iterations == 1
 
 
 class TestQualityAssessment:
@@ -127,6 +152,33 @@ class TestQualityAssessment:
             band="excellent",
         )
         assert assessment.band == "excellent"
+
+    def test_default_band_is_unknown(self):
+        """Default band should be 'unknown'."""
+        assessment = QualityAssessment(overall_score=50.0, passed=False)
+        assert assessment.band == "unknown"
+
+    def test_metadata_default_empty(self):
+        """metadata defaults to empty dict."""
+        assessment = QualityAssessment(overall_score=50.0, passed=False)
+        assert assessment.metadata == {}
+
+    def test_with_metadata(self):
+        """QualityAssessment can include custom metadata."""
+        meta = {"source": "evidence_gate", "run_id": "abc123"}
+        assessment = QualityAssessment(overall_score=75.0, passed=True, metadata=meta)
+        assert assessment.metadata == meta
+
+    def test_with_metrics(self):
+        """QualityAssessment can include metrics dict."""
+        metrics = {"tests_ran": True, "lint_ran": True}
+        assessment = QualityAssessment(overall_score=80.0, passed=True, metrics=metrics)
+        assert assessment.metrics == metrics
+
+    def test_custom_threshold(self):
+        """Custom threshold should be preserved."""
+        assessment = QualityAssessment(overall_score=60.0, passed=False, threshold=80.0)
+        assert assessment.threshold == 80.0
 
 
 class TestIterationResult:
@@ -197,6 +249,18 @@ class TestLoopResult:
         assert result.total_iterations == 2
         assert result.total_time == 10.5
         assert result.termination_reason == TerminationReason.QUALITY_MET
+
+    def test_default_total_time(self):
+        """total_time should default to 0.0."""
+        assessment = QualityAssessment(overall_score=75.0, passed=True)
+        result = LoopResult(
+            final_output={},
+            final_assessment=assessment,
+            iteration_history=[],
+            termination_reason=TerminationReason.QUALITY_MET,
+            total_iterations=1,
+        )
+        assert result.total_time == 0.0
 
     def test_to_dict_basic(self):
         """to_dict should produce a JSON-serializable dict."""

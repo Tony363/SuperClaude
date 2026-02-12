@@ -41,8 +41,6 @@ class TerminationReason(Enum):
 
     QUALITY_MET = "quality_threshold_met"
     MAX_ITERATIONS = "max_iterations_reached"
-    OSCILLATION = "oscillation_detected"
-    STAGNATION = "stagnation_detected"
     TIMEOUT = "timeout_exceeded"
     USER_CANCELLED = "user_cancelled"
     ERROR = "error"
@@ -58,11 +56,6 @@ class LoopConfig:
 
     # Quality settings
     quality_threshold: float = 70.0
-    min_improvement: float = 5.0  # Minimum score improvement to continue
-
-    # Termination detection
-    oscillation_window: int = 3
-    stagnation_threshold: float = 2.0
 
     # Timeouts
     timeout_seconds: float | None = None
@@ -257,20 +250,6 @@ async def run_agentic_loop(
             logger.info("Quality threshold met!")
             break
 
-        if len(score_history) >= config.oscillation_window:
-            if _is_oscillating(score_history[-config.oscillation_window :]):
-                termination_reason = TerminationReason.OSCILLATION
-                logger.warning("Oscillation detected, terminating loop")
-                break
-
-        if len(score_history) >= 2:
-            if _is_stagnating(
-                score_history[-2:], config.stagnation_threshold, config.min_improvement
-            ):
-                termination_reason = TerminationReason.STAGNATION
-                logger.warning("Stagnation detected, terminating loop")
-                break
-
         # Check timeout
         if config.timeout_seconds:
             elapsed = (datetime.now() - loop_start).total_seconds()
@@ -341,62 +320,6 @@ def _build_iteration_prompt(
             prompt += f"\nTest status: {passed} passed, {failed} failed\n"
 
     return prompt
-
-
-def _is_oscillating(scores: list[float], threshold: float = 5.0) -> bool:
-    """
-    Detect if scores are oscillating (up/down/up pattern).
-
-    Args:
-        scores: Recent score history (at least 3 values)
-        threshold: Minimum delta to count as a direction change
-
-    Returns:
-        True if oscillating pattern detected
-    """
-    if len(scores) < 3:
-        return False
-
-    deltas = [scores[i + 1] - scores[i] for i in range(len(scores) - 1)]
-
-    # Check for alternating positive/negative deltas
-    alternating = 0
-    for i in range(len(deltas) - 1):
-        if (deltas[i] > threshold and deltas[i + 1] < -threshold) or (
-            deltas[i] < -threshold and deltas[i + 1] > threshold
-        ):
-            alternating += 1
-
-    return alternating >= 1
-
-
-def _is_stagnating(
-    scores: list[float],
-    variance_threshold: float,
-    min_improvement: float,
-) -> bool:
-    """
-    Detect if scores are stagnating (no meaningful improvement).
-
-    Args:
-        scores: Recent score history (at least 2 values)
-        variance_threshold: Max variance to count as stagnant
-        min_improvement: Minimum improvement needed
-
-    Returns:
-        True if stagnating
-    """
-    if len(scores) < 2:
-        return False
-
-    # Check if improvement is below threshold
-    delta = scores[-1] - scores[-2]
-    if delta < min_improvement:
-        return True
-
-    # Check variance
-    variance = max(scores) - min(scores)
-    return variance < variance_threshold
 
 
 # Synchronous wrapper for non-async contexts
