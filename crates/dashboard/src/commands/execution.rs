@@ -3,6 +3,7 @@
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter, State};
 use tokio_stream::StreamExt;
+use tracing::warn;
 
 use crate::state::AppState;
 use superclaude_proto::*;
@@ -31,6 +32,55 @@ pub struct ExecutionSummaryDto {
     pub state: String,
     pub current_iteration: i32,
     pub current_score: f32,
+    pub total_cost_usd: f64,
+    pub duration_seconds: f32,
+    pub files_written: i32,
+    pub files_edited: i32,
+    pub commands_run: i32,
+    pub tests_passed: i32,
+    pub tests_failed: i32,
+}
+
+/// DTO for score dimension breakdown.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ScoreDimensionDto {
+    pub name: String,
+    pub score: f32,
+    pub max_score: f32,
+    pub description: String,
+}
+
+/// DTO for run instructions.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RunInstructionsDto {
+    pub build_command: String,
+    pub run_command: String,
+    pub artifacts: Vec<String>,
+    pub notes: String,
+}
+
+/// DTO for execution detail.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ExecutionDetailDto {
+    pub execution_id: String,
+    pub task: String,
+    pub state: String,
+    pub current_iteration: i32,
+    pub max_iterations: i32,
+    pub current_score: f32,
+    pub quality_threshold: f32,
+    pub termination_reason: String,
+    pub total_cost_usd: f64,
+    pub total_input_tokens: i64,
+    pub total_output_tokens: i64,
+    pub files_written: Vec<String>,
+    pub files_edited: Vec<String>,
+    pub commands_run: i32,
+    pub tests_passed: i32,
+    pub tests_failed: i32,
+    pub events: Vec<AgentEventDto>,
+    pub run_instructions: Option<RunInstructionsDto>,
+    pub score_breakdown: Vec<ScoreDimensionDto>,
 }
 
 /// DTO for agent events emitted to the frontend.
@@ -59,6 +109,33 @@ pub async fn start_execution(
     config: Option<ExecutionConfigDto>,
     state: State<'_, AppState>,
 ) -> Result<StartExecutionResult, String> {
+    // Validate inputs
+    let task = task.trim().to_string();
+    if task.is_empty() {
+        return Err("Task description cannot be empty".to_string());
+    }
+    if task.len() > 10_000 {
+        return Err("Task description too long (max 10,000 characters)".to_string());
+    }
+
+    if let Some(ref c) = config {
+        if let Some(iters) = c.max_iterations {
+            if !(1..=50).contains(&iters) {
+                return Err(format!("max_iterations must be 1-50, got {}", iters));
+            }
+        }
+        if let Some(threshold) = c.quality_threshold {
+            if !(0.0..=100.0).contains(&threshold) {
+                return Err(format!("quality_threshold must be 0-100, got {}", threshold));
+            }
+        }
+        if let Some(timeout) = c.timeout_seconds {
+            if !(10.0..=36000.0).contains(&timeout) {
+                return Err(format!("timeout_seconds must be 10-36000, got {}", timeout));
+            }
+        }
+    }
+
     let mut client = state.get_client().await.map_err(|e| e.to_string())?;
 
     let proto_config = config.map(|c| ExecutionConfig {
@@ -145,12 +222,22 @@ pub async fn list_executions(
     Ok(resp
         .executions
         .into_iter()
-        .map(|e| ExecutionSummaryDto {
-            execution_id: e.execution_id,
-            task: e.task,
-            state: state_name(e.state),
-            current_iteration: e.current_iteration,
-            current_score: e.current_score,
+        .map(|e| {
+            let ev = e.evidence.as_ref();
+            ExecutionSummaryDto {
+                execution_id: e.execution_id,
+                task: e.task,
+                state: state_name(e.state),
+                current_iteration: e.current_iteration,
+                current_score: e.current_score,
+                total_cost_usd: e.total_cost_usd,
+                duration_seconds: e.duration_seconds,
+                files_written: ev.map(|e| e.files_written.len() as i32).unwrap_or(0),
+                files_edited: ev.map(|e| e.files_edited.len() as i32).unwrap_or(0),
+                commands_run: ev.map(|e| e.commands_run).unwrap_or(0),
+                tests_passed: ev.map(|e| e.tests_passed).unwrap_or(0),
+                tests_failed: ev.map(|e| e.tests_failed).unwrap_or(0),
+            }
         })
         .collect())
 }
@@ -181,11 +268,97 @@ pub async fn subscribe_events(
                 event_type,
                 data,
             };
-            let _ = app_handle.emit("agent-event", &dto);
+            if let Err(e) = app_handle.emit("agent-event", &dto) {
+                warn!("Failed to emit agent event: {}", e);
+                break; // Stop forwarding if frontend is gone
+            }
         }
     });
 
     Ok(())
+}
+
+#[tauri::command(rename_all = "snake_case")]
+pub async fn get_execution_detail(
+    execution_id: String,
+    state: State<'_, AppState>,
+) -> Result<ExecutionDetailDto, String> {
+    let mut client = state.get_client().await.map_err(|e| e.to_string())?;
+    let resp = client
+        .get_execution_detail(GetExecutionDetailRequest {
+            execution_id: execution_id.clone(),
+        })
+        .await
+        .map_err(|e| format!("gRPC error: {e}"))?;
+
+    let status = resp.status.unwrap_or_default();
+    let ev = status.evidence.as_ref();
+
+    let events: Vec<AgentEventDto> = resp
+        .events
+        .iter()
+        .map(|e| {
+            let (event_type, data) = format_event(e);
+            AgentEventDto {
+                execution_id: e.execution_id.clone(),
+                event_type,
+                data,
+            }
+        })
+        .collect();
+
+    let run_instructions = resp.run_instructions.map(|ri| RunInstructionsDto {
+        build_command: ri.build_command,
+        run_command: ri.run_command,
+        artifacts: ri.artifacts,
+        notes: ri.notes,
+    });
+
+    // Extract score breakdown from the last ScoreUpdated event's dimensions
+    let score_breakdown: Vec<ScoreDimensionDto> = resp
+        .events
+        .iter()
+        .rev()
+        .find_map(|e| {
+            if let Some(agent_event::Event::ScoreUpdated(su)) = &e.event {
+                su.dimensions.as_ref().map(|d| {
+                    d.breakdown
+                        .iter()
+                        .map(|dim| ScoreDimensionDto {
+                            name: dim.name.clone(),
+                            score: dim.score,
+                            max_score: dim.max_score,
+                            description: dim.description.clone(),
+                        })
+                        .collect()
+                })
+            } else {
+                None
+            }
+        })
+        .unwrap_or_default();
+
+    Ok(ExecutionDetailDto {
+        execution_id: status.execution_id,
+        task: status.task,
+        state: state_name(status.state),
+        current_iteration: status.current_iteration,
+        max_iterations: status.max_iterations,
+        current_score: status.current_score,
+        quality_threshold: status.quality_threshold,
+        termination_reason: status.termination_reason,
+        total_cost_usd: status.total_cost_usd,
+        total_input_tokens: status.total_input_tokens,
+        total_output_tokens: status.total_output_tokens,
+        files_written: ev.map(|e| e.files_written.clone()).unwrap_or_default(),
+        files_edited: ev.map(|e| e.files_edited.clone()).unwrap_or_default(),
+        commands_run: ev.map(|e| e.commands_run).unwrap_or(0),
+        tests_passed: ev.map(|e| e.tests_passed).unwrap_or(0),
+        tests_failed: ev.map(|e| e.tests_failed).unwrap_or(0),
+        events,
+        run_instructions,
+        score_breakdown,
+    })
 }
 
 fn format_event(event: &AgentEvent) -> (String, serde_json::Value) {
@@ -205,6 +378,10 @@ fn format_event(event: &AgentEvent) -> (String, serde_json::Value) {
                 "score": e.score,
                 "improvements": e.improvements,
                 "duration_seconds": e.duration_seconds,
+                "total_cost_usd": e.total_cost_usd,
+                "input_tokens": e.input_tokens,
+                "output_tokens": e.output_tokens,
+                "num_turns": e.num_turns,
             }),
         ),
         Some(agent_event::Event::ToolInvoked(e)) => (
@@ -213,6 +390,9 @@ fn format_event(event: &AgentEvent) -> (String, serde_json::Value) {
                 "tool_name": e.tool_name,
                 "summary": e.summary,
                 "blocked": e.blocked,
+                "tool_input": e.tool_input,
+                "tool_output": e.tool_output,
+                "tool_use_id": e.tool_use_id,
             }),
         ),
         Some(agent_event::Event::FileChanged(e)) => (
@@ -240,6 +420,16 @@ fn format_event(event: &AgentEvent) -> (String, serde_json::Value) {
                 "old_score": e.old_score,
                 "new_score": e.new_score,
                 "reason": e.reason,
+                "dimensions": e.dimensions.as_ref().map(|d| {
+                    d.breakdown.iter().map(|dim| {
+                        serde_json::json!({
+                            "name": dim.name,
+                            "score": dim.score,
+                            "max_score": dim.max_score,
+                            "description": dim.description,
+                        })
+                    }).collect::<Vec<_>>()
+                }),
             }),
         ),
         Some(agent_event::Event::StateChanged(e)) => (

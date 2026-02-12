@@ -6,6 +6,7 @@ members = [
     "crates/superclaude-daemon",
     "crates/superclaude-runtime",
     "crates/dashboard",
+    "crates/snake-game",
     # "crates/dashboard/frontend",  # Temporarily disabled - has missing dependency
 ]
 
@@ -48,6 +49,7 @@ uuid = { version = "1.0", features = ["v4"] }
 # Parsing
 gray_matter = "0.2"
 glob = "0.3"
+regex = "1"
 
 # Optional database support (optionality is per-crate, not workspace)
 rusqlite = { version = "0.32", features = ["bundled"] }

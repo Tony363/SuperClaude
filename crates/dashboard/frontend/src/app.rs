@@ -94,6 +94,62 @@ pub fn App() -> impl IntoView {
                 _ => {}
             }
 
+            // Incrementally update the detail panel if this event is for the expanded execution
+            if let Some(expanded_eid) = state.expanded_execution.get_untracked() {
+                if expanded_eid == eid {
+                    state.execution_detail.update(|opt_detail| {
+                        if let Some(detail) = opt_detail {
+                            // Append event to log
+                            detail.events.push(event.clone());
+
+                            // Update score
+                            if event.event_type == "score_updated" {
+                                if let Some(score) = event.data.get("new_score").and_then(|v| v.as_f64()) {
+                                    detail.current_score = score as f32;
+                                }
+                                if let Some(dims) = event.data.get("dimensions").and_then(|v| v.as_array()) {
+                                    detail.score_breakdown = dims.iter().filter_map(|d| {
+                                        Some(crate::state::ScoreDimensionDto {
+                                            name: d.get("name")?.as_str()?.to_string(),
+                                            score: d.get("score")?.as_f64()? as f32,
+                                            max_score: d.get("max_score")?.as_f64()? as f32,
+                                            description: d.get("description")?.as_str()?.to_string(),
+                                        })
+                                    }).collect();
+                                }
+                            }
+
+                            // Update files from file_changed events
+                            if event.event_type == "file_changed" {
+                                if let Some(path) = event.data.get("path").and_then(|v| v.as_str()) {
+                                    let action = event.data.get("action").and_then(|v| v.as_i64()).unwrap_or(0);
+                                    match action {
+                                        2 => { // FILE_ACTION_WRITE
+                                            if !detail.files_written.contains(&path.to_string()) {
+                                                detail.files_written.push(path.to_string());
+                                            }
+                                        }
+                                        3 => { // FILE_ACTION_EDIT
+                                            if !detail.files_edited.contains(&path.to_string()) {
+                                                detail.files_edited.push(path.to_string());
+                                            }
+                                        }
+                                        _ => {}
+                                    }
+                                }
+                            }
+
+                            // Update iteration
+                            if event.event_type == "iteration_started" || event.event_type == "iteration_completed" {
+                                if let Some(iter) = event.data.get("iteration").and_then(|v| v.as_i64()) {
+                                    detail.current_iteration = iter as i32;
+                                }
+                            }
+                        }
+                    });
+                }
+            }
+
             // Always append to the event log
             state.events.update(|evts| evts.push(event));
         });

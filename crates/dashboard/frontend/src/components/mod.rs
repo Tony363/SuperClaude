@@ -12,3 +12,4 @@ pub mod score_chart;
 pub mod search_filter;
 pub mod sidebar;
 pub mod status_badge;
+pub mod execution_detail;

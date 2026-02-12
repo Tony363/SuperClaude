@@ -6,7 +6,7 @@
   <img src="https://img.shields.io/badge/skills-30-green" alt="Skills">
   <img src="https://img.shields.io/badge/commands-14-purple" alt="Commands">
   <img src="https://img.shields.io/badge/modes-6-teal" alt="Modes">
-  <img src="https://img.shields.io/badge/python_core-3200_lines-red" alt="Core">
+  <img src="https://img.shields.io/badge/python_core-3100_lines-red" alt="Core">
   <img src="https://img.shields.io/badge/license-MIT-lightgrey" alt="License">
 </p>
 
@@ -47,12 +47,12 @@ SuperClaude transforms Claude Code into a powerful development platform with spe
 SuperClaude is a meta-prompt framework that enhances Claude Code with:
 
 - **35 Specialized Agents**: 16 core + 12 composable traits + 7 domain extensions (tiered architecture)
-- **30 Active Skills**: 8 agent personas + 19 command workflows + 3 utility skills (plus 106 deprecated)
+- **30 Active Skills**: 8 agent personas + 19 command workflows + 3 utility skills
 - **14 Structured Commands**: analyze, implement, test, design, document, and more
 - **6 Framework Modes**: normal, brainstorming, introspection, task_management, token_efficiency, orchestration
 - **MCP Integration**: PAL (11 tools), Rube (500+ apps via Composio, including web search)
 - **Quality Gates**: KISS validator, Purity validator, and iterative quality loop
-- **Core Orchestration**: ~3,200 lines Python for loop management, PAL integration, and skill learning
+- **Core Orchestration**: ~3,100 lines Python for loop management, PAL integration, and skill learning
 - **Signal-Based Architecture**: Structured communication between components
 - **Metrics System**: Callback-based operational metrics with Prometheus/StatsD integration
 
@@ -112,7 +112,7 @@ SuperClaude v7.0.0 is a **config-first hybrid framework**:
 /sc:workflow   - Multi-step task orchestration
 /sc:estimate   - Effort estimation and planning
 /sc:cicd-setup - CI/CD workflow and pre-commit generation
-/sc:pr-fix     - PR fix workflow and issue resolution
+/sc:readme     - Auto-update README.md from git diff with PAL consensus
 ```
 
 ---
@@ -136,7 +136,7 @@ flowchart TB
     subgraph Config["Configuration Layer"]
         AGENTS[("agents/<br/>16 core + 12 traits + 7 ext")]
         COMMANDS[("commands/<br/>14 templates")]
-        SKILLS[(".claude/skills/<br/>28 skills")]
+        SKILLS[(".claude/skills/<br/>30 skills")]
         YAML[("config/<br/>6 YAML files")]
     end
 
@@ -189,7 +189,7 @@ SuperClaude uses a layered file-based architecture:
 8. **config/*.yaml** - 6 configuration files
 9. **core/*.py** - Python orchestration modules
 10. **mcp/*.md** - MCP integration guides
-11. **.claude/skills/** - 28 Claude Code skills
+11. **.claude/skills/** - 30 Claude Code skills
 
 ---
 
@@ -202,12 +202,12 @@ SuperClaude v7.0.0 includes a Python orchestration layer in `core/` for advanced
 | Module | Lines | Purpose |
 |--------|-------|---------|
 | `loop_orchestrator.py` | ~480 | Manages iterative improvement with quality gates |
-| `quality_assessment.py` | ~200 | 9-dimension quality scoring with evidence collection |
-| `pal_integration.py` | ~250 | PAL MCP signal generation (review, debug, validation) |
-| `termination.py` | ~100 | Termination condition detection (oscillation, stagnation) |
-| `types.py` | 159 | Core type definitions (TerminationReason, LoopConfig, etc.) |
-| `skill_learning_integration.py` | ~300 | Skill extraction from successful executions |
-| `skill_persistence.py` | ~200 | Skill storage, retrieval, and promotion |
+| `quality_assessment.py` | ~265 | 9-dimension quality scoring with evidence collection |
+| `pal_integration.py` | ~265 | PAL MCP signal generation (review, debug, validation) |
+| `termination.py` | ~150 | Termination condition detection (oscillation, stagnation) |
+| `types.py` | ~160 | Core type definitions (TerminationReason, LoopConfig, etc.) |
+| `skill_learning_integration.py` | ~550 | Skill extraction from successful executions |
+| `skill_persistence.py` | ~980 | Skill storage, retrieval, and promotion |
 
 ### LoopOrchestrator
 
@@ -632,7 +632,7 @@ cargo tauri build
 - **Dependencies**: webkit2gtk-4.1, libappindicator-gtk3, librsvg
 - **Runtime**: SuperClaude daemon running on port 50051
 
-See [Dashboard Documentation](Docs/dashboard.md) for detailed usage guide.
+See [Dashboard README](crates/dashboard/README.md) for detailed usage guide.
 
 ---
 
@@ -843,6 +843,7 @@ sequenceDiagram
 | workflow | pipeline, sequence | No | --spec, --parallel |
 | estimate | scope, size | No | --breakdown, --risks |
 | cicd-setup | cicd-init, pipeline-setup | No | --lang, --minimal, --full |
+| readme | readme-update | No | --dry-run, --commits |
 
 ---
 
@@ -1018,7 +1019,7 @@ Web search capabilities are available through Rube MCP's LINKUP_SEARCH tool:
 
 ## Skills System
 
-SuperClaude includes 30 active Claude Code skills in `.claude/skills/` (plus 106 deprecated):
+SuperClaude includes 30 active Claude Code skills in `.claude/skills/`:
 
 ```mermaid
 flowchart TB
@@ -1087,7 +1088,6 @@ flowchart TB
 | Agent Skills | `agent-*` | 8 | Specialized personas for domains |
 | Command Skills | `sc-*` | 19 | Structured workflow implementations |
 | Utility Skills | `ask`, `ask-multi`, `learned` | 3 | User interaction and learning |
-| Deprecated | `DEPRECATED/*` | 106 | Archived skills from previous versions |
 
 ### Skill Architecture
 
@@ -1660,7 +1660,7 @@ core:
   cache_ttl: 3600
 
 traits:
-  count: 10
+  count: 12
   directory: agents/traits
 
 extensions:
@@ -1786,6 +1786,13 @@ SuperClaude/
 │       ├── loop_runner.py       # Agentic loop runner
 │       ├── quality.py           # Quality assessment
 │       └── obsidian_hooks.py    # Obsidian vault sync hooks
+│
+├── crates/                         # Rust workspace
+│   ├── dashboard/               # Tauri v2 desktop dashboard (Leptos WASM frontend)
+│   ├── proto/                   # Protobuf/gRPC service definitions
+│   ├── superclaude-core/        # Shared domain types and utilities
+│   ├── superclaude-daemon/      # gRPC daemon (port 50051)
+│   └── superclaude-runtime/     # Rust runtime with API client and loop runner
 │
 ├── setup/
 │   └── services/                # Installation services
