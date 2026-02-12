@@ -66,4 +66,9 @@ impl GrpcClient {
         let response = self.client.get_execution_detail(tonic::Request::new(req)).await?;
         Ok(response.into_inner())
     }
+
+    pub async fn send_input(&mut self, req: SendInputRequest) -> Result<SendInputResponse> {
+        let response = self.client.send_input(tonic::Request::new(req)).await?;
+        Ok(response.into_inner())
+    }
 }

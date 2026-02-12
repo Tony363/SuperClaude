@@ -361,6 +361,23 @@ pub async fn get_execution_detail(
     })
 }
 
+#[tauri::command(rename_all = "snake_case")]
+pub async fn send_execution_input(
+    execution_id: String,
+    input: String,
+    state: State<'_, AppState>,
+) -> Result<String, String> {
+    let mut client = state.get_client().await.map_err(|e| e.to_string())?;
+    let resp = client
+        .send_input(SendInputRequest {
+            execution_id,
+            input,
+        })
+        .await
+        .map_err(|e| format!("gRPC error: {e}"))?;
+    Ok(resp.message)
+}
+
 fn format_event(event: &AgentEvent) -> (String, serde_json::Value) {
     match &event.event {
         Some(agent_event::Event::IterationStarted(e)) => (
@@ -382,6 +399,7 @@ fn format_event(event: &AgentEvent) -> (String, serde_json::Value) {
                 "input_tokens": e.input_tokens,
                 "output_tokens": e.output_tokens,
                 "num_turns": e.num_turns,
+                "node_id": e.node_id,
             }),
         ),
         Some(agent_event::Event::ToolInvoked(e)) => (
@@ -393,6 +411,9 @@ fn format_event(event: &AgentEvent) -> (String, serde_json::Value) {
                 "tool_input": e.tool_input,
                 "tool_output": e.tool_output,
                 "tool_use_id": e.tool_use_id,
+                "node_id": e.node_id,
+                "parent_node_id": e.parent_node_id,
+                "depth": e.depth,
             }),
         ),
         Some(agent_event::Event::FileChanged(e)) => (
@@ -446,6 +467,9 @@ fn format_event(event: &AgentEvent) -> (String, serde_json::Value) {
                 "subagent_id": e.subagent_id,
                 "subagent_type": e.subagent_type,
                 "task_summary": e.task_summary,
+                "depth": e.depth,
+                "node_id": e.node_id,
+                "parent_node_id": e.parent_node_id,
             }),
         ),
         Some(agent_event::Event::SubagentCompleted(e)) => (
@@ -454,6 +478,7 @@ fn format_event(event: &AgentEvent) -> (String, serde_json::Value) {
                 "subagent_id": e.subagent_id,
                 "success": e.success,
                 "result_summary": e.result_summary,
+                "node_id": e.node_id,
             }),
         ),
         Some(agent_event::Event::LogMessage(e)) => (

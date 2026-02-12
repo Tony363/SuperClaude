@@ -322,6 +322,32 @@ impl SuperClaudeServiceTrait for SuperClaudeService {
     }
 
     // =========================================================================
+    // Interactive Input
+    // =========================================================================
+
+    async fn send_input(
+        &self,
+        request: Request<SendInputRequest>,
+    ) -> Result<Response<SendInputResponse>, Status> {
+        let req = request.into_inner();
+
+        if let Some(handle) = self.executions.get(&req.execution_id) {
+            handle.send_input(&req.input).await.map_err(|e| {
+                Status::internal(format!("Failed to send input: {}", e))
+            })?;
+            Ok(Response::new(SendInputResponse {
+                success: true,
+                message: "Input sent".to_string(),
+            }))
+        } else {
+            Err(Status::not_found(format!(
+                "Execution {} not found",
+                req.execution_id
+            )))
+        }
+    }
+
+    // =========================================================================
     // Execution Detail
     // =========================================================================
 

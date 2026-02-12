@@ -9,7 +9,8 @@ use crate::pages::control::ControlPage;
 use crate::pages::history::HistoryPage;
 use crate::pages::inventory::InventoryPage;
 use crate::pages::monitor::MonitorPage;
-use crate::state::{AgentEventDto, AppState, DaemonStatusDto, InventoryDto, Page};
+use crate::state::{AgentEventDto, AppState, DaemonStatusDto, InventoryDto, Page,
+    TreeEdge, TreeNode, TreeNodeStatus, TreeNodeType};
 
 #[component]
 pub fn App() -> impl IntoView {
@@ -92,6 +93,176 @@ pub fn App() -> impl IntoView {
                     }
                 }
                 _ => {}
+            }
+
+            // Track event source for heartbeat/thinking indicator
+            if let Some(source) = event.data.get("source").and_then(|v| v.as_str()) {
+                state.last_event_source.set(source.to_string());
+            } else {
+                state.last_event_source.set(event.event_type.clone());
+            }
+
+            // Build the execution tree incrementally
+            if let Some(expanded_eid) = state.expanded_execution.get_untracked() {
+                if expanded_eid == eid {
+                    match event.event_type.as_str() {
+                        "iteration_started" => {
+                            let node_id = event.data.get("node_id")
+                                .and_then(|v| v.as_str())
+                                .unwrap_or("")
+                                .to_string();
+                            let iteration = event.data.get("iteration")
+                                .and_then(|v| v.as_i64())
+                                .unwrap_or(0);
+                            if !node_id.is_empty() {
+                                state.execution_tree.update(|tree| {
+                                    if !tree.nodes.iter().any(|n| n.node_id == node_id) {
+                                        tree.nodes.push(TreeNode {
+                                            node_id,
+                                            parent_node_id: None,
+                                            node_type: TreeNodeType::Iteration,
+                                            label: format!("Iteration {}", iteration),
+                                            summary: String::new(),
+                                            status: TreeNodeStatus::Running,
+                                            x: 0.0,
+                                            y: 0.0,
+                                            event_data: Some(event.data.clone()),
+                                        });
+                                    }
+                                });
+                            }
+                        }
+                        "tool_invoked" => {
+                            let node_id = event.data.get("node_id")
+                                .and_then(|v| v.as_str())
+                                .unwrap_or("")
+                                .to_string();
+                            let parent_node_id = event.data.get("parent_node_id")
+                                .and_then(|v| v.as_str())
+                                .unwrap_or("")
+                                .to_string();
+                            let summary_val = event.data.get("summary")
+                                .and_then(|v| v.as_str())
+                                .unwrap_or("")
+                                .to_string();
+
+                            // Skip "(result)" pseudo-events — update existing node status instead
+                            if summary_val == "(result)" {
+                                let base_id = node_id.strip_suffix("-result").unwrap_or(&node_id).to_string();
+                                state.execution_tree.update(|tree| {
+                                    if let Some(node) = tree.nodes.iter_mut().find(|n| n.node_id == base_id) {
+                                        node.status = TreeNodeStatus::Success;
+                                        // Store tool_output in event_data
+                                        if let Some(output) = event.data.get("tool_output") {
+                                            if let Some(ref mut data) = node.event_data {
+                                                if let Some(obj) = data.as_object_mut() {
+                                                    obj.insert("tool_output".to_string(), output.clone());
+                                                }
+                                            }
+                                        }
+                                    }
+                                });
+                            } else if !node_id.is_empty() {
+                                let tool_name = event.data.get("tool_name")
+                                    .and_then(|v| v.as_str())
+                                    .unwrap_or("Tool")
+                                    .to_string();
+                                state.execution_tree.update(|tree| {
+                                    if !tree.nodes.iter().any(|n| n.node_id == node_id) {
+                                        tree.nodes.push(TreeNode {
+                                            node_id: node_id.clone(),
+                                            parent_node_id: Some(parent_node_id.clone()),
+                                            node_type: TreeNodeType::ToolCall,
+                                            label: tool_name,
+                                            summary: summary_val,
+                                            status: TreeNodeStatus::Running,
+                                            x: 0.0,
+                                            y: 0.0,
+                                            event_data: Some(event.data.clone()),
+                                        });
+                                        if !parent_node_id.is_empty() {
+                                            tree.edges.push(TreeEdge {
+                                                from_id: parent_node_id,
+                                                to_id: node_id,
+                                            });
+                                        }
+                                    }
+                                });
+                            }
+                        }
+                        "iteration_completed" => {
+                            let node_id = event.data.get("node_id")
+                                .and_then(|v| v.as_str())
+                                .unwrap_or("")
+                                .to_string();
+                            if !node_id.is_empty() {
+                                state.execution_tree.update(|tree| {
+                                    if let Some(node) = tree.nodes.iter_mut().find(|n| n.node_id == node_id) {
+                                        node.status = TreeNodeStatus::Success;
+                                    }
+                                });
+                            }
+                        }
+                        "subagent_spawned" => {
+                            let node_id = event.data.get("node_id")
+                                .and_then(|v| v.as_str())
+                                .unwrap_or("")
+                                .to_string();
+                            let parent_node_id = event.data.get("parent_node_id")
+                                .and_then(|v| v.as_str())
+                                .unwrap_or("")
+                                .to_string();
+                            let subagent_type = event.data.get("subagent_type")
+                                .and_then(|v| v.as_str())
+                                .unwrap_or("Subagent")
+                                .to_string();
+                            let task_summary = event.data.get("task_summary")
+                                .and_then(|v| v.as_str())
+                                .unwrap_or("")
+                                .to_string();
+                            if !node_id.is_empty() {
+                                state.execution_tree.update(|tree| {
+                                    if !tree.nodes.iter().any(|n| n.node_id == node_id) {
+                                        tree.nodes.push(TreeNode {
+                                            node_id: node_id.clone(),
+                                            parent_node_id: Some(parent_node_id.clone()),
+                                            node_type: TreeNodeType::SubagentSpawn,
+                                            label: subagent_type,
+                                            summary: task_summary,
+                                            status: TreeNodeStatus::Running,
+                                            x: 0.0,
+                                            y: 0.0,
+                                            event_data: Some(event.data.clone()),
+                                        });
+                                        if !parent_node_id.is_empty() {
+                                            tree.edges.push(TreeEdge {
+                                                from_id: parent_node_id,
+                                                to_id: node_id,
+                                            });
+                                        }
+                                    }
+                                });
+                            }
+                        }
+                        "subagent_completed" => {
+                            let node_id = event.data.get("node_id")
+                                .and_then(|v| v.as_str())
+                                .unwrap_or("")
+                                .to_string();
+                            let success = event.data.get("success")
+                                .and_then(|v| v.as_bool())
+                                .unwrap_or(false);
+                            if !node_id.is_empty() {
+                                state.execution_tree.update(|tree| {
+                                    if let Some(node) = tree.nodes.iter_mut().find(|n| n.node_id == node_id) {
+                                        node.status = if success { TreeNodeStatus::Success } else { TreeNodeStatus::Failed };
+                                    }
+                                });
+                            }
+                        }
+                        _ => {}
+                    }
+                }
             }
 
             // Incrementally update the detail panel if this event is for the expanded execution
