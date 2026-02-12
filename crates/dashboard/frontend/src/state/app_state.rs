@@ -136,6 +136,50 @@ pub struct ExecutionDetailDto {
     pub score_breakdown: Vec<ScoreDimensionDto>,
 }
 
+// ============================================================================
+// Execution Tree Types
+// ============================================================================
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum TreeNodeType {
+    Iteration,
+    ToolCall,
+    SubagentSpawn,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum TreeNodeStatus {
+    Running,
+    Success,
+    Failed,
+    Pending,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TreeNode {
+    pub node_id: String,
+    pub parent_node_id: Option<String>,
+    pub node_type: TreeNodeType,
+    pub label: String,
+    pub summary: String,
+    pub status: TreeNodeStatus,
+    pub x: f64,
+    pub y: f64,
+    pub event_data: Option<serde_json::Value>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TreeEdge {
+    pub from_id: String,
+    pub to_id: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct ExecutionTree {
+    pub nodes: Vec<TreeNode>,
+    pub edges: Vec<TreeEdge>,
+}
+
 /// Daemon status DTO.
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct DaemonStatusDto {
@@ -161,6 +205,12 @@ pub struct AppState {
     pub execution_detail: RwSignal<Option<ExecutionDetailDto>>,
     /// Whether the detail panel is loading.
     pub detail_loading: RwSignal<bool>,
+    /// Execution tree for visualization.
+    pub execution_tree: RwSignal<ExecutionTree>,
+    /// Currently selected tree node (by node_id).
+    pub selected_tree_node: RwSignal<Option<String>>,
+    /// Source of the last received event (e.g., "heartbeat", "assistant").
+    pub last_event_source: RwSignal<String>,
 }
 
 impl AppState {
@@ -177,6 +227,9 @@ impl AppState {
             expanded_execution: RwSignal::new(None),
             execution_detail: RwSignal::new(None),
             detail_loading: RwSignal::new(false),
+            execution_tree: RwSignal::new(ExecutionTree::default()),
+            selected_tree_node: RwSignal::new(None),
+            last_event_source: RwSignal::new(String::new()),
         }
     }
 }

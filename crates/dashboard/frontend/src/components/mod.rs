@@ -13,3 +13,5 @@ pub mod search_filter;
 pub mod sidebar;
 pub mod status_badge;
 pub mod execution_detail;
+pub mod execution_tree;
+pub mod diff_view;

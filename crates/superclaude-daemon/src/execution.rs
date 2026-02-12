@@ -11,7 +11,7 @@ use parking_lot::RwLock;
 use prost_types::Timestamp;
 use regex::Regex;
 use serde::Deserialize;
-use tokio::io::{AsyncBufReadExt, BufReader};
+use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::process::Command;
 use tokio::sync::broadcast;
 use tracing::{debug, error, info, warn};
@@ -159,6 +159,8 @@ struct ExecutionInner {
     // Process management — stores the PID for lifecycle control (kill on stop).
     // The Child itself stays local to run_execution() for await-safe waiting.
     process_pid: RwLock<Option<u32>>,
+    /// Piped stdin handle for interactive input via SendInput RPC.
+    child_stdin: tokio::sync::RwLock<Option<tokio::process::ChildStdin>>,
     _metrics_watcher: RwLock<Option<MetricsWatcher>>,
 }
 
@@ -201,6 +203,7 @@ impl Execution {
             event_tx: event_tx.clone(),
             event_history: RwLock::new(VecDeque::new()),
             process_pid: RwLock::new(None),
+            child_stdin: tokio::sync::RwLock::new(None),
             _metrics_watcher: RwLock::new(None),
         });
 
@@ -328,13 +331,14 @@ impl ExecutionInner {
                 let mut lines = reader.lines();
 
                 while let Ok(Some(line)) = lines.next_line().await {
-                    debug!(execution_id = %inner.id, len = line.len(), "claude stdout line");
+                    info!(execution_id = %inner.id, len = line.len(), "claude stdout line");
                     inner.parse_stream_json_line(&line);
                 }
             });
         }
 
         // Read stderr for errors — accumulate into buffer for failure reporting
+        // and emit ErrorOccurred events for the frontend.
         let stderr_buffer: Arc<RwLock<Vec<String>>> = Arc::new(RwLock::new(Vec::new()));
         if let Some(stderr) = child.stderr.take() {
             let inner = self.clone();
@@ -342,16 +346,99 @@ impl ExecutionInner {
             tokio::spawn(async move {
                 let reader = BufReader::new(stderr);
                 let mut lines = reader.lines();
+                let mut batch: Vec<String> = Vec::new();
+                let mut last_emit = tokio::time::Instant::now();
 
-                while let Ok(Some(line)) = lines.next_line().await {
-                    warn!(execution_id = %inner.id, line = %line, "claude stderr");
-                    stderr_buf.write().push(line);
+                loop {
+                    let line_result = tokio::time::timeout(
+                        std::time::Duration::from_millis(500),
+                        lines.next_line(),
+                    ).await;
+
+                    match line_result {
+                        Ok(Ok(Some(line))) => {
+                            debug!(execution_id = %inner.id, line = %line, "claude stderr");
+                            // Always buffer for failure reporting on process exit
+                            stderr_buf.write().push(line.clone());
+                            // Only batch lines that look like real errors for ErrorOccurred events
+                            let lower = line.to_lowercase();
+                            if lower.contains("error") || lower.contains("panic") || lower.contains("fatal") {
+                                warn!(execution_id = %inner.id, line = %line, "claude stderr error");
+                                batch.push(line);
+                            }
+                        }
+                        Ok(Ok(None)) => {
+                            // EOF — flush remaining batch
+                            if !batch.is_empty() {
+                                let msg = truncate_str(&batch.join("\n"), 1000);
+                                inner.emit_event(AgentEvent {
+                                    execution_id: inner.id.clone(),
+                                    timestamp: Self::now_timestamp(),
+                                    event: Some(agent_event::Event::Error(ErrorOccurred {
+                                        error_type: "stderr".to_string(),
+                                        message: msg,
+                                        traceback: String::new(),
+                                        recoverable: true,
+                                    })),
+                                });
+                            }
+                            break;
+                        }
+                        Ok(Err(_)) => break,
+                        Err(_) => {
+                            // Timeout — flush batch if non-empty
+                        }
+                    }
+
+                    // Flush batch when >=5 lines accumulated or 500ms elapsed
+                    if batch.len() >= 5 || (!batch.is_empty() && last_emit.elapsed() >= std::time::Duration::from_millis(500)) {
+                        let msg = truncate_str(&batch.join("\n"), 1000);
+                        inner.emit_event(AgentEvent {
+                            execution_id: inner.id.clone(),
+                            timestamp: Self::now_timestamp(),
+                            event: Some(agent_event::Event::Error(ErrorOccurred {
+                                error_type: "stderr".to_string(),
+                                message: msg,
+                                traceback: String::new(),
+                                recoverable: true,
+                            })),
+                        });
+                        batch.clear();
+                        last_emit = tokio::time::Instant::now();
+                    }
                 }
             });
         }
 
+        // Heartbeat task — emits periodic "Processing..." events so the UI
+        // knows the execution is alive between tool calls.
+        let heartbeat_handle = {
+            let inner = self.clone();
+            tokio::spawn(async move {
+                let mut interval = tokio::time::interval(std::time::Duration::from_secs(5));
+                loop {
+                    interval.tick().await;
+                    if *inner.state.read() != ExecutionState::Running {
+                        break;
+                    }
+                    inner.emit_event(AgentEvent {
+                        execution_id: inner.id.clone(),
+                        timestamp: Self::now_timestamp(),
+                        event: Some(agent_event::Event::LogMessage(LogMessage {
+                            level: LogLevel::Debug as i32,
+                            message: "Processing...".to_string(),
+                            source: "heartbeat".to_string(),
+                        })),
+                    });
+                }
+            })
+        };
+
         // Wait for completion
         let exit_status = child.wait().await?;
+
+        // Stop the heartbeat
+        heartbeat_handle.abort();
 
         // Clear stored PID
         *self.process_pid.write() = None;
@@ -416,7 +503,7 @@ impl ExecutionInner {
         let event: StreamJsonEvent = match serde_json::from_str(trimmed) {
             Ok(e) => e,
             Err(e) => {
-                debug!(error = %e, "Skipping non-JSON or unrecognised line");
+                warn!(error = %e, "Skipping non-JSON or unrecognised line");
                 return;
             }
         };
@@ -609,6 +696,30 @@ impl ExecutionInner {
                             node_id: node_id.clone(),
                         })),
                     });
+
+                    // Detect Obsidian/markdown artifacts
+                    if file_path.ends_with(".md") {
+                        let fp = std::path::Path::new(&file_path);
+                        let in_obsidian = fp.components().any(|c| {
+                            let s = c.as_os_str().to_string_lossy();
+                            s.contains("obsidian") || s.contains("vault") || s.contains(".superclaude_metrics")
+                        });
+                        if in_obsidian {
+                            let title = fp.file_stem()
+                                .map(|s| s.to_string_lossy().to_string())
+                                .unwrap_or_default();
+                            self.emit_event(AgentEvent {
+                                execution_id: self.id.clone(),
+                                timestamp: Self::now_timestamp(),
+                                event: Some(agent_event::Event::ArtifactWritten(ArtifactWritten {
+                                    obsidian_path: file_path.clone(),
+                                    artifact_type: "document".to_string(),
+                                    title,
+                                })),
+                            });
+                        }
+                    }
+
                     let mut ev = self.evidence.write();
                     if !ev.files_written.contains(&file_path) {
                         ev.files_written.push(file_path);
@@ -652,8 +763,33 @@ impl ExecutionInner {
             "Bash" => {
                 self.evidence.write().commands_run += 1;
             }
+            "Task" => {
+                let subagent_type = input
+                    .get("subagent_type")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("unknown")
+                    .to_string();
+                let description = input
+                    .get("description")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("")
+                    .to_string();
+                self.evidence.write().subagents_spawned += 1;
+                self.emit_event(AgentEvent {
+                    execution_id: self.id.clone(),
+                    timestamp: Self::now_timestamp(),
+                    event: Some(agent_event::Event::SubagentSpawned(SubagentSpawned {
+                        subagent_id: id.to_string(),
+                        subagent_type,
+                        task_summary: description,
+                        depth: 1,
+                        node_id: format!("subagent-{}", id),
+                        parent_node_id: parent_node_id.to_string(),
+                    })),
+                });
+            }
             _ => {
-                // Other tools (Task, WebFetch, etc.) — already covered by ToolInvoked
+                // Other tools (WebFetch, etc.) — already covered by ToolInvoked
             }
         }
     }
@@ -677,6 +813,8 @@ impl ExecutionInner {
                 _ => String::new(),
             };
 
+            let is_task_tool = pending.tool_name == "Task";
+
             if !tool_output.is_empty() {
                 self.emit_event(AgentEvent {
                     execution_id: self.id.clone(),
@@ -688,10 +826,24 @@ impl ExecutionInner {
                         block_reason: String::new(),
                         depth: 1,
                         node_id: format!("{}-result", pending.node_id),
-                        parent_node_id: pending.parent_node_id,
+                        parent_node_id: pending.parent_node_id.clone(),
                         tool_input: pending.tool_input,
-                        tool_output,
+                        tool_output: tool_output.clone(),
                         tool_use_id: tool_use_id.to_string(),
+                    })),
+                });
+            }
+
+            // Emit SubagentCompleted when a Task tool result arrives
+            if is_task_tool {
+                self.emit_event(AgentEvent {
+                    execution_id: self.id.clone(),
+                    timestamp: Self::now_timestamp(),
+                    event: Some(agent_event::Event::SubagentCompleted(SubagentCompleted {
+                        subagent_id: pending.node_id.clone(),
+                        success: true,
+                        result_summary: truncate_str(&tool_output, 200),
+                        node_id: format!("subagent-{}", pending.node_id),
                     })),
                 });
             }
@@ -1097,6 +1249,19 @@ impl ExecutionHandle {
         *self.inner.state.write() = ExecutionState::Running;
     }
 
+    /// Write input to the child process's stdin pipe.
+    pub async fn send_input(&self, input: &str) -> Result<()> {
+        let mut guard = self.inner.child_stdin.write().await;
+        if let Some(ref mut stdin) = *guard {
+            stdin.write_all(input.as_bytes()).await?;
+            stdin.write_all(b"\n").await?;
+            stdin.flush().await?;
+            Ok(())
+        } else {
+            anyhow::bail!("stdin pipe not available (process may have exited)")
+        }
+    }
+
     pub async fn get_status(&self) -> ExecutionStatus {
         ExecutionStatus {
             execution_id: self.inner.id.clone(),
@@ -1322,6 +1487,7 @@ mod tests {
             event_tx: tx,
             event_history: RwLock::new(VecDeque::new()),
             process_pid: RwLock::new(None),
+            child_stdin: tokio::sync::RwLock::new(None),
             _metrics_watcher: RwLock::new(None),
         })
     }

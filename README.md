@@ -598,8 +598,10 @@ SuperClaude includes a native desktop dashboard for visualizing and controlling 
 ### Features
 
 - **Feature Inventory** - Browse all 35 agents, 14 commands, 30+ skills, and 6 behavioral modes
-- **Live Monitor** - Real-time execution tracking with event streaming and quality score visualization
-- **Execution Control** - Start, stop, pause, and resume executions with configurable parameters
+- **Live Monitor** - Real-time execution tracking with event streaming, heartbeat indicator, and quality score visualization
+- **Execution Control** - Start, stop, pause, and resume executions with configurable parameters; expandable detail panel with 5 tabs (Run Instructions, Execution Log, Files Changed, Quality Breakdown, Execution Tree)
+- **Execution Tree** - Visual tree of iterations, tool calls, and subagent spawns built from streaming events
+- **Diff Viewer** - Inline diff display for Edit/Write tool invocations showing before/after changes
 - **Historical Metrics** - View past session data, event timelines, and performance trends
 
 ### Quick Start
@@ -1073,7 +1075,7 @@ flowchart TB
     Skills --> Structure
 
     subgraph ScriptDetail["sc-implement/scripts/ (5 tools)"]
-        S1["select_agent.py (406 lines)<br/>Weighted agent selection"]
+        S1["select_agent.py (551 lines)<br/>Weighted agent selection"]
         S2["run_tests.py (344 lines)<br/>Test framework detection"]
         S3["evidence_gate.py (256 lines)<br/>Quality validation"]
         S4["skill_learn.py (466 lines)<br/>Skill extraction"]
@@ -1789,6 +1791,10 @@ SuperClaude/
 │
 ├── crates/                         # Rust workspace
 │   ├── dashboard/               # Tauri v2 desktop dashboard (Leptos WASM frontend)
+│   │   └── frontend/src/
+│   │       ├── components/      # UI: sidebar, execution_detail, execution_tree, diff_view, ...
+│   │       ├── pages/           # inventory, monitor, control, history
+│   │       └── state/           # Reactive signals (AppState, ExecutionTree, DTOs)
 │   ├── proto/                   # Protobuf/gRPC service definitions
 │   ├── superclaude-core/        # Shared domain types and utilities
 │   ├── superclaude-daemon/      # gRPC daemon (port 50051)
@@ -1817,10 +1823,8 @@ SuperClaude/
 │       └── consensus/
 │
 ├── Docs/                        # Documentation
-│   ├── Getting-Started/
-│   ├── User-Guide/
-│   ├── Developer-Guide/
-│   └── Reference/
+│   ├── quality-gates.md
+│   └── README.md
 │
 └── archive/                     # Archived Python SDK (v5)
 ```

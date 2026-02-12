@@ -28,6 +28,9 @@ service SuperClaudeService {
   // Execution detail
   rpc GetExecutionDetail(GetExecutionDetailRequest) returns (GetExecutionDetailResponse);
 
+  // Interactive input
+  rpc SendInput(SendInputRequest) returns (SendInputResponse);
+
   // Health check
   rpc Ping(PingRequest) returns (PingResponse);
 }
@@ -403,6 +406,20 @@ message GetObsidianNoteResponse {
 // ============================================================================
 // Health Check
 // ============================================================================
+
+// ============================================================================
+// Interactive Input
+// ============================================================================
+
+message SendInputRequest {
+  string execution_id = 1;
+  string input = 2;
+}
+
+message SendInputResponse {
+  bool success = 1;
+  string message = 2;
+}
 
 message PingRequest {}
 

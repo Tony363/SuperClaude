@@ -43,6 +43,7 @@ pub fn MonitorPage() -> impl IntoView {
 
     let daemon_online = move || state.daemon_status.get().online;
 
+    let state_for_thinking = state.clone();
     let retry_callback = Callback::new(move |_: ()| {
         let state = state.clone();
         wasm_bindgen_futures::spawn_local(async move {
@@ -73,6 +74,24 @@ pub fn MonitorPage() -> impl IntoView {
                             message="Daemon is offline. Start the daemon to monitor executions.".to_string()
                             retry=retry_callback
                         />
+                    }.into_any()
+                } else {
+                    view! { <div></div> }.into_any()
+                }
+            }}
+
+            // Thinking indicator — shows when last event source is "heartbeat"
+            {move || {
+                let has_active = !active_executions().is_empty();
+                let is_thinking = state_for_thinking.last_event_source.get() == "heartbeat";
+                if has_active && is_thinking {
+                    view! {
+                        <div class="thinking-indicator">
+                            <span class="thinking-dot"></span>
+                            <span class="thinking-dot"></span>
+                            <span class="thinking-dot"></span>
+                            <span style="margin-left: 8px; color: var(--text-secondary); font-size: 13px;">"Claude is thinking..."</span>
+                        </div>
                     }.into_any()
                 } else {
                     view! { <div></div> }.into_any()

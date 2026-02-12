@@ -1,6 +1,8 @@
 //! Expandable execution detail panel component.
 
 use leptos::prelude::*;
+use crate::components::diff_view::DiffView;
+use crate::components::execution_tree::ExecutionTree;
 use crate::state::{AppState, ExecutionDetailDto, ScoreDimensionDto, RunInstructionsDto, AgentEventDto};
 
 #[component]
@@ -81,6 +83,12 @@ fn DetailContent(detail: ExecutionDetailDto) -> impl IntoView {
                 >
                     "Quality Breakdown"
                 </button>
+                <button
+                    class=move || if active_tab.get() == 4 { "detail-tab active" } else { "detail-tab" }
+                    on:click=move |_| active_tab.set(4)
+                >
+                    "Execution Tree"
+                </button>
             </div>
 
             {move || {
@@ -96,11 +104,14 @@ fn DetailContent(detail: ExecutionDetailDto) -> impl IntoView {
                     }
                     2 => {
                         let d = detail_for_files.clone();
-                        view! { <FilesChangedTab files_written=d.files_written.clone() files_edited=d.files_edited.clone() /> }.into_any()
+                        view! { <FilesChangedTab files_written=d.files_written.clone() files_edited=d.files_edited.clone() events=d.events.clone() /> }.into_any()
                     }
                     3 => {
                         let d = detail_for_quality.clone();
                         view! { <QualityBreakdownTab breakdown=d.score_breakdown.clone() /> }.into_any()
+                    }
+                    4 => {
+                        view! { <ExecutionTree /> }.into_any()
                     }
                     _ => view! { <div></div> }.into_any(),
                 }
@@ -288,17 +299,124 @@ fn LogEntry(index: usize, event: AgentEventDto) -> impl IntoView {
     }
 }
 
+/// A file diff entry extracted from tool events.
+struct FileDiffEntry {
+    file_path: String,
+    action: String, // "edit" or "write"
+    old_string: Option<String>,
+    new_string: Option<String>,
+    content: Option<String>,
+}
+
+fn extract_diff_entries(events: &[AgentEventDto]) -> Vec<FileDiffEntry> {
+    let mut entries = Vec::new();
+    for evt in events {
+        if evt.event_type != "tool_invoked" {
+            continue;
+        }
+        let tool_name = evt.data.get("tool_name").and_then(|v| v.as_str()).unwrap_or("");
+        let summary = evt.data.get("summary").and_then(|v| v.as_str()).unwrap_or("");
+        // Skip "(result)" pseudo-events
+        if summary == "(result)" {
+            continue;
+        }
+        if tool_name != "Edit" && tool_name != "Write" {
+            continue;
+        }
+        let tool_input_str = evt.data.get("tool_input").and_then(|v| v.as_str()).unwrap_or("");
+        if tool_input_str.is_empty() {
+            continue;
+        }
+        if let Ok(input) = serde_json::from_str::<serde_json::Value>(tool_input_str) {
+            let file_path = input.get("file_path")
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_string();
+            if file_path.is_empty() {
+                continue;
+            }
+            if tool_name == "Edit" {
+                entries.push(FileDiffEntry {
+                    file_path,
+                    action: "edit".to_string(),
+                    old_string: input.get("old_string").and_then(|v| v.as_str()).map(String::from),
+                    new_string: input.get("new_string").and_then(|v| v.as_str()).map(String::from),
+                    content: None,
+                });
+            } else {
+                entries.push(FileDiffEntry {
+                    file_path,
+                    action: "write".to_string(),
+                    old_string: None,
+                    new_string: None,
+                    content: input.get("content").and_then(|v| v.as_str()).map(String::from),
+                });
+            }
+        }
+    }
+    entries
+}
+
 #[component]
-fn FilesChangedTab(files_written: Vec<String>, files_edited: Vec<String>) -> impl IntoView {
-    if files_written.is_empty() && files_edited.is_empty() {
+fn FilesChangedTab(files_written: Vec<String>, files_edited: Vec<String>, events: Vec<AgentEventDto>) -> impl IntoView {
+    let diff_entries = extract_diff_entries(&events);
+    let has_diffs = !diff_entries.is_empty();
+
+    if files_written.is_empty() && files_edited.is_empty() && !has_diffs {
         return view! {
             <div class="detail-section-empty">"No file changes recorded."</div>
         }.into_any();
     }
 
+    // Build a set of files that have diff entries
+    let diff_paths: std::collections::HashSet<String> = diff_entries.iter().map(|d| d.file_path.clone()).collect();
+
     view! {
         <div class="files-changed">
-            {files_written.into_iter().map(|f| {
+            // Show diff entries with expand/collapse
+            {diff_entries.into_iter().enumerate().map(|(_i, entry)| {
+                let expanded = RwSignal::new(false);
+                let path = entry.file_path.clone();
+                let action_badge = if entry.action == "edit" { "M" } else { "A" };
+                let badge_class = if entry.action == "edit" { "file-action file-modified" } else { "file-action file-added" };
+
+                let diff_action = entry.action.clone();
+                let diff_old = entry.old_string.clone().unwrap_or_default();
+                let diff_new = entry.new_string.clone().unwrap_or_default();
+                let diff_content = entry.content.clone().unwrap_or_default();
+                let diff_path = entry.file_path.clone();
+
+                view! {
+                    <div>
+                        <div class="file-entry" style="cursor: pointer;" on:click=move |_| expanded.set(!expanded.get())>
+                            <span class={badge_class}>{action_badge}</span>
+                            <span class="file-path">{path.clone()}</span>
+                            <span style="font-size: 11px; color: var(--text-muted);">
+                                {move || if expanded.get() { "v" } else { ">" }}
+                            </span>
+                        </div>
+                        {move || {
+                            if !expanded.get() {
+                                return view! { <div></div> }.into_any();
+                            }
+                            view! {
+                                <div style="padding-left: 30px; padding-top: 4px; padding-bottom: 8px;">
+                                    <DiffView
+                                        file_path=diff_path.clone()
+                                        action=diff_action.clone()
+                                        old_string=diff_old.clone()
+                                        new_string=diff_new.clone()
+                                        content=diff_content.clone()
+                                    />
+                                </div>
+                            }.into_any()
+                        }}
+                    </div>
+                }
+            }).collect_view()}
+
+            // Show remaining files that don't have diff entries
+            {files_written.into_iter().filter(|f| !diff_paths.contains(f)).map(|f| {
                 view! {
                     <div class="file-entry">
                         <span class="file-action file-added">"A"</span>
@@ -306,7 +424,7 @@ fn FilesChangedTab(files_written: Vec<String>, files_edited: Vec<String>) -> imp
                     </div>
                 }
             }).collect_view()}
-            {files_edited.into_iter().map(|f| {
+            {files_edited.into_iter().filter(|f| !diff_paths.contains(f)).map(|f| {
                 view! {
                     <div class="file-entry">
                         <span class="file-action file-modified">"M"</span>
