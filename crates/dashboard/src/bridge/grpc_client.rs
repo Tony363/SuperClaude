@@ -61,4 +61,9 @@ impl GrpcClient {
         let response = self.client.stream_events(tonic::Request::new(req)).await?;
         Ok(response.into_inner())
     }
+
+    pub async fn get_execution_detail(&mut self, req: GetExecutionDetailRequest) -> Result<GetExecutionDetailResponse> {
+        let response = self.client.get_execution_detail(tonic::Request::new(req)).await?;
+        Ok(response.into_inner())
+    }
 }

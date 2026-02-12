@@ -1,22 +1,37 @@
 //! Execution management - spawns and monitors claude CLI processes
 
+use std::collections::{HashMap, VecDeque};
 use std::path::PathBuf;
 use std::process::Stdio;
-use std::sync::Arc;
+use std::sync::{Arc, LazyLock};
 
 use anyhow::{Context, Result};
 use chrono::Utc;
 use parking_lot::RwLock;
 use prost_types::Timestamp;
+use regex::Regex;
 use serde::Deserialize;
 use tokio::io::{AsyncBufReadExt, BufReader};
-use tokio::process::{Child, Command};
+use tokio::process::Command;
 use tokio::sync::broadcast;
 use tracing::{debug, error, info, warn};
 use uuid::Uuid;
 
 use crate::metrics_watcher::MetricsWatcher;
 use superclaude_proto::*;
+
+// Compiled regex patterns for test output parsing
+static PYTEST_RE: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"(\d+) passed(?:,\s*(\d+) failed)?(?:,\s*(\d+) (?:skipped|deselected))?")
+        .unwrap()
+});
+static CARGO_TEST_RE: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"test result:\s*(?:ok|FAILED)\.\s+(\d+) passed;\s+(\d+) failed;\s+(\d+) ignored")
+        .unwrap()
+});
+
+/// Maximum number of events retained in history to prevent unbounded memory growth.
+const MAX_EVENT_HISTORY: usize = 5_000;
 
 // ---------------------------------------------------------------------------
 // Claude CLI stream-json deserialization types
@@ -88,6 +103,14 @@ struct UsageInfo {
     output_tokens: u64,
 }
 
+/// Tracks a pending tool use for correlation with its result.
+struct PendingToolUse {
+    tool_name: String,
+    tool_input: String,
+    node_id: String,
+    parent_node_id: String,
+}
+
 /// Represents a running or completed execution
 pub struct Execution {
     pub id: String,
@@ -119,13 +142,23 @@ struct ExecutionInner {
     // Evidence tracking
     evidence: RwLock<EvidenceSummary>,
 
+    // Telemetry tracking
+    total_cost_usd: RwLock<f64>,
+    total_input_tokens: RwLock<u64>,
+    total_output_tokens: RwLock<u64>,
+    pending_tool_uses: RwLock<HashMap<String, PendingToolUse>>,
+    run_instructions: RwLock<Option<RunInstructions>>,
+
+    // JSONL persistence
+    jsonl_writer: RwLock<Option<std::io::BufWriter<std::fs::File>>>,
+
     // Event streaming
     event_tx: broadcast::Sender<AgentEvent>,
-    event_history: RwLock<Vec<AgentEvent>>,
+    event_history: RwLock<VecDeque<AgentEvent>>,
 
-    // Process management (kept for future process lifecycle management)
-    #[allow(dead_code)]
-    process: RwLock<Option<Child>>,
+    // Process management — stores the PID for lifecycle control (kill on stop).
+    // The Child itself stays local to run_execution() for await-safe waiting.
+    process_pid: RwLock<Option<u32>>,
     _metrics_watcher: RwLock<Option<MetricsWatcher>>,
 }
 
@@ -159,9 +192,15 @@ impl Execution {
             ended_at: RwLock::new(None),
             termination_reason: RwLock::new(None),
             evidence: RwLock::new(EvidenceSummary::default()),
+            total_cost_usd: RwLock::new(0.0),
+            total_input_tokens: RwLock::new(0),
+            total_output_tokens: RwLock::new(0),
+            pending_tool_uses: RwLock::new(HashMap::new()),
+            run_instructions: RwLock::new(None),
+            jsonl_writer: RwLock::new(None),
             event_tx: event_tx.clone(),
-            event_history: RwLock::new(Vec::new()),
-            process: RwLock::new(None),
+            event_history: RwLock::new(VecDeque::new()),
+            process_pid: RwLock::new(None),
             _metrics_watcher: RwLock::new(None),
         });
 
@@ -219,7 +258,8 @@ impl ExecutionInner {
         cmd.arg("--print")
             .arg("--verbose")
             .arg("--output-format").arg("stream-json")
-            .arg("--dangerously-skip-permissions")
+            .arg("--permission-mode").arg("bypassPermissions")
+            .arg("--no-session-persistence")
             .arg("--model").arg(&self.config.model)
             .arg(&self.task)
             .current_dir(&self.project_root)
@@ -243,9 +283,29 @@ impl ExecutionInner {
         // Spawn the process
         let mut child = cmd.spawn().context("Failed to spawn claude CLI")?;
 
-        // Set up metrics watcher for .superclaude_metrics/
+        // Store the PID for lifecycle control (used by stop() to kill the process)
+        if let Some(pid) = child.id() {
+            *self.process_pid.write() = Some(pid);
+        }
+
+        // Set up metrics watcher and JSONL writer for .superclaude_metrics/
         let metrics_path = PathBuf::from(&self.project_root).join(".superclaude_metrics");
         if metrics_path.exists() || std::fs::create_dir_all(&metrics_path).is_ok() {
+            // Initialize JSONL writer
+            let jsonl_path = metrics_path.join("events.jsonl");
+            match std::fs::OpenOptions::new()
+                .create(true)
+                .append(true)
+                .open(&jsonl_path)
+            {
+                Ok(file) => {
+                    *self.jsonl_writer.write() = Some(std::io::BufWriter::new(file));
+                }
+                Err(e) => {
+                    warn!(error = %e, "Failed to open JSONL writer");
+                }
+            }
+
             match MetricsWatcher::new(
                 metrics_path,
                 self.id.clone(),
@@ -274,21 +334,27 @@ impl ExecutionInner {
             });
         }
 
-        // Read stderr for errors
+        // Read stderr for errors — accumulate into buffer for failure reporting
+        let stderr_buffer: Arc<RwLock<Vec<String>>> = Arc::new(RwLock::new(Vec::new()));
         if let Some(stderr) = child.stderr.take() {
             let inner = self.clone();
+            let stderr_buf = stderr_buffer.clone();
             tokio::spawn(async move {
                 let reader = BufReader::new(stderr);
                 let mut lines = reader.lines();
 
                 while let Ok(Some(line)) = lines.next_line().await {
                     warn!(execution_id = %inner.id, line = %line, "claude stderr");
+                    stderr_buf.write().push(line);
                 }
             });
         }
 
         // Wait for completion
         let exit_status = child.wait().await?;
+
+        // Clear stored PID
+        *self.process_pid.write() = None;
 
         // Update final state
         *self.ended_at.write() = Some(Utc::now());
@@ -298,10 +364,23 @@ impl ExecutionInner {
             *self.termination_reason.write() = Some("Execution completed successfully".to_string());
         } else {
             *self.state.write() = ExecutionState::Failed;
-            *self.termination_reason.write() = Some(format!(
-                "Process exited with code: {:?}",
-                exit_status.code()
-            ));
+            let stderr_lines = stderr_buffer.read().join("\n");
+            let reason = if stderr_lines.is_empty() {
+                format!("Process exited with code: {:?}", exit_status.code())
+            } else {
+                format!(
+                    "Process exited with code: {:?}. stderr: {}",
+                    exit_status.code(),
+                    truncate_str(&stderr_lines, 500)
+                )
+            };
+            *self.termination_reason.write() = Some(reason);
+        }
+
+        // Flush JSONL writer
+        if let Some(ref mut writer) = *self.jsonl_writer.write() {
+            use std::io::Write;
+            let _ = writer.flush();
         }
 
         // Emit completion event
@@ -373,6 +452,12 @@ impl ExecutionInner {
             None => return,
         };
 
+        // Accumulate token usage
+        if let Some(usage) = &message.usage {
+            *self.total_input_tokens.write() += usage.input_tokens;
+            *self.total_output_tokens.write() += usage.output_tokens;
+        }
+
         // Each assistant message counts as one turn
         let iteration = {
             let mut iter = self.current_iteration.write();
@@ -409,7 +494,11 @@ impl ExecutionInner {
                         })),
                     });
                 }
-                ContentBlock::ToolResult { content, .. } => {
+                ContentBlock::ToolResult { tool_use_id, content } => {
+                    // Correlate tool result with its invocation
+                    if let Some(use_id) = tool_use_id {
+                        self.correlate_tool_result(use_id, content);
+                    }
                     // Extract text from inline tool results for test detection
                     if let Some(serde_json::Value::String(text)) = content {
                         self.try_detect_test_results(text);
@@ -423,6 +512,27 @@ impl ExecutionInner {
                 }
                 ContentBlock::Unknown => {}
             }
+        }
+
+        // Compute progressive score from accumulated evidence
+        let score = self.compute_heuristic_score();
+        let old_score = *self.current_score.read();
+
+        if (score - old_score).abs() > f32::EPSILON {
+            *self.current_score.write() = score;
+
+            let quality_dims = self.compute_quality_breakdown();
+
+            self.emit_event(AgentEvent {
+                execution_id: self.id.clone(),
+                timestamp: Self::now_timestamp(),
+                event: Some(agent_event::Event::ScoreUpdated(ScoreUpdated {
+                    old_score,
+                    new_score: score,
+                    reason: "Progressive evidence update".to_string(),
+                    dimensions: Some(quality_dims),
+                })),
+            });
         }
     }
 
@@ -442,11 +552,29 @@ impl ExecutionInner {
             .unwrap_or("")
             .to_string();
 
-        let summary = if file_path.is_empty() {
+        // Enhanced summary for Bash commands
+        let summary = if name == "Bash" {
+            if let Some(cmd) = input.get("command").and_then(|v| v.as_str()) {
+                format!("Bash: {}", truncate_str(cmd, 100))
+            } else {
+                "Bash".to_string()
+            }
+        } else if file_path.is_empty() {
             format!("{name}")
         } else {
             format!("{name}: {file_path}")
         };
+
+        // Serialize full input for telemetry
+        let tool_input = serde_json::to_string(input).unwrap_or_default();
+
+        // Store pending tool use for correlation
+        self.pending_tool_uses.write().insert(id.to_string(), PendingToolUse {
+            tool_name: name.to_string(),
+            tool_input: tool_input.clone(),
+            node_id: node_id.clone(),
+            parent_node_id: parent_node_id.to_string(),
+        });
 
         // Emit ToolInvoked for every tool
         self.emit_event(AgentEvent {
@@ -460,6 +588,9 @@ impl ExecutionInner {
                 depth: 1,
                 node_id: node_id.clone(),
                 parent_node_id: parent_node_id.to_string(),
+                tool_input,
+                tool_output: String::new(),
+                tool_use_id: id.to_string(),
             })),
         });
 
@@ -523,6 +654,46 @@ impl ExecutionInner {
             }
             _ => {
                 // Other tools (Task, WebFetch, etc.) — already covered by ToolInvoked
+            }
+        }
+    }
+
+    /// Correlate a tool result with its pending invocation.
+    fn correlate_tool_result(
+        &self,
+        tool_use_id: &str,
+        content: &Option<serde_json::Value>,
+    ) {
+        let pending = self.pending_tool_uses.write().remove(tool_use_id);
+        if let Some(pending) = pending {
+            let tool_output = match content {
+                Some(serde_json::Value::String(s)) => truncate_str(s, 2000),
+                Some(serde_json::Value::Array(arr)) => {
+                    let texts: Vec<String> = arr.iter()
+                        .filter_map(|item| item.get("text").and_then(|t| t.as_str()).map(String::from))
+                        .collect();
+                    truncate_str(&texts.join("\n"), 2000)
+                }
+                _ => String::new(),
+            };
+
+            if !tool_output.is_empty() {
+                self.emit_event(AgentEvent {
+                    execution_id: self.id.clone(),
+                    timestamp: Self::now_timestamp(),
+                    event: Some(agent_event::Event::ToolInvoked(ToolInvoked {
+                        tool_name: pending.tool_name,
+                        summary: "(result)".to_string(),
+                        blocked: false,
+                        block_reason: String::new(),
+                        depth: 1,
+                        node_id: format!("{}-result", pending.node_id),
+                        parent_node_id: pending.parent_node_id,
+                        tool_input: pending.tool_input,
+                        tool_output,
+                        tool_use_id: tool_use_id.to_string(),
+                    })),
+                });
             }
         }
     }
@@ -610,66 +781,20 @@ impl ExecutionInner {
 
     /// Parse pytest summary: "X passed", "X passed, Y failed", "X passed, Y failed, Z skipped"
     fn parse_pytest_summary(output: &str) -> Option<(String, i32, i32, i32)> {
-        // Look for "N passed" anywhere in the output
-        let passed_idx = output.find(" passed")?;
-        // Extract the number immediately before " passed" by splitting on non-digit chars
-        let before = &output[..passed_idx];
-        let num_str = before.rsplit(|c: char| !c.is_ascii_digit()).next().unwrap_or("");
-        let passed: i32 = num_str.parse().ok()?;
-
-        let rest = &output[passed_idx..];
-        let mut failed: i32 = 0;
-        let mut skipped: i32 = 0;
-
-        if let Some(fi) = rest.find(" failed") {
-            let seg = &rest[..fi];
-            if let Some(comma_pos) = seg.rfind(", ") {
-                let num_str = seg[comma_pos + 2..].trim();
-                failed = num_str.parse().unwrap_or(0);
-            }
-        }
-        if let Some(si) = rest.find(" skipped") {
-            let seg = &rest[..si];
-            if let Some(comma_pos) = seg.rfind(", ") {
-                let num_str = seg[comma_pos + 2..].trim();
-                skipped = num_str.parse().unwrap_or(0);
-            }
-        }
-
+        let caps = PYTEST_RE.captures(output)?;
+        let passed: i32 = caps.get(1)?.as_str().parse().ok()?;
+        let failed: i32 = caps.get(2).and_then(|m| m.as_str().parse().ok()).unwrap_or(0);
+        let skipped: i32 = caps.get(3).and_then(|m| m.as_str().parse().ok()).unwrap_or(0);
         Some(("pytest".to_string(), passed, failed, skipped))
     }
 
     /// Parse cargo test summary: "test result: ok. X passed; Y failed; Z ignored"
     fn parse_cargo_test_summary(output: &str) -> Option<(String, i32, i32, i32)> {
-        let marker = "test result:";
-        let idx = output.find(marker)?;
-        let rest = &output[idx + marker.len()..];
-
-        // Skip "ok." or "FAILED."
-        let dot_idx = rest.find('.')?;
-        let stats = &rest[dot_idx + 1..];
-
-        let mut passed: i32 = 0;
-        let mut failed: i32 = 0;
-        let mut ignored: i32 = 0;
-
-        for part in stats.split(';') {
-            let part = part.trim();
-            if part.ends_with("passed") {
-                passed = part.split_whitespace().next()?.parse().ok()?;
-            } else if part.ends_with("failed") {
-                failed = part.split_whitespace().next()?.parse().ok()?;
-            } else if part.ends_with("ignored") {
-                ignored = part.split_whitespace().next()?.parse().ok()?;
-            }
-        }
-
-        // Only return if we actually parsed something
-        if passed > 0 || failed > 0 || ignored > 0 {
-            Some(("cargo".to_string(), passed, failed, ignored))
-        } else {
-            None
-        }
+        let caps = CARGO_TEST_RE.captures(output)?;
+        let passed: i32 = caps.get(1)?.as_str().parse().ok()?;
+        let failed: i32 = caps.get(2)?.as_str().parse().ok()?;
+        let ignored: i32 = caps.get(3)?.as_str().parse().ok()?;
+        Some(("cargo".to_string(), passed, failed, ignored))
     }
 
     fn handle_result_event(&self, event: &StreamJsonEvent) {
@@ -678,9 +803,15 @@ impl ExecutionInner {
         let cost = event.total_cost_usd.unwrap_or(0.0);
         let duration_ms = event.duration_ms.unwrap_or(0.0);
 
-        // Log the result summary
+        // Store cost
+        *self.total_cost_usd.write() = cost;
+
+        // Try to extract run instructions from result text
         let result_text = event.result.as_deref().unwrap_or("");
-        let truncated = truncate_str(result_text, 300);
+        self.try_extract_run_instructions(result_text);
+
+        // Log the result summary (raised limit to 2000 chars)
+        let truncated = truncate_str(result_text, 2000);
 
         if !truncated.is_empty() {
             self.emit_event(AgentEvent {
@@ -699,8 +830,13 @@ impl ExecutionInner {
         let old_score = *self.current_score.read();
         *self.current_score.write() = score;
 
-        // Emit final iteration completed
+        // Build quality breakdown
+        let quality_dims = self.compute_quality_breakdown();
+
+        // Emit final iteration completed with telemetry
         let iteration = *self.current_iteration.read();
+        let input_toks = *self.total_input_tokens.read();
+        let output_toks = *self.total_output_tokens.read();
         self.emit_event(AgentEvent {
             execution_id: self.id.clone(),
             timestamp: Self::now_timestamp(),
@@ -712,13 +848,17 @@ impl ExecutionInner {
                     format!("cost=${cost:.4}"),
                     format!("duration={duration_ms:.0}ms"),
                 ],
-                dimensions: None,
+                dimensions: Some(quality_dims.clone()),
                 duration_seconds: (duration_ms / 1000.0) as f32,
                 node_id: format!("iter-{}", iteration),
+                total_cost_usd: cost,
+                input_tokens: input_toks as i64,
+                output_tokens: output_toks as i64,
+                num_turns,
             })),
         });
 
-        // Emit score update (single read lock for atomicity)
+        // Emit score update with structured breakdown
         let score_reason = {
             let ev = self.evidence.read();
             format!(
@@ -735,7 +875,7 @@ impl ExecutionInner {
                 old_score,
                 new_score: score,
                 reason: score_reason,
-                dimensions: None,
+                dimensions: Some(quality_dims),
             })),
         });
 
@@ -747,6 +887,33 @@ impl ExecutionInner {
             is_error = is_error,
             "Execution result received"
         );
+    }
+
+    /// Try to extract run instructions from result text.
+    fn try_extract_run_instructions(&self, text: &str) {
+        if let Some(start) = text.find("{\"run_instructions\"") {
+            let json_candidate = &text[start..];
+            // Try parsing progressively larger chunks
+            for end in (1..json_candidate.len()).rev() {
+                if json_candidate.as_bytes().get(end) == Some(&b'}') {
+                    if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(&json_candidate[..=end]) {
+                        if let Some(ri) = parsed.get("run_instructions") {
+                            let instructions = RunInstructions {
+                                build_command: ri.get("build_command").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+                                run_command: ri.get("run_command").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+                                artifacts: ri.get("artifacts")
+                                    .and_then(|v| v.as_array())
+                                    .map(|arr| arr.iter().filter_map(|v| v.as_str().map(String::from)).collect())
+                                    .unwrap_or_default(),
+                                notes: ri.get("notes").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+                            };
+                            *self.run_instructions.write() = Some(instructions);
+                            return;
+                        }
+                    }
+                }
+            }
+        }
     }
 
     /// Evidence-based heuristic score (0–100).
@@ -780,9 +947,112 @@ impl ExecutionInner {
         score.min(100.0)
     }
 
+    /// Structured quality breakdown with per-dimension scores.
+    fn compute_quality_breakdown(&self) -> QualityDimensions {
+        let ev = self.evidence.read();
+        let file_count = (ev.files_written.len() + ev.files_edited.len()) as f32;
+
+        let files_score = if file_count > 0.0 {
+            (30.0 + (file_count * 5.0).min(20.0)).min(50.0)
+        } else {
+            0.0
+        };
+        let tests_score = if ev.tests_run {
+            if ev.tests_failed == 0 && ev.tests_passed > 0 { 20.0 } else { 10.0 }
+        } else {
+            0.0
+        };
+        let cmds_score = (ev.commands_run as f32 * 2.0).min(10.0);
+        let completion_score = if file_count > 0.0 && ev.tests_run && ev.tests_failed == 0 && ev.tests_passed > 0 {
+            20.0
+        } else {
+            0.0
+        };
+
+        QualityDimensions {
+            code_changes: files_score / 50.0,
+            tests_run: if ev.tests_run { 1.0 } else { 0.0 },
+            tests_pass: if ev.tests_run && ev.tests_failed == 0 { 1.0 } else { 0.0 },
+            coverage: 0.0,
+            no_errors: if !ev.tests_run || ev.tests_failed == 0 { 1.0 } else { 0.0 },
+            breakdown: vec![
+                ScoreDimension {
+                    name: "files_produced".to_string(),
+                    score: files_score,
+                    max_score: 50.0,
+                    description: format!("{} files written/edited", file_count as i32),
+                },
+                ScoreDimension {
+                    name: "tests".to_string(),
+                    score: tests_score,
+                    max_score: 20.0,
+                    description: if ev.tests_run {
+                        format!("{} passed, {} failed", ev.tests_passed, ev.tests_failed)
+                    } else {
+                        "No tests run".to_string()
+                    },
+                },
+                ScoreDimension {
+                    name: "commands".to_string(),
+                    score: cmds_score,
+                    max_score: 10.0,
+                    description: format!("{} commands executed", ev.commands_run),
+                },
+                ScoreDimension {
+                    name: "completion".to_string(),
+                    score: completion_score,
+                    max_score: 20.0,
+                    description: if completion_score > 0.0 {
+                        "Files produced + tests passing".to_string()
+                    } else {
+                        "Requires files + passing tests".to_string()
+                    },
+                },
+            ],
+        }
+    }
+
     fn emit_event(&self, event: AgentEvent) {
-        // Store in history
-        self.event_history.write().push(event.clone());
+        // Write to JSONL
+        if let Some(ref mut writer) = *self.jsonl_writer.write() {
+            use std::io::Write;
+            if let Some(ref evt) = event.event {
+                let json_line = match evt {
+                    agent_event::Event::ToolInvoked(e) => serde_json::json!({
+                        "execution_id": event.execution_id,
+                        "event_type": "tool_invoked",
+                        "tool_name": e.tool_name,
+                        "summary": e.summary,
+                        "tool_input": e.tool_input,
+                        "tool_output": e.tool_output,
+                        "tool_use_id": e.tool_use_id,
+                    }),
+                    agent_event::Event::IterationCompleted(e) => serde_json::json!({
+                        "execution_id": event.execution_id,
+                        "event_type": "iteration_completed",
+                        "iteration": e.iteration,
+                        "score": e.score,
+                        "total_cost_usd": e.total_cost_usd,
+                        "input_tokens": e.input_tokens,
+                        "output_tokens": e.output_tokens,
+                    }),
+                    _ => serde_json::json!({
+                        "execution_id": event.execution_id,
+                        "event_type": "other",
+                    }),
+                };
+                let _ = writeln!(writer, "{}", json_line);
+            }
+        }
+
+        // Store in history with bounded size
+        {
+            let mut history = self.event_history.write();
+            if history.len() >= MAX_EVENT_HISTORY {
+                history.pop_front();
+            }
+            history.push_back(event.clone());
+        }
 
         // Broadcast to subscribers (ignore errors if no receivers)
         let _ = self.event_tx.send(event);
@@ -806,6 +1076,17 @@ impl ExecutionHandle {
         info!(execution_id = %self.inner.id, force = force, "Stopping execution");
         *self.inner.state.write() = ExecutionState::Cancelled;
         *self.inner.termination_reason.write() = Some("Stopped by user".to_string());
+        // Kill the child process via stored PID
+        #[cfg(unix)]
+        if let Some(pid) = *self.inner.process_pid.read() {
+            let signal = if force { libc::SIGKILL } else { libc::SIGTERM };
+            // Safety: sending a signal to a known PID is safe
+            let ret = unsafe { libc::kill(pid as i32, signal) };
+            if ret != 0 {
+                let err = std::io::Error::last_os_error();
+                warn!(execution_id = %self.inner.id, pid = pid, error = %err, "Failed to kill child process");
+            }
+        }
     }
 
     pub async fn pause(&self) {
@@ -835,10 +1116,21 @@ impl ExecutionHandle {
                 seconds: dt.timestamp(),
                 nanos: dt.timestamp_subsec_nanos() as i32,
             }),
+            total_cost_usd: *self.inner.total_cost_usd.read(),
+            total_input_tokens: *self.inner.total_input_tokens.read() as i64,
+            total_output_tokens: *self.inner.total_output_tokens.read() as i64,
         }
     }
 
     pub fn to_summary(&self) -> ExecutionSummary {
+        let duration = {
+            let ended = self.inner.ended_at.read();
+            match *ended {
+                Some(end) => (end - self.inner.started_at).num_milliseconds() as f32 / 1000.0,
+                None => (Utc::now() - self.inner.started_at).num_milliseconds() as f32 / 1000.0,
+            }
+        };
+
         ExecutionSummary {
             execution_id: self.inner.id.clone(),
             task: self.inner.task.clone(),
@@ -849,6 +1141,46 @@ impl ExecutionHandle {
                 seconds: self.inner.started_at.timestamp(),
                 nanos: self.inner.started_at.timestamp_subsec_nanos() as i32,
             }),
+            total_cost_usd: *self.inner.total_cost_usd.read(),
+            duration_seconds: duration,
+            evidence: Some(self.inner.evidence.read().clone()),
+        }
+    }
+
+    pub fn get_detail(&self) -> GetExecutionDetailResponse {
+        let status = self.get_status_sync();
+        let events = self.inner.event_history.read().iter().cloned().collect();
+        let run_instructions = self.inner.run_instructions.read().clone();
+
+        GetExecutionDetailResponse {
+            status: Some(status),
+            events,
+            run_instructions,
+        }
+    }
+
+    fn get_status_sync(&self) -> ExecutionStatus {
+        ExecutionStatus {
+            execution_id: self.inner.id.clone(),
+            task: self.inner.task.clone(),
+            state: *self.inner.state.read() as i32,
+            current_iteration: *self.inner.current_iteration.read(),
+            max_iterations: self.inner.config.max_iterations,
+            current_score: *self.inner.current_score.read(),
+            quality_threshold: self.inner.config.quality_threshold,
+            termination_reason: self.inner.termination_reason.read().clone().unwrap_or_default(),
+            evidence: Some(self.inner.evidence.read().clone()),
+            started_at: Some(Timestamp {
+                seconds: self.inner.started_at.timestamp(),
+                nanos: self.inner.started_at.timestamp_subsec_nanos() as i32,
+            }),
+            ended_at: self.inner.ended_at.read().map(|dt| Timestamp {
+                seconds: dt.timestamp(),
+                nanos: dt.timestamp_subsec_nanos() as i32,
+            }),
+            total_cost_usd: *self.inner.total_cost_usd.read(),
+            total_input_tokens: *self.inner.total_input_tokens.read() as i64,
+            total_output_tokens: *self.inner.total_output_tokens.read() as i64,
         }
     }
 
@@ -857,6 +1189,190 @@ impl ExecutionHandle {
     }
 
     pub fn get_event_history(&self) -> Vec<AgentEvent> {
-        self.inner.event_history.read().clone()
+        self.inner.event_history.read().iter().cloned().collect()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // -- truncate_str tests --
+
+    #[test]
+    fn test_truncate_str_short() {
+        assert_eq!(truncate_str("hello", 10), "hello");
+    }
+
+    #[test]
+    fn test_truncate_str_exact() {
+        assert_eq!(truncate_str("hello", 5), "hello");
+    }
+
+    #[test]
+    fn test_truncate_str_long() {
+        let result = truncate_str("hello world", 5);
+        assert_eq!(result, "hello…");
+    }
+
+    #[test]
+    fn test_truncate_str_unicode() {
+        // "café" is 4 chars; truncating at 3 should give "caf…"
+        let result = truncate_str("caf\u{00e9}", 3);
+        assert_eq!(result, "caf…");
+        // Emoji: "hi🎉bye" — 7 chars, truncate at 4 should give "hi🎉b…"
+        let result = truncate_str("hi\u{1f389}bye", 4);
+        assert_eq!(result, "hi\u{1f389}b…");
+    }
+
+    // -- pytest parsing tests --
+
+    #[test]
+    fn test_parse_pytest_basic() {
+        let output = "====== 5 passed in 1.23s ======";
+        let result = ExecutionInner::parse_pytest_summary(output);
+        assert_eq!(result, Some(("pytest".to_string(), 5, 0, 0)));
+    }
+
+    #[test]
+    fn test_parse_pytest_with_failures() {
+        let output = "====== 3 passed, 2 failed in 4.56s ======";
+        let result = ExecutionInner::parse_pytest_summary(output);
+        assert_eq!(result, Some(("pytest".to_string(), 3, 2, 0)));
+    }
+
+    #[test]
+    fn test_parse_pytest_with_skipped() {
+        let output = "====== 10 passed, 1 failed, 3 skipped in 2.00s ======";
+        let result = ExecutionInner::parse_pytest_summary(output);
+        assert_eq!(result, Some(("pytest".to_string(), 10, 1, 3)));
+    }
+
+    #[test]
+    fn test_parse_pytest_deselected() {
+        let output = "====== 8 passed, 2 deselected in 0.50s ======";
+        let result = ExecutionInner::parse_pytest_summary(output);
+        assert_eq!(result, Some(("pytest".to_string(), 8, 0, 2)));
+    }
+
+    #[test]
+    fn test_parse_pytest_no_match() {
+        let output = "some random output with no test results";
+        assert_eq!(ExecutionInner::parse_pytest_summary(output), None);
+    }
+
+    #[test]
+    fn test_parse_pytest_does_not_match_test_names() {
+        // A test named "test_something_passed" should not trigger a false positive
+        let output = "FAILED test_something_passed - AssertionError";
+        assert_eq!(ExecutionInner::parse_pytest_summary(output), None);
+    }
+
+    // -- cargo test parsing tests --
+
+    #[test]
+    fn test_parse_cargo_basic() {
+        let output = "test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out";
+        let result = ExecutionInner::parse_cargo_test_summary(output);
+        assert_eq!(result, Some(("cargo".to_string(), 10, 0, 0)));
+    }
+
+    #[test]
+    fn test_parse_cargo_with_failures() {
+        let output = "test result: FAILED. 8 passed; 2 failed; 1 ignored; 0 measured";
+        let result = ExecutionInner::parse_cargo_test_summary(output);
+        assert_eq!(result, Some(("cargo".to_string(), 8, 2, 1)));
+    }
+
+    #[test]
+    fn test_parse_cargo_no_match() {
+        let output = "running 5 tests";
+        assert_eq!(ExecutionInner::parse_cargo_test_summary(output), None);
+    }
+
+    // -- heuristic score tests --
+
+    fn make_inner_with_evidence(evidence: EvidenceSummary) -> Arc<ExecutionInner> {
+        let (tx, _) = broadcast::channel(16);
+        Arc::new(ExecutionInner {
+            id: "test-id".to_string(),
+            task: "test task".to_string(),
+            project_root: "/tmp".to_string(),
+            config: ExecutionConfig {
+                max_iterations: 3,
+                quality_threshold: 70.0,
+                model: "sonnet".to_string(),
+                timeout_seconds: 300.0,
+                pal_review_enabled: false,
+                min_improvement: 5.0,
+            },
+            state: RwLock::new(ExecutionState::Pending),
+            current_iteration: RwLock::new(0),
+            current_score: RwLock::new(0.0),
+            started_at: Utc::now(),
+            ended_at: RwLock::new(None),
+            termination_reason: RwLock::new(None),
+            evidence: RwLock::new(evidence),
+            total_cost_usd: RwLock::new(0.0),
+            total_input_tokens: RwLock::new(0),
+            total_output_tokens: RwLock::new(0),
+            pending_tool_uses: RwLock::new(HashMap::new()),
+            run_instructions: RwLock::new(None),
+            jsonl_writer: RwLock::new(None),
+            event_tx: tx,
+            event_history: RwLock::new(VecDeque::new()),
+            process_pid: RwLock::new(None),
+            _metrics_watcher: RwLock::new(None),
+        })
+    }
+
+    #[test]
+    fn test_heuristic_score_no_evidence() {
+        let inner = make_inner_with_evidence(EvidenceSummary::default());
+        assert_eq!(inner.compute_heuristic_score(), 0.0);
+    }
+
+    #[test]
+    fn test_heuristic_score_files_only() {
+        let inner = make_inner_with_evidence(EvidenceSummary {
+            files_written: vec!["a.rs".to_string(), "b.rs".to_string()],
+            ..Default::default()
+        });
+        // 30 base + 2*5 = 40
+        assert_eq!(inner.compute_heuristic_score(), 40.0);
+    }
+
+    #[test]
+    fn test_heuristic_score_full() {
+        let inner = make_inner_with_evidence(EvidenceSummary {
+            files_written: vec!["a.rs".to_string()],
+            files_edited: vec!["b.rs".to_string()],
+            commands_run: 3,
+            tests_run: true,
+            tests_passed: 5,
+            tests_failed: 0,
+            ..Default::default()
+        });
+        // files: 30 + 2*5 = 40, tests: 10+10=20, commands: 3*2=6, completion: 20
+        assert_eq!(inner.compute_heuristic_score(), 86.0);
+    }
+
+    #[test]
+    fn test_heuristic_score_capped_at_100() {
+        let inner = make_inner_with_evidence(EvidenceSummary {
+            files_written: vec![
+                "a".into(), "b".into(), "c".into(), "d".into(), "e".into(),
+            ],
+            files_edited: vec![
+                "f".into(), "g".into(), "h".into(), "i".into(), "j".into(),
+            ],
+            commands_run: 20,
+            tests_run: true,
+            tests_passed: 50,
+            tests_failed: 0,
+            ..Default::default()
+        });
+        // files: 30 + min(10*5,20)=50, tests: 20, cmds: min(40,10)=10, completion: 20 → 100 capped
+        assert_eq!(inner.compute_heuristic_score(), 100.0);
     }
 }

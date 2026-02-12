@@ -25,6 +25,9 @@ service SuperClaudeService {
   rpc ListObsidianNotes(ListObsidianNotesRequest) returns (ListObsidianNotesResponse);
   rpc GetObsidianNote(GetObsidianNoteRequest) returns (GetObsidianNoteResponse);
 
+  // Execution detail
+  rpc GetExecutionDetail(GetExecutionDetailRequest) returns (GetExecutionDetailResponse);
+
   // Health check
   rpc Ping(PingRequest) returns (PingResponse);
 }
@@ -70,6 +73,10 @@ message IterationCompleted {
   QualityDimensions dimensions = 4;
   float duration_seconds = 5;
   string node_id = 6;
+  double total_cost_usd = 7;
+  int64 input_tokens = 8;
+  int64 output_tokens = 9;
+  int32 num_turns = 10;
 }
 
 message ToolInvoked {
@@ -80,6 +87,9 @@ message ToolInvoked {
   int32 depth = 5;
   string node_id = 6;
   string parent_node_id = 7;
+  string tool_input = 8;
+  string tool_output = 9;
+  string tool_use_id = 10;
 }
 
 message FileChanged {
@@ -170,6 +180,21 @@ message QualityDimensions {
   float tests_pass = 3;
   float coverage = 4;
   float no_errors = 5;
+  repeated ScoreDimension breakdown = 6;
+}
+
+message ScoreDimension {
+  string name = 1;
+  float score = 2;
+  float max_score = 3;
+  string description = 4;
+}
+
+message RunInstructions {
+  string build_command = 1;
+  string run_command = 2;
+  repeated string artifacts = 3;
+  string notes = 4;
 }
 
 // ============================================================================
@@ -275,6 +300,9 @@ message ExecutionSummary {
   int32 current_iteration = 4;
   float current_score = 5;
   google.protobuf.Timestamp started_at = 6;
+  double total_cost_usd = 7;
+  float duration_seconds = 8;
+  EvidenceSummary evidence = 9;
 }
 
 message ExecutionStatus {
@@ -289,6 +317,9 @@ message ExecutionStatus {
   EvidenceSummary evidence = 9;
   google.protobuf.Timestamp started_at = 10;
   google.protobuf.Timestamp ended_at = 11;
+  double total_cost_usd = 12;
+  int64 total_input_tokens = 13;
+  int64 total_output_tokens = 14;
 }
 
 enum ExecutionState {
@@ -314,6 +345,16 @@ message EvidenceSummary {
 message StreamEventsRequest {
   string execution_id = 1;
   bool include_history = 2;  // Send past events first
+}
+
+message GetExecutionDetailRequest {
+  string execution_id = 1;
+}
+
+message GetExecutionDetailResponse {
+  ExecutionStatus status = 1;
+  repeated AgentEvent events = 2;
+  RunInstructions run_instructions = 3;
 }
 
 // ============================================================================

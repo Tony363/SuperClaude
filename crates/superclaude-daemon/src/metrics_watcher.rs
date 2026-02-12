@@ -175,6 +175,10 @@ fn parse_metrics_event(line: &str, execution_id: &str) -> Option<AgentEvent> {
                 dimensions: parse_dimensions(&value),
                 duration_seconds: value.get("duration").and_then(|v| v.as_f64()).unwrap_or(0.0) as f32,
                 node_id: format!("iter-{}", iteration),
+                total_cost_usd: value.get("total_cost_usd").and_then(|v| v.as_f64()).unwrap_or(0.0),
+                input_tokens: value.get("input_tokens").and_then(|v| v.as_i64()).unwrap_or(0),
+                output_tokens: value.get("output_tokens").and_then(|v| v.as_i64()).unwrap_or(0),
+                num_turns: value.get("num_turns").and_then(|v| v.as_i64()).unwrap_or(0) as i32,
             }))
         }
 
@@ -189,6 +193,9 @@ fn parse_metrics_event(line: &str, execution_id: &str) -> Option<AgentEvent> {
                 depth: value.get("depth").and_then(|v| v.as_i64()).unwrap_or(1) as i32,
                 node_id: value.get("id").and_then(|v| v.as_str()).unwrap_or(&uuid::Uuid::new_v4().to_string()).to_string(),
                 parent_node_id: value.get("parent_id").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+                tool_input: value.get("tool_input").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+                tool_output: value.get("tool_output").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+                tool_use_id: value.get("tool_use_id").and_then(|v| v.as_str()).unwrap_or("").to_string(),
             }))
         }
 
@@ -316,6 +323,7 @@ fn parse_dimensions(value: &serde_json::Value) -> Option<QualityDimensions> {
         tests_pass: dims.get("tests_pass").and_then(|v| v.as_f64()).unwrap_or(0.0) as f32,
         coverage: dims.get("coverage").and_then(|v| v.as_f64()).unwrap_or(0.0) as f32,
         no_errors: dims.get("no_errors").and_then(|v| v.as_f64()).unwrap_or(0.0) as f32,
+        breakdown: vec![],
     })
 }
 

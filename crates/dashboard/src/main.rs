@@ -47,6 +47,7 @@ fn main() {
             commands::execution::resume_execution,
             commands::execution::list_executions,
             commands::execution::subscribe_events,
+            commands::execution::get_execution_detail,
             commands::metrics::get_historical_events,
             commands::metrics::get_historical_metrics,
             commands::metrics::get_execution_events,

@@ -36,6 +36,9 @@ which = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 
+# Parsing
+regex = { workspace = true }
+
 # Utilities
 anyhow = { workspace = true }
 thiserror = { workspace = true }

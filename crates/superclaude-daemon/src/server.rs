@@ -322,6 +322,27 @@ impl SuperClaudeServiceTrait for SuperClaudeService {
     }
 
     // =========================================================================
+    // Execution Detail
+    // =========================================================================
+
+    async fn get_execution_detail(
+        &self,
+        request: Request<GetExecutionDetailRequest>,
+    ) -> Result<Response<GetExecutionDetailResponse>, Status> {
+        let req = request.into_inner();
+        info!(execution_id = %req.execution_id, "GetExecutionDetail");
+
+        if let Some(handle) = self.executions.get(&req.execution_id) {
+            Ok(Response::new(handle.get_detail()))
+        } else {
+            Err(Status::not_found(format!(
+                "Execution {} not found",
+                req.execution_id
+            )))
+        }
+    }
+
+    // =========================================================================
     // Health Check
     // =========================================================================
 
