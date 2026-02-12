@@ -13,15 +13,11 @@ Key components:
 
 Safety guarantees:
 - HARD_MAX_ITERATIONS = 5 (cannot be overridden)
-- Oscillation detection (prevents infinite back-and-forth)
-- Stagnation detection (stops when no progress)
-- Minimum improvement threshold (stops if < 5 point gain)
 """
 
 from .loop_orchestrator import LoopOrchestrator
 from .pal_integration import PALReviewSignal
 from .quality_assessment import QualityAssessor
-from .termination import detect_oscillation, detect_stagnation
 from .types import (
     IterationResult,
     LoopConfig,
@@ -37,9 +33,6 @@ __all__ = [
     "LoopResult",
     "IterationResult",
     "QualityAssessment",
-    # Functions
-    "detect_oscillation",
-    "detect_stagnation",
     # Classes
     "QualityAssessor",
     "PALReviewSignal",

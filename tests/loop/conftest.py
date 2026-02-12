@@ -115,27 +115,9 @@ def fixture_assessor_quality_met():
 
 
 @pytest.fixture
-def fixture_assessor_oscillating():
-    """Assessor with oscillating scores (up/down pattern)."""
-    return FixtureAssessor(scores=[50.0, 60.0, 52.0, 63.0, 55.0])
-
-
-@pytest.fixture
-def fixture_assessor_stagnating():
-    """Assessor with stagnating scores (plateau)."""
-    return FixtureAssessor(scores=[65.0, 65.5, 65.2, 65.3, 65.1])
-
-
-@pytest.fixture
 def fixture_assessor_improving():
     """Assessor with steadily improving scores."""
     return FixtureAssessor(scores=[50.0, 60.0, 70.0, 80.0])
-
-
-@pytest.fixture
-def fixture_assessor_insufficient_improvement():
-    """Assessor with improvement below threshold."""
-    return FixtureAssessor(scores=[50.0, 52.0, 54.0])  # Only +2 per iteration
 
 
 @pytest.fixture
@@ -161,26 +143,6 @@ def loop_config_default():
 
 
 @pytest.fixture
-def loop_config_strict():
-    """Strict loop configuration with high thresholds."""
-    return LoopConfig(
-        max_iterations=3,
-        quality_threshold=80.0,
-        min_improvement=10.0,
-    )
-
-
-@pytest.fixture
-def loop_config_lenient():
-    """Lenient loop configuration with low thresholds."""
-    return LoopConfig(
-        max_iterations=5,
-        quality_threshold=50.0,
-        min_improvement=2.0,
-    )
-
-
-@pytest.fixture
 def loop_config_with_timeout():
     """Loop configuration with short timeout for testing."""
     return LoopConfig(
@@ -188,18 +150,6 @@ def loop_config_with_timeout():
         quality_threshold=95.0,
         timeout_seconds=0.1,
     )
-
-
-@pytest.fixture
-def oscillating_scenario():
-    """Load oscillating scores scenario."""
-    return load_fixture_scenario("oscillating_scores")
-
-
-@pytest.fixture
-def stagnating_scenario():
-    """Load stagnating scores scenario."""
-    return load_fixture_scenario("stagnating_scores")
 
 
 @pytest.fixture

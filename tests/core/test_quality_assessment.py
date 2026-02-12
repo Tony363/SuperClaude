@@ -206,3 +206,311 @@ class TestAssessQualityFunction:
         """assess_quality should accept custom threshold."""
         result = assess_quality({"changes": ["file.py"]}, threshold=50.0)
         assert result.threshold == 50.0
+
+
+class TestToQualityAssessment:
+    """Tests for QualityAssessor._to_quality_assessment() conversion."""
+
+    def test_maps_score(self):
+        """Should map 'score' from result to overall_score."""
+        assessor = QualityAssessor(threshold=70.0)
+        qa = assessor._to_quality_assessment({"score": 82.5, "passed": True})
+        assert qa.overall_score == 82.5
+
+    def test_maps_passed(self):
+        """Should map 'passed' from result."""
+        assessor = QualityAssessor(threshold=70.0)
+        qa = assessor._to_quality_assessment({"score": 50.0, "passed": False})
+        assert qa.passed is False
+
+    def test_maps_missing_to_improvements(self):
+        """Should map 'missing' list to improvements_needed."""
+        assessor = QualityAssessor()
+        qa = assessor._to_quality_assessment(
+            {
+                "score": 50.0,
+                "passed": False,
+                "missing": ["No tests", "No lint"],
+            }
+        )
+        assert qa.improvements_needed == ["No tests", "No lint"]
+
+    def test_maps_evidence_summary_to_metrics(self):
+        """Should map 'evidence_summary' to metrics."""
+        assessor = QualityAssessor()
+        qa = assessor._to_quality_assessment(
+            {
+                "score": 75.0,
+                "passed": True,
+                "evidence_summary": {"tests_ran": True, "lint_ran": True},
+            }
+        )
+        assert qa.metrics == {"tests_ran": True, "lint_ran": True}
+
+    def test_maps_status_to_band(self):
+        """Should map 'status' to band."""
+        assessor = QualityAssessor()
+        qa = assessor._to_quality_assessment(
+            {
+                "score": 95.0,
+                "passed": True,
+                "status": "production_ready",
+            }
+        )
+        assert qa.band == "production_ready"
+
+    def test_stores_full_result_as_metadata(self):
+        """Full result dict should be stored as metadata."""
+        assessor = QualityAssessor()
+        result = {"score": 80.0, "passed": True, "extra": "data"}
+        qa = assessor._to_quality_assessment(result)
+        assert qa.metadata == result
+
+    def test_uses_configured_threshold(self):
+        """Should use the assessor's threshold, not the result's."""
+        assessor = QualityAssessor(threshold=85.0)
+        qa = assessor._to_quality_assessment({"score": 80.0, "passed": False})
+        assert qa.threshold == 85.0
+
+    def test_defaults_for_missing_fields(self):
+        """Should handle result dict with missing optional fields."""
+        assessor = QualityAssessor()
+        qa = assessor._to_quality_assessment({})
+        assert qa.overall_score == 0.0
+        assert qa.passed is False
+        assert qa.improvements_needed == []
+        assert qa.metrics == {}
+        assert qa.band == "unknown"
+
+
+class TestInlineScoringEdgeCases:
+    """Edge case tests for inline scoring logic."""
+
+    def test_zero_total_tests_no_passing_points(self):
+        """Zero total tests should not award passing points."""
+        assessor = QualityAssessor()
+        result = assessor._inline_score(
+            {
+                "tests": {"ran": True, "passed": 0, "failed": 0},
+            }
+        )
+        # 25 (ran) but no passing bonus
+        assert result["score"] == 25.0
+
+    def test_tests_below_90_percent_no_partial_points(self):
+        """Below 90% passing should not award partial points."""
+        assessor = QualityAssessor()
+        result = assessor._inline_score(
+            {
+                "tests": {"ran": True, "passed": 5, "failed": 5},
+            }
+        )
+        # 25 (ran) + 0 (50% pass rate < 90%)
+        assert result["score"] == 25.0
+
+    def test_missing_evidence_items(self):
+        """Missing evidence should accumulate missing items."""
+        assessor = QualityAssessor()
+        result = assessor._inline_score({})
+        assert "No file changes detected" in result["missing"]
+        assert "Tests not executed" in result["missing"]
+
+    def test_coverage_zero_no_points(self):
+        """Zero coverage should not add points."""
+        assessor = QualityAssessor()
+        result = assessor._inline_score(
+            {
+                "tests": {"ran": True, "coverage": 0},
+            }
+        )
+        # 25 (ran) + 0 (zero coverage)
+        assert result["score"] == 25.0
+
+    def test_threshold_50_passes(self):
+        """Custom threshold of 50 should pass at 55."""
+        assessor = QualityAssessor(threshold=50.0)
+        result = assessor._inline_score(
+            {
+                "changes": ["f.py"],
+                "tests": {"ran": True},
+            }
+        )
+        # 30 + 25 = 55 >= 50
+        assert result["passed"] is True
+
+    def test_lint_not_ran_no_points(self):
+        """Lint not ran should not add points."""
+        assessor = QualityAssessor()
+        result = assessor._inline_score({"lint": {"ran": False}})
+        assert result["score"] == 0.0
+
+
+class TestQualityAssessorEvidenceGate:
+    """Tests for evidence_gate interaction."""
+
+    def test_evidence_gate_path_none_uses_inline(self):
+        """When evidence_gate not found, should use inline scoring."""
+        assessor = QualityAssessor()
+        assessor.evidence_gate_path = None
+        result = assessor.assess({"changes": ["file.py"]})
+        assert result.overall_score == 30.0  # Inline: 30 for changes
+
+    def test_assess_with_full_context(self):
+        """Assess with full evidence should use inline scorer."""
+        assessor = QualityAssessor(threshold=50.0)
+        assessor.evidence_gate_path = None
+        result = assessor.assess(
+            {
+                "changes": ["f.py"],
+                "tests": {"ran": True, "passed": 10, "failed": 0, "coverage": 85},
+                "lint": {"ran": True, "errors": 0},
+            }
+        )
+        # 30 + 25 + 20 + 15 + 10 = 100
+        assert result.overall_score == 100.0
+        assert result.passed is True
+        assert result.band == "production_ready"
+
+
+class TestInvokeEvidenceGate:
+    """Tests for QualityAssessor._invoke_evidence_gate() error paths."""
+
+    def test_successful_subprocess(self):
+        """Should parse stdout JSON on success."""
+        from unittest.mock import MagicMock, patch
+
+        assessor = QualityAssessor()
+        assessor.evidence_gate_path = "/fake/path.py"
+
+        mock_result = MagicMock()
+        mock_result.stdout = '{"score": 85.0, "passed": true, "status": "acceptable"}'
+        mock_result.stderr = ""
+
+        with patch("subprocess.run", return_value=mock_result):
+            result = assessor._invoke_evidence_gate({"changes": ["f.py"]})
+
+        assert result["score"] == 85.0
+        assert result["passed"] is True
+
+    def test_empty_stdout_returns_error(self):
+        """Empty stdout should return error dict."""
+        from unittest.mock import MagicMock, patch
+
+        assessor = QualityAssessor()
+        assessor.evidence_gate_path = "/fake/path.py"
+
+        mock_result = MagicMock()
+        mock_result.stdout = ""
+        mock_result.stderr = "something went wrong"
+
+        with patch("subprocess.run", return_value=mock_result):
+            result = assessor._invoke_evidence_gate({})
+
+        assert result["passed"] is False
+        assert result["score"] == 0.0
+        assert result["status"] == "error"
+        assert "evidence_gate error:" in result["missing"][0]
+
+    def test_timeout_returns_timeout_dict(self):
+        """Subprocess timeout should return timeout error."""
+        import subprocess
+        from unittest.mock import patch
+
+        assessor = QualityAssessor()
+        assessor.evidence_gate_path = "/fake/path.py"
+
+        with patch("subprocess.run", side_effect=subprocess.TimeoutExpired("cmd", 30)):
+            result = assessor._invoke_evidence_gate({})
+
+        assert result["passed"] is False
+        assert result["status"] == "timeout"
+        assert "timed out" in result["missing"][0]
+
+    def test_generic_exception_returns_error(self):
+        """Generic exception should return error dict."""
+        from unittest.mock import patch
+
+        assessor = QualityAssessor()
+        assessor.evidence_gate_path = "/fake/path.py"
+
+        with patch("subprocess.run", side_effect=OSError("Permission denied")):
+            result = assessor._invoke_evidence_gate({})
+
+        assert result["passed"] is False
+        assert result["status"] == "error"
+        assert "Permission denied" in result["missing"][0]
+
+    def test_invalid_json_stdout_returns_error(self):
+        """Invalid JSON in stdout should return error."""
+        from unittest.mock import MagicMock, patch
+
+        assessor = QualityAssessor()
+        assessor.evidence_gate_path = "/fake/path.py"
+
+        mock_result = MagicMock()
+        mock_result.stdout = "not valid json"
+        mock_result.stderr = ""
+
+        with patch("subprocess.run", return_value=mock_result):
+            result = assessor._invoke_evidence_gate({})
+
+        # json.loads will raise, caught by generic except
+        assert result["passed"] is False
+        assert result["status"] == "error"
+
+
+class TestFindEvidenceGate:
+    """Tests for QualityAssessor._find_evidence_gate() path discovery."""
+
+    def test_returns_none_when_not_found(self):
+        """Should return None when evidence_gate.py not found."""
+        from pathlib import Path
+        from unittest.mock import patch
+
+        with patch.object(Path, "exists", return_value=False):
+            assessor = QualityAssessor()
+
+        # The assessor's path may or may not be None depending on filesystem
+        # But if we mock exists to always return False, it should be None
+        # Re-call the method directly for a clean test
+        with patch.object(Path, "exists", return_value=False):
+            result = assessor._find_evidence_gate()
+        assert result is None
+
+    def test_assess_uses_evidence_gate_when_available(self):
+        """Should use evidence_gate when path exists."""
+        from pathlib import Path
+        from unittest.mock import MagicMock, patch
+
+        assessor = QualityAssessor()
+        assessor.evidence_gate_path = Path("/fake/evidence_gate.py")
+
+        mock_result = MagicMock()
+        mock_result.stdout = '{"score": 90.0, "passed": true, "status": "production_ready"}'
+        mock_result.stderr = ""
+
+        with patch("subprocess.run", return_value=mock_result):
+            result = assessor.assess({"changes": ["f.py"]})
+
+        assert result.overall_score == 90.0
+
+
+class TestAssessContextMapping:
+    """Tests for how assess() maps context to evidence format."""
+
+    def test_maps_command_key(self):
+        """Should map 'command' from context."""
+        assessor = QualityAssessor()
+        assessor.evidence_gate_path = None
+        # When using inline scoring, the command key doesn't affect score
+        # but should not cause errors
+        result = assessor.assess({"command": "test", "changes": ["f.py"]})
+        assert result.overall_score == 30.0
+
+    def test_handles_missing_keys(self):
+        """Should handle context with no relevant keys."""
+        assessor = QualityAssessor()
+        assessor.evidence_gate_path = None
+        result = assessor.assess({})
+        assert result.overall_score == 0.0
+        assert result.passed is False

@@ -361,3 +361,170 @@ class TestErrorScoring:
         assessment = assess_quality(evidence)
 
         assert assessment.dimension_scores["no_errors"] < 100.0
+
+    def test_test_errors_zero_error_score(self):
+        """Test that test errors result in zero error score."""
+        evidence = EvidenceCollector()
+        evidence.record_file_write("test.py")
+        evidence.record_command(
+            "pytest tests/",
+            "3 passed, 1 error in 1.0s",
+        )
+
+        assessment = assess_quality(evidence)
+
+        assert assessment.dimension_scores["no_errors"] == 0.0
+
+
+class TestQualityBoundaryConditions:
+    """Boundary condition tests for quality scoring."""
+
+    def test_score_exactly_at_threshold(self):
+        """Score exactly at threshold should pass."""
+        assessment = QualityAssessment.from_score(70.0)
+        assert assessment.passed is True
+
+    def test_score_just_below_threshold(self):
+        """Score just below threshold should not pass."""
+        assessment = QualityAssessment.from_score(69.9)
+        assert assessment.passed is False
+
+    def test_band_boundary_90(self):
+        """Score of exactly 90 should be excellent."""
+        assessment = QualityAssessment.from_score(90.0)
+        assert assessment.band == QualityBand.EXCELLENT
+
+    def test_band_boundary_89(self):
+        """Score of 89.9 should be good."""
+        assessment = QualityAssessment.from_score(89.9)
+        assert assessment.band == QualityBand.GOOD
+
+    def test_band_boundary_70(self):
+        """Score of exactly 70 should be good."""
+        assessment = QualityAssessment.from_score(70.0)
+        assert assessment.band == QualityBand.GOOD
+
+    def test_band_boundary_69(self):
+        """Score of 69.9 should be acceptable."""
+        assessment = QualityAssessment.from_score(69.9)
+        assert assessment.band == QualityBand.ACCEPTABLE
+
+    def test_band_boundary_50(self):
+        """Score of exactly 50 should be acceptable."""
+        assessment = QualityAssessment.from_score(50.0)
+        assert assessment.band == QualityBand.ACCEPTABLE
+
+    def test_band_boundary_49(self):
+        """Score of 49.9 should be needs_work."""
+        assessment = QualityAssessment.from_score(49.9)
+        assert assessment.band == QualityBand.NEEDS_WORK
+
+    def test_band_boundary_30(self):
+        """Score of exactly 30 should be needs_work."""
+        assessment = QualityAssessment.from_score(30.0)
+        assert assessment.band == QualityBand.NEEDS_WORK
+
+    def test_band_boundary_29(self):
+        """Score of 29.9 should be poor."""
+        assessment = QualityAssessment.from_score(29.9)
+        assert assessment.band == QualityBand.POOR
+
+    def test_score_zero(self):
+        """Score of 0 should be poor."""
+        assessment = QualityAssessment.from_score(0.0)
+        assert assessment.band == QualityBand.POOR
+        assert assessment.passed is False
+
+    def test_score_100(self):
+        """Score of 100 should be excellent."""
+        assessment = QualityAssessment.from_score(100.0)
+        assert assessment.band == QualityBand.EXCELLENT
+        assert assessment.passed is True
+
+
+class TestCompareAssessmentsEdgeCases:
+    """Edge case tests for compare_assessments."""
+
+    def test_same_score(self):
+        """Same score should be stagnant, not improved or regressed."""
+        prev = QualityAssessment.from_score(70.0)
+        curr = QualityAssessment.from_score(70.0)
+
+        comparison = compare_assessments(curr, prev)
+
+        assert comparison["improved"] is False
+        assert comparison["regressed"] is False
+        assert comparison["stagnant"] is True
+        assert comparison["score_delta"] == 0.0
+
+    def test_tiny_improvement_still_stagnant(self):
+        """Improvement of less than 2.0 should still count as stagnant."""
+        prev = QualityAssessment.from_score(70.0)
+        curr = QualityAssessment.from_score(71.5)
+
+        comparison = compare_assessments(curr, prev)
+
+        assert comparison["improved"] is True  # Delta > 0
+        assert comparison["stagnant"] is True  # Delta < 2.0
+
+    def test_improvement_of_exactly_2(self):
+        """Delta of exactly 2.0 should not be stagnant."""
+        prev = QualityAssessment.from_score(70.0)
+        curr = QualityAssessment.from_score(72.0)
+
+        comparison = compare_assessments(curr, prev)
+
+        assert comparison["stagnant"] is False
+
+    def test_large_regression(self):
+        """Large score drop should be regression."""
+        prev = QualityAssessment.from_score(90.0)
+        curr = QualityAssessment.from_score(30.0)
+
+        comparison = compare_assessments(curr, prev)
+
+        assert comparison["regressed"] is True
+        assert comparison["score_delta"] == -60.0
+        assert comparison["band_changed"] is True
+
+
+class TestQualityDimensionInteractions:
+    """Tests for how quality dimensions interact."""
+
+    def test_read_only_no_code_change_points(self, empty_evidence):
+        """Only reading files should not give code change points."""
+        empty_evidence.record_file_read("a.py")
+        empty_evidence.record_file_read("b.py")
+
+        assessment = assess_quality(empty_evidence)
+
+        assert assessment.dimension_scores["code_changes"] == 0.0
+
+    def test_tests_pass_neutral_when_no_tests(self, empty_evidence):
+        """Tests pass dimension should be neutral (50) when no tests run."""
+        assessment = assess_quality(empty_evidence)
+        assert assessment.dimension_scores["tests_pass"] == 50.0
+
+    def test_coverage_neutral_when_no_tests(self, empty_evidence):
+        """Coverage dimension should be neutral (50) when no tests run."""
+        assessment = assess_quality(empty_evidence)
+        assert assessment.dimension_scores["coverage"] == 50.0
+
+    def test_full_score_all_dimensions(self):
+        """All dimensions at max should produce score near 100."""
+        evidence = EvidenceCollector()
+        # 3+ files for code_changes=100
+        evidence.record_file_write("a.py", lines_changed=50)
+        evidence.record_file_write("b.py", lines_changed=50)
+        evidence.record_file_edit("c.py", lines_changed=10)
+        # All tests pass
+        evidence.record_command(
+            "pytest --cov=src",
+            "50 passed\nCoverage: 95%",
+        )
+
+        assessment = assess_quality(evidence)
+
+        assert assessment.score >= 95.0
+        assert assessment.passed is True
+        assert assessment.band == QualityBand.EXCELLENT

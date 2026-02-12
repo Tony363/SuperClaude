@@ -10,8 +10,6 @@ from SuperClaude.Orchestrator.loop_runner import (
     LoopResult,
     TerminationReason,
     _build_iteration_prompt,
-    _is_oscillating,
-    _is_stagnating,
 )
 
 
@@ -122,14 +120,6 @@ class TestTerminationReason:
     def test_max_iterations_value(self):
         """Test MAX_ITERATIONS value."""
         assert TerminationReason.MAX_ITERATIONS.value == "max_iterations_reached"
-
-    def test_oscillation_value(self):
-        """Test OSCILLATION value."""
-        assert TerminationReason.OSCILLATION.value == "oscillation_detected"
-
-    def test_stagnation_value(self):
-        """Test STAGNATION value."""
-        assert TerminationReason.STAGNATION.value == "stagnation_detected"
 
 
 class TestBuildIterationPrompt:
@@ -242,57 +232,6 @@ class TestBuildIterationPrompt:
         assert "2 failed" in prompt
 
 
-class TestIsOscillating:
-    """Tests for _is_oscillating function."""
-
-    def test_not_oscillating_with_few_scores(self):
-        """Test returns False with < 3 scores."""
-        assert _is_oscillating([50.0, 60.0]) is False
-
-    def test_not_oscillating_steady_increase(self):
-        """Test returns False with steady increase."""
-        scores = [50.0, 60.0, 70.0, 80.0]
-        assert _is_oscillating(scores) is False
-
-    def test_oscillating_up_down_up(self):
-        """Test detects up/down/up pattern."""
-        scores = [50.0, 70.0, 50.0, 70.0]  # Clearly oscillating
-        assert _is_oscillating(scores) is True
-
-    def test_oscillating_down_up_down(self):
-        """Test detects down/up/down pattern."""
-        scores = [70.0, 50.0, 70.0, 50.0]
-        assert _is_oscillating(scores) is True
-
-    def test_not_oscillating_small_changes(self):
-        """Test ignores small oscillations below threshold."""
-        scores = [50.0, 52.0, 50.0]  # Changes < 5.0 threshold
-        assert _is_oscillating(scores, threshold=5.0) is False
-
-
-class TestIsStagnating:
-    """Tests for _is_stagnating function."""
-
-    def test_not_stagnating_with_single_score(self):
-        """Test returns False with single score."""
-        assert _is_stagnating([50.0], 2.0, 5.0) is False
-
-    def test_stagnating_no_improvement(self):
-        """Test detects no improvement."""
-        scores = [50.0, 50.5]  # Less than min_improvement of 5.0
-        assert _is_stagnating(scores, 2.0, 5.0) is True
-
-    def test_stagnating_negative_change(self):
-        """Test detects regression as stagnation."""
-        scores = [60.0, 55.0]  # Went down
-        assert _is_stagnating(scores, 2.0, 5.0) is True
-
-    def test_not_stagnating_good_improvement(self):
-        """Test returns False with good improvement."""
-        scores = [50.0, 60.0]  # +10 improvement
-        assert _is_stagnating(scores, 2.0, 5.0) is False
-
-
 class TestRunAgenticLoopMocked:
     """Tests for run_agentic_loop with mocked SDK.
 
@@ -364,14 +303,141 @@ class TestTerminationConditions:
         # This is tested via integration tests with mocked SDK
         pass
 
-    def test_oscillation_detection(self):
-        """Document: Oscillation detected terminates loop."""
-        # Example: scores [50, 70, 50] = oscillation
-        scores = [50.0, 70.0, 50.0]
-        assert _is_oscillating(scores) is True
 
-    def test_stagnation_detection(self):
-        """Document: Stagnation detected terminates loop."""
-        # Example: scores [50, 51] with min_improvement=5 = stagnation
-        scores = [50.0, 51.0]
-        assert _is_stagnating(scores, 2.0, 5.0) is True
+class TestTerminationReasonValues:
+    """Tests for all TerminationReason enum values."""
+
+    def test_timeout_value(self):
+        """Test TIMEOUT value."""
+        assert TerminationReason.TIMEOUT.value == "timeout_exceeded"
+
+    def test_user_cancelled_value(self):
+        """Test USER_CANCELLED value."""
+        assert TerminationReason.USER_CANCELLED.value == "user_cancelled"
+
+    def test_error_value(self):
+        """Test ERROR value."""
+        assert TerminationReason.ERROR.value == "error"
+
+    def test_enum_count(self):
+        """Should have exactly 5 termination reasons."""
+        assert len(TerminationReason) == 5
+
+    def test_all_reasons_have_string_values(self):
+        """All termination reasons should have non-empty string values."""
+        for reason in TerminationReason:
+            assert isinstance(reason.value, str)
+            assert len(reason.value) > 0
+
+
+class TestLoopConfigDefaults:
+    """Tests for LoopConfig default values not covered above."""
+
+    def test_timeout_defaults_none(self):
+        """timeout_seconds should default to None."""
+        config = LoopConfig()
+        assert config.timeout_seconds is None
+
+    def test_iteration_timeout_default(self):
+        """iteration_timeout_seconds should default to 300."""
+        config = LoopConfig()
+        assert config.iteration_timeout_seconds == 300.0
+
+    def test_max_turns_default(self):
+        """max_turns should default to 50."""
+        config = LoopConfig()
+        assert config.max_turns == 50
+
+    def test_pal_disabled_by_default(self):
+        """PAL should be disabled by default in Orchestrator runner."""
+        config = LoopConfig()
+        assert config.pal_review_enabled is False
+
+
+class TestBuildIterationPromptEdgeCases:
+    """Edge case tests for _build_iteration_prompt."""
+
+    def test_no_improvements_no_crash(self):
+        """Prompt with no improvements should still work."""
+        history = [
+            IterationResult(
+                iteration=0,
+                score=60.0,
+                improvements=[],
+                evidence={},
+                duration_seconds=10.0,
+                messages_count=10,
+            )
+        ]
+
+        prompt = _build_iteration_prompt(
+            task="Task",
+            iteration=1,
+            history=history,
+        )
+
+        assert "Task" in prompt
+        assert "60.0/100" in prompt
+        # Should NOT contain "Prioritize" since no improvements
+        assert "Prioritize" not in prompt
+
+    def test_no_test_evidence_no_test_status(self):
+        """Prompt without tests_run should not show test status."""
+        history = [
+            IterationResult(
+                iteration=0,
+                score=50.0,
+                improvements=["Fix it"],
+                evidence={},
+                duration_seconds=5.0,
+                messages_count=5,
+            )
+        ]
+
+        prompt = _build_iteration_prompt(
+            task="Task",
+            iteration=1,
+            history=history,
+        )
+
+        assert "passed" not in prompt
+        assert "failed" not in prompt
+
+    def test_iteration_0_with_empty_history(self):
+        """First iteration with empty history should just return task."""
+        prompt = _build_iteration_prompt(
+            task="My task",
+            iteration=0,
+            history=[],
+        )
+        assert prompt == "My task"
+
+    def test_iteration_gt0_with_empty_history_just_returns_task(self):
+        """Later iteration with empty history should just return task."""
+        prompt = _build_iteration_prompt(
+            task="My task",
+            iteration=2,
+            history=[],
+        )
+        # iteration > 0 but history is empty, so the if branch is False
+        assert prompt == "My task"
+
+
+class TestLoopResultProperties:
+    """Tests for LoopResult computed properties."""
+
+    def test_passed_with_each_termination_reason(self):
+        """Only QUALITY_MET should result in passed=True."""
+        for reason in TerminationReason:
+            result = LoopResult(
+                status="success" if reason == TerminationReason.QUALITY_MET else "terminated",
+                reason=reason,
+                final_score=80.0,
+                total_iterations=1,
+                iteration_history=[],
+                total_duration_seconds=1.0,
+            )
+            if reason == TerminationReason.QUALITY_MET:
+                assert result.passed is True
+            else:
+                assert result.passed is False

@@ -181,32 +181,6 @@ class TestPALDebugResponseParsing:
         relevant_files = data.get("relevant_files", [])
         assert isinstance(relevant_files, list)
 
-    def test_generate_debug_signal_for_oscillation(self):
-        """Should generate correct debug signal for oscillation."""
-        signal = PALReviewSignal.generate_debug_signal(
-            iteration=3,
-            termination_reason="oscillation",
-            score_history=[50.0, 60.0, 52.0, 61.0],
-        )
-
-        assert signal["action_required"] is True
-        assert signal["tool"] == "mcp__pal__debug"
-        assert signal["iteration"] == 3
-        assert "oscillation" in signal["instruction"]
-        assert signal["context"]["termination_reason"] == "oscillation"
-
-    def test_generate_debug_signal_for_stagnation(self):
-        """Should generate correct debug signal for stagnation."""
-        signal = PALReviewSignal.generate_debug_signal(
-            iteration=4,
-            termination_reason="stagnation",
-            score_history=[65.0, 65.5, 65.2, 65.3],
-        )
-
-        assert signal["tool"] == "mcp__pal__debug"
-        assert signal["context"]["termination_reason"] == "stagnation"
-        assert signal["context"]["score_history"] == [65.0, 65.5, 65.2, 65.3]
-
 
 class TestPALReviewSignalGeneration:
     """Tests for PAL review signal generation and structure."""
