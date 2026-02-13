@@ -7,7 +7,7 @@ members = [
     "crates/superclaude-runtime",
     "crates/dashboard",
     "crates/snake-game",
-    "crates/hangman-game",
+    "crates/hangman-game", "tic-tac-toe", "snake-terminal",
     # "crates/dashboard/frontend",  # Temporarily disabled - has missing dependency
 ]
 
