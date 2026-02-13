@@ -451,17 +451,21 @@ impl ExecutionInner {
             *self.termination_reason.write() = Some("Execution completed successfully".to_string());
         } else {
             *self.state.write() = ExecutionState::Failed;
-            let stderr_lines = stderr_buffer.read().join("\n");
-            let reason = if stderr_lines.is_empty() {
-                format!("Process exited with code: {:?}", exit_status.code())
-            } else {
-                format!(
-                    "Process exited with code: {:?}. stderr: {}",
-                    exit_status.code(),
-                    truncate_str(&stderr_lines, 500)
-                )
-            };
-            *self.termination_reason.write() = Some(reason);
+            // Only set termination_reason if handle_result_event() didn't already
+            // populate it with the actual error text from stream-json output.
+            if self.termination_reason.read().is_none() {
+                let stderr_lines = stderr_buffer.read().join("\n");
+                let reason = if stderr_lines.is_empty() {
+                    format!("Process exited with code: {:?}", exit_status.code())
+                } else {
+                    format!(
+                        "Process exited with code: {:?}. stderr: {}",
+                        exit_status.code(),
+                        truncate_str(&stderr_lines, 500)
+                    )
+                };
+                *self.termination_reason.write() = Some(reason);
+            }
         }
 
         // Flush JSONL writer
@@ -961,6 +965,13 @@ impl ExecutionInner {
         // Try to extract run instructions from result text
         let result_text = event.result.as_deref().unwrap_or("");
         self.try_extract_run_instructions(result_text);
+
+        // If the result is an error, propagate the actual error text into
+        // termination_reason so the dashboard shows the real message instead of
+        // a generic "Process exited with code: Some(1)".
+        if is_error && !result_text.is_empty() {
+            *self.termination_reason.write() = Some(truncate_str(result_text, 500));
+        }
 
         // Log the result summary (raised limit to 2000 chars)
         let truncated = truncate_str(result_text, 2000);
