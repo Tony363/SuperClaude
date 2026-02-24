@@ -2,6 +2,7 @@
 
 ## Docs
 
+- [Claude Code Reference](claude-code-reference.md) — Comprehensive CLI, settings, hooks, MCP, skills, subagents, and IDE reference.
 - [Dashboard Guide](dashboard.md) — Using the SuperClaude Tauri dashboard.
 - [Quality Gates](quality-gates.md) — Validator thresholds and scoring rules.
 
