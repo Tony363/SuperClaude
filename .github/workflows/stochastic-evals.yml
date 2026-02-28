@@ -238,31 +238,43 @@ jobs:
           echo "=== Running evaluation for $AGENT (run ${{ matrix.run }}) ==="
           echo "Agent file: $AGENT_FILE"
 
-          # Build the prompt
-          PROMPT="First, read and adopt the persona from: ${AGENT_FILE}
+          # Build the prompt - include the agent persona inline to avoid tool-use dependency
+          AGENT_CONTENT=$(cat "$AGENT_FILE" 2>/dev/null || echo "You are an expert $AGENT.")
 
-          Then complete this task with your full expertise:
-          ${{ steps.config.outputs.prompt }}
+          PROMPT="You are adopting the following persona:
 
-          You have full tool access. Demonstrate your capabilities thoroughly."
+          ${AGENT_CONTENT}
+
+          Complete this task with your full expertise. Respond directly with your analysis and code:
+          ${{ steps.config.outputs.prompt }}"
 
           # Run Claude Code CLI in headless mode
-          # Using timeout to prevent runaway executions
+          # Separate stderr to prevent JSON corruption
           timeout 600 claude -p "$PROMPT" \
-            --allowedTools "Bash,Read,Write,Edit" \
+            --allowedTools Bash Read Write Edit \
             --output-format json \
             --max-turns 10 \
-            > result.json 2>&1 || true
+            > result.json 2>claude_stderr.log || true
 
-          # Check if we got a result
-          if [[ -f result.json ]] && [[ -s result.json ]]; then
+          # Log stderr for debugging
+          if [[ -s claude_stderr.log ]]; then
+            echo "=== Claude CLI stderr ==="
+            cat claude_stderr.log
+          fi
+
+          # Check if we got a valid result
+          if [[ -f result.json ]] && [[ -s result.json ]] && jq empty result.json 2>/dev/null; then
             echo "result_file=result.json" >> $GITHUB_OUTPUT
             RESULT_LENGTH=$(wc -c < result.json)
             echo "result_length=$RESULT_LENGTH" >> $GITHUB_OUTPUT
             echo "=== Got result: $RESULT_LENGTH bytes ==="
           else
-            echo "=== No result file or empty result ==="
-            echo '{"error": "No response from Claude Code CLI"}' > result.json
+            echo "=== No valid JSON result ==="
+            if [[ -f result.json ]]; then
+              echo "=== Raw output ==="
+              head -5 result.json
+            fi
+            echo '{"error": "No valid response from Claude Code CLI"}' > result.json
             echo "result_file=result.json" >> $GITHUB_OUTPUT
             echo "result_length=0" >> $GITHUB_OUTPUT
           fi
@@ -385,27 +397,28 @@ jobs:
 
           echo "=== Computing pass rates (threshold: $THRESHOLD) ==="
 
-          # Run the pass rate calculator
+          # Generate JSON results first (used for output and pass/fail)
           python scripts/compute_pass_rates.py \
             --input artifacts/ \
             --threshold "$THRESHOLD" \
-            --format console
+            --format json > results.json || true
+
+          # Set output before any step can fail
+          ALL_PASSED=$(jq -r '.all_passed' results.json 2>/dev/null || echo "false")
+          echo "all_passed=$ALL_PASSED" >> $GITHUB_OUTPUT
+
+          # Print console summary (informational, ignore exit code)
+          python scripts/compute_pass_rates.py \
+            --input artifacts/ \
+            --threshold "$THRESHOLD" \
+            --format console || true
 
           # Generate markdown report for GitHub summary
           python scripts/compute_pass_rates.py \
             --input artifacts/ \
             --threshold "$THRESHOLD" \
             --format markdown \
-            --output "$GITHUB_STEP_SUMMARY"
-
-          # Get exit code for overall pass/fail
-          python scripts/compute_pass_rates.py \
-            --input artifacts/ \
-            --threshold "$THRESHOLD" \
-            --format json > results.json
-
-          ALL_PASSED=$(jq -r '.all_passed' results.json)
-          echo "all_passed=$ALL_PASSED" >> $GITHUB_OUTPUT
+            --output "$GITHUB_STEP_SUMMARY" || true
 
       - name: Upload aggregated results
         uses: actions/upload-artifact@v4
