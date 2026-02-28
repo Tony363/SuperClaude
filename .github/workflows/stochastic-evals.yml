@@ -48,10 +48,32 @@ env:
 
 jobs:
   # ============================================================
+  # Preflight: Verify API key is available before spawning matrix
+  # ============================================================
+  preflight:
+    name: Preflight Check
+    runs-on: ubuntu-latest
+    outputs:
+      has_api_key: ${{ steps.check.outputs.has_api_key }}
+    steps:
+      - name: Check for ANTHROPIC_API_KEY
+        id: check
+        run: |
+          if [[ -n "${{ secrets.ANTHROPIC_API_KEY }}" ]]; then
+            echo "has_api_key=true" >> $GITHUB_OUTPUT
+            echo "ANTHROPIC_API_KEY is configured"
+          else
+            echo "has_api_key=false" >> $GITHUB_OUTPUT
+            echo "::warning::ANTHROPIC_API_KEY secret is not set. Skipping stochastic evals."
+          fi
+
+  # ============================================================
   # Setup: Determine which agents to test and run configuration
   # ============================================================
   setup:
     name: Setup Test Matrix
+    needs: preflight
+    if: needs.preflight.outputs.has_api_key == 'true'
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
@@ -204,10 +226,12 @@ jobs:
           AGENT="${{ matrix.agent }}"
           if [[ -f "agents/core/${AGENT}.md" ]]; then
             AGENT_FILE="agents/core/${AGENT}.md"
-          elif [[ -f "agents/extended/${AGENT}.md" ]]; then
-            AGENT_FILE="agents/extended/${AGENT}.md"
+          elif [[ -f "agents/extensions/${AGENT}.md" ]]; then
+            AGENT_FILE="agents/extensions/${AGENT}.md"
+          elif [[ -f "agents/traits/${AGENT}.md" ]]; then
+            AGENT_FILE="agents/traits/${AGENT}.md"
           else
-            # Try without suffix for skill-style agents
+            echo "::warning::Agent file not found for ${AGENT}, using core path as fallback"
             AGENT_FILE="agents/core/${AGENT}.md"
           fi
 
@@ -333,8 +357,8 @@ jobs:
   # ============================================================
   compute-pass-rates:
     name: Compute Pass Rates
-    needs: [setup, agent-eval]
-    if: always() && needs.setup.result == 'success'
+    needs: [preflight, setup, agent-eval]
+    if: always() && needs.preflight.outputs.has_api_key == 'true' && needs.setup.result == 'success'
     runs-on: ubuntu-latest
     outputs:
       all_passed: ${{ steps.compute.outputs.all_passed }}
@@ -395,13 +419,17 @@ jobs:
   # ============================================================
   status:
     name: Final Status
-    needs: [compute-pass-rates]
+    needs: [preflight, compute-pass-rates]
     if: always()
     runs-on: ubuntu-latest
     steps:
       - name: Check results
         run: |
-          if [[ "${{ needs.compute-pass-rates.outputs.all_passed }}" == "true" ]]; then
+          if [[ "${{ needs.preflight.outputs.has_api_key }}" != "true" ]]; then
+            echo "Stochastic evals skipped: ANTHROPIC_API_KEY not configured"
+            echo "::notice::Set the ANTHROPIC_API_KEY repository secret to enable agent evaluations"
+            exit 0
+          elif [[ "${{ needs.compute-pass-rates.outputs.all_passed }}" == "true" ]]; then
             echo "All agents met their pass rate thresholds!"
             exit 0
           else
