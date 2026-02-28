@@ -38,14 +38,16 @@ agents:
     - python-expert
     - requirements-analyst
     - socratic-mentor
+    - fullstack-developer
+    - learning-guide
 
   # Extended agents (loaded on demand)
-  extended_path: SuperClaude/Agents/extended
+  extended_path: agents/extensions
 
 # Command system configuration
 commands:
   prefix: "/sc:"
-  discovery_path: SuperClaude/Commands
+  discovery_path: commands
   cache_ttl: 3600
   parallel_execution: true
 
@@ -247,7 +249,7 @@ triggers:
       - "authentication"
       - "authorization"
 
-    test-automator:
+    quality-engineer:
       - "TDD"
       - "test-driven"
       - "write tests first"

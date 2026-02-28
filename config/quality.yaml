@@ -1,5 +1,5 @@
 # SuperClaude Framework Quality Scoring Configuration
-# Version: 6.0.0
+# Version: 7.0.0
 #
 # NOTE: This configuration defines quality dimensions and thresholds as
 # guidelines. In pure prompts/config mode, these serve as semantic references
@@ -7,7 +7,7 @@
 
 dimensions:
   correctness:
-    weight: 0.23
+    weight: 0.25
     description: Code works as intended
     metrics:
       - passes_tests
@@ -15,7 +15,7 @@ dimensions:
       - expected_output
 
   completeness:
-    weight: 0.18
+    weight: 0.20
     description: All requirements addressed
     metrics:
       - feature_coverage
@@ -47,7 +47,7 @@ dimensions:
       - data_protection
 
   scalability:
-    weight: 0.09
+    weight: 0.10
     description: Growth capability
     metrics:
       - architectural_patterns
@@ -63,29 +63,12 @@ dimensions:
       - test_quality
 
   usability:
-    weight: 0.02
+    weight: 0.05
     description: User experience quality
     metrics:
       - ui_consistency
       - error_messages
       - accessibility
-
-  simplicity:
-    weight: 0.06
-    description: KISS principle compliance
-    metrics:
-      - cyclomatic_complexity
-      - function_length
-      - nesting_depth
-      - parameter_count
-
-  purity:
-    weight: 0.02
-    description: Pure function adherence in business logic
-    metrics:
-      - io_in_logic_functions
-      - global_state_mutations
-      - side_effects_in_core
 
 # Scoring Configuration
 scoring:

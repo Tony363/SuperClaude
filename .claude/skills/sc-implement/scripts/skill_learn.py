@@ -25,8 +25,8 @@ from pathlib import Path
 from typing import Any
 
 # Load skill_persistence directly to avoid core/__init__.py import issues
-SUPERCLAUD_ROOT = Path(__file__).parent.parent.parent.parent.parent
-SKILL_PERSISTENCE_PATH = SUPERCLAUD_ROOT / "core" / "skill_persistence.py"
+SUPERCLAUDE_ROOT = Path(__file__).parent.parent.parent.parent.parent
+SKILL_PERSISTENCE_PATH = SUPERCLAUDE_ROOT / "core" / "skill_persistence.py"
 
 spec = importlib.util.spec_from_file_location("skill_persistence", SKILL_PERSISTENCE_PATH)
 sp = importlib.util.module_from_spec(spec)

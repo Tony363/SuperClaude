@@ -285,7 +285,7 @@ def generate_workflows(
         loader=FileSystemLoader(str(templates_path)),
         trim_blocks=True,
         lstrip_blocks=True,
-        autoescape=True,
+        autoescape=False,
     )
 
     created = []

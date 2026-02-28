@@ -1,5 +1,5 @@
 # SuperClaude CI Pipeline
-# Fail-fast quality gates with matrix testing across Python 3.8-3.12
+# Fail-fast quality gates for Python 3.10+
 
 name: CI
 

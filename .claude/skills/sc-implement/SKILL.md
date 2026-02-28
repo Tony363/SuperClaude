@@ -241,7 +241,6 @@ Promoted skills are stored in:
 
 ## Resources
 
-- [PERSONAS.md](PERSONAS.md) - Available persona definitions
 - [scripts/select_agent.py](scripts/select_agent.py) - Agent selection logic
 - [scripts/evidence_gate.py](scripts/evidence_gate.py) - Evidence validation
 - [scripts/skill_learn.py](scripts/skill_learn.py) - Skill learning management

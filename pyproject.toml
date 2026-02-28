@@ -9,7 +9,7 @@ authors = [
     {name = "NomenAK", email = "anton.knoery@gmail.com"},
     {name = "Mithun Gowda B", email = "mithungowda.b7411@gmail.com"}
 ]
-description = "SuperClaude Framework - Config-first meta-framework for Claude Code with 33 specialized agent personas"
+description = "SuperClaude Framework - Config-first meta-framework for Claude Code with 35 specialized agent personas"
 readme = "README.md"
 license = {text = "MIT"}
 requires-python = ">=3.10"
@@ -22,11 +22,10 @@ classifiers = [
     "Environment :: Console",
 ]
 keywords = ["claude", "ai", "framework", "mcp", "agents", "prompts", "claude-code", "meta-framework"]
-# No required dependencies - config-first architecture
-# Use optional dependency groups for Python functionality:
-#   pip install .[runtime]  - Loop orchestration
-#   pip install .[full]     - All features
-dependencies = []
+# Core dependency - pyyaml is required by all validation scripts and agent selection
+dependencies = [
+    "pyyaml>=6.0",
+]
 
 [project.urls]
 Homepage = "https://github.com/SuperClaude-Org/SuperClaude_Framework"
@@ -41,18 +40,15 @@ GitHub = "https://github.com/SuperClaude-Org/SuperClaude_Framework"
 # Orchestrator dependencies for SDK-based agentic loop
 orchestrator = [
     "claude-agent-sdk>=0.1.0",  # Official Anthropic Agent SDK
-    "pyyaml>=6.0",
     "aiofiles>=23.0",
 ]
 # Runtime dependencies for loop orchestration
 runtime = [
-    "pyyaml>=6.0",
     "aiofiles>=23.0",
 ]
 # Full installation with all optional dependencies
 full = [
     "claude-agent-sdk>=0.1.0",  # Official Anthropic Agent SDK
-    "pyyaml>=6.0",
     "aiofiles>=23.0",
     "watchdog>=3.0",
     "gitpython>=3.1",
@@ -61,7 +57,6 @@ full = [
 ]
 # Development dependencies
 dev = [
-    "pyyaml>=6.0",
     "ruff>=0.1.0",
 ]
 # Test dependencies
@@ -69,7 +64,6 @@ test = [
     "pytest>=7.0",
     "pytest-cov>=4.0",
     "pytest-asyncio>=0.21.0",
-    "pyyaml>=6.0",
     "aiofiles>=23.0",
     "jsonschema>=4.0",
 ]

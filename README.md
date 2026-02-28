@@ -4,13 +4,13 @@
   <img src="https://img.shields.io/badge/version-7.0.0-blue" alt="Version">
   <img src="https://img.shields.io/badge/agents-35-orange" alt="Agents">
   <img src="https://img.shields.io/badge/skills-30-green" alt="Skills">
-  <img src="https://img.shields.io/badge/commands-14-purple" alt="Commands">
+  <img src="https://img.shields.io/badge/commands-16-purple" alt="Commands">
   <img src="https://img.shields.io/badge/modes-6-teal" alt="Modes">
   <img src="https://img.shields.io/badge/python_core-2800_lines-red" alt="Core">
   <img src="https://img.shields.io/badge/license-MIT-lightgrey" alt="License">
 </p>
 
-**A config-first meta-framework for Claude Code that provides 35 specialized agent personas (16 core + 12 traits + 7 extensions), 14 structured commands, 30 skills, and comprehensive MCP integration with quality-driven iterative workflows.**
+**A config-first meta-framework for Claude Code that provides 35 specialized agent personas (16 core + 12 traits + 7 extensions), 16 structured commands, 30 skills, and comprehensive MCP integration with quality-driven iterative workflows.**
 
 SuperClaude transforms Claude Code into a powerful development platform with specialized agent prompts, signal-based loop orchestration, and multi-model consensus capabilities. The core interface is markdown and YAML configuration files, with a Python orchestration layer for advanced workflows including quality gates, termination detection, and PAL MCP integration.
 
@@ -96,7 +96,7 @@ SuperClaude v7.0.0 is a **config-first hybrid framework**:
 
 ### Command System
 
-14 structured commands with consistent patterns:
+16 structured commands with consistent patterns:
 
 ```
 /sc:analyze    - Static analysis, security review, performance bottlenecks
@@ -113,6 +113,8 @@ SuperClaude v7.0.0 is a **config-first hybrid framework**:
 /sc:estimate   - Effort estimation and planning
 /sc:cicd-setup - CI/CD workflow and pre-commit generation
 /sc:readme     - Auto-update README.md from git diff with PAL consensus
+/sc:pr-fix     - Create PR and iteratively fix CI failures
+/sc:mcp        - MCP orchestration hub (PAL + Rube)
 ```
 
 ---
@@ -543,7 +545,7 @@ SuperClaude includes a native desktop dashboard for visualizing and controlling 
 
 ### Features
 
-- **Feature Inventory** - Browse all 35 agents, 14 commands, 30+ skills, and 6 behavioral modes
+- **Feature Inventory** - Browse all 35 agents, 16 commands, 30+ skills, and 6 behavioral modes
 - **Live Monitor** - Real-time execution tracking with event streaming, heartbeat indicator, and quality score visualization
 - **Execution Control** - Start, stop, pause, and resume executions with configurable parameters; expandable detail panel with 5 tabs (Run Instructions, Execution Log, Files Changed, Quality Breakdown, Execution Tree)
 - **Execution Tree** - Visual tree of iterations, tool calls, and subagent spawns built from streaming events
@@ -791,7 +793,8 @@ sequenceDiagram
 | workflow | pipeline, sequence | No | --spec, --parallel |
 | estimate | scope, size | No | --breakdown, --risks |
 | cicd-setup | cicd-init, pipeline-setup | No | --lang, --minimal, --full |
-| readme | readme-update | No | --dry-run, --commits |
+| readme | readme-sync, doc-sync | No | --base, --preview, --consensus |
+| pr-fix | prfix, cifix, fix-pr | Yes | --branch, --auto-fix, --max-fix-attempts |
 
 ---
 
@@ -1027,7 +1030,7 @@ flowchart TB
 Each skill follows a standard structure:
 
 ```
-.claude/skills/agent-python-pro/
+.claude/skills/agent-security-engineer/
 └── SKILL.md                 # AI-facing interface (what Claude reads)
 
 .claude/skills/sc-implement/
@@ -1059,8 +1062,8 @@ The `learned/` skill directory stores patterns extracted from successful executi
 
 Skills are invoked via:
 1. **Semantic selection** - Claude automatically selects based on task context
-2. **Direct reference** - `@agent-python-pro` or `/sc-implement`
-3. **Skill tool** - `Skill("agent-python-pro")` for explicit invocation
+2. **Direct reference** - `@agent-security-engineer` or `/sc-implement`
+3. **Skill tool** - `Skill("agent-security-engineer")` for explicit invocation
 
 ---
 
@@ -1906,7 +1909,7 @@ Contributions welcome! Key areas:
 
 - All tests pass before completion
 - >90% test coverage for new features
-- Python 3.8+ compatibility
+- Python 3.10+ compatibility
 - Cross-platform support (Linux, macOS, Windows)
 - Comprehensive error handling and logging
 - Security best practices for external integrations
