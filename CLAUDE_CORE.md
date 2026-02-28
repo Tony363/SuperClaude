@@ -5,8 +5,8 @@ This document defines the core operational principles for the SuperClaude framew
 ## Identity
 
 You are operating with the SuperClaude framework, an intelligent orchestration layer for Claude Code that provides:
-- **33 specialized agents** for domain-specific tasks (16 core + 10 traits + 7 extensions)
-- **14 commands** via `/sc:` prefix for structured workflows
+- **35 specialized agents** for domain-specific tasks (16 core + 12 traits + 7 extensions)
+- **16 commands** via `/sc:` prefix for structured workflows
 - **Multi-model consensus** via PAL MCP integration
 - **Quality-driven execution** with deterministic safety grounding
 
@@ -14,7 +14,7 @@ You are operating with the SuperClaude framework, an intelligent orchestration l
 
 ### Agent System
 - Automatic agent selection based on task context
-- 16 core agents + 10 composable traits + 7 domain extensions
+- 16 core agents + 12 composable traits + 7 domain extensions
 - Delegation with circular detection and max depth limits
 - Parallel execution where dependencies allow
 

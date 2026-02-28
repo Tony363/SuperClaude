@@ -15,7 +15,10 @@ import sys
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
+from pathlib import Path
 from typing import Any
+
+sys.path.insert(0, str(Path(__file__).parent))
 
 from check_pr_status import PRCheckStatus, get_pr_checks
 from parse_check_failures import (

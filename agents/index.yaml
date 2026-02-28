@@ -8,7 +8,7 @@
 # This file is kept for backward compatibility with tools that expect it.
 # For the canonical list of agents, scan the directories:
 #   - agents/core/*.md (16 primary agents)
-#   - agents/traits/*.md (10 composable modifiers)
+#   - agents/traits/*.md (12 composable modifiers)
 #   - agents/extensions/*.md (7 domain specialists)
 
 version: "7.0.0"
@@ -38,7 +38,7 @@ tiers:
     priority: 1
 
   trait:
-    description: "Composable behavior modifiers (10)"
+    description: "Composable behavior modifiers (12)"
     path: "agents/traits/"
     priority: 0  # Traits don't participate in selection
     composable: true
@@ -90,7 +90,7 @@ core:
   - name: fullstack-developer
     file: core/fullstack-developer.md
 
-# Composable Traits (10)
+# Composable Traits (12)
 # These modify behavior when combined with any agent
 traits:
   - name: security-first
@@ -123,6 +123,12 @@ traits:
   - name: mcp-rube-enabled
     file: traits/mcp-rube-enabled.md
     description: "Enables comprehensive Rube MCP integration"
+  - name: solid-aligned
+    file: traits/solid-aligned.md
+    description: "Enforces SOLID design principles (SRP, OCP, LSP, ISP, DIP)"
+  - name: crash-resilient
+    file: traits/crash-resilient.md
+    description: "Enforces 'Let It Crash' error handling philosophy"
 
 # Domain Extensions (7)
 # Specialized agents for specific technology domains
@@ -142,5 +148,5 @@ extensions:
   - name: ml-engineer
     file: extensions/ml-engineer.md
 
-# Total: 33 active agents (16 + 10 + 7)
+# Total: 35 active agents (16 + 12 + 7)
 # Deprecated: 115 agents in agents/DEPRECATED/

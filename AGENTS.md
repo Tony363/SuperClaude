@@ -20,8 +20,7 @@
 - **Log every potentially mutating command in your reasoning** so it’s clear why it is safe and allowed.
 
 ### 📅 Current Context
-- **Current Time**: October 2025
-- **Note**: Claude doesn't have real-time clock access but is aware we're in October 2025
+- **Note**: Claude does not have real-time clock access; the current date is injected via system context
 
 ### Web Search Instructions - CRITICAL
 

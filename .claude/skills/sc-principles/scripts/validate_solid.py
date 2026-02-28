@@ -423,24 +423,33 @@ def find_python_files(scope_root: Path, changed_only: bool = True) -> list[Path]
     if changed_only:
         try:
             result = subprocess.run(
-                ["git", "diff", "--name-only", "HEAD"],
+                ["git", "diff", "--name-only", "--cached", "HEAD"],
                 capture_output=True,
                 text=True,
                 cwd=scope_root,
-                check=False,
+                timeout=30,
             )
-            staged = subprocess.run(
-                ["git", "diff", "--cached", "--name-only"],
+            staged = result.stdout.strip().split("\n") if result.stdout.strip() else []
+
+            result = subprocess.run(
+                ["git", "diff", "--name-only"],
                 capture_output=True,
                 text=True,
                 cwd=scope_root,
-                check=False,
+                timeout=30,
             )
+            unstaged = result.stdout.strip().split("\n") if result.stdout.strip() else []
 
-            all_files = set(result.stdout.strip().split("\n"))
-            all_files.update(staged.stdout.strip().split("\n"))
-            all_files.discard("")
+            result = subprocess.run(
+                ["git", "ls-files", "--others", "--exclude-standard"],
+                capture_output=True,
+                text=True,
+                cwd=scope_root,
+                timeout=30,
+            )
+            untracked = result.stdout.strip().split("\n") if result.stdout.strip() else []
 
+            all_files = set(staged + unstaged + untracked)
             py_files = [
                 scope_root / f for f in all_files if f.endswith(".py") and (scope_root / f).exists()
             ]

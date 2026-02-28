@@ -1,5 +1,5 @@
 # SuperClaude Framework MCP Configuration
-# Version: 6.0.0
+# Version: 7.0.0
 #
 # NOTE: MCP servers are now accessed via Claude Code's native tool system.
 # This file is kept for reference only - no custom wrapper configuration needed.
@@ -9,7 +9,7 @@
 # Rube MCP (mcp__rube__*):
 #   - RUBE_SEARCH_TOOLS: Discover available tools and integrations
 #   - RUBE_MULTI_EXECUTE_TOOL: Execute tools in parallel
-#   - RUBE_CREATE_PLAN: Create execution plans for workflows
+#   - RUBE_GET_RECIPE_DETAILS: Get details of saved recipes
 #   - RUBE_MANAGE_CONNECTIONS: Manage app connections
 #   - RUBE_REMOTE_WORKBENCH: Execute Python in remote sandbox
 #   - RUBE_REMOTE_BASH_TOOL: Execute bash in remote sandbox

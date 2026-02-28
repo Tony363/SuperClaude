@@ -1,5 +1,5 @@
 # SuperClaude Framework Model Configuration
-# Version: 6.0.0
+# Version: 7.0.0
 #
 # NOTE: This configuration defines model capabilities and routing for reference.
 # In pure prompts/config mode, Claude Code's native model handling is used,

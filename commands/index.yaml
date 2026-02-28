@@ -1,10 +1,10 @@
 # SuperClaude Command Registry
-# Version: 6.0.0
+# Version: 7.0.0
 #
 # Commands are invoked via /sc:<command> prefix in Claude Code.
 # Each command is a structured workflow template.
 
-version: "6.0.0"
+version: "7.0.0"
 description: "SuperClaude command templates for structured workflows"
 
 # Command prefix configuration

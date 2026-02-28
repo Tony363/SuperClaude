@@ -87,7 +87,7 @@ Review types: full, security, performance, quick
 | Tool | Invocation | Purpose |
 |------|------------|---------|
 | `SEARCH_TOOLS` | `mcp__rube__RUBE_SEARCH_TOOLS` | Discover available integrations |
-| `CREATE_PLAN` | `mcp__rube__RUBE_CREATE_PLAN` | Generate execution plans |
+| `GET_RECIPE_DETAILS` | `mcp__rube__RUBE_GET_RECIPE_DETAILS` | Get details of saved recipes |
 | `MULTI_EXECUTE` | `mcp__rube__RUBE_MULTI_EXECUTE_TOOL` | Parallel tool execution |
 | `REMOTE_BASH` | `mcp__rube__RUBE_REMOTE_BASH_TOOL` | Remote shell commands |
 | `REMOTE_WORKBENCH` | `mcp__rube__RUBE_REMOTE_WORKBENCH` | Python sandbox execution |
@@ -163,7 +163,7 @@ Review types: full, security, performance, quick
 ```
 1. PAL planner - Create implementation plan
 2. PAL consensus - Validate approach with multiple models
-3. Rube CREATE_PLAN - Generate execution plan
+3. Rube MULTI_EXECUTE - Execute across apps
 4. Rube MULTI_EXECUTE - Execute across apps
 5. Rube CREATE_RECIPE - Save as reusable workflow
 ```

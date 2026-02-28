@@ -181,7 +181,7 @@ Reference/          # Best practices and troubleshooting
 - Add examples and usage documentation
 
 **Technical Standards:**
-- Python 3.8+ compatibility
+- Python 3.10+ compatibility
 - Cross-platform support (Linux, macOS, Windows)
 - Comprehensive error handling and logging
 - Performance optimization for large projects
