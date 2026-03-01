@@ -8,6 +8,8 @@
   <img src="https://img.shields.io/badge/modes-6-teal" alt="Modes">
   <img src="https://img.shields.io/badge/python_core-2800_lines-red" alt="Core">
   <img src="https://img.shields.io/badge/license-MIT-lightgrey" alt="License">
+  <a href="https://sonarcloud.io/summary/new_code?id=tony363_superclaude"><img src="https://sonarcloud.io/api/project_badges/measure?project=tony363_superclaude&metric=alert_status" alt="Quality Gate"></a>
+  <a href="https://sonarcloud.io/summary/new_code?id=tony363_superclaude"><img src="https://sonarcloud.io/api/project_badges/measure?project=tony363_superclaude&metric=coverage" alt="Coverage"></a>
 </p>
 
 **A config-first meta-framework for Claude Code that provides 35 specialized agent personas (16 core + 12 traits + 7 extensions), 16 structured commands, 30 skills, and comprehensive MCP integration with quality-driven iterative workflows.**
