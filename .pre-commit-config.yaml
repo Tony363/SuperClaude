@@ -38,6 +38,13 @@ repos:
       - id: debug-statements
       - id: check-toml
 
+  # SonarSource secret detection
+  - repo: https://github.com/SonarSource/sonar-secrets-pre-commit
+    rev: v2.38.0.10279
+    hooks:
+      - id: sonar-secrets
+        stages: [pre-commit]
+
   # Security scanning with Bandit
   - repo: https://github.com/PyCQA/bandit
     rev: 1.7.10

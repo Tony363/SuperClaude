@@ -46,6 +46,11 @@ coverage.xml
 .hypothesis/
 .pytest_cache/
 
+# SonarCloud / CI-generated reports
+ruff-report.json
+bandit-report.json
+.scannerwork/
+
 # Virtual environments
 venv/
 env/

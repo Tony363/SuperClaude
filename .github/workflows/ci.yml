@@ -11,6 +11,7 @@ on:
 
 permissions:
   contents: read
+  pull-requests: read
 
 jobs:
   # ============================================
@@ -530,12 +531,88 @@ jobs:
         continue-on-error: true
 
   # ============================================
+  # SonarCloud Analysis
+  # ============================================
+  sonarcloud:
+    name: SonarCloud Analysis
+    runs-on: ubuntu-latest
+    needs: [quality, test]
+    if: github.actor != 'dependabot[bot]'
+    permissions:
+      contents: read
+      pull-requests: read
+    env:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+    steps:
+      - name: Check for SonarCloud token
+        id: check-token
+        run: |
+          if [ -z "$SONAR_TOKEN" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::SONAR_TOKEN not configured — skipping SonarCloud analysis"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@v4
+        if: steps.check-token.outputs.skip != 'true'
+        with:
+          fetch-depth: 0
+
+      - name: Download coverage report
+        if: steps.check-token.outputs.skip != 'true'
+        uses: actions/download-artifact@v4
+        with:
+          name: coverage-report
+
+      - name: Set up Python
+        if: steps.check-token.outputs.skip != 'true'
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Generate Ruff report
+        if: steps.check-token.outputs.skip != 'true'
+        run: |
+          pip install ruff
+          ruff check . --output-format json > ruff-report.json || true
+
+      - name: Generate Bandit report
+        if: steps.check-token.outputs.skip != 'true'
+        run: |
+          pip install "bandit[toml]"
+          bandit -c pyproject.toml -r SuperClaude/ -f json -o bandit-report.json || true
+
+      - name: SonarCloud Scan
+        if: steps.check-token.outputs.skip != 'true'
+        uses: SonarSource/sonarqube-scan-action@v6
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_HOST_URL: https://sonarcloud.io
+        with:
+          args: >
+            ${{ github.event_name == 'pull_request' && format(
+              '-Dsonar.pullrequest.key={0} -Dsonar.pullrequest.branch={1} -Dsonar.pullrequest.base={2}',
+              github.event.pull_request.number,
+              github.head_ref,
+              github.base_ref
+            ) || '' }}
+
+      - name: SonarCloud Quality Gate
+        if: steps.check-token.outputs.skip != 'true' && success()
+        uses: SonarSource/sonarqube-quality-gate-action@v1
+        timeout-minutes: 5
+        env:
+          SONAR_HOST_URL: https://sonarcloud.io
+
+  # ============================================
   # CI Summary - Aggregate status
   # ============================================
   ci-status:
     name: CI Status
     if: always()
-    needs: [quality, test, coverage-gate, build, artifact-install]
+    needs: [quality, test, coverage-gate, build, artifact-install, sonarcloud]
     runs-on: ubuntu-latest
     steps:
       - name: Check CI status
@@ -548,4 +625,15 @@ jobs:
             echo "CI failed"
             exit 1
           fi
+
+          # SonarCloud status (non-blocking in ci-status; quality gate action
+          # blocks the sonarcloud job itself when the project is configured)
+          if [ "${{ needs.sonarcloud.result }}" == "failure" ]; then
+            echo "::warning::SonarCloud analysis failed (check project configuration)"
+          elif [ "${{ needs.sonarcloud.result }}" == "success" ]; then
+            echo "SonarCloud quality gate passed"
+          elif [ "${{ needs.sonarcloud.result }}" == "skipped" ]; then
+            echo "SonarCloud skipped (dependabot or missing token)"
+          fi
+
           echo "CI passed"
