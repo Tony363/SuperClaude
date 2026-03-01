@@ -41,17 +41,20 @@ Specialized personas mapped to agent prompts:
 - agent-security-engineer
 - agent-technical-writer
 
-### Command Skills (22)
+### Command Skills (27)
 
 Workflow implementations for `/sc:` commands:
 - sc-analyze
 - sc-brainstorm
 - sc-build
 - sc-cicd-setup
+- sc-code-review
 - sc-design
 - sc-document
 - sc-e2e
+- sc-eda
 - sc-estimate
+- sc-evaluate
 - sc-explain
 - sc-git
 - sc-implement
@@ -61,7 +64,9 @@ Workflow implementations for `/sc:` commands:
 - sc-pr-check
 - sc-pr-fix
 - sc-principles
+- sc-push
 - sc-readme
+- sc-research
 - sc-tdd
 - sc-test
 - sc-workflow
