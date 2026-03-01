@@ -40,7 +40,7 @@ When this trait is applied, the agent will:
 ## Composition
 
 This trait can be combined with any core agent. Example:
-- `backend-architect + legacy-friendly` = API evolution without breakage
+- `software-architect + legacy-friendly` = API evolution without breakage
 - `refactoring-expert + legacy-friendly` = Safe modernization
 
 ## Output Format

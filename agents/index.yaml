@@ -7,9 +7,9 @@
 #
 # This file is kept for backward compatibility with tools that expect it.
 # For the canonical list of agents, scan the directories:
-#   - agents/core/*.md (16 primary agents)
+#   - agents/core/*.md (11 primary agents)
 #   - agents/traits/*.md (12 composable modifiers)
-#   - agents/extensions/*.md (7 domain specialists)
+#   - agents/extensions/*.md (8 domain specialists)
 
 version: "7.0.0"
 description: "SuperClaude tiered agent architecture"
@@ -33,7 +33,7 @@ selection:
 # Tier Definitions
 tiers:
   core:
-    description: "Primary agents for common tasks (16)"
+    description: "Primary agents for common tasks (11)"
     path: "agents/core/"
     priority: 1
 
@@ -44,7 +44,7 @@ tiers:
     composable: true
 
   extension:
-    description: "Domain-specific specialists (7)"
+    description: "Domain-specific specialists (8)"
     path: "agents/extensions/"
     priority: 2
 
@@ -54,7 +54,7 @@ tiers:
     priority: 99
     active: false
 
-# Core Agents (16)
+# Core Agents (11)
 # These are loaded from agents/core/*.md
 core:
   - name: general-purpose
@@ -67,28 +67,18 @@ core:
     file: core/technical-writer.md
   - name: performance-engineer
     file: core/performance-engineer.md
-  - name: system-architect
-    file: core/system-architect.md
-  - name: backend-architect
-    file: core/backend-architect.md
-  - name: frontend-architect
-    file: core/frontend-architect.md
-  - name: python-expert
-    file: core/python-expert.md
+  - name: software-architect
+    file: core/software-architect.md
   - name: security-engineer
     file: core/security-engineer.md
   - name: devops-architect
     file: core/devops-architect.md
   - name: quality-engineer
     file: core/quality-engineer.md
-  - name: requirements-analyst
-    file: core/requirements-analyst.md
-  - name: learning-guide
-    file: core/learning-guide.md
-  - name: socratic-mentor
-    file: core/socratic-mentor.md
   - name: fullstack-developer
     file: core/fullstack-developer.md
+  - name: educator
+    file: core/educator.md
 
 # Composable Traits (12)
 # These modify behavior when combined with any agent
@@ -130,7 +120,7 @@ traits:
     file: traits/crash-resilient.md
     description: "Enforces 'Let It Crash' error handling philosophy"
 
-# Domain Extensions (7)
+# Domain Extensions (8)
 # Specialized agents for specific technology domains
 extensions:
   - name: typescript-expert
@@ -147,6 +137,8 @@ extensions:
     file: extensions/data-engineer.md
   - name: ml-engineer
     file: extensions/ml-engineer.md
+  - name: python-expert
+    file: extensions/python-expert.md
 
-# Total: 35 active agents (16 + 12 + 7)
-# Deprecated: 115 agents in agents/DEPRECATED/
+# Total: 31 active agents (11 + 12 + 8)
+# Deprecated: 121 agents in agents/DEPRECATED/

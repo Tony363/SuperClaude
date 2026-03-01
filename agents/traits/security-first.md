@@ -37,7 +37,7 @@ When this trait is applied, the agent will:
 
 This trait can be combined with any core agent. Example:
 - `python-expert + security-first` = Security-focused Python development
-- `backend-architect + security-first` = Secure API design
+- `software-architect + security-first` = Secure API design
 
 ## Output Format
 

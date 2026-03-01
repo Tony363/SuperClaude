@@ -37,7 +37,7 @@ When this trait is applied, the agent will:
 
 This trait can be combined with any core agent. Example:
 - `python-expert + test-driven` = TDD Python development
-- `backend-architect + test-driven` = Test-first API design
+- `software-architect + test-driven` = Test-first API design
 
 ## Output Format
 

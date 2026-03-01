@@ -1,9 +1,9 @@
 //! Agent Registry for SuperClaude Framework.
 //!
 //! Updated to work with the v7 tiered architecture:
-//! - agents/core/     - 16 primary agents
+//! - agents/core/     - 11 primary agents
 //! - agents/traits/   - 10 composable modifiers
-//! - agents/extensions/ - 7 domain specialists
+//! - agents/extensions/ - 8 domain specialists
 
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};

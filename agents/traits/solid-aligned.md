@@ -52,8 +52,8 @@ When this trait is applied, the agent will:
 
 This trait can be combined with any core agent:
 - `python-expert + solid-aligned` = SOLID Python
-- `backend-architect + solid-aligned` = SOLID APIs
-- `frontend-architect + solid-aligned` = SOLID React components
+- `software-architect + solid-aligned` = SOLID architecture and APIs
+- `fullstack-developer + solid-aligned` = SOLID full-stack components
 
 ## Output Format
 

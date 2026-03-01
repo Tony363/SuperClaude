@@ -3,7 +3,7 @@
 
 agents:
   core:
-    count: 16
+    count: 11
     directory: agents/core
     cache_ttl: 3600
     priority_order:
@@ -12,17 +12,12 @@ agents:
       - refactoring-expert
       - technical-writer
       - performance-engineer
-      - system-architect
-      - backend-architect
-      - frontend-architect
-      - python-expert
+      - software-architect
       - security-engineer
       - devops-architect
       - quality-engineer
-      - requirements-analyst
-      - learning-guide
       - fullstack-developer
-      - socratic-mentor
+      - educator
 
   traits:
     count: 12
@@ -43,7 +38,7 @@ agents:
       - crash-resilient
 
   extensions:
-    count: 7
+    count: 8
     directory: agents/extensions
     specialists:
       - typescript-expert
@@ -53,6 +48,7 @@ agents:
       - kubernetes-specialist
       - data-engineer
       - ml-engineer
+      - python-expert
 
 # Selection Configuration
 selection:

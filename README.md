@@ -2,7 +2,7 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/version-7.0.0-blue" alt="Version">
-  <img src="https://img.shields.io/badge/agents-35-orange" alt="Agents">
+  <img src="https://img.shields.io/badge/agents-31-orange" alt="Agents">
   <img src="https://img.shields.io/badge/skills-30-green" alt="Skills">
   <img src="https://img.shields.io/badge/commands-16-purple" alt="Commands">
   <img src="https://img.shields.io/badge/modes-6-teal" alt="Modes">
@@ -12,7 +12,7 @@
   <a href="https://sonarcloud.io/summary/new_code?id=tony363_superclaude"><img src="https://sonarcloud.io/api/project_badges/measure?project=tony363_superclaude&metric=coverage" alt="Coverage"></a>
 </p>
 
-**A config-first meta-framework for Claude Code that provides 35 specialized agent personas (16 core + 12 traits + 7 extensions), 16 structured commands, 30 skills, and comprehensive MCP integration with quality-driven iterative workflows.**
+**A config-first meta-framework for Claude Code that provides 31 specialized agent personas (11 core + 12 traits + 8 extensions), 16 structured commands, 30 skills, and comprehensive MCP integration with quality-driven iterative workflows.**
 
 SuperClaude transforms Claude Code into a powerful development platform with specialized agent prompts, signal-based loop orchestration, and multi-model consensus capabilities. The core interface is markdown and YAML configuration files, with a Python orchestration layer for advanced workflows including quality gates, termination detection, and PAL MCP integration.
 
@@ -48,7 +48,7 @@ SuperClaude transforms Claude Code into a powerful development platform with spe
 
 SuperClaude is a meta-prompt framework that enhances Claude Code with:
 
-- **35 Specialized Agents**: 16 core + 12 composable traits + 7 domain extensions (tiered architecture)
+- **31 Specialized Agents**: 11 core + 12 composable traits + 8 domain extensions (tiered architecture)
 - **30 Active Skills**: 8 agent personas + 19 command workflows + 3 utility skills
 - **14 Structured Commands**: analyze, implement, test, design, document, and more
 - **6 Framework Modes**: normal, brainstorming, introspection, task_management, token_efficiency, orchestration
@@ -86,13 +86,13 @@ SuperClaude v7.0.0 is a **config-first hybrid framework**:
 
 ### Tiered Agent Architecture
 
-35 agents organized in a tiered system for composable expertise:
+31 agents organized in a tiered system for composable expertise:
 
 | Tier | Count | Purpose | Examples |
 |------|-------|---------|----------|
-| **Core** | 16 | High-priority generalists | general-purpose, root-cause-analyst, refactoring-expert, security-engineer |
+| **Core** | 11 | High-priority generalists | general-purpose, root-cause-analyst, software-architect, security-engineer, educator |
 | **Traits** | 12 | Composable modifiers | security-first, performance-first, test-driven, minimal-changes, solid-aligned, crash-resilient, mcp-pal-enabled, mcp-rube-enabled |
-| **Extensions** | 7 | Domain specialists | typescript-expert, golang-expert, rust-expert, react-specialist, kubernetes-specialist, data-engineer, ml-engineer |
+| **Extensions** | 8 | Domain specialists | typescript-expert, golang-expert, rust-expert, react-specialist, kubernetes-specialist, data-engineer, ml-engineer, python-expert |
 
 **Why Tiered?** The v7 architecture provides a lean, composable system. Core agents handle most tasks, traits modify behavior (e.g., `@security-engineer +security-first`), and extensions provide deep domain expertise when needed.
 
@@ -138,7 +138,7 @@ flowchart TB
     end
 
     subgraph Config["Configuration Layer"]
-        AGENTS[("agents/<br/>16 core + 12 traits + 7 ext")]
+        AGENTS[("agents/<br/>11 core + 12 traits + 8 ext")]
         COMMANDS[("commands/<br/>14 templates")]
         SKILLS[(".claude/skills/<br/>30 skills")]
         YAML[("config/<br/>6 YAML files")]
@@ -185,9 +185,9 @@ SuperClaude uses a layered file-based architecture:
 
 1. **CLAUDE.md** - Master system prompt loaded by Claude Code
 2. **agents/index.yaml** - Agent registry with triggers, categories, and selection weights
-3. **agents/core/*.md** - 16 core agent persona prompts
+3. **agents/core/*.md** - 11 core agent persona prompts
 4. **agents/traits/*.md** - 12 composable behavior modifier prompts
-5. **agents/extensions/*.md** - 7 domain specialist prompts
+5. **agents/extensions/*.md** - 8 domain specialist prompts
 6. **commands/index.yaml** - Command registry with flags and aliases
 7. **commands/*.md** - 14 command templates
 8. **config/*.yaml** - 6 configuration files
@@ -547,7 +547,7 @@ SuperClaude includes a native desktop dashboard for visualizing and controlling 
 
 ### Features
 
-- **Feature Inventory** - Browse all 35 agents, 16 commands, 30+ skills, and 6 behavioral modes
+- **Feature Inventory** - Browse all 31 agents, 16 commands, 30+ skills, and 6 behavioral modes
 - **Live Monitor** - Real-time execution tracking with event streaming, heartbeat indicator, and quality score visualization
 - **Execution Control** - Start, stop, pause, and resume executions with configurable parameters; expandable detail panel with 5 tabs (Run Instructions, Execution Log, Files Changed, Quality Breakdown, Execution Tree)
 - **Execution Tree** - Visual tree of iterations, tool calls, and subagent spawns built from streaming events
@@ -590,28 +590,23 @@ See [Dashboard README](crates/dashboard/README.md) for detailed usage guide.
 
 ## Agent System
 
-### Core Agents (16)
+### Core Agents (11)
 
 High-priority generalists for common tasks:
 
 | Agent | Triggers | Purpose |
 |-------|----------|---------|
-| general-purpose | help, assist, general | Versatile task handling |
+| general-purpose | help, assist, general, requirement, spec | Versatile task handling, requirements analysis |
 | root-cause-analyst | debug, bug, error, crash, broken, not working | Deep debugging and investigation |
 | refactoring-expert | refactor, clean, improve, technical debt | Code quality improvement |
 | technical-writer | document, docs, readme | Documentation generation |
 | security-engineer | security, auth, vulnerability, authorization | Security analysis and hardening |
 | performance-engineer | performance, optimize, slow, bottleneck | Performance optimization |
 | quality-engineer | test, qa, coverage | Testing and quality assurance |
-| python-expert | python, django, flask | Python development |
-| system-architect | architecture, design, scalability | System design |
-| backend-architect | backend, api, database | Backend systems |
-| frontend-architect | frontend, ui, react | Frontend development |
+| software-architect | architecture, design, api, database, frontend, ui | System, backend, and frontend architecture |
 | devops-architect | devops, ci/cd, kubernetes | Infrastructure automation |
 | fullstack-developer | fullstack, end-to-end | Full-stack coordination |
-| learning-guide | learn, teach, tutorial | Educational guidance |
-| requirements-analyst | requirements, spec, user story | Requirements analysis |
-| socratic-mentor | mentor, coach, why | Guided discovery learning |
+| educator | learn, teach, tutorial, mentor, explain | Teaching, tutorials, and guided learning |
 
 ### Traits (12)
 
@@ -619,20 +614,20 @@ Composable behavior modifiers that can be combined with any agent:
 
 | Trait | Purpose | Example Usage |
 |-------|---------|---------------|
-| security-first | Prioritize security considerations | `@backend-architect +security-first` |
+| security-first | Prioritize security considerations | `@software-architect +security-first` |
 | performance-first | Focus on optimization | `@python-expert +performance-first` |
-| pedagogy-first | Include educational explanations | `@learning-guide +pedagogy-first` |
+| pedagogy-first | Include educational explanations | `@educator +pedagogy-first` |
 | test-driven | Enforce TDD practices | `@fullstack-developer +test-driven` |
 | minimal-changes | Reduce change scope | `@refactoring-expert +minimal-changes` |
 | legacy-friendly | Support older systems | `@devops-architect +legacy-friendly` |
-| cloud-native | Modern cloud patterns | `@system-architect +cloud-native` |
-| rapid-prototype | Fast iteration | `@frontend-architect +rapid-prototype` |
-| solid-aligned | Enforce SOLID design principles (SRP, OCP, LSP, ISP, DIP) | `@system-architect +solid-aligned` |
-| crash-resilient | Enforce "Let It Crash" error handling philosophy | `@backend-architect +crash-resilient` |
+| cloud-native | Modern cloud patterns | `@software-architect +cloud-native` |
+| rapid-prototype | Fast iteration | `@software-architect +rapid-prototype` |
+| solid-aligned | Enforce SOLID design principles (SRP, OCP, LSP, ISP, DIP) | `@software-architect +solid-aligned` |
+| crash-resilient | Enforce "Let It Crash" error handling philosophy | `@software-architect +crash-resilient` |
 | mcp-pal-enabled | Enables PAL MCP tools (consensus, debug, codereview) | `@security-engineer +mcp-pal-enabled` |
 | mcp-rube-enabled | Enables Rube MCP tools (500+ app integrations) | `@devops-architect +mcp-rube-enabled` |
 
-### Extensions (7)
+### Extensions (8)
 
 Domain-specialist agents for deep expertise:
 
@@ -645,6 +640,7 @@ Domain-specialist agents for deep expertise:
 | kubernetes-specialist | kubernetes, k8s, helm | Kubernetes orchestration |
 | data-engineer | data, pipeline, etl | Data engineering |
 | ml-engineer | ml, machine learning, model | Machine learning |
+| python-expert | python, django, fastapi | Python development |
 
 ### Agent Selection Algorithm
 
@@ -658,8 +654,8 @@ flowchart TD
     TRIGGER -->|"Yes (0.35)"| CORE{"Core<br/>Agent?"}
     TRIGGER -->|"No"| CATEGORY{"Category<br/>Match?"}
 
-    CORE -->|"Yes"| USE_CORE["Load Core Agent<br/>(16 available)"]
-    CORE -->|"No"| USE_EXT["Load Trait/Extension<br/>(15 available)"]
+    CORE -->|"Yes"| USE_CORE["Load Core Agent<br/>(11 available)"]
+    CORE -->|"No"| USE_EXT["Load Trait/Extension<br/>(20 available)"]
 
     CATEGORY -->|"Yes (0.25)"| CAT_SELECT["Select from Category"]
     CATEGORY -->|"No"| DESC{"Description<br/>Match?"}
@@ -1713,7 +1709,7 @@ SuperClaude/
 │
 ├── agents/
 │   ├── index.yaml               # Agent registry
-│   ├── core/                    # 16 core agent prompts
+│   ├── core/                    # 11 core agent prompts
 │   │   ├── general-purpose.md
 │   │   ├── root-cause-analyst.md
 │   │   ├── refactoring-expert.md
@@ -1725,7 +1721,7 @@ SuperClaude/
 │   │   ├── mcp-pal-enabled.md
 │   │   ├── mcp-rube-enabled.md
 │   │   └── ...
-│   ├── extensions/              # 7 domain specialist prompts
+│   ├── extensions/              # 8 domain specialist prompts
 │   │   ├── typescript-expert.md
 │   │   ├── golang-expert.md
 │   │   ├── react-specialist.md
@@ -1943,5 +1939,5 @@ MIT License - see [LICENSE](LICENSE) for details.
 <p align="center">
   <strong>SuperClaude v7.0.0</strong><br>
   Config-First Meta-Framework for Claude Code<br>
-  <em>35 Agents (16 Core + 12 Traits + 7 Extensions) | 30 Skills | 14 Commands | 6 Modes | Quality-Driven Loops</em>
+  <em>31 Agents (11 Core + 12 Traits + 8 Extensions) | 30 Skills | 14 Commands | 6 Modes | Quality-Driven Loops</em>
 </p>

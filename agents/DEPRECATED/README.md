@@ -17,8 +17,8 @@ After a [multi-model consensus review](../../.claude/plans/), it was determined 
 
 | Old Agent Category | Replacement |
 |-------------------|-------------|
-| Core Development | `backend-architect`, `frontend-architect`, `fullstack-developer` |
-| Language Specialists | `python-expert` (core), extensions for TS/Go/Rust |
+| Core Development | `software-architect`, `fullstack-developer` |
+| Language Specialists | `python-expert` (extension), extensions for TS/Go/Rust |
 | Infrastructure | `devops-architect` + `cloud-native` trait |
 | Quality/Security | `quality-engineer`, `security-engineer` + traits |
 | Data/AI | `data-engineer`, `ml-engineer` extensions |
@@ -49,4 +49,30 @@ Example:
 
 ---
 
-*Archived as part of SuperClaude v7.0.0 tiered architecture migration*
+## v7.1 Consolidation (Core 16 → 11)
+
+Multi-model consensus (GPT-5.2, Gemini-3-Pro, Grok-4) identified redundancies in the 16 core agents. Six agents were consolidated:
+
+| Deprecated Agent | Replacement |
+|-----------------|-------------|
+| `system-architect` | `software-architect` (merged) |
+| `backend-architect` | `software-architect` (merged) |
+| `frontend-architect` | `software-architect` (merged) |
+| `learning-guide` | `educator` (merged) |
+| `socratic-mentor` | `educator` (merged) |
+| `requirements-analyst` | `general-purpose` (absorbed) |
+
+Additionally, `python-expert` was moved from core to extensions (tier change only, no deprecation).
+
+### Migration Guide
+
+- **Architecture tasks**: Use `software-architect` — it combines system, backend, and frontend architecture expertise
+- **Teaching/learning tasks**: Use `educator` — it combines progressive teaching with Socratic questioning
+- **Requirements tasks**: Use `general-purpose` — requirements analysis is now a built-in capability
+- **Python tasks**: Use `python-expert` (now in extensions, same file, same triggers)
+
+**New counts**: 11 core + 12 traits + 8 extensions = 31 active agents
+
+---
+
+*Archived as part of SuperClaude v7.0.0 and v7.1 architecture migrations*

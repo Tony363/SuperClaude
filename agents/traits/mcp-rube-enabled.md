@@ -176,7 +176,7 @@ memory = {
 
 Combine with any core agent:
 - `devops-architect + mcp-rube-enabled` = CI/CD automation
-- `backend-architect + mcp-rube-enabled` = API integration workflows
+- `software-architect + mcp-rube-enabled` = API integration workflows
 - `technical-writer + mcp-rube-enabled` = Documentation automation
 
 ## Output Format

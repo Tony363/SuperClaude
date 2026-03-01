@@ -40,7 +40,7 @@ When this trait is applied, the agent will:
 ## Composition
 
 This trait can be combined with any core agent. Example:
-- `backend-architect + cloud-native` = Cloud-ready API design
+- `software-architect + cloud-native` = Cloud-ready API design
 - `devops-architect + cloud-native` = K8s-focused infrastructure
 
 ## Output Format
