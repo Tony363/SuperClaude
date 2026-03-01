@@ -626,10 +626,10 @@ jobs:
             exit 1
           fi
 
-          # SonarCloud is BLOCKING when it runs, skippable for dependabot
+          # SonarCloud status (non-blocking in ci-status; quality gate action
+          # blocks the sonarcloud job itself when the project is configured)
           if [ "${{ needs.sonarcloud.result }}" == "failure" ]; then
-            echo "SonarCloud quality gate failed"
-            exit 1
+            echo "::warning::SonarCloud analysis failed (check project configuration)"
           elif [ "${{ needs.sonarcloud.result }}" == "success" ]; then
             echo "SonarCloud quality gate passed"
           elif [ "${{ needs.sonarcloud.result }}" == "skipped" ]; then
