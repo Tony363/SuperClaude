@@ -24,11 +24,15 @@ import argparse
 import ast
 import fnmatch
 import json
-import subprocess
 import sys
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Optional
+
+try:
+    from .shared import find_python_files
+except ImportError:
+    from shared import find_python_files
 
 IO_CALL_PATTERNS: dict[str, list[str]] = {
     "file_io": [
@@ -65,34 +69,32 @@ IO_CALL_PATTERNS: dict[str, list[str]] = {
         "cursor",
         "commit",
         "rollback",
-        "add",
         "delete",
         "flush",
         "merge",
         "refresh",
+        # "add" removed — too generic; matches set.add(), parser.add_argument(), etc.
+        # Use session.add / db.add via qualified patterns if needed
     ],
     "subprocess": [
-        "run",
-        "call",
-        "check_output",
-        "check_call",
-        "Popen",
-        "system",
-        "spawn",
+        "subprocess.run",
+        "subprocess.call",
+        "subprocess.check_output",
+        "subprocess.check_call",
+        "subprocess.Popen",
+        "os.system",
+        "os.spawn",
+        # "run" and "call" removed — too generic; matches asyncio.run(), callback.call(), etc.
     ],
     "side_effects": [
         "print",
         "pprint",
-        "logging",
-        "logger",
-        "log",
-        "debug",
-        "info",
-        "warning",
-        "error",
-        "critical",
     ],
 }
+
+# Side-effect patterns that require the object prefix to match (e.g., logger.info)
+# This avoids false positives on methods named "error", "debug", "info", etc.
+IO_LOGGING_PREFIXES: set[str] = {"logging", "logger", "log"}
 
 IO_MODULE_PATTERNS: dict[str, list[str]] = {
     "file_io": ["os", "shutil", "pathlib", "io", "tempfile"],
@@ -330,51 +332,52 @@ class PurityAnalyzer(ast.NodeVisitor):
         return ""
 
     def _check_io_pattern(self, func_name: str, line: int) -> None:
-        """Check if function call matches I/O patterns."""
+        """Check if function call matches I/O patterns.
+
+        Matching strategy:
+        - Qualified patterns (contain ".") match exactly against full func_name
+        - Unqualified patterns match exactly against the base method name
+        - Logging is detected by checking if the object prefix is a known logger
+        """
         func_parts = func_name.split(".")
         base_name = func_parts[-1] if func_parts else ""
         module_name = func_parts[0] if func_parts else ""
 
         for io_type, patterns in IO_CALL_PATTERNS.items():
             for pattern in patterns:
-                if base_name == pattern or pattern in func_name:
-                    severity = "error" if self.context == "core" else "warning"
-                    self.violations.append(
-                        PurityViolation(
-                            file=self.file_path,
-                            function=self.current_function or "<module>",
-                            line=line,
-                            io_type=io_type,
-                            pattern=func_name,
-                            context=self.context,
-                            severity=severity,
-                        )
-                    )
-                    return
+                if "." in pattern:
+                    if func_name == pattern:
+                        self._add_violation(line=line, io_type=io_type, pattern=func_name)
+                        return
+                else:
+                    if base_name == pattern:
+                        self._add_violation(line=line, io_type=io_type, pattern=func_name)
+                        return
+
+        # Check logging: only flag if the object prefix is a known logger
+        if module_name in IO_LOGGING_PREFIXES:
+            self._add_violation(line=line, io_type="side_effects", pattern=func_name)
+            return
 
         for io_type, modules in IO_MODULE_PATTERNS.items():
             if module_name in modules:
-                severity = "error" if self.context == "core" else "warning"
-                self.violations.append(
-                    PurityViolation(
-                        file=self.file_path,
-                        function=self.current_function or "<module>",
-                        line=line,
-                        io_type=io_type,
-                        pattern=func_name,
-                        context=self.context,
-                        severity=severity,
-                    )
-                )
+                self._add_violation(line=line, io_type=io_type, pattern=func_name)
                 return
 
 
 def match_path_pattern(path: str, pattern: str) -> bool:
-    """Check if path matches a glob-like pattern."""
+    """Check if path matches a glob-like pattern.
+
+    Uses fnmatch for glob matching and falls back to directory-segment
+    matching (not substring) to avoid false positives.
+    """
     if fnmatch.fnmatch(path, pattern):
         return True
+    # Segment-based fallback: check if pattern part appears as a directory name
     pattern_part = pattern.replace("*", "").strip("/")
-    return pattern_part in path
+    if pattern_part:
+        return pattern_part in Path(path).parts
+    return False
 
 
 def determine_context(file_path: Path) -> str:
@@ -389,7 +392,8 @@ def determine_context(file_path: Path) -> str:
         if match_path_pattern(path_str, pattern):
             return "core"
 
-    return "core"
+    # Default to "shell" for unrecognized paths to avoid false positives
+    return "shell"
 
 
 def analyze_file_purity(file_path: Path, context: str) -> list[PurityViolation]:
@@ -403,50 +407,6 @@ def analyze_file_purity(file_path: Path, context: str) -> list[PurityViolation]:
     analyzer = PurityAnalyzer(str(file_path), context)
     analyzer.visit(tree)
     return analyzer.violations
-
-
-def find_python_files(scope_root: Path, changed_only: bool = True) -> list[Path]:
-    """Find Python files to analyze."""
-    if changed_only:
-        try:
-            result = subprocess.run(
-                ["git", "diff", "--name-only", "--cached", "HEAD"],
-                capture_output=True,
-                text=True,
-                cwd=scope_root,
-                timeout=30,
-            )
-            staged = result.stdout.strip().split("\n") if result.stdout.strip() else []
-
-            result = subprocess.run(
-                ["git", "diff", "--name-only"],
-                capture_output=True,
-                text=True,
-                cwd=scope_root,
-                timeout=30,
-            )
-            unstaged = result.stdout.strip().split("\n") if result.stdout.strip() else []
-
-            result = subprocess.run(
-                ["git", "ls-files", "--others", "--exclude-standard"],
-                capture_output=True,
-                text=True,
-                cwd=scope_root,
-                timeout=30,
-            )
-            untracked = result.stdout.strip().split("\n") if result.stdout.strip() else []
-
-            all_files = set(staged + unstaged + untracked)
-            py_files = [
-                scope_root / f for f in all_files if f.endswith(".py") and (scope_root / f).exists()
-            ]
-
-            if py_files:
-                return py_files
-        except (subprocess.SubprocessError, FileNotFoundError):
-            pass  # Fall back to rglob below when git is unavailable
-
-    return list(scope_root.rglob("*.py"))
 
 
 def generate_recommendations(violations: list[PurityViolation]) -> list[str]:

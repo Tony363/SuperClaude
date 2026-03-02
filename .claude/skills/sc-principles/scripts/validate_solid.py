@@ -19,11 +19,15 @@ from __future__ import annotations
 import argparse
 import ast
 import json
-import subprocess
 import sys
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Optional
+
+try:
+    from .shared import find_python_files
+except ImportError:
+    from shared import find_python_files
 
 
 @dataclass
@@ -73,36 +77,60 @@ def is_core_path(file_path: Path) -> bool:
     return False
 
 
-class SRPVisitor(ast.NodeVisitor):
-    """Detect Single Responsibility Principle violations."""
+class CombinedSOLIDVisitor(ast.NodeVisitor):
+    """Single-pass visitor that checks all 5 SOLID principles.
 
-    def __init__(self, thresholds: SOLIDThresholds) -> None:
+    Consolidates SRP, OCP, LSP, ISP, and DIP checks into one AST traversal
+    instead of 5 separate passes over the same tree.
+    """
+
+    # DIP: Common service/infrastructure class name patterns
+    SERVICE_PATTERNS = [
+        "Connection",
+        "Service",
+        "Client",
+        "Repository",
+        "Database",
+        "Cache",
+        "Logger",
+        "Queue",
+        "Session",
+    ]
+
+    def __init__(self, thresholds: SOLIDThresholds, is_core: bool) -> None:
         self.thresholds = thresholds
+        self.is_core = is_core
         self.violations: list[SOLIDViolation] = []
         self.file_path = ""
+        # LSP + DIP: Track context
+        self.current_class: Optional[str] = None
+        self.current_class_is_abstract: bool = False
+        self.current_function: Optional[str] = None
 
-    def check_file_length(self, source: str) -> Optional[SOLIDViolation]:
-        """Check if file exceeds line limit."""
+    def check_file_length(self, source: str) -> None:
+        """SRP: Check if file exceeds line limit."""
         lines = source.count("\n") + 1
         if lines > self.thresholds.max_file_lines:
-            return SOLIDViolation(
-                file=self.file_path,
-                line=1,
-                violation_type="srp_file_length",
-                message=f"File has {lines} lines (max: {self.thresholds.max_file_lines})",
-                principle="SRP",
-                severity="warning",
+            self.violations.append(
+                SOLIDViolation(
+                    file=self.file_path,
+                    line=1,
+                    violation_type="srp_file_length",
+                    message=f"File has {lines} lines (max: {self.thresholds.max_file_lines})",
+                    principle="SRP",
+                    severity="warning",
+                )
             )
-        return None
 
     def visit_ClassDef(self, node: ast.ClassDef) -> None:
-        """Check class for too many public methods."""
+        """Combined class checks: SRP, ISP, LSP context tracking."""
         public_methods = [
             n
             for n in node.body
             if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)) and not n.name.startswith("_")
         ]
 
+        # SRP: Too many public methods
         if len(public_methods) > self.thresholds.max_class_public_methods:
             self.violations.append(
                 SOLIDViolation(
@@ -117,147 +145,9 @@ class SRPVisitor(ast.NodeVisitor):
                 )
             )
 
-        self.generic_visit(node)
-
-
-class OCPVisitor(ast.NodeVisitor):
-    """Detect Open-Closed Principle violations."""
-
-    def __init__(self, thresholds: SOLIDThresholds) -> None:
-        self.thresholds = thresholds
-        self.violations: list[SOLIDViolation] = []
-        self.file_path = ""
-
-    def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
-        """Check for isinstance cascades in functions."""
-        self._check_isinstance_cascade(node)
-        self.generic_visit(node)
-
-    def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef) -> None:
-        """Check for isinstance cascades in async functions."""
-        self._check_isinstance_cascade(node)
-        self.generic_visit(node)
-
-    def _check_isinstance_cascade(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> None:
-        """Detect isinstance cascade patterns."""
-        isinstance_count = 0
-
-        for child in ast.walk(node):
-            if isinstance(child, ast.If):
-                # Check if condition uses isinstance
-                if self._is_isinstance_check(child.test):
-                    isinstance_count += 1
-
-        if isinstance_count > self.thresholds.max_isinstance_chain:
-            self.violations.append(
-                SOLIDViolation(
-                    file=self.file_path,
-                    line=node.lineno,
-                    violation_type="ocp_isinstance_cascade",
-                    message=f"Function '{node.name}' has {isinstance_count} isinstance checks. "
-                    "Consider using polymorphism or strategy pattern.",
-                    principle="OCP",
-                    severity="warning",
-                    context=node.name,
-                )
-            )
-
-    def _is_isinstance_check(self, node: ast.expr) -> bool:
-        """Check if expression is an isinstance call."""
-        if isinstance(node, ast.Call):
-            if isinstance(node.func, ast.Name) and node.func.id == "isinstance":
-                return True
-        return False
-
-
-class LSPVisitor(ast.NodeVisitor):
-    """Detect Liskov Substitution Principle violations."""
-
-    def __init__(self) -> None:
-        self.violations: list[SOLIDViolation] = []
-        self.file_path = ""
-        self.current_class: Optional[str] = None
-
-    def visit_ClassDef(self, node: ast.ClassDef) -> None:
-        """Track current class for context."""
-        old_class = self.current_class
-        self.current_class = node.name
-        self.generic_visit(node)
-        self.current_class = old_class
-
-    def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
-        """Check for NotImplementedError raises."""
-        if self.current_class:
-            self._check_not_implemented(node)
-        self.generic_visit(node)
-
-    def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef) -> None:
-        """Check for NotImplementedError raises in async methods."""
-        if self.current_class:
-            self._check_not_implemented(node)
-        self.generic_visit(node)
-
-    def _check_not_implemented(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> None:
-        """Detect NotImplementedError in method bodies."""
-        for child in ast.walk(node):
-            if isinstance(child, ast.Raise):
-                if child.exc is not None:
-                    # Check for raise NotImplementedError(...)
-                    if isinstance(child.exc, ast.Call):
-                        if isinstance(child.exc.func, ast.Name):
-                            if child.exc.func.id == "NotImplementedError":
-                                self.violations.append(
-                                    SOLIDViolation(
-                                        file=self.file_path,
-                                        line=child.lineno,
-                                        violation_type="lsp_not_implemented",
-                                        message=f"Method '{node.name}' in class '{self.current_class}' "
-                                        "raises NotImplementedError, violating LSP.",
-                                        principle="LSP",
-                                        severity="error",
-                                        context=f"{self.current_class}.{node.name}",
-                                    )
-                                )
-                    # Check for raise NotImplementedError (without call)
-                    elif isinstance(child.exc, ast.Name):
-                        if child.exc.id == "NotImplementedError":
-                            self.violations.append(
-                                SOLIDViolation(
-                                    file=self.file_path,
-                                    line=child.lineno,
-                                    violation_type="lsp_not_implemented",
-                                    message=f"Method '{node.name}' in class '{self.current_class}' "
-                                    "raises NotImplementedError, violating LSP.",
-                                    principle="LSP",
-                                    severity="error",
-                                    context=f"{self.current_class}.{node.name}",
-                                )
-                            )
-
-
-class ISPVisitor(ast.NodeVisitor):
-    """Detect Interface Segregation Principle violations."""
-
-    def __init__(self, thresholds: SOLIDThresholds) -> None:
-        self.thresholds = thresholds
-        self.violations: list[SOLIDViolation] = []
-        self.file_path = ""
-
-    def visit_ClassDef(self, node: ast.ClassDef) -> None:
-        """Check for fat interfaces (Protocol or ABC)."""
-        is_protocol = self._is_protocol(node)
-        is_abc = self._is_abc(node)
-
-        if is_protocol or is_abc:
-            method_count = len(
-                [
-                    n
-                    for n in node.body
-                    if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))
-                    and not n.name.startswith("_")
-                ]
-            )
-
+        # ISP: Fat interfaces (Protocol or ABC)
+        if self._is_protocol_or_abc(node):
+            method_count = len(public_methods)
             if method_count > self.thresholds.max_interface_methods:
                 self.violations.append(
                     SOLIDViolation(
@@ -273,72 +163,47 @@ class ISPVisitor(ast.NodeVisitor):
                     )
                 )
 
+        # LSP: Track class context for NotImplementedError checks
+        old_class = self.current_class
+        old_abstract = self.current_class_is_abstract
+        self.current_class = node.name
+        self.current_class_is_abstract = self._is_protocol_or_abc(node)
         self.generic_visit(node)
-
-    def _is_protocol(self, node: ast.ClassDef) -> bool:
-        """Check if class inherits from Protocol."""
-        for base in node.bases:
-            if isinstance(base, ast.Name) and base.id == "Protocol":
-                return True
-            if isinstance(base, ast.Attribute) and base.attr == "Protocol":
-                return True
-        return False
-
-    def _is_abc(self, node: ast.ClassDef) -> bool:
-        """Check if class inherits from ABC."""
-        for base in node.bases:
-            if isinstance(base, ast.Name) and base.id == "ABC":
-                return True
-            if isinstance(base, ast.Attribute) and base.attr == "ABC":
-                return True
-        return False
-
-
-class DIPVisitor(ast.NodeVisitor):
-    """Detect Dependency Inversion Principle violations."""
-
-    def __init__(self, is_core: bool) -> None:
-        self.is_core = is_core
-        self.violations: list[SOLIDViolation] = []
-        self.file_path = ""
-        self.current_function: Optional[str] = None
-
-    # Common service/infrastructure class name patterns
-    SERVICE_PATTERNS = [
-        "Connection",
-        "Service",
-        "Client",
-        "Repository",
-        "Database",
-        "Cache",
-        "Logger",
-        "Queue",
-        "Session",
-    ]
+        self.current_class = old_class
+        self.current_class_is_abstract = old_abstract
 
     def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
-        """Check for direct instantiation in functions."""
-        old_func = self.current_function
-        self.current_function = node.name
-        self._check_instantiation(node)
-        self.generic_visit(node)
-        self.current_function = old_func
+        """Combined function checks: OCP, LSP, DIP."""
+        self._check_function(node)
 
     def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef) -> None:
-        """Check for direct instantiation in async functions."""
+        """Combined async function checks: OCP, LSP, DIP."""
+        self._check_function(node)
+
+    def _check_function(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> None:
+        """Run OCP, LSP, and DIP checks in a single walk of the function body."""
         old_func = self.current_function
         self.current_function = node.name
-        self._check_instantiation(node)
-        self.generic_visit(node)
-        self.current_function = old_func
 
-    def _check_instantiation(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> None:
-        """Detect direct instantiation of service classes."""
-        if not self.is_core:
-            return  # Only check core paths
-
+        # Single walk over function body for OCP + LSP + DIP
+        isinstance_count = 0
         for child in ast.walk(node):
-            if isinstance(child, ast.Call):
+            # OCP: Count isinstance checks in if-conditions
+            if isinstance(child, ast.If):
+                if self._is_isinstance_check(child.test):
+                    isinstance_count += 1
+
+            # LSP: Check for NotImplementedError raises (only in concrete class methods)
+            if (
+                self.current_class
+                and not self.current_class_is_abstract
+                and not self._has_abstractmethod_decorator(node)
+                and isinstance(child, ast.Raise)
+            ):
+                self._check_not_implemented_raise(child, node.name)
+
+            # DIP: Check for direct service instantiation (only in core paths)
+            if self.is_core and isinstance(child, ast.Call):
                 class_name = self._get_class_name(child.func)
                 if class_name and self._is_service_class(class_name):
                     self.violations.append(
@@ -354,8 +219,83 @@ class DIPVisitor(ast.NodeVisitor):
                         )
                     )
 
+        # OCP: Report isinstance cascade if threshold exceeded
+        if isinstance_count > self.thresholds.max_isinstance_chain:
+            self.violations.append(
+                SOLIDViolation(
+                    file=self.file_path,
+                    line=node.lineno,
+                    violation_type="ocp_isinstance_cascade",
+                    message=f"Function '{node.name}' has {isinstance_count} isinstance checks. "
+                    "Consider using polymorphism or strategy pattern.",
+                    principle="OCP",
+                    severity="warning",
+                    context=node.name,
+                )
+            )
+
+        self.generic_visit(node)
+        self.current_function = old_func
+
+    # --- Helper methods ---
+
+    def _is_isinstance_check(self, node: ast.expr) -> bool:
+        """OCP: Check if expression is an isinstance call."""
+        if isinstance(node, ast.Call):
+            if isinstance(node.func, ast.Name) and node.func.id == "isinstance":
+                return True
+        return False
+
+    def _check_not_implemented_raise(self, child: ast.Raise, func_name: str) -> None:
+        """LSP: Check if a Raise node raises NotImplementedError."""
+        if child.exc is None:
+            return
+        exc_name: Optional[str] = None
+        if isinstance(child.exc, ast.Call) and isinstance(child.exc.func, ast.Name):
+            exc_name = child.exc.func.id
+        elif isinstance(child.exc, ast.Name):
+            exc_name = child.exc.id
+
+        if exc_name == "NotImplementedError":
+            self.violations.append(
+                SOLIDViolation(
+                    file=self.file_path,
+                    line=child.lineno,
+                    violation_type="lsp_not_implemented",
+                    message=f"Method '{func_name}' in class '{self.current_class}' "
+                    "raises NotImplementedError, violating LSP.",
+                    principle="LSP",
+                    severity="error",
+                    context=f"{self.current_class}.{func_name}",
+                )
+            )
+
+    def _has_abstractmethod_decorator(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> bool:
+        """LSP: Check if method has @abstractmethod decorator."""
+        for decorator in node.decorator_list:
+            if isinstance(decorator, ast.Name) and decorator.id == "abstractmethod":
+                return True
+            if isinstance(decorator, ast.Attribute) and decorator.attr == "abstractmethod":
+                return True
+        return False
+
+    def _is_protocol_or_abc(self, node: ast.ClassDef) -> bool:
+        """ISP: Check if class inherits from Protocol/ABC or uses metaclass=ABCMeta."""
+        for base in node.bases:
+            if isinstance(base, ast.Name) and base.id in ("Protocol", "ABC"):
+                return True
+            if isinstance(base, ast.Attribute) and base.attr in ("Protocol", "ABC"):
+                return True
+        for kw in node.keywords:
+            if kw.arg == "metaclass":
+                if isinstance(kw.value, ast.Name) and kw.value.id == "ABCMeta":
+                    return True
+                if isinstance(kw.value, ast.Attribute) and kw.value.attr == "ABCMeta":
+                    return True
+        return False
+
     def _get_class_name(self, node: ast.expr) -> Optional[str]:
-        """Extract class name from call expression."""
+        """DIP: Extract class name from call expression."""
         if isinstance(node, ast.Name):
             return node.id
         if isinstance(node, ast.Attribute):
@@ -363,103 +303,32 @@ class DIPVisitor(ast.NodeVisitor):
         return None
 
     def _is_service_class(self, name: str) -> bool:
-        """Check if name looks like a service/infrastructure class."""
-        return any(pattern in name for pattern in self.SERVICE_PATTERNS)
+        """DIP: Check if name looks like a service/infrastructure class.
+
+        Uses endswith to avoid false positives on unrelated classes like
+        SessionToken, CacheKey, LoggerConfig, ServiceLevel, etc.
+        """
+        return name.endswith(tuple(self.SERVICE_PATTERNS))
 
 
 def analyze_file_solid(
     file_path: Path,
     thresholds: SOLIDThresholds,
 ) -> list[SOLIDViolation]:
-    """Analyze a single file for SOLID violations."""
+    """Analyze a single file for SOLID violations in a single AST pass."""
     try:
         source = file_path.read_text(encoding="utf-8")
         tree = ast.parse(source, filename=str(file_path))
     except (SyntaxError, UnicodeDecodeError):
         return []
 
-    violations: list[SOLIDViolation] = []
-    file_str = str(file_path)
     is_core = is_core_path(file_path)
+    visitor = CombinedSOLIDVisitor(thresholds, is_core)
+    visitor.file_path = str(file_path)
+    visitor.check_file_length(source)
+    visitor.visit(tree)
 
-    # SRP checks
-    srp_visitor = SRPVisitor(thresholds)
-    srp_visitor.file_path = file_str
-    file_length_violation = srp_visitor.check_file_length(source)
-    if file_length_violation:
-        violations.append(file_length_violation)
-    srp_visitor.visit(tree)
-    violations.extend(srp_visitor.violations)
-
-    # OCP checks
-    ocp_visitor = OCPVisitor(thresholds)
-    ocp_visitor.file_path = file_str
-    ocp_visitor.visit(tree)
-    violations.extend(ocp_visitor.violations)
-
-    # LSP checks
-    lsp_visitor = LSPVisitor()
-    lsp_visitor.file_path = file_str
-    lsp_visitor.visit(tree)
-    violations.extend(lsp_visitor.violations)
-
-    # ISP checks
-    isp_visitor = ISPVisitor(thresholds)
-    isp_visitor.file_path = file_str
-    isp_visitor.visit(tree)
-    violations.extend(isp_visitor.violations)
-
-    # DIP checks (only in core paths)
-    dip_visitor = DIPVisitor(is_core)
-    dip_visitor.file_path = file_str
-    dip_visitor.visit(tree)
-    violations.extend(dip_visitor.violations)
-
-    return violations
-
-
-def find_python_files(scope_root: Path, changed_only: bool = True) -> list[Path]:
-    """Find Python files to analyze."""
-    if changed_only:
-        try:
-            result = subprocess.run(
-                ["git", "diff", "--name-only", "--cached", "HEAD"],
-                capture_output=True,
-                text=True,
-                cwd=scope_root,
-                timeout=30,
-            )
-            staged = result.stdout.strip().split("\n") if result.stdout.strip() else []
-
-            result = subprocess.run(
-                ["git", "diff", "--name-only"],
-                capture_output=True,
-                text=True,
-                cwd=scope_root,
-                timeout=30,
-            )
-            unstaged = result.stdout.strip().split("\n") if result.stdout.strip() else []
-
-            result = subprocess.run(
-                ["git", "ls-files", "--others", "--exclude-standard"],
-                capture_output=True,
-                text=True,
-                cwd=scope_root,
-                timeout=30,
-            )
-            untracked = result.stdout.strip().split("\n") if result.stdout.strip() else []
-
-            all_files = set(staged + unstaged + untracked)
-            py_files = [
-                scope_root / f for f in all_files if f.endswith(".py") and (scope_root / f).exists()
-            ]
-
-            if py_files:
-                return py_files
-        except (subprocess.SubprocessError, FileNotFoundError):
-            pass  # Fall back to rglob below when git is unavailable
-
-    return list(scope_root.rglob("*.py"))
+    return visitor.violations
 
 
 def generate_recommendations(violations: list[SOLIDViolation]) -> list[str]:

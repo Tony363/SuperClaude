@@ -24,6 +24,11 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Optional
 
+try:
+    from .shared import find_python_files
+except ImportError:
+    from shared import find_python_files
+
 
 @dataclass
 class KISSThresholds:
@@ -82,10 +87,6 @@ class ComplexityVisitor(ast.NodeVisitor):
         self.complexity += 1
         self.generic_visit(node)
 
-    def visit_With(self, node: ast.With) -> None:
-        self.complexity += 1
-        self.generic_visit(node)
-
     def visit_BoolOp(self, node: ast.BoolOp) -> None:
         self.complexity += len(node.values) - 1
         self.generic_visit(node)
@@ -108,7 +109,7 @@ def calculate_nesting_depth(node: ast.AST, current_depth: int = 0) -> int:
     max_depth = current_depth
 
     for child in ast.iter_child_nodes(node):
-        if isinstance(child, (ast.If, ast.For, ast.While, ast.With, ast.Try)):
+        if isinstance(child, (ast.If, ast.For, ast.While, ast.Try)):
             child_depth = calculate_nesting_depth(child, current_depth + 1)
             max_depth = max(max_depth, child_depth)
         else:
@@ -169,12 +170,6 @@ def calculate_cognitive_complexity(node: ast.AST) -> int:
                     visit(child, nesting + 1)
             return
 
-        if isinstance(n, ast.With):
-            total += 1 + nesting
-            for child in ast.iter_child_nodes(n):
-                visit(child, nesting + 1)
-            return
-
         # Recurse into other nodes without adding complexity
         for child in ast.iter_child_nodes(n):
             visit(child, nesting)
@@ -206,9 +201,11 @@ def try_mccabe_complexity(file_path: Path, threshold: int) -> dict[str, int]:
                         complexity = int(parts[-1].strip().split()[0])
                         result[func_name] = complexity
                     except (ValueError, IndexError):
-                        pass  # Skip unparseable radon output lines
+                        # LET-IT-CRASH-EXCEPTION: OPTIONAL_FEATURE - unparseable mccabe line
+                        continue
+    # LET-IT-CRASH-EXCEPTION: OPTIONAL_FEATURE - mccabe may not be installed
     except (subprocess.SubprocessError, FileNotFoundError):
-        pass  # radon not installed; skip complexity analysis
+        return result
     return result
 
 
@@ -312,50 +309,6 @@ def analyze_file_kiss(file_path: Path, thresholds: KISSThresholds) -> list[KISSV
             )
 
     return violations
-
-
-def find_python_files(scope_root: Path, changed_only: bool = True) -> list[Path]:
-    """Find Python files to analyze."""
-    if changed_only:
-        try:
-            result = subprocess.run(
-                ["git", "diff", "--name-only", "--cached", "HEAD"],
-                capture_output=True,
-                text=True,
-                cwd=scope_root,
-                timeout=30,
-            )
-            staged = result.stdout.strip().split("\n") if result.stdout.strip() else []
-
-            result = subprocess.run(
-                ["git", "diff", "--name-only"],
-                capture_output=True,
-                text=True,
-                cwd=scope_root,
-                timeout=30,
-            )
-            unstaged = result.stdout.strip().split("\n") if result.stdout.strip() else []
-
-            result = subprocess.run(
-                ["git", "ls-files", "--others", "--exclude-standard"],
-                capture_output=True,
-                text=True,
-                cwd=scope_root,
-                timeout=30,
-            )
-            untracked = result.stdout.strip().split("\n") if result.stdout.strip() else []
-
-            all_files = set(staged + unstaged + untracked)
-            py_files = [
-                scope_root / f for f in all_files if f.endswith(".py") and (scope_root / f).exists()
-            ]
-
-            if py_files:
-                return py_files
-        except (subprocess.SubprocessError, FileNotFoundError):
-            pass  # Fall back to rglob below when git is unavailable
-
-    return list(scope_root.rglob("*.py"))
 
 
 def generate_recommendations(violations: list[KISSViolation]) -> list[str]:

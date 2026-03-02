@@ -7,10 +7,12 @@ use chrono::{DateTime, Utc};
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use serde_yaml;
+use sha2::{Digest, Sha256};
 use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
-use tracing::{debug, error, info, warn};
+use tracing::{debug, info, warn};
+use walkdir::WalkDir;
 
 use crate::evidence::ToolInvocation;
 
@@ -296,9 +298,9 @@ impl DecisionRecord {
         let date_str = self.created.format("%Y-%m-%d").to_string();
         let slug = self.to_slug();
 
-        // Add short hash for uniqueness
+        // Add short hash for uniqueness (SHA256, matching Python implementation)
         let hash_input = format!("{}{}", self.title, self.created.to_rfc3339());
-        let hash = format!("{:x}", md5::compute(hash_input.as_bytes()));
+        let hash = format!("{:x}", Sha256::digest(hash_input.as_bytes()));
         let short_hash = &hash[..6];
 
         format!("{}-{}-{}.md", date_str, slug, short_hash)
@@ -760,6 +762,471 @@ impl ObsidianConfigService {
 }
 
 // ============================================================================
+// Vault Reading (ported from Python obsidian_vault.py)
+// ============================================================================
+
+/// A parsed Obsidian note with frontmatter metadata.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ObsidianNote {
+    pub path: PathBuf,
+    pub title: String,
+    pub content: String,
+    #[serde(default)]
+    pub frontmatter: HashMap<String, serde_json::Value>,
+    #[serde(default)]
+    pub tags: Vec<String>,
+    #[serde(default)]
+    pub category: String,
+    #[serde(default)]
+    pub project: String,
+    #[serde(default)]
+    pub summary: String,
+}
+
+/// Service for reading and filtering notes from an Obsidian vault.
+pub struct ObsidianVaultService {
+    config: ObsidianConfig,
+    notes_cache: Option<Vec<ObsidianNote>>,
+}
+
+impl ObsidianVaultService {
+    pub fn new(config: ObsidianConfig) -> Self {
+        Self {
+            config,
+            notes_cache: None,
+        }
+    }
+
+    /// Scan the configured knowledge folders and parse all markdown notes.
+    pub fn scan_knowledge_folder(&mut self) -> Result<&[ObsidianNote], Box<dyn std::error::Error>> {
+        let vault_path = &self.config.vault.path;
+        let mut notes = Vec::new();
+
+        for read_path in &self.config.vault.read_paths {
+            let folder = vault_path.join(read_path);
+            if !folder.exists() {
+                debug!("Knowledge folder not found: {}", folder.display());
+                continue;
+            }
+
+            for entry in WalkDir::new(&folder).into_iter().filter_map(|e| e.ok()) {
+                let path = entry.path();
+                if path.extension().and_then(|e| e.to_str()) != Some("md") {
+                    continue;
+                }
+
+                match self.parse_note(path) {
+                    Ok(note) => notes.push(note),
+                    Err(e) => debug!("Failed to parse note {}: {}", path.display(), e),
+                }
+            }
+        }
+
+        info!("Scanned {} notes from vault", notes.len());
+        self.notes_cache = Some(notes);
+        Ok(self.notes_cache.as_deref().unwrap())
+    }
+
+    /// Filter notes by project name.
+    pub fn filter_by_project(&self, project_name: &str) -> Vec<&ObsidianNote> {
+        let Some(notes) = &self.notes_cache else {
+            return Vec::new();
+        };
+        let project_lower = project_name.to_lowercase();
+        notes
+            .iter()
+            .filter(|n| n.project.to_lowercase() == project_lower)
+            .collect()
+    }
+
+    /// Get a note by its relative path within the vault.
+    pub fn get_note_by_path(&self, path: &Path) -> Option<&ObsidianNote> {
+        let Some(notes) = &self.notes_cache else {
+            return None;
+        };
+        notes.iter().find(|n| n.path == path)
+    }
+
+    /// Get notes filtered by relevance to the current project.
+    pub fn get_relevant_notes(&self, project_name: &str) -> Vec<&ObsidianNote> {
+        self.filter_by_project(project_name)
+    }
+
+    /// Get notes by tag.
+    pub fn get_notes_by_tag(&self, tag: &str) -> Vec<&ObsidianNote> {
+        let Some(notes) = &self.notes_cache else {
+            return Vec::new();
+        };
+        let tag_lower = tag.to_lowercase();
+        notes
+            .iter()
+            .filter(|n| n.tags.iter().any(|t| t.to_lowercase() == tag_lower))
+            .collect()
+    }
+
+    /// Get notes by category.
+    pub fn get_notes_by_category(&self, category: &str) -> Vec<&ObsidianNote> {
+        let Some(notes) = &self.notes_cache else {
+            return Vec::new();
+        };
+        let cat_lower = category.to_lowercase();
+        notes
+            .iter()
+            .filter(|n| n.category.to_lowercase() == cat_lower)
+            .collect()
+    }
+
+    /// Check if a note exists.
+    pub fn note_exists(&self, path: &Path) -> bool {
+        self.config.vault.path.join(path).exists()
+    }
+
+    /// Parse a single markdown note with YAML frontmatter.
+    fn parse_note(&self, path: &Path) -> Result<ObsidianNote, Box<dyn std::error::Error>> {
+        let raw = fs::read_to_string(path)?;
+        let vault_path = &self.config.vault.path;
+        let relative_path = path.strip_prefix(vault_path).unwrap_or(path).to_path_buf();
+
+        // Parse frontmatter
+        let (frontmatter, content) = Self::split_frontmatter(&raw);
+
+        // Extract metadata from frontmatter
+        let title = frontmatter
+            .get("title")
+            .and_then(|v| v.as_str())
+            .unwrap_or_else(|| {
+                path.file_stem()
+                    .and_then(|s| s.to_str())
+                    .unwrap_or("Untitled")
+            })
+            .to_string();
+
+        let tags = frontmatter
+            .get("tags")
+            .and_then(|v| v.as_array())
+            .map(|arr| {
+                arr.iter()
+                    .filter_map(|v| v.as_str().map(String::from))
+                    .collect()
+            })
+            .unwrap_or_default();
+
+        let category = frontmatter
+            .get("category")
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .to_string();
+
+        let project = frontmatter
+            .get("project")
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .to_string();
+
+        let summary = frontmatter
+            .get("summary")
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .to_string();
+
+        Ok(ObsidianNote {
+            path: relative_path,
+            title,
+            content,
+            frontmatter,
+            tags,
+            category,
+            project,
+            summary,
+        })
+    }
+
+    /// Split a markdown document into frontmatter and content.
+    fn split_frontmatter(raw: &str) -> (HashMap<String, serde_json::Value>, String) {
+        let trimmed = raw.trim_start();
+        if !trimmed.starts_with("---") {
+            return (HashMap::new(), raw.to_string());
+        }
+
+        // Find the closing ---
+        if let Some(end) = trimmed[3..].find("\n---") {
+            let yaml_str = &trimmed[3..end + 3].trim();
+            let content = &trimmed[end + 3 + 4..]; // Skip past closing ---\n
+
+            let frontmatter: HashMap<String, serde_json::Value> =
+                serde_yaml::from_str(yaml_str).unwrap_or_default();
+            return (frontmatter, content.trim_start_matches('\n').to_string());
+        }
+
+        (HashMap::new(), raw.to_string())
+    }
+}
+
+// ============================================================================
+// Context Generation (ported from Python obsidian_context.py)
+// ============================================================================
+
+/// Generates an @OBSIDIAN.md context file from relevant vault notes.
+pub struct ObsidianContextGenerator {
+    vault_service: ObsidianVaultService,
+    project_name: String,
+}
+
+impl ObsidianContextGenerator {
+    pub fn new(config: ObsidianConfig, project_name: String) -> Self {
+        Self {
+            vault_service: ObsidianVaultService::new(config),
+            project_name,
+        }
+    }
+
+    /// Generate the @OBSIDIAN.md context content.
+    pub fn generate_context(&mut self) -> Result<String, Box<dyn std::error::Error>> {
+        self.vault_service.scan_knowledge_folder()?;
+        let notes = self.vault_service.get_relevant_notes(&self.project_name);
+
+        if notes.is_empty() {
+            return Ok(format!(
+                "# Obsidian Context: {}\n\nNo relevant notes found in vault.\n",
+                self.project_name
+            ));
+        }
+
+        let mut lines = Vec::new();
+        lines.push(format!("# Obsidian Context: {}", self.project_name));
+        lines.push(String::new());
+        lines.push(format!(
+            "> Auto-generated from {} relevant vault notes.",
+            notes.len()
+        ));
+        lines.push(String::new());
+
+        // Group by category
+        let mut by_category: HashMap<String, Vec<&&ObsidianNote>> = HashMap::new();
+        for note in &notes {
+            let cat = if note.category.is_empty() {
+                "Uncategorized"
+            } else {
+                &note.category
+            };
+            by_category
+                .entry(cat.to_string())
+                .or_default()
+                .push(note);
+        }
+
+        for (category, cat_notes) in &by_category {
+            lines.push(format!("## {}", category));
+            lines.push(String::new());
+
+            for note in cat_notes {
+                lines.push(format!("### {}", note.title));
+                if !note.summary.is_empty() {
+                    lines.push(format!("_{}_", note.summary));
+                }
+                if !note.tags.is_empty() {
+                    let tag_str = note.tags.iter().map(|t| format!("#{}", t)).collect::<Vec<_>>().join(" ");
+                    lines.push(format!("Tags: {}", tag_str));
+                }
+                lines.push(String::new());
+            }
+        }
+
+        Ok(lines.join("\n"))
+    }
+
+    /// Check if context regeneration is needed (stub for freshness check).
+    pub fn should_regenerate(&self, output_path: &Path) -> bool {
+        !output_path.exists()
+    }
+
+    /// Get the count of relevant notes.
+    pub fn get_note_count(&self) -> usize {
+        self.vault_service
+            .get_relevant_notes(&self.project_name)
+            .len()
+    }
+
+    /// Get the categories of relevant notes.
+    pub fn get_categories(&self) -> Vec<String> {
+        let notes = self.vault_service.get_relevant_notes(&self.project_name);
+        let mut categories: Vec<String> = notes
+            .iter()
+            .map(|n| {
+                if n.category.is_empty() {
+                    "Uncategorized".to_string()
+                } else {
+                    n.category.clone()
+                }
+            })
+            .collect();
+        categories.sort();
+        categories.dedup();
+        categories
+    }
+}
+
+/// Convenience function matching Python's `generate_obsidian_context()`.
+pub fn generate_obsidian_context(
+    config: ObsidianConfig,
+    project_name: &str,
+) -> Result<String, Box<dyn std::error::Error>> {
+    let mut gen = ObsidianContextGenerator::new(config, project_name.to_string());
+    gen.generate_context()
+}
+
+// ============================================================================
+// CLAUDE.md Integration (ported from Python obsidian_md.py)
+// ============================================================================
+
+/// Service for integrating Obsidian context into CLAUDE.md.
+pub struct ObsidianMdService {
+    project_root: PathBuf,
+    config: ObsidianConfig,
+}
+
+impl ObsidianMdService {
+    const OBSIDIAN_SECTION_START: &'static str = "<!-- OBSIDIAN_CONTEXT_START -->";
+    const OBSIDIAN_SECTION_END: &'static str = "<!-- OBSIDIAN_CONTEXT_END -->";
+
+    pub fn new(project_root: PathBuf, config: ObsidianConfig) -> Self {
+        Self {
+            project_root,
+            config,
+        }
+    }
+
+    /// Set up the Obsidian context section in CLAUDE.md.
+    pub fn setup_obsidian_context(&self) -> Result<(), Box<dyn std::error::Error>> {
+        let context = generate_obsidian_context(
+            self.config.clone(),
+            &self.project_name_from_root(),
+        )?;
+
+        let claude_md_path = self.project_root.join("CLAUDE.md");
+        if !claude_md_path.exists() {
+            // Create CLAUDE.md with obsidian section
+            let content = format!(
+                "{}\n{}\n{}\n",
+                Self::OBSIDIAN_SECTION_START,
+                context,
+                Self::OBSIDIAN_SECTION_END,
+            );
+            fs::write(&claude_md_path, content)?;
+            info!("Created CLAUDE.md with Obsidian context");
+            return Ok(());
+        }
+
+        // Update existing CLAUDE.md
+        let existing = fs::read_to_string(&claude_md_path)?;
+        let new_content = self.replace_section(&existing, &context);
+        fs::write(&claude_md_path, new_content)?;
+        info!("Updated CLAUDE.md with Obsidian context");
+        Ok(())
+    }
+
+    /// Refresh the context when vault changes.
+    pub fn refresh_context(&self) -> Result<(), Box<dyn std::error::Error>> {
+        self.setup_obsidian_context()
+    }
+
+    /// Remove the Obsidian context section from CLAUDE.md.
+    pub fn remove_obsidian_context(&self) -> Result<(), Box<dyn std::error::Error>> {
+        let claude_md_path = self.project_root.join("CLAUDE.md");
+        if !claude_md_path.exists() {
+            return Ok(());
+        }
+
+        let existing = fs::read_to_string(&claude_md_path)?;
+        let new_content = self.remove_section(&existing);
+        fs::write(&claude_md_path, new_content)?;
+        info!("Removed Obsidian context from CLAUDE.md");
+        Ok(())
+    }
+
+    /// Get integration status.
+    pub fn get_status(&self) -> HashMap<String, serde_json::Value> {
+        let claude_md_path = self.project_root.join("CLAUDE.md");
+        let mut status = HashMap::new();
+
+        let has_claude_md = claude_md_path.exists();
+        status.insert("claude_md_exists".into(), serde_json::json!(has_claude_md));
+
+        if has_claude_md {
+            let content = fs::read_to_string(&claude_md_path).unwrap_or_default();
+            let has_section = content.contains(Self::OBSIDIAN_SECTION_START);
+            status.insert("obsidian_section_present".into(), serde_json::json!(has_section));
+        }
+
+        let config_service = ObsidianConfigService::new(self.project_root.clone());
+        status.insert("config_exists".into(), serde_json::json!(config_service.config_exists()));
+        status.insert("vault_path".into(), serde_json::json!(self.config.vault.path.to_string_lossy()));
+
+        status
+    }
+
+    fn project_name_from_root(&self) -> String {
+        self.project_root
+            .file_name()
+            .and_then(|n| n.to_str())
+            .unwrap_or("unknown")
+            .to_string()
+    }
+
+    fn replace_section(&self, content: &str, new_context: &str) -> String {
+        if let (Some(start), Some(end)) = (
+            content.find(Self::OBSIDIAN_SECTION_START),
+            content.find(Self::OBSIDIAN_SECTION_END),
+        ) {
+            let end_pos = end + Self::OBSIDIAN_SECTION_END.len();
+            let replacement = format!(
+                "{}\n{}\n{}",
+                Self::OBSIDIAN_SECTION_START,
+                new_context,
+                Self::OBSIDIAN_SECTION_END,
+            );
+            format!("{}{}{}", &content[..start], replacement, &content[end_pos..])
+        } else {
+            // Append section at end
+            format!(
+                "{}\n\n{}\n{}\n{}\n",
+                content.trim_end(),
+                Self::OBSIDIAN_SECTION_START,
+                new_context,
+                Self::OBSIDIAN_SECTION_END,
+            )
+        }
+    }
+
+    fn remove_section(&self, content: &str) -> String {
+        if let (Some(start), Some(end)) = (
+            content.find(Self::OBSIDIAN_SECTION_START),
+            content.find(Self::OBSIDIAN_SECTION_END),
+        ) {
+            let end_pos = end + Self::OBSIDIAN_SECTION_END.len();
+            let before = content[..start].trim_end();
+            let after = content[end_pos..].trim_start();
+            if after.is_empty() {
+                before.to_string()
+            } else {
+                format!("{}\n\n{}", before, after)
+            }
+        } else {
+            content.to_string()
+        }
+    }
+}
+
+/// Convenience function matching Python's `setup_obsidian_integration()`.
+pub fn setup_obsidian_integration(
+    project_root: &Path,
+    config: ObsidianConfig,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let service = ObsidianMdService::new(project_root.to_path_buf(), config);
+    service.setup_obsidian_context()
+}
+
+// ============================================================================
 // Utilities
 // ============================================================================
 
@@ -849,6 +1316,51 @@ mod tests {
         assert_eq!(decisions.len(), 1);
         assert_eq!(decisions[0].decision_type, "technical");
         assert!(decisions[0].title.contains("Performance optimization"));
+    }
+
+    #[test]
+    fn test_split_frontmatter() {
+        let raw = "---\ntitle: Test\ntags:\n  - foo\n---\nContent here.";
+        let (fm, content) = ObsidianVaultService::split_frontmatter(raw);
+        assert_eq!(fm.get("title").unwrap().as_str().unwrap(), "Test");
+        assert!(content.contains("Content here."));
+    }
+
+    #[test]
+    fn test_split_frontmatter_no_frontmatter() {
+        let raw = "Just content, no frontmatter.";
+        let (fm, content) = ObsidianVaultService::split_frontmatter(raw);
+        assert!(fm.is_empty());
+        assert_eq!(content, raw);
+    }
+
+    #[test]
+    fn test_md_service_replace_section() {
+        let service = ObsidianMdService::new(
+            PathBuf::from("/tmp"),
+            ObsidianConfig::default(),
+        );
+
+        let content = "before\n<!-- OBSIDIAN_CONTEXT_START -->\nold\n<!-- OBSIDIAN_CONTEXT_END -->\nafter";
+        let result = service.replace_section(content, "new context");
+        assert!(result.contains("new context"));
+        assert!(!result.contains("old"));
+        assert!(result.contains("before"));
+        assert!(result.contains("after"));
+    }
+
+    #[test]
+    fn test_md_service_remove_section() {
+        let service = ObsidianMdService::new(
+            PathBuf::from("/tmp"),
+            ObsidianConfig::default(),
+        );
+
+        let content = "before\n<!-- OBSIDIAN_CONTEXT_START -->\nstuff\n<!-- OBSIDIAN_CONTEXT_END -->\nafter";
+        let result = service.remove_section(content);
+        assert!(!result.contains("OBSIDIAN_CONTEXT"));
+        assert!(result.contains("before"));
+        assert!(result.contains("after"));
     }
 
     #[test]

@@ -1785,7 +1785,7 @@ SuperClaude/
 │   ├── proto/                   # Protobuf/gRPC service definitions
 │   ├── superclaude-core/        # Shared domain types and utilities
 │   ├── superclaude-daemon/      # gRPC daemon (port 50051)
-│   └── superclaude-runtime/     # Rust runtime with API client and loop runner
+│   └── superclaude-runtime/     # Rust runtime: agent selector, obsidian vault, loop runner, registry
 │
 ├── setup/
 │   └── services/                # Installation services

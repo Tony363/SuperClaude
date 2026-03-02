@@ -135,7 +135,6 @@ Detects anti-patterns in error handling based on the "Let It Crash" philosophy.
 | Bare `except:` | error | Catches all exceptions including KeyboardInterrupt |
 | `except Exception:` (no re-raise) | warning | Swallows errors without handling |
 | `except: pass` | error | Silent failure, debugging nightmare |
-| Defensive `if not x: return` chains | warning | Masks root cause of bugs |
 | Nested try/except fallbacks | warning | Complex error paths, hard to debug |
 
 **When to Let It Crash:**
@@ -448,23 +447,42 @@ This skill integrates with SuperClaude quality gates:
 
 ## Test Coverage
 
-The validators have comprehensive test coverage (27 tests):
+The validators have comprehensive test coverage (59 tests across 4 suites):
 
-**Purity Validator Tests:**
+**Purity Validator Tests (16):**
 - Async function detection (`async def`)
 - Await expression detection
 - Async for loop detection
 - Async with context manager detection
 - Shell vs core severity differentiation
+- False positive regression (set.add, parser.add_argument, asyncio.run, callback.call)
 - Edge cases (syntax errors, unicode, empty files)
 
-**KISS Validator Tests:**
+**KISS Validator Tests (15):**
 - Function length (inclusive count)
 - Cyclomatic complexity
 - Cognitive complexity
 - Nesting depth
 - Parameter count
 - Edge cases (syntax errors, unicode, empty files)
+
+**SOLID Validator Tests (15):**
+- SRP: File length, class method count, private methods excluded
+- OCP: isinstance cascades
+- LSP: NotImplementedError in concrete overrides, ABC/Protocol excluded
+- ISP: Fat Protocol and ABC interfaces
+- DIP: Direct service instantiation in core paths
+- Edge cases (syntax errors, empty files)
+
+**Crash Validator Tests (13):**
+- Bare except detection
+- except: pass detection
+- Exception swallowed in core paths
+- Exception with re-raise (OK)
+- Specific exception handling (OK)
+- Nested try/except depth
+- Shell path relaxation (adapters, api)
+- Edge cases (syntax errors, empty files, try/finally)
 
 Run tests:
 ```bash
@@ -473,8 +491,9 @@ python -m pytest .claude/skills/sc-principles/tests/ -v
 
 ---
 
-**Version**: 2.0.0
-**Validators**: `validate_kiss.py`, `validate_purity.py`, `validate_solid.py` (heuristic), `validate_crash.py` (heuristic)
+**Version**: 2.1.0
+**Validators**: `validate_kiss.py`, `validate_purity.py`, `validate_solid.py`, `validate_crash.py`
+**Shared**: `shared.py` (common `find_python_files` utility)
 **Agent**: `code-warden`
 **Traits**: `solid-aligned`, `crash-resilient`
-**Tests**: 27 passing (KISS + Purity)
+**Tests**: 59 passing (all 4 validators)

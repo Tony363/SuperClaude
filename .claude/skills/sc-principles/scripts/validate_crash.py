@@ -18,11 +18,15 @@ from __future__ import annotations
 import argparse
 import ast
 import json
-import subprocess
 import sys
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Optional
+
+try:
+    from .shared import find_python_files
+except ImportError:
+    from shared import find_python_files
 
 
 @dataclass
@@ -216,50 +220,6 @@ def analyze_file_crash(
     visitor.visit(tree)
 
     return visitor.violations
-
-
-def find_python_files(scope_root: Path, changed_only: bool = True) -> list[Path]:
-    """Find Python files to analyze."""
-    if changed_only:
-        try:
-            result = subprocess.run(
-                ["git", "diff", "--name-only", "--cached", "HEAD"],
-                capture_output=True,
-                text=True,
-                cwd=scope_root,
-                timeout=30,
-            )
-            staged = result.stdout.strip().split("\n") if result.stdout.strip() else []
-
-            result = subprocess.run(
-                ["git", "diff", "--name-only"],
-                capture_output=True,
-                text=True,
-                cwd=scope_root,
-                timeout=30,
-            )
-            unstaged = result.stdout.strip().split("\n") if result.stdout.strip() else []
-
-            result = subprocess.run(
-                ["git", "ls-files", "--others", "--exclude-standard"],
-                capture_output=True,
-                text=True,
-                cwd=scope_root,
-                timeout=30,
-            )
-            untracked = result.stdout.strip().split("\n") if result.stdout.strip() else []
-
-            all_files = set(staged + unstaged + untracked)
-            py_files = [
-                scope_root / f for f in all_files if f.endswith(".py") and (scope_root / f).exists()
-            ]
-
-            if py_files:
-                return py_files
-        except (subprocess.SubprocessError, FileNotFoundError):
-            pass  # Fall back to rglob below when git is unavailable
-
-    return list(scope_root.rglob("*.py"))
 
 
 def generate_recommendations(violations: list[CrashViolation]) -> list[str]:

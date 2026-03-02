@@ -9,6 +9,10 @@ pub mod safety;
 pub mod hooks;
 pub mod quality;
 pub mod skills;
+pub mod registry;
+pub mod obsidian;
+pub mod selector;
+pub mod loop_runner;
 
 // Re-export commonly used types
 pub use events::{EventsTracker, FileAction, LogLevel, QualityDimensions};
