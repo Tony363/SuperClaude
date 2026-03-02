@@ -5,10 +5,9 @@ Multi-language README quality checker.
 Checks version sync, link validity, and structural consistency.
 """
 
+import json
 import os
 import re
-import json
-from pathlib import Path
 
 try:
     import requests
