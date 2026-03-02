@@ -11,6 +11,7 @@ import re
 
 try:
     import requests
+
     HAS_REQUESTS = True
 except ImportError:
     HAS_REQUESTS = False
@@ -18,12 +19,12 @@ except ImportError:
 
 class READMEQualityChecker:
     def __init__(self):
-        self.readme_files = ['README.md', 'README-zh.md', 'README-ja.md']
+        self.readme_files = ["README.md", "README-zh.md", "README-ja.md"]
         self.results = {
-            'structure_consistency': [],
-            'link_validation': [],
-            'translation_sync': [],
-            'overall_score': 0
+            "structure_consistency": [],
+            "link_validation": [],
+            "translation_sync": [],
+            "overall_score": 0,
         }
 
     def check_structure_consistency(self):
@@ -33,9 +34,9 @@ class READMEQualityChecker:
         structures = {}
         for file in self.readme_files:
             if os.path.exists(file):
-                with open(file, 'r', encoding='utf-8') as f:
+                with open(file, "r", encoding="utf-8") as f:
                     content = f.read()
-                    headers = re.findall(r'^#{1,6}\s+(.+)$', content, re.MULTILINE)
+                    headers = re.findall(r"^#{1,6}\s+(.+)$", content, re.MULTILINE)
                     structures[file] = len(headers)
 
         line_counts = [structures.get(f, 0) for f in self.readme_files if f in structures]
@@ -43,10 +44,10 @@ class READMEQualityChecker:
             max_diff = max(line_counts) - min(line_counts)
             consistency_score = max(0, 100 - (max_diff * 5))
 
-            self.results['structure_consistency'] = {
-                'score': consistency_score,
-                'details': structures,
-                'status': 'PASS' if consistency_score >= 90 else 'WARN'
+            self.results["structure_consistency"] = {
+                "score": consistency_score,
+                "details": structures,
+                "status": "PASS" if consistency_score >= 90 else "WARN",
             }
 
             print(f"  Structure consistency: {consistency_score}/100")
@@ -62,33 +63,35 @@ class READMEQualityChecker:
 
         for file in self.readme_files:
             if os.path.exists(file):
-                with open(file, 'r', encoding='utf-8') as f:
+                with open(file, "r", encoding="utf-8") as f:
                     content = f.read()
 
-                links = re.findall(r'\[([^\]]+)\]\(([^)]+)\)', content)
+                links = re.findall(r"\[([^\]]+)\]\(([^)]+)\)", content)
                 all_links[file] = []
 
                 for text, url in links:
-                    link_info = {'text': text, 'url': url, 'status': 'unknown'}
+                    link_info = {"text": text, "url": url, "status": "unknown"}
 
-                    if not url.startswith(('http://', 'https://', '#')):
+                    if not url.startswith(("http://", "https://", "#")):
                         if os.path.exists(url):
-                            link_info['status'] = 'valid'
+                            link_info["status"] = "valid"
                         else:
-                            link_info['status'] = 'broken'
+                            link_info["status"] = "broken"
                             broken_links.append(f"{file}: {url}")
-                    elif url.startswith(('http://', 'https://')) and HAS_REQUESTS:
+                    elif url.startswith(("http://", "https://")) and HAS_REQUESTS:
                         # Only check key domains to avoid excessive requests
-                        if any(domain in url for domain in ['github.com', 'pypi.org', 'npmjs.com']):
+                        if any(domain in url for domain in ["github.com", "pypi.org", "npmjs.com"]):
                             try:
                                 response = requests.head(url, timeout=10, allow_redirects=True)
-                                link_info['status'] = 'valid' if response.status_code < 400 else 'broken'
+                                link_info["status"] = (
+                                    "valid" if response.status_code < 400 else "broken"
+                                )
                             except requests.RequestException:
-                                link_info['status'] = 'error'
+                                link_info["status"] = "error"
                         else:
-                            link_info['status'] = 'skipped'
+                            link_info["status"] = "skipped"
                     else:
-                        link_info['status'] = 'anchor'
+                        link_info["status"] = "anchor"
 
                     all_links[file].append(link_info)
 
@@ -96,12 +99,12 @@ class READMEQualityChecker:
         broken_count = len(broken_links)
         link_score = max(0, 100 - (broken_count * 10)) if total_links > 0 else 100
 
-        self.results['link_validation'] = {
-            'score': link_score,
-            'total_links': total_links,
-            'broken_links': broken_count,
-            'broken_list': broken_links[:10],
-            'status': 'PASS' if link_score >= 80 else 'FAIL'
+        self.results["link_validation"] = {
+            "score": link_score,
+            "total_links": total_links,
+            "broken_links": broken_count,
+            "broken_list": broken_links[:10],
+            "status": "PASS" if link_score >= 80 else "FAIL",
         }
 
         print(f"  Link validity: {link_score}/100")
@@ -115,10 +118,10 @@ class READMEQualityChecker:
         if not all(os.path.exists(f) for f in self.readme_files):
             missing = [f for f in self.readme_files if not os.path.exists(f)]
             print(f"  Warning: missing README files: {missing}")
-            self.results['translation_sync'] = {
-                'score': 60,
-                'status': 'WARN',
-                'message': f'Missing files: {missing}'
+            self.results["translation_sync"] = {
+                "score": 60,
+                "status": "WARN",
+                "message": f"Missing files: {missing}",
             }
             return
 
@@ -132,11 +135,11 @@ class READMEQualityChecker:
         # Score based on time difference (within 7 days = synchronized)
         sync_score = max(0, 100 - (time_diff / (7 * 24 * 3600) * 20))
 
-        self.results['translation_sync'] = {
-            'score': int(sync_score),
-            'time_diff_days': round(time_diff / (24 * 3600), 2),
-            'status': 'PASS' if sync_score >= 80 else 'WARN',
-            'mod_times': {f: f"{os.path.getmtime(f):.0f}" for f in self.readme_files}
+        self.results["translation_sync"] = {
+            "score": int(sync_score),
+            "time_diff_days": round(time_diff / (24 * 3600), 2),
+            "status": "PASS" if sync_score >= 80 else "WARN",
+            "mod_times": {f: f"{os.path.getmtime(f):.0f}" for f in self.readme_files},
         }
 
         print(f"  Translation sync: {int(sync_score)}/100")
@@ -147,16 +150,16 @@ class READMEQualityChecker:
         print("\nGenerating quality report...")
 
         scores = [
-            self.results['structure_consistency'].get('score', 0),
-            self.results['link_validation'].get('score', 0),
-            self.results['translation_sync'].get('score', 0)
+            self.results["structure_consistency"].get("score", 0),
+            self.results["link_validation"].get("score", 0),
+            self.results["translation_sync"].get("score", 0),
         ]
         overall_score = sum(scores) // len(scores)
-        self.results['overall_score'] = overall_score
+        self.results["overall_score"] = overall_score
 
-        struct = self.results['structure_consistency']
-        links = self.results['link_validation']
-        trans = self.results['translation_sync']
+        struct = self.results["structure_consistency"]
+        links = self.results["link_validation"]
+        trans = self.results["translation_sync"]
 
         summary_lines = [
             "## README Quality Check Report",
@@ -174,13 +177,13 @@ class READMEQualityChecker:
             "**Structure consistency:**",
         ]
 
-        for file, count in struct.get('details', {}).items():
+        for file, count in struct.get("details", {}).items():
             summary_lines.append(f"- `{file}`: {count} headers")
 
-        if links.get('broken_list'):
+        if links.get("broken_list"):
             summary_lines.append("")
             summary_lines.append("**Broken links:**")
-            for link in links['broken_list']:
+            for link in links["broken_list"]:
                 summary_lines.append(f"- {link}")
 
         summary_lines.append("")
@@ -196,13 +199,13 @@ class READMEQualityChecker:
         summary = "\n".join(summary_lines)
 
         # Write to GitHub Actions step summary if available
-        github_step_summary = os.environ.get('GITHUB_STEP_SUMMARY')
+        github_step_summary = os.environ.get("GITHUB_STEP_SUMMARY")
         if github_step_summary:
-            with open(github_step_summary, 'w', encoding='utf-8') as f:
+            with open(github_step_summary, "w", encoding="utf-8") as f:
                 f.write(summary)
 
         # Save detailed results
-        with open('readme-quality-report.json', 'w', encoding='utf-8') as f:
+        with open("readme-quality-report.json", "w", encoding="utf-8") as f:
             json.dump(self.results, f, indent=2, ensure_ascii=False)
 
         print("Report generated")
