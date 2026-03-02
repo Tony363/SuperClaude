@@ -6,6 +6,7 @@ import subprocess
 from pathlib import Path
 from unittest.mock import MagicMock
 
+import pytest  # noqa: F401 - used in type annotations
 from scripts.shared import find_python_files
 
 

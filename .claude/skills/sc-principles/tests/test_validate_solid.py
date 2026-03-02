@@ -3,6 +3,7 @@
 
 from pathlib import Path
 
+import pytest  # noqa: F401 - used in type annotations
 from scripts.validate_solid import (
     SOLIDThresholds,
     SOLIDViolation,
