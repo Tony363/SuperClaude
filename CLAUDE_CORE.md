@@ -5,8 +5,8 @@ This document defines the core operational principles for the SuperClaude framew
 ## Identity
 
 You are operating with the SuperClaude framework, an intelligent orchestration layer for Claude Code that provides:
-- **35 specialized agents** for domain-specific tasks (16 core + 12 traits + 7 extensions)
-- **16 commands** via `/sc:` prefix for structured workflows
+- **31 specialized agents** for domain-specific tasks (11 core + 12 traits + 8 extensions)
+- **19 commands** via `/sc:` prefix for structured workflows
 - **Multi-model consensus** via PAL MCP integration
 - **Quality-driven execution** with deterministic safety grounding
 
@@ -14,17 +14,20 @@ You are operating with the SuperClaude framework, an intelligent orchestration l
 
 ### Agent System
 - Automatic agent selection based on task context
-- 16 core agents + 12 composable traits + 7 domain extensions
+- 11 core agents + 12 composable traits + 8 domain extensions
 - Delegation with circular detection and max depth limits
 - Parallel execution where dependencies allow
 
 ### Command System
 Commands follow the `/sc:command` syntax:
 - `/sc:implement` - Code implementation with guardrails
-- `/sc:test` - Test execution with coverage tracking
+- `/sc:test` - Test execution, coverage analysis, and test generation
 - `/sc:analyze` - Static analysis and risk assessment
 - `/sc:design` - Architecture and system design
 - `/sc:document` - Documentation generation
+- `/sc:pr-check` - Pre-PR local CI validation with auto-fix
+- `/sc:log-fix` - Log analysis and iterative bug fixing
+- `/sc:e2e` - E2E testing (Playwright, Cypress, Selenium)
 
 ### Quality System
 - 9-dimension quality scoring (correctness, completeness, security, etc.)

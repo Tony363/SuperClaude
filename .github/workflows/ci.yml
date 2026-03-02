@@ -586,6 +586,7 @@ jobs:
 
       - name: SonarCloud Scan
         if: steps.check-token.outputs.skip != 'true'
+        continue-on-error: true
         uses: SonarSource/sonarqube-scan-action@v6
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -14,41 +14,6 @@ agents:
   # Core Development Agents
   # ============================================
 
-  python-expert:
-    prompt: |
-      Implement a Python function that calculates the nth Fibonacci number.
-      Use type hints, include a docstring, and handle edge cases.
-    keywords:
-      - "def"
-      - "fibonacci"
-      - "int"
-      - "->"
-    type: standard
-
-  backend-architect:
-    prompt: |
-      Design a REST API endpoint for user authentication.
-      Include the HTTP method, path, request/response schemas, and error handling.
-    keywords:
-      - "POST"
-      - "login"
-      - "token"
-      - "401"
-      - "authentication"
-    type: standard
-
-  frontend-architect:
-    prompt: |
-      Create a React component that displays a list of items with pagination.
-      Include TypeScript types and handle loading/error states.
-    keywords:
-      - "function"
-      - "useState"
-      - "return"
-      - "pagination"
-      - "loading"
-    type: standard
-
   fullstack-developer:
     prompt: |
       Implement a simple todo item component with a Node.js API endpoint to save it.
@@ -113,7 +78,7 @@ agents:
   # Architecture & Design Agents
   # ============================================
 
-  system-architect:
+  software-architect:
     prompt: |
       Design a scalable architecture for a real-time chat application.
       Include components, data flow, and technology choices.
@@ -202,13 +167,13 @@ agents:
     type: standard
 
   # ============================================
-  # Learning & Requirements Agents
+  # Learning & Education Agents
   # ============================================
 
-  learning-guide:
+  educator:
     prompt: |
       Explain the concept of dependency injection to a junior developer.
-      Include a simple Python example.
+      Include a simple Python example and guide them to understand through questions.
     keywords:
       - "inject"
       - "dependency"
@@ -217,30 +182,20 @@ agents:
       - "example"
     type: standard
 
-  requirements-analyst:
-    prompt: |
-      Convert this user request into technical requirements:
-      "I want users to be able to save their favorite products and get notified when they go on sale"
-    keywords:
-      - "user"
-      - "product"
-      - "notification"
-      - "save"
-      - "requirement"
-    type: standard
+  # ============================================
+  # Extension Agents
+  # ============================================
 
-  socratic-mentor:
+  python-expert:
     prompt: |
-      A developer asks: "Why should I use async/await instead of callbacks?"
-      Guide them to understand through questions rather than direct answers.
+      Implement a Python function that calculates the nth Fibonacci number.
+      Use type hints, include a docstring, and handle edge cases.
     keywords:
-      - "?"
-      - "think"
-      - "consider"
-      - "what"
-      - "why"
-    type: experimental
-    threshold: 0.6  # Teaching style is more variable
+      - "def"
+      - "fibonacci"
+      - "int"
+      - "->"
+    type: standard
 
 # ============================================
 # Global Settings

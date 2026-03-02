@@ -1,11 +1,11 @@
 ---
 name: sc-test
-description: Execute tests with coverage analysis and automated quality reporting. Use when running unit tests, integration tests, e2e tests, analyzing coverage, or debugging test failures.
+description: Execute tests with coverage analysis, gap identification, test generation, and automated quality reporting. Use when running tests, analyzing coverage, generating missing tests, or debugging test failures.
 ---
 
 # Testing & QA Skill
 
-Test execution with coverage analysis and quality reporting.
+Test execution with coverage analysis, gap identification, test generation, and quality reporting.
 
 ## Quick Start
 
@@ -16,8 +16,17 @@ Test execution with coverage analysis and quality reporting.
 # Unit tests with coverage
 /sc:test src/components --type unit --coverage
 
+# Coverage gap analysis - identify untested code
+/sc:test --gap-analysis --target 80
+
+# Generate missing tests to reach target coverage
+/sc:test --generate --target 80 --module src/services
+
 # Watch mode with auto-fix
 /sc:test --watch --fix
+
+# Fix existing failures before adding coverage
+/sc:test --fix-first --generate --target 80
 
 # Web search for testing guidance (uses Rube MCP's LINKUP_SEARCH)
 /sc:test --linkup --query "pytest asyncio best practices"
@@ -29,7 +38,9 @@ Test execution with coverage analysis and quality reporting.
 2. **Configure** - Set up test environment and parameters
 3. **Execute** - Run tests with real-time progress tracking
 4. **Analyze** - Generate coverage reports and diagnostics
-5. **Report** - Provide recommendations and quality metrics
+5. **Gap Analysis** - Identify untested code when `--gap-analysis` or `--generate`
+6. **Generate** - Write missing tests when `--generate`
+7. **Report** - Provide recommendations and quality metrics
 
 ## Flags
 
@@ -39,6 +50,12 @@ Test execution with coverage analysis and quality reporting.
 | `--coverage` | bool | false | Generate coverage report |
 | `--watch` | bool | false | Continuous watch mode |
 | `--fix` | bool | false | Auto-fix simple failures |
+| `--gap-analysis` | bool | false | Identify coverage gaps without generating tests |
+| `--generate` | bool | false | Generate missing tests to reach target |
+| `--target` | int | 80 | Coverage percentage target |
+| `--module` | string | - | Restrict scope to a specific module |
+| `--fix-first` | bool | false | Fix existing failures before generating new tests |
+| `--dry-run` | bool | false | Show gap analysis and test plan without writing |
 | `--linkup` | bool | false | Web search for guidance (via Rube MCP) |
 | `--query` | string | - | Search query for LINKUP_SEARCH |
 
@@ -151,6 +168,112 @@ When `--coverage` is enabled:
 - Uncovered code identification
 - Coverage trend comparison
 
+## Coverage Gap Analysis
+
+When `--gap-analysis` or `--generate` is used, perform deep coverage gap identification.
+
+### Phase 1: Coverage Baseline
+
+Run current coverage and parse the report:
+
+```bash
+# Python (pytest)
+pytest --cov=src --cov-report=term-missing --cov-report=json:coverage.json -q --tb=no
+
+# JavaScript (jest/vitest)
+npx jest --coverage --coverageReporters=json-summary
+
+# Go
+go test -coverprofile=coverage.out ./...
+go tool cover -func=coverage.out
+```
+
+### Phase 2: Build Gap Report
+
+Create a ranked list of files by coverage gap (lowest coverage first):
+
+```
+## Coverage Gap Report
+
+**Current Coverage**: 52% | **Target**: 80% | **Gap**: 28%
+
+| File | Coverage | Missing Lines | Priority |
+|------|----------|---------------|----------|
+| src/services/payment.py | 0% | 1-120 | CRITICAL |
+| src/utils/validator.py | 15% | 12-45, 67-89 | HIGH |
+| src/api/routes/users.py | 42% | 55-70, 88-102 | MEDIUM |
+```
+
+**Priority Ranking:**
+- CRITICAL: 0% coverage (no tests at all)
+- HIGH: < 30% coverage
+- MEDIUM: 30-60% coverage
+- LOW: > 60% but below target
+
+### Phase 3: Analyze Test Patterns
+
+Before writing tests, study existing conventions:
+
+1. **Read test infrastructure** - `conftest.py`, test fixtures, helpers
+2. **Find pattern examples** - Use closest existing test as template
+3. **Identify fixtures** - Map available fixtures to their use cases
+4. **Classify functions** - Determine test type per function:
+
+| Function Characteristic | Test Type |
+|------------------------|-----------|
+| Pure function (no I/O) | Unit test |
+| Uses validation only | Unit test |
+| Calls database/ORM | Integration test (needs DB fixture) |
+| Calls external API | Unit test with mock |
+| HTTP endpoint handler | Integration test |
+| Full pipeline execution | E2E test |
+
+### Phase 4: Generate Tests
+
+Process gaps in priority order. For each file:
+
+1. **Read the source module** - Identify public functions, signatures, dependencies
+2. **Determine test type** - Unit, integration, or E2E
+3. **Write tests following project conventions**:
+   - Use AAA pattern (Arrange/Act/Assert)
+   - Group tests in `class Test*` per function
+   - Mock only external dependencies
+   - Test happy path, edge cases, and error conditions
+   - Let errors propagate (Let It Crash principle)
+4. **Run new tests** - Verify they pass
+5. **Lint test files** - Ensure clean formatting
+
+### Phase 5: Coverage Verification
+
+After generating tests:
+
+```
+## Coverage Report
+
+| Metric | Before | After | Delta |
+|--------|--------|-------|-------|
+| Total Coverage | 52% | 78% | +26% |
+| Files with 0% | 5 | 1 | -4 |
+
+### Per-File Improvements
+
+| File | Before | After | Tests Added |
+|------|--------|-------|-------------|
+| src/services/payment.py | 0% | 85% | 8 |
+| src/utils/validator.py | 15% | 72% | 5 |
+```
+
+### Test Generation Anti-Patterns
+
+DO NOT:
+- Test private/internal methods directly (test via public API)
+- Duplicate existing test coverage
+- Require real API keys to pass
+- Depend on test execution order
+- Catch exceptions that should propagate (Let It Crash)
+- Modify source code to make it "more testable"
+- Create test utility frameworks (KISS)
+
 ## Examples
 
 ### Targeted Unit Tests
@@ -167,6 +290,24 @@ When `--coverage` is enabled:
 ### Integration Suite
 ```
 /sc:test --type integration --coverage
+```
+
+### Coverage Gap Analysis
+```
+/sc:test --gap-analysis --target 80
+# Shows gap report without generating tests
+```
+
+### Generate Missing Tests
+```
+/sc:test --generate --target 80 --module src/services
+# Generates tests to reach 80% coverage for services module
+```
+
+### Fix Then Generate
+```
+/sc:test --fix-first --generate --target 75
+# Fix existing failures, then generate tests to reach 75%
 ```
 
 ### Web Research

@@ -22,14 +22,14 @@ Input (JSON):
 
 Output (JSON):
     {
-        "selected_agent": "frontend-architect",
+        "selected_agent": "software-architect",
         "confidence": "high",
         "score": 0.75,
         "breakdown": {...},
         "matched_criteria": [...],
         "alternatives": [...],
         "traits_applied": ["security-first"],
-        "agent_path": "agents/core/frontend-architect.md",
+        "agent_path": "agents/core/software-architect.md",
         "trait_paths": ["agents/traits/security-first.md"]
     }
 """

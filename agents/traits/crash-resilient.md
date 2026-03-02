@@ -67,7 +67,7 @@ async def save_transcript(data):
 ## Composition
 
 This trait can be combined with any core agent:
-- `backend-architect + crash-resilient` = Resilient APIs
+- `software-architect + crash-resilient` = Resilient APIs
 - `python-expert + crash-resilient` = Fail-fast Python
 - `devops-architect + crash-resilient` = Supervised systems
 

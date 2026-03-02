@@ -37,7 +37,7 @@ When this trait is applied, the agent will:
 
 This trait can be combined with any core agent. Example:
 - `python-expert + pedagogy-first` = Python teaching with explanations
-- `system-architect + pedagogy-first` = Architecture with learning context
+- `software-architect + pedagogy-first` = Architecture with learning context
 
 ## Output Format
 

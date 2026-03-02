@@ -214,7 +214,7 @@ python .claude/skills/sc-tdd/scripts/validate_green.py \
 - **agent-test-automator** - Test design expertise
 - **agent-quality-engineer** - Test quality validation
 - **agent-python-pro** / **agent-typescript-expert** - Language-specific implementation
-- **agent-backend-architect** / **agent-frontend-architect** - Architecture guidance
+- **agent-software-architect** - Architecture guidance
 
 ## MCP Integration
 
