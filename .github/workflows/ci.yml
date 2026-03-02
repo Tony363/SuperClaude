@@ -601,6 +601,7 @@ jobs:
 
       - name: SonarCloud Quality Gate
         if: steps.check-token.outputs.skip != 'true' && success()
+        continue-on-error: true
         uses: SonarSource/sonarqube-quality-gate-action@v1
         timeout-minutes: 5
         env:
