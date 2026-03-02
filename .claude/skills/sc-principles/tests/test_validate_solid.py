@@ -130,7 +130,6 @@ class Derived(Base):
 
         assert any(v.violation_type == "lsp_not_implemented" for v in violations)
 
-
     def test_abc_not_implemented_not_flagged(self, tmp_path: Path) -> None:
         """ABC classes raising NotImplementedError should NOT be flagged (correct pattern)."""
         code = """
@@ -379,11 +378,11 @@ class TestDIPAttributeAccess:
         test_file = tmp_path / "domain" / "logic.py"
         test_file.parent.mkdir(parents=True)
         test_file.write_text(
-            '''
+            """
 def process():
     conn = db.DatabaseConnection()
     return conn.query("SELECT 1")
-'''
+"""
         )
 
         violations = analyze_file_solid(test_file, SOLIDThresholds())
@@ -419,11 +418,11 @@ class TestServiceClassEndswith:
         test_file = tmp_path / "domain" / "order.py"
         test_file.parent.mkdir(parents=True)
         test_file.write_text(
-            '''
+            """
 def process():
     cache = RedisCache()
     return cache.get("key")
-'''
+"""
         )
 
         violations = analyze_file_solid(test_file, SOLIDThresholds())
@@ -435,11 +434,11 @@ def process():
         test_file = tmp_path / "domain" / "order.py"
         test_file.parent.mkdir(parents=True)
         test_file.write_text(
-            '''
+            """
 def process():
     item = OrderItem()
     return item.total
-'''
+"""
         )
 
         violations = analyze_file_solid(test_file, SOLIDThresholds())
@@ -454,8 +453,12 @@ class TestGenerateRecommendationsSOLID:
         """SRP violations should generate SRP recommendation."""
         violations = [
             SOLIDViolation(
-                file="test.py", line=1, violation_type="srp_file_length",
-                message="test", principle="SRP", severity="warning",
+                file="test.py",
+                line=1,
+                violation_type="srp_file_length",
+                message="test",
+                principle="SRP",
+                severity="warning",
             )
         ]
         recs = generate_recommendations(violations)
@@ -465,8 +468,12 @@ class TestGenerateRecommendationsSOLID:
         """OCP violations should generate OCP recommendation."""
         violations = [
             SOLIDViolation(
-                file="test.py", line=1, violation_type="ocp_isinstance_cascade",
-                message="test", principle="OCP", severity="warning",
+                file="test.py",
+                line=1,
+                violation_type="ocp_isinstance_cascade",
+                message="test",
+                principle="OCP",
+                severity="warning",
             )
         ]
         recs = generate_recommendations(violations)
@@ -476,8 +483,12 @@ class TestGenerateRecommendationsSOLID:
         """LSP violations should generate LSP recommendation."""
         violations = [
             SOLIDViolation(
-                file="test.py", line=1, violation_type="lsp_not_implemented",
-                message="test", principle="LSP", severity="error",
+                file="test.py",
+                line=1,
+                violation_type="lsp_not_implemented",
+                message="test",
+                principle="LSP",
+                severity="error",
             )
         ]
         recs = generate_recommendations(violations)
@@ -487,8 +498,12 @@ class TestGenerateRecommendationsSOLID:
         """ISP violations should generate ISP recommendation."""
         violations = [
             SOLIDViolation(
-                file="test.py", line=1, violation_type="isp_fat_interface",
-                message="test", principle="ISP", severity="warning",
+                file="test.py",
+                line=1,
+                violation_type="isp_fat_interface",
+                message="test",
+                principle="ISP",
+                severity="warning",
             )
         ]
         recs = generate_recommendations(violations)
@@ -498,8 +513,12 @@ class TestGenerateRecommendationsSOLID:
         """DIP violations should generate DIP recommendation."""
         violations = [
             SOLIDViolation(
-                file="test.py", line=1, violation_type="dip_direct_instantiation",
-                message="test", principle="DIP", severity="warning",
+                file="test.py",
+                line=1,
+                violation_type="dip_direct_instantiation",
+                message="test",
+                principle="DIP",
+                severity="warning",
             )
         ]
         recs = generate_recommendations(violations)
@@ -570,7 +589,9 @@ class Derived(Base):
 class TestSOLIDCLI:
     """Tests for main() CLI entrypoint (lines 414-504)."""
 
-    def test_json_output(self, tmp_path: Path, monkeypatch: "pytest.MonkeyPatch", capsys: "pytest.CaptureFixture") -> None:
+    def test_json_output(
+        self, tmp_path: Path, monkeypatch: "pytest.MonkeyPatch", capsys: "pytest.CaptureFixture"
+    ) -> None:
         """--json flag should produce JSON output."""
         import json as json_mod
 
@@ -591,7 +612,9 @@ class TestSOLIDCLI:
         assert "allowed" in output
         assert "summary" in output
 
-    def test_text_output(self, tmp_path: Path, monkeypatch: "pytest.MonkeyPatch", capsys: "pytest.CaptureFixture") -> None:
+    def test_text_output(
+        self, tmp_path: Path, monkeypatch: "pytest.MonkeyPatch", capsys: "pytest.CaptureFixture"
+    ) -> None:
         """Default text output should include key sections."""
         test_file = tmp_path / "simple.py"
         test_file.write_text("x = 1\n")
@@ -609,7 +632,9 @@ class TestSOLIDCLI:
         assert "SOLID Validation:" in captured.out
         assert "Files analyzed:" in captured.out
 
-    def test_exit_code_zero_on_pass(self, tmp_path: Path, monkeypatch: "pytest.MonkeyPatch") -> None:
+    def test_exit_code_zero_on_pass(
+        self, tmp_path: Path, monkeypatch: "pytest.MonkeyPatch"
+    ) -> None:
         """Clean code should exit with code 0."""
         import pytest
 
@@ -624,7 +649,9 @@ class TestSOLIDCLI:
             main()
         assert exc_info.value.code == 0
 
-    def test_exit_code_two_on_block(self, tmp_path: Path, monkeypatch: "pytest.MonkeyPatch") -> None:
+    def test_exit_code_two_on_block(
+        self, tmp_path: Path, monkeypatch: "pytest.MonkeyPatch"
+    ) -> None:
         """Blocked validation should exit with code 2."""
         import pytest
 
@@ -649,7 +676,9 @@ class Derived(Base):
             main()
         assert exc_info.value.code == 2
 
-    def test_text_output_with_violations_shows_by_principle(self, tmp_path: Path, monkeypatch: "pytest.MonkeyPatch", capsys: "pytest.CaptureFixture") -> None:
+    def test_text_output_with_violations_shows_by_principle(
+        self, tmp_path: Path, monkeypatch: "pytest.MonkeyPatch", capsys: "pytest.CaptureFixture"
+    ) -> None:
         """Text output with violations should show By Principle section."""
         test_file = tmp_path / "bad.py"
         test_file.write_text(

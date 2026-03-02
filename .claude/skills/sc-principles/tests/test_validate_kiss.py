@@ -539,9 +539,7 @@ class TestMccabeIntegration:
         # Format: file:line:col:'funcname':complexity (5 colon-separated parts)
         mock_result.stdout = "complex.py:1:1:'f':8\n"
 
-        monkeypatch.setattr(
-            "validate_kiss.subprocess.run", lambda *a, **kw: mock_result
-        )
+        monkeypatch.setattr("validate_kiss.subprocess.run", lambda *a, **kw: mock_result)
 
         # Act
         result = try_mccabe_complexity(test_file, threshold=5)
@@ -550,7 +548,9 @@ class TestMccabeIntegration:
         assert "f" in result
         assert result["f"] == 8
 
-    def test_mccabe_not_installed_returns_empty(self, tmp_path: Path, monkeypatch: "pytest.MonkeyPatch") -> None:
+    def test_mccabe_not_installed_returns_empty(
+        self, tmp_path: Path, monkeypatch: "pytest.MonkeyPatch"
+    ) -> None:
         """When mccabe is not installed, should return empty dict."""
         from unittest.mock import MagicMock
 
@@ -565,7 +565,9 @@ class TestMccabeIntegration:
         result = try_mccabe_complexity(test_file, threshold=5)
         assert result == {}
 
-    def test_mccabe_unparseable_line_skipped(self, tmp_path: Path, monkeypatch: "pytest.MonkeyPatch") -> None:
+    def test_mccabe_unparseable_line_skipped(
+        self, tmp_path: Path, monkeypatch: "pytest.MonkeyPatch"
+    ) -> None:
         """Unparseable mccabe output lines should be skipped."""
         from unittest.mock import MagicMock
 
@@ -575,31 +577,29 @@ class TestMccabeIntegration:
         mock_result = MagicMock()
         mock_result.stdout = "not:a:valid:line without number\n"
 
-        monkeypatch.setattr(
-            "validate_kiss.subprocess.run", lambda *a, **kw: mock_result
-        )
+        monkeypatch.setattr("validate_kiss.subprocess.run", lambda *a, **kw: mock_result)
 
         result = try_mccabe_complexity(test_file, threshold=5)
         # Should not crash, may or may not have entries
         assert isinstance(result, dict)
 
-    def test_mccabe_result_used_in_analysis(self, tmp_path: Path, monkeypatch: "pytest.MonkeyPatch") -> None:
+    def test_mccabe_result_used_in_analysis(
+        self, tmp_path: Path, monkeypatch: "pytest.MonkeyPatch"
+    ) -> None:
         """When mccabe returns a result for a function, it should be used over AST calculation."""
         from unittest.mock import MagicMock
 
         test_file = tmp_path / "tested.py"
         test_file.write_text(
-            '''def simple():
+            """def simple():
     return 1
-'''
+"""
         )
 
         # Mock mccabe to return high complexity for 'simple'
         mock_result = MagicMock()
         mock_result.stdout = f"{test_file}:1:1:'simple':15\n"
-        monkeypatch.setattr(
-            "validate_kiss.subprocess.run", lambda *a, **kw: mock_result
-        )
+        monkeypatch.setattr("validate_kiss.subprocess.run", lambda *a, **kw: mock_result)
 
         # Act
         thresholds = KISSThresholds(max_complexity=10, warning_complexity=7)
@@ -618,9 +618,9 @@ class TestVarargKwargCounting:
         """*args and **kwargs should each count as one parameter."""
         test_file = tmp_path / "varargs.py"
         test_file.write_text(
-            '''def many(a, b, c, *args, **kwargs):
+            """def many(a, b, c, *args, **kwargs):
     return a + b + c
-'''
+"""
         )
 
         # max_parameters=4 should flag because: a, b, c, *args, **kwargs = 5
@@ -639,8 +639,13 @@ class TestGenerateRecommendationsKISS:
         """Complexity violations should generate complexity recommendation."""
         violations = [
             KISSViolation(
-                file="test.py", function="f", line=1,
-                violation_type="complexity", value=15, threshold=10, severity="error",
+                file="test.py",
+                function="f",
+                line=1,
+                violation_type="complexity",
+                value=15,
+                threshold=10,
+                severity="error",
             )
         ]
         recs = generate_recommendations(violations)
@@ -650,8 +655,13 @@ class TestGenerateRecommendationsKISS:
         """Length violations should generate length recommendation."""
         violations = [
             KISSViolation(
-                file="test.py", function="f", line=1,
-                violation_type="length", value=60, threshold=50, severity="error",
+                file="test.py",
+                function="f",
+                line=1,
+                violation_type="length",
+                value=60,
+                threshold=50,
+                severity="error",
             )
         ]
         recs = generate_recommendations(violations)
@@ -661,8 +671,13 @@ class TestGenerateRecommendationsKISS:
         """Nesting violations should generate nesting recommendation."""
         violations = [
             KISSViolation(
-                file="test.py", function="f", line=1,
-                violation_type="nesting", value=5, threshold=4, severity="error",
+                file="test.py",
+                function="f",
+                line=1,
+                violation_type="nesting",
+                value=5,
+                threshold=4,
+                severity="error",
             )
         ]
         recs = generate_recommendations(violations)
@@ -672,8 +687,13 @@ class TestGenerateRecommendationsKISS:
         """Parameter violations should generate parameters recommendation."""
         violations = [
             KISSViolation(
-                file="test.py", function="f", line=1,
-                violation_type="parameters", value=8, threshold=5, severity="warning",
+                file="test.py",
+                function="f",
+                line=1,
+                violation_type="parameters",
+                value=8,
+                threshold=5,
+                severity="warning",
             )
         ]
         recs = generate_recommendations(violations)
@@ -702,7 +722,7 @@ class TestValidateKISS:
         # Create a very complex function
         test_file = tmp_path / "complex.py"
         test_file.write_text(
-            '''def mega_complex(a, b, c, d, e, f, g, h, i, j, k):
+            """def mega_complex(a, b, c, d, e, f, g, h, i, j, k):
     if a:
         if b:
             if c:
@@ -711,7 +731,7 @@ class TestValidateKISS:
                         if f:
                             return 1
     return 0
-'''
+"""
         )
 
         thresholds = KISSThresholds(max_nesting_depth=3)
@@ -722,9 +742,9 @@ class TestValidateKISS:
         """Strict mode should block on warnings too."""
         test_file = tmp_path / "many_params.py"
         test_file.write_text(
-            '''def f(a, b, c, d, e, f_param, g):
+            """def f(a, b, c, d, e, f_param, g):
     return a
-'''
+"""
         )
 
         thresholds = KISSThresholds(max_parameters=5)
@@ -744,7 +764,9 @@ class TestValidateKISS:
 class TestKISSCLI:
     """Tests for main() CLI entrypoint (lines 381-477)."""
 
-    def test_json_output(self, tmp_path: Path, monkeypatch: "pytest.MonkeyPatch", capsys: "pytest.CaptureFixture") -> None:
+    def test_json_output(
+        self, tmp_path: Path, monkeypatch: "pytest.MonkeyPatch", capsys: "pytest.CaptureFixture"
+    ) -> None:
         """--json flag should produce JSON output."""
         import json as json_mod
 
@@ -765,7 +787,9 @@ class TestKISSCLI:
         assert "allowed" in output
         assert "summary" in output
 
-    def test_text_output(self, tmp_path: Path, monkeypatch: "pytest.MonkeyPatch", capsys: "pytest.CaptureFixture") -> None:
+    def test_text_output(
+        self, tmp_path: Path, monkeypatch: "pytest.MonkeyPatch", capsys: "pytest.CaptureFixture"
+    ) -> None:
         """Default text output should include key sections."""
         test_file = tmp_path / "simple.py"
         test_file.write_text("x = 1\n")
@@ -783,7 +807,9 @@ class TestKISSCLI:
         assert "KISS Validation:" in captured.out
         assert "Files analyzed:" in captured.out
 
-    def test_exit_code_zero_on_pass(self, tmp_path: Path, monkeypatch: "pytest.MonkeyPatch") -> None:
+    def test_exit_code_zero_on_pass(
+        self, tmp_path: Path, monkeypatch: "pytest.MonkeyPatch"
+    ) -> None:
         """Clean code should exit with code 0."""
         import pytest
 
@@ -798,13 +824,15 @@ class TestKISSCLI:
             main()
         assert exc_info.value.code == 0
 
-    def test_exit_code_two_on_block(self, tmp_path: Path, monkeypatch: "pytest.MonkeyPatch") -> None:
+    def test_exit_code_two_on_block(
+        self, tmp_path: Path, monkeypatch: "pytest.MonkeyPatch"
+    ) -> None:
         """Blocked validation should exit with code 2."""
         import pytest
 
         test_file = tmp_path / "complex.py"
         test_file.write_text(
-            '''def deep(a, b, c, d, e):
+            """def deep(a, b, c, d, e):
     if a:
         if b:
             if c:
@@ -812,7 +840,7 @@ class TestKISSCLI:
                     if e:
                         return 1
     return 0
-'''
+"""
         )
         monkeypatch.setattr(
             "sys.argv",
@@ -823,11 +851,13 @@ class TestKISSCLI:
             main()
         assert exc_info.value.code == 2
 
-    def test_text_output_with_violations(self, tmp_path: Path, monkeypatch: "pytest.MonkeyPatch", capsys: "pytest.CaptureFixture") -> None:
+    def test_text_output_with_violations(
+        self, tmp_path: Path, monkeypatch: "pytest.MonkeyPatch", capsys: "pytest.CaptureFixture"
+    ) -> None:
         """Text output with violations should show details."""
         test_file = tmp_path / "complex.py"
         test_file.write_text(
-            '''def deep(a, b, c, d, e):
+            """def deep(a, b, c, d, e):
     if a:
         if b:
             if c:
@@ -835,7 +865,7 @@ class TestKISSCLI:
                     if e:
                         return 1
     return 0
-'''
+"""
         )
         monkeypatch.setattr(
             "sys.argv",

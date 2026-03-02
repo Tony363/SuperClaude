@@ -279,13 +279,13 @@ class TestDocstringOnlyPassBody:
 
     def test_docstring_only_treated_as_pass(self, tmp_path: Path) -> None:
         """except body with only a docstring should be treated as pass."""
-        code = '''
+        code = """
 def bad_handler():
     try:
         risky()
     except Exception:
         "This is just a docstring, effectively pass"
-'''
+"""
         test_file = tmp_path / "docstring_pass.py"
         test_file.write_text(code)
 
@@ -342,8 +342,11 @@ class TestGenerateRecommendationsCrash:
         """Bare except violations should generate appropriate recommendation."""
         violations = [
             CrashViolation(
-                file="test.py", line=1, violation_type="bare_except",
-                message="test", severity="error",
+                file="test.py",
+                line=1,
+                violation_type="bare_except",
+                message="test",
+                severity="error",
             )
         ]
         recs = generate_recommendations(violations)
@@ -353,8 +356,11 @@ class TestGenerateRecommendationsCrash:
         """Except pass violations should generate recommendation."""
         violations = [
             CrashViolation(
-                file="test.py", line=1, violation_type="except_pass",
-                message="test", severity="error",
+                file="test.py",
+                line=1,
+                violation_type="except_pass",
+                message="test",
+                severity="error",
             )
         ]
         recs = generate_recommendations(violations)
@@ -364,8 +370,11 @@ class TestGenerateRecommendationsCrash:
         """Swallowed exception violations should generate recommendation."""
         violations = [
             CrashViolation(
-                file="test.py", line=1, violation_type="exception_swallowed",
-                message="test", severity="warning",
+                file="test.py",
+                line=1,
+                violation_type="exception_swallowed",
+                message="test",
+                severity="warning",
             )
         ]
         recs = generate_recommendations(violations)
@@ -375,8 +384,11 @@ class TestGenerateRecommendationsCrash:
         """Nested try/except violations should generate recommendation."""
         violations = [
             CrashViolation(
-                file="test.py", line=1, violation_type="nested_try_except",
-                message="test", severity="warning",
+                file="test.py",
+                line=1,
+                violation_type="nested_try_except",
+                message="test",
+                severity="warning",
             )
         ]
         recs = generate_recommendations(violations)
@@ -448,7 +460,9 @@ def bad():
 class TestCrashCLI:
     """Tests for main() CLI entrypoint (lines 306-384)."""
 
-    def test_json_output(self, tmp_path: Path, monkeypatch: "pytest.MonkeyPatch", capsys: "pytest.CaptureFixture") -> None:
+    def test_json_output(
+        self, tmp_path: Path, monkeypatch: "pytest.MonkeyPatch", capsys: "pytest.CaptureFixture"
+    ) -> None:
         """--json flag should produce JSON output."""
         import json as json_mod
 
@@ -469,7 +483,9 @@ class TestCrashCLI:
         assert "allowed" in output
         assert "summary" in output
 
-    def test_text_output(self, tmp_path: Path, monkeypatch: "pytest.MonkeyPatch", capsys: "pytest.CaptureFixture") -> None:
+    def test_text_output(
+        self, tmp_path: Path, monkeypatch: "pytest.MonkeyPatch", capsys: "pytest.CaptureFixture"
+    ) -> None:
         """Default text output should include key sections."""
         test_file = tmp_path / "simple.py"
         test_file.write_text("x = 1\n")
@@ -487,7 +503,9 @@ class TestCrashCLI:
         assert "Let It Crash Validation:" in captured.out
         assert "Files analyzed:" in captured.out
 
-    def test_exit_code_zero_on_pass(self, tmp_path: Path, monkeypatch: "pytest.MonkeyPatch") -> None:
+    def test_exit_code_zero_on_pass(
+        self, tmp_path: Path, monkeypatch: "pytest.MonkeyPatch"
+    ) -> None:
         """Clean code should exit with code 0."""
         import pytest
 
@@ -502,7 +520,9 @@ class TestCrashCLI:
             main()
         assert exc_info.value.code == 0
 
-    def test_exit_code_two_on_block(self, tmp_path: Path, monkeypatch: "pytest.MonkeyPatch") -> None:
+    def test_exit_code_two_on_block(
+        self, tmp_path: Path, monkeypatch: "pytest.MonkeyPatch"
+    ) -> None:
         """Blocked validation should exit with code 2."""
         import pytest
 
@@ -525,7 +545,9 @@ def bad():
             main()
         assert exc_info.value.code == 2
 
-    def test_text_output_with_violations_shows_by_type(self, tmp_path: Path, monkeypatch: "pytest.MonkeyPatch", capsys: "pytest.CaptureFixture") -> None:
+    def test_text_output_with_violations_shows_by_type(
+        self, tmp_path: Path, monkeypatch: "pytest.MonkeyPatch", capsys: "pytest.CaptureFixture"
+    ) -> None:
         """Text output with violations should show By Type section."""
         test_file = tmp_path / "bad.py"
         test_file.write_text(

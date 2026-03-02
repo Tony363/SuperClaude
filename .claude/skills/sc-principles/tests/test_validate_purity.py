@@ -304,7 +304,9 @@ def collect_unique(items: list) -> set:
 
         violations = analyze_file_purity(test_file, context="core")
         db_violations = [v for v in violations if v.io_type == "database"]
-        assert len(db_violations) == 0, f"set.add() should not trigger database violation: {db_violations}"
+        assert len(db_violations) == 0, (
+            f"set.add() should not trigger database violation: {db_violations}"
+        )
 
     def test_parser_add_argument_not_flagged(self, tmp_path: Path) -> None:
         """parser.add_argument() should NOT be flagged as database I/O."""
@@ -322,7 +324,9 @@ def build_config(parser):
 
         violations = analyze_file_purity(test_file, context="core")
         db_violations = [v for v in violations if v.io_type == "database"]
-        assert len(db_violations) == 0, f"parser.add_argument() should not trigger database violation: {db_violations}"
+        assert len(db_violations) == 0, (
+            f"parser.add_argument() should not trigger database violation: {db_violations}"
+        )
 
     def test_asyncio_run_not_flagged(self, tmp_path: Path) -> None:
         """asyncio.run() should NOT be flagged as subprocess I/O."""
@@ -463,14 +467,14 @@ class TestGlobalNonlocalDetection:
         core_dir.mkdir()
         test_file = core_dir / "globals.py"
         test_file.write_text(
-            '''
+            """
 counter = 0
 
 def increment():
     global counter
     counter += 1
     return counter
-'''
+"""
         )
 
         # Act
@@ -488,7 +492,7 @@ def increment():
         core_dir.mkdir()
         test_file = core_dir / "nonlocals.py"
         test_file.write_text(
-            '''
+            """
 def outer():
     count = 0
     def inner():
@@ -496,7 +500,7 @@ def outer():
         count += 1
     inner()
     return count
-'''
+"""
         )
 
         # Act
@@ -518,13 +522,13 @@ class TestIOModulePatternDetection:
         core_dir.mkdir()
         test_file = core_dir / "fetcher.py"
         test_file.write_text(
-            '''
+            """
 import requests
 
 def fetch_data(url: str):
     session = requests.Session()
     return session
-'''
+"""
         )
 
         # Act
@@ -541,12 +545,12 @@ def fetch_data(url: str):
         core_dir.mkdir()
         test_file = core_dir / "db_access.py"
         test_file.write_text(
-            '''
+            """
 import sqlite3
 
 def get_connection():
     return sqlite3.connect(":memory:")
-'''
+"""
         )
 
         # Act
@@ -567,14 +571,14 @@ class TestLoggingPrefixDetection:
         core_dir.mkdir()
         test_file = core_dir / "logged.py"
         test_file.write_text(
-            '''
+            """
 import logging
 logger = logging.getLogger(__name__)
 
 def process(data):
     logger.info("Processing data")
     return data
-'''
+"""
         )
 
         # Act
@@ -595,11 +599,11 @@ class TestGetExprNameFallbacks:
         core_dir.mkdir()
         test_file = core_dir / "chained.py"
         test_file.write_text(
-            '''
+            """
 async def process(client):
     result = await client.api.data.fetch()
     return result
-'''
+"""
         )
 
         # Act
@@ -616,11 +620,11 @@ async def process(client):
         core_dir.mkdir()
         test_file = core_dir / "complex_expr.py"
         test_file.write_text(
-            '''
+            """
 async def process():
     result = await (lambda: None)()
     return result
-'''
+"""
         )
 
         # Act
@@ -672,8 +676,13 @@ class TestGenerateRecommendationsPurity:
         """File I/O violations in core should generate file I/O recommendation."""
         violations = [
             PurityViolation(
-                file="test.py", function="f", line=1,
-                io_type="file_io", pattern="open", context="core", severity="error",
+                file="test.py",
+                function="f",
+                line=1,
+                io_type="file_io",
+                pattern="open",
+                context="core",
+                severity="error",
             )
         ]
         recs = generate_recommendations(violations)
@@ -683,8 +692,13 @@ class TestGenerateRecommendationsPurity:
         """Network violations should generate network recommendation."""
         violations = [
             PurityViolation(
-                file="test.py", function="f", line=1,
-                io_type="network", pattern="requests.get", context="core", severity="error",
+                file="test.py",
+                function="f",
+                line=1,
+                io_type="network",
+                pattern="requests.get",
+                context="core",
+                severity="error",
             )
         ]
         recs = generate_recommendations(violations)
@@ -694,8 +708,13 @@ class TestGenerateRecommendationsPurity:
         """Database violations should generate database recommendation."""
         violations = [
             PurityViolation(
-                file="test.py", function="f", line=1,
-                io_type="database", pattern="execute", context="core", severity="error",
+                file="test.py",
+                function="f",
+                line=1,
+                io_type="database",
+                pattern="execute",
+                context="core",
+                severity="error",
             )
         ]
         recs = generate_recommendations(violations)
@@ -705,8 +724,13 @@ class TestGenerateRecommendationsPurity:
         """Subprocess violations should generate subprocess recommendation."""
         violations = [
             PurityViolation(
-                file="test.py", function="f", line=1,
-                io_type="subprocess", pattern="subprocess.run", context="core", severity="error",
+                file="test.py",
+                function="f",
+                line=1,
+                io_type="subprocess",
+                pattern="subprocess.run",
+                context="core",
+                severity="error",
             )
         ]
         recs = generate_recommendations(violations)
@@ -716,8 +740,13 @@ class TestGenerateRecommendationsPurity:
         """Global state violations should generate global state recommendation."""
         violations = [
             PurityViolation(
-                file="test.py", function="f", line=1,
-                io_type="global_state", pattern="global x", context="core", severity="error",
+                file="test.py",
+                function="f",
+                line=1,
+                io_type="global_state",
+                pattern="global x",
+                context="core",
+                severity="error",
             )
         ]
         recs = generate_recommendations(violations)
@@ -727,8 +756,13 @@ class TestGenerateRecommendationsPurity:
         """Side effects violations should generate side effects recommendation."""
         violations = [
             PurityViolation(
-                file="test.py", function="f", line=1,
-                io_type="side_effects", pattern="print", context="core", severity="error",
+                file="test.py",
+                function="f",
+                line=1,
+                io_type="side_effects",
+                pattern="print",
+                context="core",
+                severity="error",
             )
         ]
         recs = generate_recommendations(violations)
@@ -738,8 +772,13 @@ class TestGenerateRecommendationsPurity:
         """Async I/O violations should generate async recommendation."""
         violations = [
             PurityViolation(
-                file="test.py", function="f", line=1,
-                io_type="async_io", pattern="async def f", context="core", severity="error",
+                file="test.py",
+                function="f",
+                line=1,
+                io_type="async_io",
+                pattern="async def f",
+                context="core",
+                severity="error",
             )
         ]
         recs = generate_recommendations(violations)
@@ -754,8 +793,13 @@ class TestGenerateRecommendationsPurity:
         """Shell-context violations should not generate recommendations."""
         violations = [
             PurityViolation(
-                file="test.py", function="f", line=1,
-                io_type="file_io", pattern="open", context="shell", severity="warning",
+                file="test.py",
+                function="f",
+                line=1,
+                io_type="file_io",
+                pattern="open",
+                context="shell",
+                severity="warning",
             )
         ]
         recs = generate_recommendations(violations)
@@ -785,11 +829,11 @@ class TestValidatePurity:
         core_dir.mkdir()
         test_file = core_dir / "impure.py"
         test_file.write_text(
-            '''
+            """
 def process():
     print("side effect")
     return 42
-'''
+"""
         )
 
         # Act
@@ -806,11 +850,11 @@ def process():
         shell_dir.mkdir()
         test_file = shell_dir / "handler.py"
         test_file.write_text(
-            '''
+            """
 def handle():
     print("logging")
     return True
-'''
+"""
         )
 
         # Act
@@ -824,7 +868,9 @@ def handle():
 class TestPurityCLI:
     """Tests for main() CLI entrypoint (lines 510-584)."""
 
-    def test_json_output(self, tmp_path: Path, monkeypatch: "pytest.MonkeyPatch", capsys: "pytest.CaptureFixture") -> None:
+    def test_json_output(
+        self, tmp_path: Path, monkeypatch: "pytest.MonkeyPatch", capsys: "pytest.CaptureFixture"
+    ) -> None:
         """--json flag should produce JSON output."""
         import json as json_mod
 
@@ -849,7 +895,9 @@ class TestPurityCLI:
         assert "violations" in output
         assert "summary" in output
 
-    def test_text_output(self, tmp_path: Path, monkeypatch: "pytest.MonkeyPatch", capsys: "pytest.CaptureFixture") -> None:
+    def test_text_output(
+        self, tmp_path: Path, monkeypatch: "pytest.MonkeyPatch", capsys: "pytest.CaptureFixture"
+    ) -> None:
         """Default text output should include key sections."""
         # Arrange
         test_file = tmp_path / "simple.py"
@@ -870,7 +918,9 @@ class TestPurityCLI:
         assert "Purity Validation:" in captured.out
         assert "Files analyzed:" in captured.out
 
-    def test_exit_code_zero_on_pass(self, tmp_path: Path, monkeypatch: "pytest.MonkeyPatch") -> None:
+    def test_exit_code_zero_on_pass(
+        self, tmp_path: Path, monkeypatch: "pytest.MonkeyPatch"
+    ) -> None:
         """Clean code should exit with code 0."""
         import pytest
 
@@ -887,7 +937,9 @@ class TestPurityCLI:
             main()
         assert exc_info.value.code == 0
 
-    def test_exit_code_two_on_block(self, tmp_path: Path, monkeypatch: "pytest.MonkeyPatch") -> None:
+    def test_exit_code_two_on_block(
+        self, tmp_path: Path, monkeypatch: "pytest.MonkeyPatch"
+    ) -> None:
         """Blocked validation should exit with code 2."""
         import pytest
 
@@ -896,10 +948,10 @@ class TestPurityCLI:
         core_dir.mkdir()
         test_file = core_dir / "impure.py"
         test_file.write_text(
-            '''
+            """
 def process():
     print("side effect")
-'''
+"""
         )
         monkeypatch.setattr(
             "sys.argv",
@@ -911,17 +963,19 @@ def process():
             main()
         assert exc_info.value.code == 2
 
-    def test_text_output_with_violations(self, tmp_path: Path, monkeypatch: "pytest.MonkeyPatch", capsys: "pytest.CaptureFixture") -> None:
+    def test_text_output_with_violations(
+        self, tmp_path: Path, monkeypatch: "pytest.MonkeyPatch", capsys: "pytest.CaptureFixture"
+    ) -> None:
         """Text output with violations should show Violations and Recommendations."""
         # Arrange
         core_dir = tmp_path / "domain"
         core_dir.mkdir()
         test_file = core_dir / "impure.py"
         test_file.write_text(
-            '''
+            """
 def process():
     print("side effect")
-'''
+"""
         )
         monkeypatch.setattr(
             "sys.argv",

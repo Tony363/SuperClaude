@@ -25,9 +25,7 @@ class TestFindPythonFiles:
         mock_result.returncode = 0
         mock_result.stdout = "?? changed.py\n?? other.py"
 
-        monkeypatch.setattr(
-            "scripts.shared.subprocess.run", lambda *a, **kw: mock_result
-        )
+        monkeypatch.setattr("scripts.shared.subprocess.run", lambda *a, **kw: mock_result)
 
         # Act
         result = find_python_files(tmp_path, changed_only=True)
@@ -73,9 +71,7 @@ class TestFindPythonFiles:
         # Assert
         assert any(f.name == "found.py" for f in result)
 
-    def test_changed_only_false_uses_rglob(
-        self, tmp_path: Path
-    ) -> None:
+    def test_changed_only_false_uses_rglob(self, tmp_path: Path) -> None:
         """changed_only=False should skip git and use rglob."""
         # Arrange
         (tmp_path / "all_files.py").write_text("x = 1")
@@ -97,9 +93,7 @@ class TestFindPythonFiles:
         mock_result.returncode = 0
         mock_result.stdout = "R  old_name.py -> new_name.py\n"
 
-        monkeypatch.setattr(
-            "scripts.shared.subprocess.run", lambda *a, **kw: mock_result
-        )
+        monkeypatch.setattr("scripts.shared.subprocess.run", lambda *a, **kw: mock_result)
 
         # Act
         result = find_python_files(tmp_path, changed_only=True)
@@ -120,9 +114,7 @@ class TestFindPythonFiles:
         mock_result.returncode = 0
         mock_result.stdout = "M  code.py\nM  readme.md\n"
 
-        monkeypatch.setattr(
-            "scripts.shared.subprocess.run", lambda *a, **kw: mock_result
-        )
+        monkeypatch.setattr("scripts.shared.subprocess.run", lambda *a, **kw: mock_result)
 
         # Act
         result = find_python_files(tmp_path, changed_only=True)
@@ -143,9 +135,7 @@ class TestFindPythonFiles:
         mock_result.returncode = 0
         mock_result.stdout = ""  # no changes
 
-        monkeypatch.setattr(
-            "scripts.shared.subprocess.run", lambda *a, **kw: mock_result
-        )
+        monkeypatch.setattr("scripts.shared.subprocess.run", lambda *a, **kw: mock_result)
 
         # Act
         result = find_python_files(tmp_path, changed_only=True)
@@ -164,9 +154,7 @@ class TestFindPythonFiles:
         mock_result.returncode = 0
         mock_result.stdout = "ab\nM  valid.py\n"  # "ab" is < 4 chars
 
-        monkeypatch.setattr(
-            "scripts.shared.subprocess.run", lambda *a, **kw: mock_result
-        )
+        monkeypatch.setattr("scripts.shared.subprocess.run", lambda *a, **kw: mock_result)
 
         # Act
         result = find_python_files(tmp_path, changed_only=True)
@@ -186,9 +174,7 @@ class TestFindPythonFiles:
         mock_result.returncode = 0
         mock_result.stdout = "D  deleted.py\nM  exists.py\n"
 
-        monkeypatch.setattr(
-            "scripts.shared.subprocess.run", lambda *a, **kw: mock_result
-        )
+        monkeypatch.setattr("scripts.shared.subprocess.run", lambda *a, **kw: mock_result)
 
         # Act
         result = find_python_files(tmp_path, changed_only=True)
