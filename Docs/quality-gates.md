@@ -8,6 +8,8 @@ SuperClaude enforces code quality through automated validation gates. This docum
 |------|---------|---------|
 | **KISS Validator** | Complexity limits | `/sc:principles --kiss` |
 | **Purity Validator** | I/O separation | `/sc:principles --purity` |
+| **SOLID Validator** | Design principles | `/sc:principles --solid` |
+| **Let It Crash Validator** | Error handling | `/sc:principles --crash` |
 | **Agent Validator** | Schema compliance | `python scripts/validate_agents.py` |
 | **Iterative Loop** | Quality threshold | `--loop` flag |
 
@@ -182,6 +184,84 @@ total = calculate_total_price(items, tax_rate)
 2. **Predictability**: Same inputs always produce same outputs
 3. **Composability**: Pure functions combine easily
 4. **Parallelization**: No shared state concerns
+
+## SOLID Validator
+
+Enforces SOLID design principles via AST analysis. Located at `.claude/skills/sc-principles/scripts/validate_solid.py`.
+
+### Checks
+
+| Principle | Check | Threshold | Severity |
+|-----------|-------|-----------|----------|
+| SRP (Single Responsibility) | File length | > 300 lines | error |
+| SRP (Single Responsibility) | Class public methods | > 5 | error |
+| OCP (Open/Closed) | isinstance cascades | > 2 chained | error |
+| LSP (Liskov Substitution) | NotImplementedError in overrides | Any | error |
+| ISP (Interface Segregation) | Fat interfaces/protocols | > 7 methods | error |
+| DIP (Dependency Inversion) | Direct instantiation in business logic | Any | warning |
+
+### Usage
+
+```bash
+# Validate a directory
+python .claude/skills/sc-principles/scripts/validate_solid.py --scope-root . --json
+
+# Via skill command
+/sc:principles --solid path/to/file.py
+```
+
+### Exit Codes
+
+| Code | Meaning |
+|------|---------|
+| 0 | Validation passed |
+| 2 | SOLID violations detected (blocked) |
+| 3 | Validation error |
+
+### Notes
+
+- ABC and Protocol base classes are excluded from LSP checks (abstract methods are expected)
+- Private methods (`_name`) are excluded from SRP method count
+- Shell paths (adapters, API, CLI) have relaxed DIP enforcement
+- Uses a single-pass `CombinedSOLIDVisitor` for all 5 principles
+
+## Let It Crash Validator
+
+Enforces the "Let It Crash" error handling philosophy by detecting anti-patterns. Located at `.claude/skills/sc-principles/scripts/validate_crash.py`.
+
+### Anti-Patterns
+
+| Anti-Pattern | Description | Severity |
+|--------------|-------------|----------|
+| Bare `except:` | Catches all exceptions without specificity | error |
+| `except Exception` without re-raise | Swallows exceptions silently | error |
+| `except: pass` | Silent failure hiding bugs | error |
+| Nested try/except cascades | Deeply nested error handling (> 2 levels) | error |
+
+### Usage
+
+```bash
+# Validate a directory
+python .claude/skills/sc-principles/scripts/validate_crash.py --scope-root . --json
+
+# Via skill command
+/sc:principles --crash path/to/file.py
+```
+
+### Exit Codes
+
+| Code | Meaning |
+|------|---------|
+| 0 | Validation passed |
+| 2 | Crash violations detected (blocked) |
+| 3 | Validation error |
+
+### Notes
+
+- Shell paths (adapters, API, handlers) have relaxed enforcement
+- `except Exception` with re-raise (`raise` or `raise e`) is allowed
+- Specific exception types (e.g., `except ValueError`) are always allowed
+- `try/finally` blocks without `except` are not flagged
 
 ## Agent Validator
 

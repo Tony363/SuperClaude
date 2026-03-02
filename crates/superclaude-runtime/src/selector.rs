@@ -16,14 +16,17 @@ pub struct SelectionResult {
     /// Confidence score (0.0 to 1.0)
     pub confidence: f64,
 
+    /// Human-readable confidence level
+    pub confidence_level: String,
+
     /// Score breakdown by component
     pub breakdown: HashMap<String, f64>,
 
     /// List of matched criteria
     pub matched_criteria: Vec<String>,
 
-    /// Alternative agents with scores
-    pub alternatives: Vec<(String, f64)>,
+    /// Alternative agents with scores and details
+    pub alternatives: Vec<AlternativeAgent>,
 
     /// Traits applied to the selection
     pub traits_applied: Vec<String>,
@@ -33,6 +36,27 @@ pub struct SelectionResult {
 
     /// Paths to trait files
     pub trait_paths: Vec<String>,
+
+    /// Invalid traits that were requested but not found
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub invalid_traits: Vec<String>,
+
+    /// Trait conflicts detected (pairs of conflicting trait names)
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub trait_conflicts: Vec<(String, String)>,
+
+    /// Trait tensions detected (non-blocking but notable)
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub trait_tensions: Vec<(String, String)>,
+}
+
+/// Details about an alternative agent candidate
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AlternativeAgent {
+    pub agent_name: String,
+    pub score: f64,
+    pub confidence_level: String,
+    pub agent_path: String,
 }
 
 // Trait conflict detection
@@ -59,11 +83,19 @@ pub enum SelectionContext {
     /// Simple string context
     Text(String),
 
-    /// Structured context with task details
+    /// Structured context with task details (matches Python's 7-field context)
     Structured {
         task: Option<String>,
         description: Option<String>,
         files: Option<Vec<String>>,
+        #[serde(default)]
+        domains: Option<Vec<String>>,
+        #[serde(default)]
+        keywords: Option<Vec<String>>,
+        #[serde(default)]
+        languages: Option<Vec<String>>,
+        #[serde(default)]
+        imports: Option<Vec<String>>,
     },
 }
 
@@ -76,6 +108,9 @@ impl SelectionContext {
                 task,
                 description,
                 files,
+                domains,
+                keywords,
+                ..
             } => {
                 let mut parts = Vec::new();
                 if let Some(t) = task {
@@ -86,6 +121,12 @@ impl SelectionContext {
                 }
                 if let Some(f) = files {
                     parts.extend(f.clone());
+                }
+                if let Some(d) = domains {
+                    parts.extend(d.clone());
+                }
+                if let Some(k) = keywords {
+                    parts.extend(k.clone());
                 }
                 parts.join(" ")
             }
@@ -100,6 +141,62 @@ impl SelectionContext {
             } => files.clone(),
             _ => Vec::new(),
         }
+    }
+
+    /// Get keywords from context
+    fn keywords(&self) -> Vec<String> {
+        match self {
+            SelectionContext::Structured {
+                keywords: Some(keywords),
+                ..
+            } => keywords.clone(),
+            _ => Vec::new(),
+        }
+    }
+
+    /// Get domains from context
+    fn domains(&self) -> Vec<String> {
+        match self {
+            SelectionContext::Structured {
+                domains: Some(domains),
+                ..
+            } => domains.clone(),
+            _ => Vec::new(),
+        }
+    }
+}
+
+/// Map a numeric score to a human-readable confidence level (matches Python).
+fn confidence_level(score: f64) -> String {
+    if score >= 0.7 {
+        "excellent".to_string()
+    } else if score >= 0.5 {
+        "high".to_string()
+    } else if score >= 0.3 {
+        "medium".to_string()
+    } else {
+        "low".to_string()
+    }
+}
+
+/// Simple glob matching (fnmatch equivalent for file patterns).
+/// Supports `*` (match any) and `?` (match single char).
+fn glob_match(pattern: &str, text: &str) -> bool {
+    let pat: Vec<char> = pattern.chars().collect();
+    let txt: Vec<char> = text.chars().collect();
+    glob_match_inner(&pat, &txt)
+}
+
+fn glob_match_inner(pat: &[char], txt: &[char]) -> bool {
+    match (pat.first(), txt.first()) {
+        (None, None) => true,
+        (Some('*'), _) => {
+            // * matches zero or more of any character
+            glob_match_inner(&pat[1..], txt) || (!txt.is_empty() && glob_match_inner(pat, &txt[1..]))
+        }
+        (Some('?'), Some(_)) => glob_match_inner(&pat[1..], &txt[1..]),
+        (Some(p), Some(t)) if *p == *t => glob_match_inner(&pat[1..], &txt[1..]),
+        _ => false,
     }
 }
 
@@ -186,12 +283,16 @@ impl AgentSelector {
             return SelectionResult {
                 agent_name: "general-purpose".to_string(),
                 confidence: 0.0,
+                confidence_level: "low".to_string(),
                 breakdown: HashMap::new(),
                 matched_criteria: vec!["no matching agent".to_string()],
                 alternatives: Vec::new(),
                 traits_applied: Vec::new(),
                 agent_path: "agents/core/general-purpose.md".to_string(),
                 trait_paths: Vec::new(),
+                invalid_traits: Vec::new(),
+                trait_conflicts: Vec::new(),
+                trait_tensions: Vec::new(),
             };
         }
 
@@ -199,7 +300,7 @@ impl AgentSelector {
         let (top_name, top_score, top_breakdown, top_matched, top_config) = &scores[0];
 
         // Process traits
-        let (valid_traits, _invalid_traits, _conflicts, _tensions) = self.process_traits(&traits);
+        let (valid_traits, invalid_traits, conflicts, tensions) = self.process_traits(&traits);
 
         // Build trait paths
         let trait_paths: Vec<String> = valid_traits
@@ -211,23 +312,32 @@ impl AgentSelector {
             })
             .collect();
 
-        // Build alternatives list
-        let alternatives: Vec<(String, f64)> = scores
+        // Build alternatives list with full details
+        let alternatives: Vec<AlternativeAgent> = scores
             .iter()
             .skip(1)
             .take(top_n)
-            .map(|(name, score, _, _, _)| (name.clone(), *score))
+            .map(|(name, score, _, _, config)| AlternativeAgent {
+                agent_name: name.clone(),
+                score: *score,
+                confidence_level: confidence_level(*score),
+                agent_path: config.file_path.to_string_lossy().to_string(),
+            })
             .collect();
 
         SelectionResult {
             agent_name: top_name.clone(),
             confidence: *top_score,
+            confidence_level: confidence_level(*top_score),
             breakdown: top_breakdown.clone(),
             matched_criteria: top_matched.clone(),
             alternatives,
             traits_applied: valid_traits,
             agent_path: top_config.file_path.to_string_lossy().to_string(),
             trait_paths,
+            invalid_traits,
+            trait_conflicts: conflicts,
+            trait_tensions: tensions,
         }
     }
 
@@ -245,7 +355,9 @@ impl AgentSelector {
         let context_str = context.to_search_string();
         let context_lower = context_str.to_lowercase();
 
-        // 1. Trigger matching (35% weight)
+        // 1. Trigger/keyword matching (35% weight)
+        // Enhanced with bidirectional overlap (matching Python behavior)
+        let keywords = context.keywords();
         let trigger_score = if !config.triggers.is_empty() {
             let mut trigger_match = 0.0;
             let mut matched_triggers = Vec::new();
@@ -253,8 +365,25 @@ impl AgentSelector {
             for trigger in &config.triggers {
                 let trigger_lower = trigger.to_lowercase();
                 if context_lower.contains(&trigger_lower) {
+                    // Full match in task text
                     trigger_match += 1.0;
                     matched_triggers.push(trigger.clone());
+                } else if !keywords.is_empty()
+                    && keywords
+                        .iter()
+                        .any(|kw| kw.to_lowercase() == trigger_lower)
+                {
+                    // Match in explicit keywords parameter
+                    trigger_match += 0.8;
+                    matched_triggers.push(trigger.clone());
+                } else if !keywords.is_empty()
+                    && keywords.iter().any(|kw| {
+                        let kw_lower = kw.to_lowercase();
+                        kw_lower.contains(&trigger_lower) || trigger_lower.contains(&kw_lower)
+                    })
+                {
+                    // Bidirectional partial overlap
+                    trigger_match += 0.3;
                 } else if trigger_lower
                     .split_whitespace()
                     .any(|t| context_lower.contains(t))
@@ -278,7 +407,8 @@ impl AgentSelector {
         breakdown.insert("triggers".to_string(), trigger_score * 0.35);
         score += trigger_score * 0.35;
 
-        // 2. Category matching (25% weight)
+        // 2. Category/domain matching (25% weight)
+        let domains = context.domains();
         let category_score = if let Some(hint) = category_hint {
             if config.category.to_lowercase() == hint.to_lowercase() {
                 matched.push(format!("category: {}", config.category));
@@ -286,7 +416,24 @@ impl AgentSelector {
             } else {
                 0.0
             }
-        } else if !config.category.is_empty() && context_lower.contains(&config.category.to_lowercase()) {
+        } else if !domains.is_empty() {
+            // Check explicit domains against category
+            let cat_lower = config.category.to_lowercase();
+            if domains.iter().any(|d| d.to_lowercase() == cat_lower) {
+                matched.push(format!("category: {} (domain match)", config.category));
+                1.0
+            } else if domains.iter().any(|d| {
+                let d_lower = d.to_lowercase();
+                cat_lower.contains(&d_lower) || d_lower.contains(&cat_lower)
+            }) {
+                matched.push(format!("category: {} (partial)", config.category));
+                0.5
+            } else {
+                0.0
+            }
+        } else if !config.category.is_empty()
+            && context_lower.contains(&config.category.to_lowercase())
+        {
             matched.push(format!("category: {}", config.category));
             0.7
         } else {
@@ -316,13 +463,16 @@ impl AgentSelector {
         score += task_score * 0.20;
 
         // 4. File pattern matching (10% weight)
+        // Enhanced with glob matching (fnmatch equivalent)
         let mut file_score = 0.0;
         let files = context.files();
 
         for pattern in &config.file_patterns {
             let pattern_lower = pattern.to_lowercase();
             for file in &files {
-                if file.to_lowercase().contains(&pattern_lower) {
+                let file_lower = file.to_lowercase();
+                // Try glob first, then substring
+                if glob_match(&pattern_lower, &file_lower) || file_lower.contains(&pattern_lower) {
                     file_score = 1.0;
                     matched.push(format!("file: {}", pattern));
                     break;
@@ -408,7 +558,9 @@ impl AgentSelector {
     ) -> Vec<(String, f64)> {
         let result = self.select_agent(context, None, None, None, top_n);
         let mut suggestions = vec![(result.agent_name, result.confidence)];
-        suggestions.extend(result.alternatives);
+        suggestions.extend(
+            result.alternatives.into_iter().map(|a| (a.agent_name, a.score))
+        );
         suggestions.truncate(top_n);
         suggestions
     }
