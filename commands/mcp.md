@@ -4,7 +4,7 @@ description: "Comprehensive MCP orchestration integrating PAL and Rube for multi
 category: workflow
 complexity: standard
 mcp-servers: [pal, rube]
-personas: [system-architect, general-purpose]
+personas: [software-architect, general-purpose]
 requires_evidence: false
 aliases: [mcp-orchestrate, pal, rube]
 flags:

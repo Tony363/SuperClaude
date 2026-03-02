@@ -119,7 +119,7 @@ PAL MCP should be invoked when:
 Combine with any core agent:
 - `root-cause-analyst + mcp-pal-enabled` = PAL-powered debugging
 - `security-engineer + mcp-pal-enabled` = Multi-model security validation
-- `system-architect + mcp-pal-enabled` = Consensus-driven architecture
+- `software-architect + mcp-pal-enabled` = Consensus-driven architecture
 
 ## Output Format
 

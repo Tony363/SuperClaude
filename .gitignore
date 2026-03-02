@@ -98,6 +98,7 @@ node_modules/
 # Claude Code
 .claude/*
 !.claude/skills/
+!.claude/rules/
 CLAUDE.md
 
 # SuperClaude specific
@@ -117,7 +118,7 @@ archive/
 .tmp_logs/
 tests/e2e/output/
 tests/e2e/workspaces/
-artifacts/e2e/
+artifacts/
 /tmp/e2e_test_*
 
 # Rust build artifacts

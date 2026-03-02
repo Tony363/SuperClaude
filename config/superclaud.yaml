@@ -31,15 +31,10 @@ agents:
     - performance-engineer
     - quality-engineer
     - security-engineer
-    - system-architect
-    - backend-architect
-    - frontend-architect
+    - software-architect
     - devops-architect
-    - python-expert
-    - requirements-analyst
-    - socratic-mentor
     - fullstack-developer
-    - learning-guide
+    - educator
 
   # Extended agents (loaded on demand)
   extended_path: agents/extensions

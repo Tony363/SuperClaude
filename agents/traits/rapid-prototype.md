@@ -41,7 +41,7 @@ When this trait is applied, the agent will:
 
 This trait can be combined with any core agent. Example:
 - `fullstack-developer + rapid-prototype` = Quick MVP development
-- `frontend-architect + rapid-prototype` = Fast UI iteration
+- `software-architect + rapid-prototype` = Fast UI iteration
 
 ## Output Format
 

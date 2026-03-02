@@ -37,7 +37,7 @@ When this trait is applied, the agent will:
 
 This trait can be combined with any core agent. Example:
 - `python-expert + performance-first` = Performance-optimized Python
-- `backend-architect + performance-first` = High-throughput API design
+- `software-architect + performance-first` = High-throughput API design
 
 ## Output Format
 
