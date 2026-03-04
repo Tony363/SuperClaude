@@ -9,6 +9,11 @@ on:
     branches: [main, master, develop]
   workflow_dispatch:
 
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
 jobs:
   readme-quality-check:
     name: Multi-language README Quality Assessment
