@@ -804,18 +804,18 @@ sequenceDiagram
 | cicd-setup | cicd-init, pipeline-setup | No | --lang, --minimal, --full |
 | readme | readme-sync, doc-sync | No | --base, --preview, --consensus |
 | pr-fix | prfix, cifix, fix-pr | Yes | --branch, --auto-fix, --max-fix-attempts |
-| pr-check | preflight, prepr | No | --fix, --strict |
-| log-fix | logfix, debug-logs | No | --source, --pattern |
-| e2e | e2e-test, browser-test | Yes | --browser, --headed, --trace |
-| tdd | test-driven | Yes | --cycle, --framework |
-| principles | validate-principles | No | --kiss, --solid, --purity, --crash |
-| worktree | git-worktree | No | --name, --branch |
-| mcp | mcp-orchestrate | No | --pal, --rube, --consensus |
-| code-review | review, cr | No | --models, --consensus |
-| research | deep-research | No | --depth, --sources |
-| eda | data-analysis | No | --format, --output |
-| evaluate | eval, judge | No | --dataset, --judge-model |
-| push | git-push | No | --remotes, --exclude |
+| pr-check | | No | |
+| log-fix | | No | |
+| e2e | | Yes | |
+| tdd | | Yes | |
+| principles | | No | |
+| worktree | | No | |
+| mcp | | No | |
+| code-review | | No | |
+| research | | No | |
+| eda | | No | |
+| evaluate | | No | |
+| push | | No | |
 
 ---
 
@@ -1800,9 +1800,7 @@ SuperClaude/
 │   ├── proto/                   # Protobuf/gRPC service definitions
 │   ├── superclaude-core/        # Shared domain types and utilities
 │   ├── superclaude-daemon/      # gRPC daemon (port 50051)
-│   ├── superclaude-runtime/     # Rust runtime: agent selector, obsidian vault, loop runner, registry
-│   ├── hangman-game/            # Hangman game example
-│   └── snake-game/              # Snake game example
+│   └── superclaude-runtime/     # Rust runtime: agent selector, obsidian vault, loop runner, registry
 │
 ├── setup/                          # Installation and setup system
 │   ├── cli/                     # CLI commands (install, update, backup, clean, uninstall)
