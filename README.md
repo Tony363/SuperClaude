@@ -4,7 +4,7 @@
   <img src="https://img.shields.io/badge/version-7.0.0-blue" alt="Version">
   <img src="https://img.shields.io/badge/agents-31-orange" alt="Agents">
   <img src="https://img.shields.io/badge/skills-38-green" alt="Skills">
-  <img src="https://img.shields.io/badge/commands-21-purple" alt="Commands">
+  <img src="https://img.shields.io/badge/commands-27-purple" alt="Commands">
   <img src="https://img.shields.io/badge/modes-6-teal" alt="Modes">
   <img src="https://img.shields.io/badge/python_core-2800_lines-red" alt="Core">
   <img src="https://img.shields.io/badge/license-MIT-lightgrey" alt="License">
@@ -12,7 +12,7 @@
   <a href="https://sonarcloud.io/summary/new_code?id=tony363_superclaude"><img src="https://sonarcloud.io/api/project_badges/measure?project=tony363_superclaude&metric=coverage" alt="Coverage"></a>
 </p>
 
-**A config-first meta-framework for Claude Code that provides 31 specialized agent personas (11 core + 12 traits + 8 extensions), 21 structured commands, 38 skills, and comprehensive MCP integration with quality-driven iterative workflows.**
+**A config-first meta-framework for Claude Code that provides 31 specialized agent personas (11 core + 12 traits + 8 extensions), 27 structured commands, 38 skills, and comprehensive MCP integration with quality-driven iterative workflows.**
 
 SuperClaude transforms Claude Code into a powerful development platform with specialized agent prompts, signal-based loop orchestration, and multi-model consensus capabilities. The core interface is markdown and YAML configuration files, with a Python orchestration layer for advanced workflows including quality gates, termination detection, and PAL MCP integration.
 
@@ -50,7 +50,7 @@ SuperClaude is a meta-prompt framework that enhances Claude Code with:
 
 - **31 Specialized Agents**: 11 core + 12 composable traits + 8 domain extensions (tiered architecture)
 - **38 Active Skills**: 8 agent personas + 27 command workflows + 3 utility skills
-- **14 Structured Commands**: analyze, implement, test, design, document, and more
+- **27 Structured Commands**: analyze, implement, test, design, document, and more
 - **6 Framework Modes**: normal, brainstorming, introspection, task_management, token_efficiency, orchestration
 - **MCP Integration**: PAL (11 tools), Rube (500+ apps via Composio, including web search)
 - **Quality Gates**: KISS, Purity, SOLID, and Let It Crash validators with iterative quality loop
@@ -98,12 +98,12 @@ SuperClaude v7.0.0 is a **config-first hybrid framework**:
 
 ### Command System
 
-21 structured commands with consistent patterns:
+27 structured commands with consistent patterns:
 
 ```
 /sc:analyze      - Static analysis, security review, performance bottlenecks
 /sc:implement    - Feature implementation with quality gates and loop support
-/sc:test         - Test generation, coverage analysis, quality reporting
+/sc:test         - Test execution, coverage analysis, and test generation
 /sc:design       - Architecture and system design with ADRs
 /sc:document     - Documentation generation and maintenance
 /sc:brainstorm   - Creative ideation and exploration
@@ -116,6 +116,12 @@ SuperClaude v7.0.0 is a **config-first hybrid framework**:
 /sc:cicd-setup   - CI/CD workflow and pre-commit generation
 /sc:readme       - Auto-update README.md from git diff with PAL consensus
 /sc:pr-fix       - Create PR and iteratively fix CI failures
+/sc:pr-check     - Pre-PR local CI validation with auto-fix
+/sc:log-fix      - Log analysis and iterative bug fixing
+/sc:e2e          - E2E testing (Playwright, Cypress, Selenium)
+/sc:tdd          - Test-driven development with Red-Green-Refactor
+/sc:principles   - KISS, Purity, SOLID, Let It Crash validation
+/sc:worktree     - Git worktree management for parallel development
 /sc:mcp          - MCP orchestration hub (PAL + Rube)
 /sc:code-review  - Multi-model consensus code review
 /sc:research     - Deep research with web search + consensus
@@ -144,7 +150,7 @@ flowchart TB
 
     subgraph Config["Configuration Layer"]
         AGENTS[("agents/<br/>11 core + 12 traits + 8 ext")]
-        COMMANDS[("commands/<br/>14 templates")]
+        COMMANDS[("commands/<br/>16 templates")]
         SKILLS[(".claude/skills/<br/>38 skills")]
         YAML[("config/<br/>6 YAML files")]
     end
@@ -194,7 +200,7 @@ SuperClaude uses a layered file-based architecture:
 4. **agents/traits/*.md** - 12 composable behavior modifier prompts
 5. **agents/extensions/*.md** - 8 domain specialist prompts
 6. **commands/index.yaml** - Command registry with flags and aliases
-7. **commands/*.md** - 14 command templates
+7. **commands/*.md** - 16 command templates
 8. **config/*.yaml** - 6 configuration files
 9. **core/*.py** - Python orchestration modules
 10. **mcp/*.md** - MCP integration guides
@@ -472,14 +478,14 @@ def assess_quality(
 ### Option 1: Clone Repository
 
 ```bash
-git clone https://github.com/SuperClaude-Org/SuperClaude_Framework.git
-cd SuperClaude_Framework
+git clone https://github.com/Tony363/SuperClaude.git
+cd SuperClaude
 ```
 
 ### Option 2: Add as Git Submodule
 
 ```bash
-git submodule add https://github.com/SuperClaude-Org/SuperClaude_Framework.git superclaud
+git submodule add https://github.com/Tony363/SuperClaude.git SuperClaude
 ```
 
 ### Setup Claude Code
@@ -488,7 +494,7 @@ Add to your project's `.claude/settings.json`:
 
 ```json
 {
-  "systemPromptFiles": ["superclaud/CLAUDE.md"]
+  "systemPromptFiles": ["SuperClaude/CLAUDE.md"]
 }
 ```
 
@@ -552,7 +558,7 @@ SuperClaude includes a native desktop dashboard for visualizing and controlling 
 
 ### Features
 
-- **Feature Inventory** - Browse all 31 agents, 21 commands, 38 skills, and 6 behavioral modes
+- **Feature Inventory** - Browse all 31 agents, 27 commands, 38 skills, and 6 behavioral modes
 - **Live Monitor** - Real-time execution tracking with event streaming, heartbeat indicator, and quality score visualization
 - **Execution Control** - Start, stop, pause, and resume executions with configurable parameters; expandable detail panel with 5 tabs (Run Instructions, Execution Log, Files Changed, Quality Breakdown, Execution Tree)
 - **Execution Tree** - Visual tree of iterations, tool calls, and subagent spawns built from streaming events
@@ -798,6 +804,18 @@ sequenceDiagram
 | cicd-setup | cicd-init, pipeline-setup | No | --lang, --minimal, --full |
 | readme | readme-sync, doc-sync | No | --base, --preview, --consensus |
 | pr-fix | prfix, cifix, fix-pr | Yes | --branch, --auto-fix, --max-fix-attempts |
+| pr-check | preflight, prepr | No | --fix, --strict |
+| log-fix | logfix, debug-logs | No | --source, --pattern |
+| e2e | e2e-test, browser-test | Yes | --browser, --headed, --trace |
+| tdd | test-driven | Yes | --cycle, --framework |
+| principles | validate-principles | No | --kiss, --solid, --purity, --crash |
+| worktree | git-worktree | No | --name, --branch |
+| mcp | mcp-orchestrate | No | --pal, --rube, --consensus |
+| code-review | review, cr | No | --models, --consensus |
+| research | deep-research | No | --depth, --sources |
+| eda | data-analysis | No | --format, --output |
+| evaluate | eval, judge | No | --dataset, --judge-model |
+| push | git-push | No | --remotes, --exclude |
 
 ---
 
@@ -869,15 +887,11 @@ flowchart TB
         P9["apilookup"] & P10["listmodels"] & P11["clink"]
     end
 
-    subgraph Rube["Rube MCP - 500+ App Integrations"]
-        R1["SEARCH_TOOLS"]
-        R2["MULTI_EXECUTE"]
-        R3["CREATE_PLAN"]
-        R4["MANAGE_CONNECTIONS"]
-        R5["REMOTE_WORKBENCH"]
-        R6["FIND_RECIPE"]
-        R7["EXECUTE_RECIPE"]
-        R8["LINKUP_SEARCH"]
+    subgraph Rube["Rube MCP - 500+ App Integrations (11 tools)"]
+        R1["SEARCH_TOOLS"] & R2["GET_TOOL_SCHEMAS"] & R3["MULTI_EXECUTE_TOOL"]
+        R4["REMOTE_BASH_TOOL"] & R5["REMOTE_WORKBENCH"]
+        R6["FIND_RECIPE"] & R7["EXECUTE_RECIPE"] & R8["GET_RECIPE_DETAILS"]
+        R9["CREATE_UPDATE_RECIPE"] & R10["MANAGE_CONNECTIONS"] & R11["MANAGE_RECIPE_SCHEDULE"]
     end
 
     TASK["SuperClaude Task"] --> PAL
@@ -958,11 +972,11 @@ Web search capabilities are available through Rube MCP's LINKUP_SEARCH tool:
 
 ## Skills System
 
-SuperClaude includes 35 active Claude Code skills in `.claude/skills/`:
+SuperClaude includes 38 active Claude Code skills in `.claude/skills/`:
 
 ```mermaid
 flowchart TB
-    subgraph Skills[".claude/skills/ (35 active)"]
+    subgraph Skills[".claude/skills/ (38 active)"]
         subgraph Agent["Agent Skills (8)"]
             A1["agent-data-engineer"]
             A2["agent-fullstack-developer"]
@@ -1644,7 +1658,7 @@ Agent selection configuration:
 
 ```yaml
 core:
-  count: 16
+  count: 11
   directory: agents/core
   cache_ttl: 3600
 
@@ -1653,7 +1667,7 @@ traits:
   directory: agents/traits
 
 extensions:
-  count: 7
+  count: 8
   directory: agents/extensions
 
 selection:
@@ -1713,7 +1727,7 @@ SuperClaude/
 │   └── skills/                  # 38 Claude Code skills
 │       ├── agent-*/             # 8 agent persona skills
 │       │   └── SKILL.md
-│       ├── sc-*/                # 24 command skills
+│       ├── sc-*/                # 27 command skills
 │       │   ├── SKILL.md
 │       │   └── scripts/         # Optional tool implementations
 │       ├── ask/                 # Single-select questions
@@ -1747,7 +1761,7 @@ SuperClaude/
 │   ├── analyze.md
 │   ├── implement.md
 │   ├── test.md
-│   └── ...                      # 14 command templates
+│   └── ...                      # 16 command templates
 │
 ├── config/
 │   ├── superclaud.yaml          # Main framework config (281 lines)
@@ -1771,6 +1785,7 @@ SuperClaude/
 │   └── Orchestrator/            # SDK-based orchestration
 │       ├── __init__.py
 │       ├── evidence.py          # Evidence collection
+│       ├── events_hooks.py      # Event hook integration
 │       ├── hooks.py             # SDK hook integration
 │       ├── loop_runner.py       # Agentic loop runner
 │       ├── quality.py           # Quality assessment
@@ -1785,15 +1800,21 @@ SuperClaude/
 │   ├── proto/                   # Protobuf/gRPC service definitions
 │   ├── superclaude-core/        # Shared domain types and utilities
 │   ├── superclaude-daemon/      # gRPC daemon (port 50051)
-│   └── superclaude-runtime/     # Rust runtime: agent selector, obsidian vault, loop runner, registry
+│   ├── superclaude-runtime/     # Rust runtime: agent selector, obsidian vault, loop runner, registry
+│   ├── hangman-game/            # Hangman game example
+│   └── snake-game/              # Snake game example
 │
-├── setup/
-│   └── services/                # Installation services
-│       ├── obsidian_config.py   # Obsidian config management
-│       ├── obsidian_vault.py    # Vault reading/scanning
-│       ├── obsidian_context.py  # Context generation
-│       ├── obsidian_artifact.py # Decision artifact writing
-│       └── obsidian_md.py       # CLAUDE.md integration
+├── setup/                          # Installation and setup system
+│   ├── cli/                     # CLI commands (install, update, backup, clean, uninstall)
+│   ├── components/              # Component installers (agents, commands, core, mcp, modes)
+│   ├── core/                    # Installer base, registry, validator
+│   ├── services/                # Service integrations
+│   │   ├── obsidian_config.py   # Obsidian config management
+│   │   ├── obsidian_vault.py    # Vault reading/scanning
+│   │   ├── obsidian_context.py  # Context generation
+│   │   ├── obsidian_artifact.py # Decision artifact writing
+│   │   └── obsidian_md.py       # CLAUDE.md integration
+│   └── utils/                   # Environment, logging, security, UI, updater
 │
 ├── mcp/                         # MCP integration guides
 │   ├── MCP_Pal.md               # PAL MCP (11 tools)
@@ -1810,6 +1831,7 @@ SuperClaude/
 │       └── consensus/
 │
 ├── Docs/                        # Documentation
+│   ├── claude-code-reference.md # Claude Code reference guide
 │   ├── quality-gates.md
 │   └── README.md
 │
@@ -1822,7 +1844,7 @@ SuperClaude/
 
 ### Agent Prompt Format
 
-Create a new agent in `agents/extended/[category]/`:
+Create a new agent in `agents/extensions/`:
 
 ```markdown
 ---
@@ -1952,5 +1974,5 @@ MIT License - see [LICENSE](LICENSE) for details.
 <p align="center">
   <strong>SuperClaude v7.0.0</strong><br>
   Config-First Meta-Framework for Claude Code<br>
-  <em>31 Agents (11 Core + 12 Traits + 8 Extensions) | 38 Skills | 21 Commands | 6 Modes | Quality-Driven Loops</em>
+  <em>31 Agents (11 Core + 12 Traits + 8 Extensions) | 38 Skills | 27 Commands | 6 Modes | Quality-Driven Loops</em>
 </p>
