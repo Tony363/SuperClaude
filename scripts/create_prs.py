@@ -9,10 +9,10 @@ Updates existing PRs instead of creating duplicates (idempotency).
 import argparse
 import json
 import subprocess
+import sys
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
-
 
 CATEGORY_LABELS = {
     "security": ["nightly-review", "security", "ai-generated"],

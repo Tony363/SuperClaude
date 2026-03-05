@@ -12,7 +12,6 @@ import sys
 from pathlib import Path
 from typing import Any, Dict, List
 
-
 CONFIDENCE_THRESHOLD = 0.7
 SEVERITY_RANK = {
     "critical": 0,

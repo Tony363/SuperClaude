@@ -12,7 +12,6 @@ import sys
 from pathlib import Path
 from typing import Any, Dict
 
-
 CATEGORY_EMOJI = {
     "security": "🔒",
     "quality": "✨",

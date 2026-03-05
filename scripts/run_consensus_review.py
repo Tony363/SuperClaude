@@ -12,7 +12,6 @@ import sys
 from pathlib import Path
 from typing import Any, Dict, List
 
-
 # Finding schema (for validation)
 FINDING_SCHEMA = {
     "type": "object",
