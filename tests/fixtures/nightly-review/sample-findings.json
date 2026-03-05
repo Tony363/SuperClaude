@@ -1,0 +1,123 @@
+{
+  "findings": [
+    {
+      "category": "security",
+      "severity": "critical",
+      "file": "scripts/scope_selector.py",
+      "line_start": 45,
+      "line_end": 47,
+      "issue": "Subprocess command uses shell=False but could be vulnerable to command injection if user input is passed",
+      "suggestion": "Validate all inputs before passing to subprocess.run(). Consider using shlex.quote() for any dynamic arguments.",
+      "confidence": 0.75,
+      "actionable": true
+    },
+    {
+      "category": "security",
+      "severity": "high",
+      "file": "scripts/create_prs.py",
+      "line_start": 123,
+      "line_end": 125,
+      "issue": "Git credentials might be exposed in logs when commands fail",
+      "suggestion": "Sanitize error messages before logging. Remove or redact sensitive information from subprocess error output.",
+      "confidence": 0.82,
+      "actionable": true
+    },
+    {
+      "category": "quality",
+      "severity": "medium",
+      "file": "scripts/normalize_findings.py",
+      "line_start": 78,
+      "line_end": 95,
+      "issue": "Function rank_by_priority has cyclomatic complexity > 10 (KISS violation)",
+      "suggestion": "Extract sorting logic into separate helper function. Split into find_by_severity() and sort_by_confidence().",
+      "confidence": 0.88,
+      "actionable": true
+    },
+    {
+      "category": "quality",
+      "severity": "medium",
+      "file": "scripts/generate_suggestions.py",
+      "line_start": 156,
+      "line_end": 158,
+      "issue": "Duplicate string formatting code (DRY violation)",
+      "suggestion": "Extract format_severity_badge() helper function to reduce duplication across PR generation.",
+      "confidence": 0.79,
+      "actionable": true
+    },
+    {
+      "category": "quality",
+      "severity": "low",
+      "file": "scripts/run_consensus_review.py",
+      "line_start": 234,
+      "issue": "Missing type hints for return value",
+      "suggestion": "Add return type hint -> List[Dict[str, Any]]",
+      "confidence": 0.85,
+      "actionable": true
+    },
+    {
+      "category": "performance",
+      "severity": "medium",
+      "file": "scripts/scope_selector.py",
+      "line_start": 189,
+      "line_end": 195,
+      "issue": "Multiple git log calls in loop - O(n) subprocess overhead",
+      "suggestion": "Batch git log queries using --name-only and parse output once. Use git log --format='%ci' --all to get all timestamps in single call.",
+      "confidence": 0.91,
+      "actionable": true
+    },
+    {
+      "category": "performance",
+      "severity": "low",
+      "file": "scripts/normalize_findings.py",
+      "line_start": 67,
+      "issue": "Sorting findings twice (once for grouping, once for ranking) - unnecessary O(n log n) operation",
+      "suggestion": "Combine grouping and ranking into single pass. Group first, then sort within groups.",
+      "confidence": 0.76,
+      "actionable": true
+    },
+    {
+      "category": "tests",
+      "severity": "high",
+      "file": "scripts/create_prs.py",
+      "line_start": 1,
+      "line_end": 300,
+      "issue": "No unit tests for PR creation logic - critical workflow component untested",
+      "suggestion": "Add tests/unit/test_create_prs.py with mocked gh CLI calls. Test idempotency, branch creation, and error handling.",
+      "confidence": 0.93,
+      "actionable": true
+    },
+    {
+      "category": "tests",
+      "severity": "medium",
+      "file": "scripts/scope_selector.py",
+      "line_start": 150,
+      "line_end": 175,
+      "issue": "Edge case not covered: what happens when git repo has no commits?",
+      "suggestion": "Add test for empty repo scenario. Handle subprocess.CalledProcessError gracefully.",
+      "confidence": 0.80,
+      "actionable": true
+    },
+    {
+      "category": "tests",
+      "severity": "medium",
+      "file": "scripts/run_consensus_review.py",
+      "line_start": 89,
+      "line_end": 105,
+      "issue": "Missing integration test for PAL MCP timeout scenarios",
+      "suggestion": "Add test with mocked PAL MCP that times out. Verify workflow handles gracefully.",
+      "confidence": 0.77,
+      "actionable": true
+    }
+  ],
+  "summary": {
+    "total": 10,
+    "by_category": {
+      "security": 2,
+      "quality": 3,
+      "performance": 2,
+      "tests": 3
+    },
+    "models_used": ["gpt-5.2", "gemini-3-pro"],
+    "categories_requested": ["security", "quality", "performance", "tests"]
+  }
+}
