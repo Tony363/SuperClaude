@@ -15,7 +15,16 @@ from typing import Any, Dict, List
 # Finding schema (for validation)
 FINDING_SCHEMA = {
     "type": "object",
-    "required": ["category", "severity", "file", "line_start", "issue", "suggestion", "confidence", "actionable"],
+    "required": [
+        "category",
+        "severity",
+        "file",
+        "line_start",
+        "issue",
+        "suggestion",
+        "confidence",
+        "actionable",
+    ],
     "properties": {
         "category": {"enum": ["security", "quality", "performance", "tests"]},
         "severity": {"enum": ["critical", "high", "medium", "low"]},
@@ -26,7 +35,7 @@ FINDING_SCHEMA = {
         "suggestion": {"type": "string"},
         "confidence": {"type": "number", "minimum": 0, "maximum": 1},
         "actionable": {"type": "boolean"},
-    }
+    },
 }
 
 
@@ -42,10 +51,9 @@ def load_scope_selection(scope_file: Path) -> Dict[str, Any]:
 
 def create_review_prompt(files: List[Dict[str, Any]], categories: List[str]) -> str:
     """Create review prompt for PAL MCP consensus."""
-    file_list = "\n".join([
-        f"- {f['path']} ({f['lines_of_code']} LOC, {f['category']})"
-        for f in files
-    ])
+    file_list = "\n".join(
+        [f"- {f['path']} ({f['lines_of_code']} LOC, {f['category']})" for f in files]
+    )
 
     categories_str = ", ".join(categories)
 
@@ -160,7 +168,16 @@ def validate_finding(finding: Dict[str, Any]) -> bool:
     """Validate finding against schema."""
     try:
         # Check required fields
-        required = ["category", "severity", "file", "line_start", "issue", "suggestion", "confidence", "actionable"]
+        required = [
+            "category",
+            "severity",
+            "file",
+            "line_start",
+            "issue",
+            "suggestion",
+            "confidence",
+            "actionable",
+        ]
         for field in required:
             if field not in finding:
                 return False
@@ -174,7 +191,9 @@ def validate_finding(finding: Dict[str, Any]) -> bool:
         # Check types
         if not isinstance(finding["line_start"], int) or finding["line_start"] < 1:
             return False
-        if not isinstance(finding["confidence"], (int, float)) or not (0 <= finding["confidence"] <= 1):
+        if not isinstance(finding["confidence"], (int, float)) or not (
+            0 <= finding["confidence"] <= 1
+        ):
             return False
         if not isinstance(finding["actionable"], bool):
             return False
@@ -202,32 +221,19 @@ def deduplicate_findings(findings: List[Dict[str, Any]]) -> List[Dict[str, Any]]
 
 
 def main():
-    parser = argparse.ArgumentParser(
-        description="Run PAL MCP consensus code review"
-    )
+    parser = argparse.ArgumentParser(description="Run PAL MCP consensus code review")
+    parser.add_argument("--scope-file", type=Path, required=True, help="Scope selection JSON file")
     parser.add_argument(
-        "--scope-file",
-        type=Path,
-        required=True,
-        help="Scope selection JSON file"
-    )
-    parser.add_argument(
-        "--models",
-        type=str,
-        default="gpt-5.2,gemini-3-pro",
-        help="Comma-separated model names"
+        "--models", type=str, default="gpt-5.2,gemini-3-pro", help="Comma-separated model names"
     )
     parser.add_argument(
         "--categories",
         type=str,
         default="security,quality,performance,tests",
-        help="Comma-separated review categories"
+        help="Comma-separated review categories",
     )
     parser.add_argument(
-        "--output",
-        type=Path,
-        default=Path("review-findings.json"),
-        help="Output JSON file"
+        "--output", type=Path, default=Path("review-findings.json"), help="Output JSON file"
     )
 
     args = parser.parse_args()
@@ -282,7 +288,7 @@ def main():
             "by_category": by_category,
             "models_used": models,
             "categories_requested": categories,
-        }
+        },
     }
 
     with open(args.output, "w") as f:

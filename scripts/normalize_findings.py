@@ -32,12 +32,14 @@ def load_findings(findings_file: Path) -> List[Dict[str, Any]]:
         sys.exit(1)
 
 
-def filter_actionable(findings: List[Dict[str, Any]], confidence_threshold: float = 0.7) -> List[Dict[str, Any]]:
+def filter_actionable(
+    findings: List[Dict[str, Any]], confidence_threshold: float = 0.7
+) -> List[Dict[str, Any]]:
     """Filter findings by confidence threshold and actionability."""
     return [
-        f for f in findings
-        if f.get("confidence", 0) >= confidence_threshold
-        and f.get("actionable", False)
+        f
+        for f in findings
+        if f.get("confidence", 0) >= confidence_threshold and f.get("actionable", False)
     ]
 
 
@@ -64,15 +66,12 @@ def rank_by_priority(findings: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         findings,
         key=lambda f: (
             SEVERITY_RANK.get(f.get("severity", "low"), 99),
-            -f.get("confidence", 0)  # Negative for descending order
-        )
+            -f.get("confidence", 0),  # Negative for descending order
+        ),
     )
 
 
-def generate_fix_plan(
-    category: str,
-    findings: List[Dict[str, Any]]
-) -> Dict[str, Any]:
+def generate_fix_plan(category: str, findings: List[Dict[str, Any]]) -> Dict[str, Any]:
     """Generate fix plan for a category."""
     if not findings:
         return None
@@ -97,31 +96,21 @@ def generate_fix_plan(
             "top_severity": ranked[0].get("severity") if ranked else "none",
             "files_affected": len(set(f.get("file") for f in ranked)),
             "avg_confidence": sum(f.get("confidence", 0) for f in ranked) / len(ranked),
-        }
+        },
     }
 
 
 def main():
-    parser = argparse.ArgumentParser(
-        description="Normalize and categorize code review findings"
-    )
+    parser = argparse.ArgumentParser(description="Normalize and categorize code review findings")
+    parser.add_argument("--findings", type=Path, required=True, help="Review findings JSON file")
     parser.add_argument(
-        "--findings",
-        type=Path,
-        required=True,
-        help="Review findings JSON file"
-    )
-    parser.add_argument(
-        "--output-dir",
-        type=Path,
-        default=Path("fix-plans"),
-        help="Output directory for fix plans"
+        "--output-dir", type=Path, default=Path("fix-plans"), help="Output directory for fix plans"
     )
     parser.add_argument(
         "--confidence-threshold",
         type=float,
         default=CONFIDENCE_THRESHOLD,
-        help="Minimum confidence threshold"
+        help="Minimum confidence threshold",
     )
 
     args = parser.parse_args()

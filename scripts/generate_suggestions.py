@@ -70,10 +70,7 @@ def generate_finding_suggestion_block(finding: Dict[str, Any]) -> str:
     return block
 
 
-def generate_pr_description(
-    category: str,
-    fix_plan: Dict[str, Any]
-) -> str:
+def generate_pr_description(category: str, fix_plan: Dict[str, Any]) -> str:
     """Generate PR description for a category."""
     findings = fix_plan.get("findings", [])
     severity_counts = fix_plan.get("severity_counts", {})
@@ -89,18 +86,18 @@ def generate_pr_description(
 
 ## Summary
 
-- **Total Findings**: {fix_plan.get('total_findings', 0)}
-- **Files Affected**: {summary_info.get('files_affected', 0)}
-- **Average Confidence**: {summary_info.get('avg_confidence', 0):.0%}
+- **Total Findings**: {fix_plan.get("total_findings", 0)}
+- **Files Affected**: {summary_info.get("files_affected", 0)}
+- **Average Confidence**: {summary_info.get("avg_confidence", 0):.0%}
 
 ### Findings by Severity
 
 | Severity | Count |
 |----------|-------|
-| {SEVERITY_EMOJI['critical']} Critical | {severity_counts.get('critical', 0)} |
-| {SEVERITY_EMOJI['high']} High | {severity_counts.get('high', 0)} |
-| {SEVERITY_EMOJI['medium']} Medium | {severity_counts.get('medium', 0)} |
-| {SEVERITY_EMOJI['low']} Low | {severity_counts.get('low', 0)} |
+| {SEVERITY_EMOJI["critical"]} Critical | {severity_counts.get("critical", 0)} |
+| {SEVERITY_EMOJI["high"]} High | {severity_counts.get("high", 0)} |
+| {SEVERITY_EMOJI["medium"]} Medium | {severity_counts.get("medium", 0)} |
+| {SEVERITY_EMOJI["low"]} Low | {severity_counts.get("low", 0)} |
 
 ---
 
@@ -152,16 +149,13 @@ def main():
         description="Generate GitHub commit suggestions from fix plans"
     )
     parser.add_argument(
-        "--fix-plans-dir",
-        type=Path,
-        required=True,
-        help="Directory containing fix plan JSON files"
+        "--fix-plans-dir", type=Path, required=True, help="Directory containing fix plan JSON files"
     )
     parser.add_argument(
         "--output-dir",
         type=Path,
         default=Path("pr-content"),
-        help="Output directory for PR content"
+        help="Output directory for PR content",
     )
 
     args = parser.parse_args()

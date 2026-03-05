@@ -59,16 +59,20 @@ def get_git_files_changed_last_24h() -> List[Path]:
 
     try:
         result = subprocess.run(
-            ["git", "log", "--since", since_str, "--name-only", "--pretty=format:", "--diff-filter=ACMR"],
+            [
+                "git",
+                "log",
+                "--since",
+                since_str,
+                "--name-only",
+                "--pretty=format:",
+                "--diff-filter=ACMR",
+            ],
             capture_output=True,
             text=True,
-            check=True
+            check=True,
         )
-        files = [
-            Path(line.strip())
-            for line in result.stdout.strip().split("\n")
-            if line.strip()
-        ]
+        files = [Path(line.strip()) for line in result.stdout.strip().split("\n") if line.strip()]
         return list(set(files))  # Deduplicate
     except subprocess.CalledProcessError as e:
         print(f"Error getting git files: {e}", file=sys.stderr)
@@ -123,7 +127,7 @@ def get_file_metadata(file_path: Path, repo_root: Path) -> Dict[str, Any]:
             ["git", "log", "-1", "--format=%ci", str(relative_path)],
             capture_output=True,
             text=True,
-            check=True
+            check=True,
         )
         last_modified = result.stdout.strip()
     except subprocess.CalledProcessError:
@@ -146,12 +150,7 @@ def get_file_metadata(file_path: Path, repo_root: Path) -> Dict[str, Any]:
     }
 
 
-def select_files(
-    scope: str,
-    repo_root: Path,
-    max_files: int,
-    max_loc: int
-) -> List[Dict[str, Any]]:
+def select_files(scope: str, repo_root: Path, max_files: int, max_loc: int) -> List[Dict[str, Any]]:
     """Select files based on scope and budget constraints."""
     # Get candidate files based on scope
     if scope == "last-24h":
@@ -165,16 +164,10 @@ def select_files(
         return []
 
     # Filter by allowlist/denylist
-    candidates = [
-        f for f in candidates
-        if not matches_denylist(f)
-    ]
+    candidates = [f for f in candidates if not matches_denylist(f)]
 
     # Convert to absolute paths if relative
-    candidates = [
-        repo_root / f if not f.is_absolute() else f
-        for f in candidates
-    ]
+    candidates = [repo_root / f if not f.is_absolute() else f for f in candidates]
 
     # Filter: only existing files
     candidates = [f for f in candidates if f.exists() and f.is_file()]
@@ -189,9 +182,7 @@ def select_files(
         total_loc += metadata["lines_of_code"]
 
     # Sort by category (high-risk first), then by LOC (smaller first for faster review)
-    files_with_metadata.sort(
-        key=lambda x: (x["category"] != "high-risk", x["lines_of_code"])
-    )
+    files_with_metadata.sort(key=lambda x: (x["category"] != "high-risk", x["lines_of_code"]))
 
     # Apply budget constraints
     selected_files = []
@@ -210,32 +201,17 @@ def select_files(
 
 
 def main():
-    parser = argparse.ArgumentParser(
-        description="Select files for nightly code review"
-    )
+    parser = argparse.ArgumentParser(description="Select files for nightly code review")
     parser.add_argument(
         "--scope",
         choices=["last-24h", "high-risk-dirs", "all"],
         default="last-24h",
-        help="Scope selection strategy"
+        help="Scope selection strategy",
     )
+    parser.add_argument("--max-files", type=int, default=50, help="Maximum files per run")
+    parser.add_argument("--max-loc", type=int, default=5000, help="Maximum lines of code per run")
     parser.add_argument(
-        "--max-files",
-        type=int,
-        default=50,
-        help="Maximum files per run"
-    )
-    parser.add_argument(
-        "--max-loc",
-        type=int,
-        default=5000,
-        help="Maximum lines of code per run"
-    )
-    parser.add_argument(
-        "--output",
-        type=Path,
-        default=Path("scope-selection.json"),
-        help="Output JSON file"
+        "--output", type=Path, default=Path("scope-selection.json"), help="Output JSON file"
     )
 
     args = parser.parse_args()
@@ -243,10 +219,7 @@ def main():
     # Get repository root
     try:
         result = subprocess.run(
-            ["git", "rev-parse", "--show-toplevel"],
-            capture_output=True,
-            text=True,
-            check=True
+            ["git", "rev-parse", "--show-toplevel"], capture_output=True, text=True, check=True
         )
         repo_root = Path(result.stdout.strip())
     except subprocess.CalledProcessError:
@@ -255,10 +228,7 @@ def main():
 
     # Select files
     selected_files = select_files(
-        scope=args.scope,
-        repo_root=repo_root,
-        max_files=args.max_files,
-        max_loc=args.max_loc
+        scope=args.scope, repo_root=repo_root, max_files=args.max_files, max_loc=args.max_loc
     )
 
     # Compute summary statistics
@@ -276,7 +246,7 @@ def main():
             "high_risk_files": high_risk_count,
             "max_files_limit": args.max_files,
             "max_loc_limit": args.max_loc,
-        }
+        },
     }
 
     with open(args.output, "w") as f:

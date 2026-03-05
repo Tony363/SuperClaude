@@ -34,7 +34,7 @@ SAMPLE_FINDINGS = {
             "issue": "Hardcoded secret key in source code",
             "suggestion": "Move secret to environment variable",
             "confidence": 0.95,
-            "actionable": True
+            "actionable": True,
         },
         {
             "category": "security",
@@ -44,7 +44,7 @@ SAMPLE_FINDINGS = {
             "issue": "Missing input validation",
             "suggestion": "Add Pydantic validation",
             "confidence": 0.85,
-            "actionable": True
+            "actionable": True,
         },
         {
             "category": "quality",
@@ -54,7 +54,7 @@ SAMPLE_FINDINGS = {
             "issue": "Function exceeds 30 lines (KISS violation)",
             "suggestion": "Extract helper function",
             "confidence": 0.80,
-            "actionable": True
+            "actionable": True,
         },
         {
             "category": "quality",
@@ -64,7 +64,7 @@ SAMPLE_FINDINGS = {
             "issue": "Missing docstring",
             "suggestion": "Add docstring",
             "confidence": 0.60,  # Below threshold
-            "actionable": True
+            "actionable": True,
         },
         {
             "category": "performance",
@@ -74,7 +74,7 @@ SAMPLE_FINDINGS = {
             "issue": "N+1 query detected",
             "suggestion": "Use select_related()",
             "confidence": 0.90,
-            "actionable": True
+            "actionable": True,
         },
         {
             "category": "tests",
@@ -84,13 +84,10 @@ SAMPLE_FINDINGS = {
             "issue": "Missing test coverage for error path",
             "suggestion": "Add test for ValueError case",
             "confidence": 0.75,
-            "actionable": True
+            "actionable": True,
         },
     ],
-    "summary": {
-        "total": 6,
-        "models_used": ["gpt-5.2", "gemini-3-pro"]
-    }
+    "summary": {"total": 6, "models_used": ["gpt-5.2", "gemini-3-pro"]},
 }
 
 
@@ -118,13 +115,17 @@ def test_normalize_findings_basic(sample_findings_file, temp_workspace):
     # Run normalize script
     result = subprocess.run(
         [
-            PYTHON, "scripts/normalize_findings.py",
-            "--findings", str(sample_findings_file),
-            "--output-dir", str(output_dir),
-            "--confidence-threshold", "0.7"
+            PYTHON,
+            "scripts/normalize_findings.py",
+            "--findings",
+            str(sample_findings_file),
+            "--output-dir",
+            str(output_dir),
+            "--confidence-threshold",
+            "0.7",
         ],
         capture_output=True,
-        text=True
+        text=True,
     )
 
     assert result.returncode == 0, f"Script failed: {result.stderr}"
@@ -158,11 +159,14 @@ def test_normalize_findings_priority_ranking(sample_findings_file, temp_workspac
 
     subprocess.run(
         [
-            PYTHON, "scripts/normalize_findings.py",
-            "--findings", str(sample_findings_file),
-            "--output-dir", str(output_dir)
+            PYTHON,
+            "scripts/normalize_findings.py",
+            "--findings",
+            str(sample_findings_file),
+            "--output-dir",
+            str(output_dir),
         ],
-        check=True
+        check=True,
     )
 
     with open(output_dir / "security.json") as f:
@@ -193,14 +197,10 @@ def test_generate_suggestions_basic(temp_workspace):
                 "line_start": 23,
                 "issue": "Hardcoded secret",
                 "suggestion": "Use environment variable",
-                "confidence": 0.95
+                "confidence": 0.95,
             }
         ],
-        "summary": {
-            "top_severity": "critical",
-            "files_affected": 1,
-            "avg_confidence": 0.95
-        }
+        "summary": {"top_severity": "critical", "files_affected": 1, "avg_confidence": 0.95},
     }
 
     with open(fix_plans_dir / "security.json", "w") as f:
@@ -210,12 +210,15 @@ def test_generate_suggestions_basic(temp_workspace):
     pr_content_dir = temp_workspace / "pr-content"
     result = subprocess.run(
         [
-            PYTHON, "scripts/generate_suggestions.py",
-            "--fix-plans-dir", str(fix_plans_dir),
-            "--output-dir", str(pr_content_dir)
+            PYTHON,
+            "scripts/generate_suggestions.py",
+            "--fix-plans-dir",
+            str(fix_plans_dir),
+            "--output-dir",
+            str(pr_content_dir),
         ],
         capture_output=True,
-        text=True
+        text=True,
     )
 
     assert result.returncode == 0, f"Script failed: {result.stderr}"
@@ -242,12 +245,15 @@ def test_generate_suggestions_empty_findings(temp_workspace):
     # Run with empty fix plans directory
     result = subprocess.run(
         [
-            PYTHON, "scripts/generate_suggestions.py",
-            "--fix-plans-dir", str(fix_plans_dir),
-            "--output-dir", str(pr_content_dir)
+            PYTHON,
+            "scripts/generate_suggestions.py",
+            "--fix-plans-dir",
+            str(fix_plans_dir),
+            "--output-dir",
+            str(pr_content_dir),
         ],
         capture_output=True,
-        text=True
+        text=True,
     )
 
     assert result.returncode == 0
@@ -262,22 +268,28 @@ def test_end_to_end_pipeline(sample_findings_file, temp_workspace):
     fix_plans_dir = temp_workspace / "fix-plans"
     subprocess.run(
         [
-            PYTHON, "scripts/normalize_findings.py",
-            "--findings", str(sample_findings_file),
-            "--output-dir", str(fix_plans_dir)
+            PYTHON,
+            "scripts/normalize_findings.py",
+            "--findings",
+            str(sample_findings_file),
+            "--output-dir",
+            str(fix_plans_dir),
         ],
-        check=True
+        check=True,
     )
 
     # Step 2: Generate suggestions
     pr_content_dir = temp_workspace / "pr-content"
     subprocess.run(
         [
-            PYTHON, "scripts/generate_suggestions.py",
-            "--fix-plans-dir", str(fix_plans_dir),
-            "--output-dir", str(pr_content_dir)
+            PYTHON,
+            "scripts/generate_suggestions.py",
+            "--fix-plans-dir",
+            str(fix_plans_dir),
+            "--output-dir",
+            str(pr_content_dir),
         ],
-        check=True
+        check=True,
     )
 
     # Validate end-to-end
@@ -308,7 +320,7 @@ def test_validation_schema():
         "issue": "Test issue",
         "suggestion": "Test fix",
         "confidence": 0.85,
-        "actionable": True
+        "actionable": True,
     }
     assert validate_finding(valid_finding) is True
 
@@ -333,23 +345,9 @@ def test_deduplication():
     from scripts.run_consensus_review import deduplicate_findings
 
     findings = [
-        {
-            "file": "test.py",
-            "line_start": 10,
-            "line_end": 15,
-            "issue": "Issue 1"
-        },
-        {
-            "file": "test.py",
-            "line_start": 10,
-            "line_end": 15,
-            "issue": "Issue 2 (duplicate)"
-        },
-        {
-            "file": "test.py",
-            "line_start": 20,
-            "issue": "Issue 3 (different line)"
-        }
+        {"file": "test.py", "line_start": 10, "line_end": 15, "issue": "Issue 1"},
+        {"file": "test.py", "line_start": 10, "line_end": 15, "issue": "Issue 2 (duplicate)"},
+        {"file": "test.py", "line_start": 20, "issue": "Issue 3 (different line)"},
     ]
 
     deduplicated = deduplicate_findings(findings)
@@ -367,13 +365,17 @@ def test_scope_selector_dry_run(temp_workspace):
 
     result = subprocess.run(
         [
-            PYTHON, "scripts/scope_selector.py",
-            "--scope", "all",
-            "--max-files", "10",
-            "--output", str(temp_workspace / "scope.json")
+            PYTHON,
+            "scripts/scope_selector.py",
+            "--scope",
+            "all",
+            "--max-files",
+            "10",
+            "--output",
+            str(temp_workspace / "scope.json"),
         ],
         capture_output=True,
-        text=True
+        text=True,
     )
 
     # May fail if not in git repo (expected in temp dir)
