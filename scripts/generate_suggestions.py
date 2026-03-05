@@ -10,7 +10,7 @@ import argparse
 import json
 import sys
 from pathlib import Path
-from typing import List, Dict, Any
+from typing import Any, Dict
 
 
 CATEGORY_EMOJI = {
@@ -50,7 +50,6 @@ def generate_finding_suggestion_block(finding: Dict[str, Any]) -> str:
     severity = finding.get("severity", "medium")
     file_path = finding.get("file", "unknown")
     line_start = finding.get("line_start", 1)
-    line_end = finding.get("line_end", line_start)
     issue = finding.get("issue", "No description")
     suggestion = finding.get("suggestion", "No suggestion")
     confidence = finding.get("confidence", 0)

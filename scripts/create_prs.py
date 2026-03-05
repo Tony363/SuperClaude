@@ -9,10 +9,9 @@ Updates existing PRs instead of creating duplicates (idempotency).
 import argparse
 import json
 import subprocess
-import sys
 from datetime import datetime
 from pathlib import Path
-from typing import List, Dict, Any, Optional
+from typing import Any, Dict, List, Optional
 
 
 CATEGORY_LABELS = {
@@ -70,9 +69,6 @@ def create_or_update_branch(category: str, pr_content_file: Path) -> str:
     # Branch name: nightly-review/{category}/{date}
     date_str = datetime.now().strftime("%Y-%m-%d")
     branch_name = f"nightly-review/{category}/{date_str}"
-
-    # Get current branch
-    current_branch = run_command(["git", "branch", "--show-current"])
 
     # Check if branch exists locally
     branch_exists = run_command(["git", "rev-parse", "--verify", branch_name]) is not None
@@ -253,7 +249,7 @@ def main():
             else:
                 prs_created += 1
 
-    print(f"\nPR Summary:")
+    print("\nPR Summary:")
     print(f"  Created: {prs_created}")
     print(f"  Updated: {prs_updated}")
 
