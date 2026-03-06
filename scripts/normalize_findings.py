@@ -28,11 +28,11 @@ AUTOFIX_ALLOWLIST_PATTERNS = [
 ]
 
 AUTOFIX_DENYLIST_PATTERNS = [
-    "tests/**",      # No test modifications
-    "docs/**",       # No documentation
-    ".github/**",    # No workflow files
-    "scripts/**",    # No automation scripts
-    "*.toml",        # No config files
+    "tests/**",  # No test modifications
+    "docs/**",  # No documentation
+    ".github/**",  # No workflow files
+    "scripts/**",  # No automation scripts
+    "*.toml",  # No config files
     "*.yaml",
     "*.yml",
     "*.json",
@@ -103,9 +103,7 @@ def is_finding_autofix_eligible(finding: Dict[str, Any]) -> bool:
     fix_type = finding.get("fix_type", "").lower()
 
     is_ruff_format = (
-        "ruff format" in suggestion or
-        fix_type == "ruff_format" or
-        "formatting" in suggestion
+        "ruff format" in suggestion or fix_type == "ruff_format" or "formatting" in suggestion
     )
 
     if not is_ruff_format:
@@ -262,8 +260,8 @@ def main():
             with open(output_file, "w") as f:
                 json.dump(fix_plan, f, indent=2)
 
-            autofix_count = fix_plan['summary'].get('autofix_eligible', 0)
-            autofix_files = fix_plan['summary'].get('autofix_files', 0)
+            autofix_count = fix_plan["summary"].get("autofix_eligible", 0)
+            autofix_files = fix_plan["summary"].get("autofix_files", 0)
             total_autofix_eligible += autofix_count
 
             print(f"\n{category.upper()}: {len(findings)} findings")

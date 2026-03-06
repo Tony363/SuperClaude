@@ -242,7 +242,9 @@ def create_autofix_pr_with_gh(category: str, branch_name: str, pr_content_file: 
     pr_title = lines[0].strip("# ") if lines else f"AUTOFIX: {category.upper()}"
 
     # Get autofix labels
-    labels = ",".join(AUTOFIX_CATEGORY_LABELS.get(category, ["nightly-review-autofix", "ai-generated"]))
+    labels = ",".join(
+        AUTOFIX_CATEGORY_LABELS.get(category, ["nightly-review-autofix", "ai-generated"])
+    )
 
     # Use gh pr create
     result = run_command(

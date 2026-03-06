@@ -304,9 +304,7 @@ def apply_autofix_to_category(category: str, fix_plans_dir: Path) -> Dict[str, A
 
 
 def main():
-    parser = argparse.ArgumentParser(
-        description="Apply autofix with safety checks (Phase 2)"
-    )
+    parser = argparse.ArgumentParser(description="Apply autofix with safety checks (Phase 2)")
     parser.add_argument(
         "--fix-plans-dir",
         type=Path,
@@ -352,7 +350,9 @@ def main():
 
     # Write results
     output_data = {
-        "timestamp": subprocess.check_output(["date", "-u", "+%Y-%m-%dT%H:%M:%SZ"]).decode().strip(),
+        "timestamp": subprocess.check_output(["date", "-u", "+%Y-%m-%dT%H:%M:%SZ"])
+        .decode()
+        .strip(),
         "categories_processed": categories,
         "total_files_succeeded": total_succeeded,
         "total_files_failed": total_failed,

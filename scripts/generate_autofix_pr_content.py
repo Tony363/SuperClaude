@@ -191,7 +191,9 @@ If you spot issues with the autofix:
         pr_desc += "### ⚠️ Files That Failed Safety Checks\n\n"
         for detail in category_results.get("details", []):
             if detail.get("checks_failed"):
-                pr_desc += f"- **{detail['file']}**: {', '.join(f[0] for f in detail['checks_failed'])}\n"
+                pr_desc += (
+                    f"- **{detail['file']}**: {', '.join(f[0] for f in detail['checks_failed'])}\n"
+                )
         pr_desc += "\n"
 
     pr_desc += """
@@ -210,9 +212,7 @@ If you spot issues with the autofix:
 
 
 def main():
-    parser = argparse.ArgumentParser(
-        description="Generate autofix PR content (Phase 2)"
-    )
+    parser = argparse.ArgumentParser(description="Generate autofix PR content (Phase 2)")
     parser.add_argument(
         "--fix-plans-dir",
         type=Path,
@@ -268,9 +268,7 @@ def main():
             continue
 
         # Generate autofix PR description
-        pr_description = generate_autofix_pr_description(
-            category, fix_plan, autofix_results
-        )
+        pr_description = generate_autofix_pr_description(category, fix_plan, autofix_results)
 
         if pr_description is None:
             print(f"No autofix-eligible findings in {category} - skipping")
