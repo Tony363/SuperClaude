@@ -1,0 +1,588 @@
+# SuperClaude Nightly Code Review & Improvement Workflow
+# Proactive code quality monitoring with multi-model consensus
+# Phase 1: Suggestion-only PRs (no automatic code changes)
+
+name: Nightly Code Review
+
+on:
+  schedule:
+    # Run at 2 AM UTC daily
+    - cron: '0 2 * * *'
+    # Alternative: Weekdays only
+    # - cron: '0 2 * * 1-5'
+
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Preview mode (no PRs created)'
+        required: false
+        type: boolean
+        default: false
+      scope:
+        description: 'Scope selection'
+        required: false
+        type: choice
+        options:
+          - last-24h
+          - high-risk-dirs
+          - all
+        default: last-24h
+      categories:
+        description: 'Review categories (comma-separated)'
+        required: false
+        type: string
+        default: 'security,quality,performance,tests'
+      models:
+        description: 'PAL MCP models (comma-separated)'
+        required: false
+        type: string
+        default: 'gpt-5.2,gemini-3-pro'
+
+# Only one nightly review can run at a time
+concurrency:
+  group: nightly-review-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Cost control: Budget guardrails
+  MAX_FILES_PER_RUN: 50
+  MAX_LOC_PER_RUN: 5000
+  MAX_PRS_PER_RUN: 4
+  PR_STALE_DAYS: 7
+
+  # Workflow configuration
+  PYTHON_VERSION: '3.11'
+  WORKFLOW_TIMEOUT_MINUTES: 30
+
+jobs:
+  nightly-review:
+    name: Multi-Model Code Review
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: read
+      checks: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0  # Full history for change detection
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install pydantic pyyaml gitpython
+
+      - name: Check for recent changes (skip logic)
+        id: check_changes
+        run: |
+          # Get last successful workflow run
+          LAST_RUN=$(gh run list \
+            --workflow=nightly-review.yml \
+            --status=success \
+            --limit=1 \
+            --json createdAt \
+            --jq '.[0].createdAt' || echo "")
+
+          if [[ -z "$LAST_RUN" ]]; then
+            echo "First run - proceeding"
+            echo "skip=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          # Check if any commits since last successful run
+          COMMITS_SINCE=$(git log --since="$LAST_RUN" --oneline | wc -l)
+
+          if [[ $COMMITS_SINCE -eq 0 ]]; then
+            echo "No commits since last successful run - skipping"
+            echo "skip=true" >> $GITHUB_OUTPUT
+            echo "reason=no_changes" >> $GITHUB_OUTPUT
+          else
+            echo "Found $COMMITS_SINCE commits since last run - proceeding"
+            echo "skip=false" >> $GITHUB_OUTPUT
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Determine scope
+        id: scope
+        if: steps.check_changes.outputs.skip != 'true'
+        run: |
+          SCOPE="${{ github.event.inputs.scope || 'last-24h' }}"
+          echo "scope=$SCOPE" >> $GITHUB_OUTPUT
+          echo "Selected scope: $SCOPE"
+
+      - name: Run scope selector
+        id: scope_selector
+        if: steps.check_changes.outputs.skip != 'true'
+        run: |
+          python scripts/scope_selector.py \
+            --scope "${{ steps.scope.outputs.scope }}" \
+            --max-files "${{ env.MAX_FILES_PER_RUN }}" \
+            --max-loc "${{ env.MAX_LOC_PER_RUN }}" \
+            --output scope-selection.json
+
+          # Check if any files to review
+          FILE_COUNT=$(jq '.files | length' scope-selection.json)
+          echo "file_count=$FILE_COUNT" >> $GITHUB_OUTPUT
+
+          if [[ $FILE_COUNT -eq 0 ]]; then
+            echo "No files to review - skipping"
+            echo "skip=true" >> $GITHUB_OUTPUT
+          else
+            echo "Found $FILE_COUNT files to review"
+            echo "skip=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Upload scope selection
+        if: steps.scope_selector.outputs.skip != 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: scope-selection
+          path: scope-selection.json
+          retention-days: 30
+
+      - name: Check API provider configuration
+        id: check_providers
+        if: steps.scope_selector.outputs.skip != 'true'
+        run: |
+          BEDROCK_CONFIGURED="${{ secrets.AWS_BEARER_TOKEN_BEDROCK != '' }}"
+          ANTHROPIC_CONFIGURED="${{ secrets.ANTHROPIC_API_KEY != '' }}"
+
+          echo "bedrock_available=$BEDROCK_CONFIGURED" >> $GITHUB_OUTPUT
+          echo "anthropic_available=$ANTHROPIC_CONFIGURED" >> $GITHUB_OUTPUT
+
+          if [[ "$BEDROCK_CONFIGURED" != "true" ]] && [[ "$ANTHROPIC_CONFIGURED" != "true" ]]; then
+            echo "::error::No Claude API provider configured (AWS Bedrock or Anthropic API)"
+            exit 1
+          fi
+
+      - name: Run PAL MCP consensus review (AWS Bedrock)
+        id: consensus_review_bedrock
+        if: |
+          steps.scope_selector.outputs.skip != 'true' &&
+          steps.check_providers.outputs.bedrock_available == 'true'
+        uses: anthropics/claude-code-action@v1
+        continue-on-error: true
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          use_bedrock: "true"
+          show_full_output: false
+          max_turns: 30
+          prompt: |
+            # Nightly Code Review - PAL MCP Consensus Analysis
+
+            You are performing a proactive nightly code review using PAL MCP multi-model consensus.
+
+            ## Task
+
+            1. **Read scope-selection.json** - Contains the list of files to review with metadata
+            2. **Review each file** using PAL MCP consensus (models: ${{ github.event.inputs.models || 'gpt-5.2,gemini-3-pro' }})
+            3. **Generate findings** for categories: ${{ github.event.inputs.categories || 'security,quality,performance,tests' }}
+            4. **Write findings to review-findings.json** in the exact schema specified below
+
+            ## PAL MCP Consensus Instructions
+
+            For EACH file in scope-selection.json, use the `mcp__pal__consensus` tool to get multi-model analysis.
+
+            Example consensus call:
+            ```
+            mcp__pal__consensus(
+              prompt="Review {file_path} for security, quality, performance, and test coverage issues.
+                      Output JSON findings with: category, severity, file, line_start, line_end, issue, suggestion, confidence, actionable",
+              models="gpt-5.2,gemini-3-pro"
+            )
+            ```
+
+            ## Finding Schema (STRICT)
+
+            Each finding MUST match this exact schema:
+
+            ```json
+            {
+              "category": "security|quality|performance|tests",
+              "severity": "critical|high|medium|low",
+              "file": "relative/path/to/file.py",
+              "line_start": 42,
+              "line_end": 45,
+              "issue": "Clear description of the issue",
+              "suggestion": "Specific, actionable fix recommendation",
+              "confidence": 0.85,
+              "actionable": true
+            }
+            ```
+
+            ## Review Focus Areas
+
+            1. **Security**: Vulnerabilities, secrets, injection risks, auth/authz issues, input validation
+            2. **Quality**: SOLID violations, code smells, complexity (KISS), maintainability, readability
+            3. **Performance**: Algorithmic efficiency, N+1 queries, unnecessary operations, resource usage
+            4. **Tests**: Missing coverage, test quality, edge cases, integration test gaps
+
+            ## Severity Guidelines
+
+            - **critical**: Security vulnerabilities, data loss risks, production-breaking bugs
+            - **high**: Major design issues, significant performance problems, missing auth checks
+            - **medium**: Code quality issues, maintainability concerns, minor performance issues
+            - **low**: Style issues, minor improvements, optional optimizations
+
+            ## Confidence Guidelines
+
+            - **0.9-1.0**: Definitely an issue (e.g., SQL injection, hardcoded secrets)
+            - **0.7-0.9**: Likely an issue (e.g., complex function, missing tests)
+            - **0.5-0.7**: Possible issue (e.g., potential performance bottleneck)
+            - **< 0.7**: Filter out (too uncertain)
+
+            ## Output Format
+
+            Write `review-findings.json` with this structure:
+
+            ```json
+            {
+              "findings": [
+                {
+                  "category": "security",
+                  "severity": "high",
+                  "file": "src/auth.py",
+                  "line_start": 23,
+                  "line_end": 25,
+                  "issue": "Hardcoded secret key in source code",
+                  "suggestion": "Move secret key to environment variable and load via os.getenv('SECRET_KEY')",
+                  "confidence": 0.95,
+                  "actionable": true
+                }
+              ],
+              "summary": {
+                "total": 1,
+                "by_category": {
+                  "security": 1,
+                  "quality": 0,
+                  "performance": 0,
+                  "tests": 0
+                },
+                "models_used": ["gpt-5.2", "gemini-3-pro"],
+                "categories_requested": ["security", "quality", "performance", "tests"]
+              }
+            }
+            ```
+
+            ## Critical Requirements
+
+            - ✅ Use `mcp__pal__consensus` for multi-model validation
+            - ✅ Filter findings: confidence >= 0.7 AND actionable = true
+            - ✅ Deduplicate: Remove findings with same file + line_start + line_end
+            - ✅ Validate schema: All required fields present, correct types
+            - ✅ Write to `review-findings.json` in the current directory
+
+            ## Error Handling
+
+            If PAL MCP consensus fails for a file:
+            - Log the error to stderr
+            - Continue with remaining files (failure isolation)
+            - Include successful findings in output
+
+            Begin now. Read scope-selection.json and perform the consensus review.
+
+      - name: Run PAL MCP consensus review (Anthropic API Fallback)
+        id: consensus_review_anthropic
+        if: |
+          steps.scope_selector.outputs.skip != 'true' &&
+          steps.consensus_review_bedrock.outcome != 'success' &&
+          steps.check_providers.outputs.anthropic_available == 'true'
+        uses: anthropics/claude-code-action@v1
+        continue-on-error: true
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          use_bedrock: "false"
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          show_full_output: false
+          max_turns: 30
+          prompt: |
+            # Nightly Code Review - PAL MCP Consensus Analysis
+
+            You are performing a proactive nightly code review using PAL MCP multi-model consensus.
+
+            ## Task
+
+            1. **Read scope-selection.json** - Contains the list of files to review with metadata
+            2. **Review each file** using PAL MCP consensus (models: ${{ github.event.inputs.models || 'gpt-5.2,gemini-3-pro' }})
+            3. **Generate findings** for categories: ${{ github.event.inputs.categories || 'security,quality,performance,tests' }}
+            4. **Write findings to review-findings.json** in the exact schema specified below
+
+            ## PAL MCP Consensus Instructions
+
+            For EACH file in scope-selection.json, use the `mcp__pal__consensus` tool to get multi-model analysis.
+
+            Example consensus call:
+            ```
+            mcp__pal__consensus(
+              prompt="Review {file_path} for security, quality, performance, and test coverage issues.
+                      Output JSON findings with: category, severity, file, line_start, line_end, issue, suggestion, confidence, actionable",
+              models="gpt-5.2,gemini-3-pro"
+            )
+            ```
+
+            ## Finding Schema (STRICT)
+
+            Each finding MUST match this exact schema:
+
+            ```json
+            {
+              "category": "security|quality|performance|tests",
+              "severity": "critical|high|medium|low",
+              "file": "relative/path/to/file.py",
+              "line_start": 42,
+              "line_end": 45,
+              "issue": "Clear description of the issue",
+              "suggestion": "Specific, actionable fix recommendation",
+              "confidence": 0.85,
+              "actionable": true
+            }
+            ```
+
+            ## Review Focus Areas
+
+            1. **Security**: Vulnerabilities, secrets, injection risks, auth/authz issues, input validation
+            2. **Quality**: SOLID violations, code smells, complexity (KISS), maintainability, readability
+            3. **Performance**: Algorithmic efficiency, N+1 queries, unnecessary operations, resource usage
+            4. **Tests**: Missing coverage, test quality, edge cases, integration test gaps
+
+            ## Severity Guidelines
+
+            - **critical**: Security vulnerabilities, data loss risks, production-breaking bugs
+            - **high**: Major design issues, significant performance problems, missing auth checks
+            - **medium**: Code quality issues, maintainability concerns, minor performance issues
+            - **low**: Style issues, minor improvements, optional optimizations
+
+            ## Confidence Guidelines
+
+            - **0.9-1.0**: Definitely an issue (e.g., SQL injection, hardcoded secrets)
+            - **0.7-0.9**: Likely an issue (e.g., complex function, missing tests)
+            - **0.5-0.7**: Possible issue (e.g., potential performance bottleneck)
+            - **< 0.7**: Filter out (too uncertain)
+
+            ## Output Format
+
+            Write `review-findings.json` with this structure:
+
+            ```json
+            {
+              "findings": [
+                {
+                  "category": "security",
+                  "severity": "high",
+                  "file": "src/auth.py",
+                  "line_start": 23,
+                  "line_end": 25,
+                  "issue": "Hardcoded secret key in source code",
+                  "suggestion": "Move secret key to environment variable and load via os.getenv('SECRET_KEY')",
+                  "confidence": 0.95,
+                  "actionable": true
+                }
+              ],
+              "summary": {
+                "total": 1,
+                "by_category": {
+                  "security": 1,
+                  "quality": 0,
+                  "performance": 0,
+                  "tests": 0
+                },
+                "models_used": ["gpt-5.2", "gemini-3-pro"],
+                "categories_requested": ["security", "quality", "performance", "tests"]
+              }
+            }
+            ```
+
+            ## Critical Requirements
+
+            - ✅ Use `mcp__pal__consensus` for multi-model validation
+            - ✅ Filter findings: confidence >= 0.7 AND actionable = true
+            - ✅ Deduplicate: Remove findings with same file + line_start + line_end
+            - ✅ Validate schema: All required fields present, correct types
+            - ✅ Write to `review-findings.json` in the current directory
+
+            ## Error Handling
+
+            If PAL MCP consensus fails for a file:
+            - Log the error to stderr
+            - Continue with remaining files (failure isolation)
+            - Include successful findings in output
+
+            Begin now. Read scope-selection.json and perform the consensus review.
+
+      - name: Validate review findings output
+        id: validate_findings
+        if: |
+          steps.scope_selector.outputs.skip != 'true' &&
+          (steps.consensus_review_bedrock.outcome == 'success' || steps.consensus_review_anthropic.outcome == 'success')
+        run: |
+          if [[ ! -f "review-findings.json" ]]; then
+            echo "::error::review-findings.json was not created by consensus review"
+            # Create empty findings file to prevent downstream failures
+            echo '{"findings": [], "summary": {"total": 0, "by_category": {}}}' > review-findings.json
+            echo "findings_created=false" >> $GITHUB_OUTPUT
+          else
+            # Validate JSON format
+            if ! jq empty review-findings.json 2>/dev/null; then
+              echo "::error::review-findings.json is not valid JSON"
+              echo '{"findings": [], "summary": {"total": 0, "by_category": {}}}' > review-findings.json
+              echo "findings_created=false" >> $GITHUB_OUTPUT
+            else
+              FINDING_COUNT=$(jq '.findings | length' review-findings.json)
+              echo "Found $FINDING_COUNT findings"
+              echo "findings_created=true" >> $GITHUB_OUTPUT
+              echo "finding_count=$FINDING_COUNT" >> $GITHUB_OUTPUT
+            fi
+          fi
+
+      - name: Upload review findings
+        if: |
+          steps.scope_selector.outputs.skip != 'true' &&
+          (steps.consensus_review_bedrock.outcome == 'success' ||
+           steps.consensus_review_bedrock.outcome == 'failure' ||
+           steps.consensus_review_anthropic.outcome == 'success' ||
+           steps.consensus_review_anthropic.outcome == 'failure')
+        uses: actions/upload-artifact@v4
+        with:
+          name: review-findings
+          path: review-findings.json
+          retention-days: 30
+
+      - name: Normalize findings
+        id: normalize
+        if: |
+          steps.validate_findings.outputs.findings_created == 'true' &&
+          steps.validate_findings.outputs.finding_count != '0'
+        run: |
+          python scripts/normalize_findings.py \
+            --findings review-findings.json \
+            --output-dir fix-plans
+
+          # Count findings per category
+          for category in security quality performance tests; do
+            if [[ -f "fix-plans/${category}.json" ]]; then
+              COUNT=$(jq '.findings | length' "fix-plans/${category}.json")
+              echo "${category}_count=$COUNT" >> $GITHUB_OUTPUT
+            else
+              echo "${category}_count=0" >> $GITHUB_OUTPUT
+            fi
+          done
+
+      - name: Upload fix plans
+        if: steps.normalize.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: fix-plans
+          path: fix-plans/
+          retention-days: 30
+
+      - name: Generate suggestions
+        id: suggestions
+        if: steps.normalize.outcome == 'success'
+        run: |
+          python scripts/generate_suggestions.py \
+            --fix-plans-dir fix-plans \
+            --output-dir pr-content
+
+      - name: Upload PR content
+        if: steps.suggestions.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr-content
+          path: pr-content/
+          retention-days: 30
+
+      - name: Create/update PRs
+        id: create_prs
+        if: |
+          steps.suggestions.outcome == 'success' &&
+          (github.event.inputs.dry_run != 'true' || github.event.inputs.dry_run == '')
+        run: |
+          python scripts/create_prs.py \
+            --pr-content-dir pr-content \
+            --max-prs "${{ env.MAX_PRS_PER_RUN }}" \
+            --stale-days "${{ env.PR_STALE_DAYS }}"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Cleanup stale PRs
+        if: always()
+        run: |
+          # Close stale nightly-review PRs (>7 days old with no activity)
+          gh pr list \
+            --label "nightly-review" \
+            --state open \
+            --json number,updatedAt \
+            --jq '.[] | select((now - (.updatedAt | fromdateiso8601)) > (7 * 86400)) | .number' \
+            | xargs -I {} gh pr close {} --comment "Closing stale nightly review PR (>7 days old)"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Workflow summary
+        if: always()
+        run: |
+          echo "## Nightly Code Review Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Skip reasons
+          if [[ "${{ steps.check_changes.outputs.skip }}" == "true" ]]; then
+            echo "**Status**: Skipped - ${{ steps.check_changes.outputs.reason }}" >> $GITHUB_STEP_SUMMARY
+            exit 0
+          fi
+
+          if [[ "${{ steps.scope_selector.outputs.skip }}" == "true" ]]; then
+            echo "**Status**: Skipped - No files to review" >> $GITHUB_STEP_SUMMARY
+            exit 0
+          fi
+
+          # Scope selection
+          echo "### Scope Selection" >> $GITHUB_STEP_SUMMARY
+          echo "- **Scope**: ${{ steps.scope.outputs.scope }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Files Scanned**: ${{ steps.scope_selector.outputs.file_count }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Review status
+          echo "### Review Status" >> $GITHUB_STEP_SUMMARY
+          if [[ "${{ steps.consensus_review_bedrock.outcome }}" == "success" ]]; then
+            echo "- **Provider**: AWS Bedrock ✅" >> $GITHUB_STEP_SUMMARY
+          elif [[ "${{ steps.consensus_review_anthropic.outcome }}" == "success" ]]; then
+            echo "- **Provider**: Anthropic API ✅" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- **Provider**: ❌ Failed" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "- **Models**: ${{ github.event.inputs.models || 'gpt-5.2,gemini-3-pro' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Categories**: ${{ github.event.inputs.categories || 'security,quality,performance,tests' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Total Findings**: ${{ steps.validate_findings.outputs.finding_count || 0 }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Findings by category
+          echo "### Findings by Category" >> $GITHUB_STEP_SUMMARY
+          echo "| Category | Count |" >> $GITHUB_STEP_SUMMARY
+          echo "|----------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Security | ${{ steps.normalize.outputs.security_count || 0 }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Quality | ${{ steps.normalize.outputs.quality_count || 0 }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Performance | ${{ steps.normalize.outputs.performance_count || 0 }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Tests | ${{ steps.normalize.outputs.tests_count || 0 }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # PR status
+          if [[ "${{ github.event.inputs.dry_run }}" == "true" ]]; then
+            echo "**Mode**: Dry run (no PRs created)" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "**PRs Created/Updated**: Check 'Create/update PRs' step for details" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "---" >> $GITHUB_STEP_SUMMARY
+          echo "*Powered by PAL MCP Multi-Model Consensus*" >> $GITHUB_STEP_SUMMARY
