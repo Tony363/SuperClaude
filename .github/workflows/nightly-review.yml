@@ -1,6 +1,6 @@
 # SuperClaude Nightly Code Review & Improvement Workflow
 # Proactive code quality monitoring with multi-model consensus
-# Phase 1: Suggestion-only PRs (no automatic code changes)
+# Phase 2: Suggestion-only PRs + Limited Autofix (ruff format only)
 
 name: Nightly Code Review
 
@@ -18,6 +18,11 @@ on:
         required: false
         type: boolean
         default: false
+      enable_autofix:
+        description: 'Enable Phase 2 autofix (ruff format only)'
+        required: false
+        type: boolean
+        default: true
       scope:
         description: 'Scope selection'
         required: false
@@ -487,6 +492,135 @@ jobs:
           path: fix-plans/
           retention-days: 30
 
+      # ========== Phase 2: Autofix Workflow ==========
+
+      - name: Install ruff (for autofix)
+        if: |
+          steps.normalize.outcome == 'success' &&
+          (github.event.inputs.enable_autofix != 'false' || github.event.inputs.enable_autofix == '')
+        run: |
+          pip install ruff
+
+      - name: Apply autofix with safety checks
+        id: autofix
+        if: |
+          steps.normalize.outcome == 'success' &&
+          (github.event.inputs.enable_autofix != 'false' || github.event.inputs.enable_autofix == '')
+        run: |
+          python scripts/apply_autofix.py \
+            --fix-plans-dir fix-plans \
+            --output autofix-results.json
+
+          # Check if any files were successfully autofixed
+          AUTOFIX_SUCCESS=$(jq '.total_files_succeeded' autofix-results.json)
+          echo "autofix_files_succeeded=$AUTOFIX_SUCCESS" >> $GITHUB_OUTPUT
+
+          if [[ $AUTOFIX_SUCCESS -gt 0 ]]; then
+            echo "autofix_applied=true" >> $GITHUB_OUTPUT
+          else
+            echo "autofix_applied=false" >> $GITHUB_OUTPUT
+          fi
+        continue-on-error: true
+
+      - name: Upload autofix results
+        if: steps.autofix.outcome == 'success' || steps.autofix.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: autofix-results
+          path: autofix-results.json
+          retention-days: 30
+
+      - name: Run CI validation (ruff check)
+        id: ci_ruff
+        if: steps.autofix.outputs.autofix_applied == 'true'
+        run: |
+          # Run ruff check on autofixed files
+          ruff check src/ --fix
+          RUFF_EXIT=$?
+
+          if [[ $RUFF_EXIT -eq 0 ]]; then
+            echo "ci_ruff_passed=true" >> $GITHUB_OUTPUT
+            echo "✅ Ruff check passed"
+          else
+            echo "ci_ruff_passed=false" >> $GITHUB_OUTPUT
+            echo "❌ Ruff check failed"
+            exit 1
+          fi
+        continue-on-error: true
+
+      - name: Run CI validation (pytest)
+        id: ci_tests
+        if: steps.autofix.outputs.autofix_applied == 'true' && steps.ci_ruff.outputs.ci_ruff_passed == 'true'
+        run: |
+          # Run tests if they exist
+          if [[ -d "tests" ]]; then
+            pytest tests/ -v --tb=short || {
+              echo "ci_tests_passed=false" >> $GITHUB_OUTPUT
+              echo "❌ Tests failed"
+              exit 1
+            }
+            echo "ci_tests_passed=true" >> $GITHUB_OUTPUT
+            echo "✅ Tests passed"
+          else
+            echo "ci_tests_passed=true" >> $GITHUB_OUTPUT
+            echo "⚠️  No tests directory found - skipping"
+          fi
+        continue-on-error: true
+
+      - name: CI validation summary
+        id: ci_gate
+        if: steps.autofix.outputs.autofix_applied == 'true'
+        run: |
+          RUFF_PASSED="${{ steps.ci_ruff.outputs.ci_ruff_passed }}"
+          TESTS_PASSED="${{ steps.ci_tests.outputs.ci_tests_passed }}"
+
+          if [[ "$RUFF_PASSED" == "true" ]] && [[ "$TESTS_PASSED" == "true" ]]; then
+            echo "ci_passed=true" >> $GITHUB_OUTPUT
+            echo "✅ All CI checks passed - autofix PR will be created"
+          else
+            echo "ci_passed=false" >> $GITHUB_OUTPUT
+            echo "❌ CI checks failed - will fallback to suggestion-only PR"
+
+            # Rollback autofix changes
+            git checkout .
+            git clean -fd
+          fi
+
+      - name: Generate autofix PR content
+        id: autofix_pr_content
+        if: |
+          steps.autofix.outputs.autofix_applied == 'true' &&
+          steps.ci_gate.outputs.ci_passed == 'true'
+        run: |
+          python scripts/generate_autofix_pr_content.py \
+            --fix-plans-dir fix-plans \
+            --autofix-results autofix-results.json \
+            --output-dir pr-content-autofix
+
+      - name: Upload autofix PR content
+        if: steps.autofix_pr_content.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr-content-autofix
+          path: pr-content-autofix/
+          retention-days: 30
+
+      - name: Create/update autofix PRs
+        id: create_autofix_prs
+        if: |
+          steps.autofix_pr_content.outcome == 'success' &&
+          (github.event.inputs.dry_run != 'true' || github.event.inputs.dry_run == '')
+        run: |
+          python scripts/create_prs.py \
+            --pr-content-dir pr-content-autofix \
+            --max-prs "${{ env.MAX_PRS_PER_RUN }}" \
+            --stale-days "${{ env.PR_STALE_DAYS }}" \
+            --autofix
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # ========== Phase 1: Suggestion-only PRs ==========
+
       - name: Generate suggestions
         id: suggestions
         if: steps.normalize.outcome == 'success'
@@ -526,6 +660,14 @@ jobs:
             --json number,updatedAt \
             --jq '.[] | select((now - (.updatedAt | fromdateiso8601)) > (7 * 86400)) | .number' \
             | xargs -I {} gh pr close {} --comment "Closing stale nightly review PR (>7 days old)"
+
+          # Close stale autofix PRs (Phase 2)
+          gh pr list \
+            --label "nightly-review-autofix" \
+            --state open \
+            --json number,updatedAt \
+            --jq '.[] | select((now - (.updatedAt | fromdateiso8601)) > (7 * 86400)) | .number' \
+            | xargs -I {} gh pr close {} --comment "Closing stale autofix PR (>7 days old)"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -576,6 +718,26 @@ jobs:
           echo "| Tests | ${{ steps.normalize.outputs.tests_count || 0 }} |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
 
+          # Phase 2: Autofix status
+          if [[ "${{ steps.autofix.outputs.autofix_applied }}" == "true" ]]; then
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### Phase 2: Autofix Status" >> $GITHUB_STEP_SUMMARY
+            echo "| Metric | Value |" >> $GITHUB_STEP_SUMMARY
+            echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
+            echo "| Files Autofixed | ${{ steps.autofix.outputs.autofix_files_succeeded || 0 }} |" >> $GITHUB_STEP_SUMMARY
+            echo "| Ruff Check | ${{ steps.ci_ruff.outputs.ci_ruff_passed == 'true' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+            echo "| Tests | ${{ steps.ci_tests.outputs.ci_tests_passed == 'true' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+            echo "| CI Gate | ${{ steps.ci_gate.outputs.ci_passed == 'true' && '✅ Passed' || '❌ Failed - rolled back' }} |" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+
+            if [[ "${{ steps.ci_gate.outputs.ci_passed }}" == "true" ]]; then
+              echo "**Autofix PR Created**: Yes (see Create/update autofix PRs step)" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "**Autofix PR Created**: No (CI failed, reverted to suggestion-only)" >> $GITHUB_STEP_SUMMARY
+            fi
+            echo "" >> $GITHUB_STEP_SUMMARY
+          fi
+
           # PR status
           if [[ "${{ github.event.inputs.dry_run }}" == "true" ]]; then
             echo "**Mode**: Dry run (no PRs created)" >> $GITHUB_STEP_SUMMARY
@@ -586,3 +748,4 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "---" >> $GITHUB_STEP_SUMMARY
           echo "*Powered by PAL MCP Multi-Model Consensus*" >> $GITHUB_STEP_SUMMARY
+          echo "*Phase 2: Limited Autofix (ruff format only)*" >> $GITHUB_STEP_SUMMARY

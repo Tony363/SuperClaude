@@ -7,18 +7,40 @@ Filters by confidence threshold and actionability.
 """
 
 import argparse
+import fnmatch
 import json
 import sys
 from pathlib import Path
 from typing import Any, Dict, List
 
 CONFIDENCE_THRESHOLD = 0.7
+AUTOFIX_CONFIDENCE_THRESHOLD = 0.95  # Phase 2: High confidence required for autofix
 SEVERITY_RANK = {
     "critical": 0,
     "high": 1,
     "medium": 2,
     "low": 3,
 }
+
+# Phase 2: File allowlist for autofix (strict)
+AUTOFIX_ALLOWLIST_PATTERNS = [
+    "src/**/*.py",  # Application code only
+]
+
+AUTOFIX_DENYLIST_PATTERNS = [
+    "tests/**",      # No test modifications
+    "docs/**",       # No documentation
+    ".github/**",    # No workflow files
+    "scripts/**",    # No automation scripts
+    "*.toml",        # No config files
+    "*.yaml",
+    "*.yml",
+    "*.json",
+]
+
+# Phase 2: Autofix limits (conservative)
+AUTOFIX_MAX_LOC_PER_FINDING = 200
+AUTOFIX_MAX_FILES_PER_CATEGORY = 5
 
 
 def load_findings(findings_file: Path) -> List[Dict[str, Any]]:
@@ -41,6 +63,72 @@ def filter_actionable(
         for f in findings
         if f.get("confidence", 0) >= confidence_threshold and f.get("actionable", False)
     ]
+
+
+def is_file_allowed_for_autofix(file_path: str) -> bool:
+    """Check if file is allowed for autofix based on allowlist/denylist."""
+    file_obj = Path(file_path)
+
+    # Check denylist first (higher priority)
+    for pattern in AUTOFIX_DENYLIST_PATTERNS:
+        if fnmatch.fnmatch(str(file_obj), pattern) or fnmatch.fnmatch(file_path, pattern):
+            return False
+
+    # Check allowlist
+    for pattern in AUTOFIX_ALLOWLIST_PATTERNS:
+        if fnmatch.fnmatch(str(file_obj), pattern) or fnmatch.fnmatch(file_path, pattern):
+            return True
+
+    return False
+
+
+def is_finding_autofix_eligible(finding: Dict[str, Any]) -> bool:
+    """
+    Determine if a finding is eligible for autofix (Phase 2).
+
+    Criteria:
+    - Category: quality only (security/performance/tests remain suggestion-only)
+    - Fix type: ruff_format only (most deterministic)
+    - Confidence: >= 0.95 (very high)
+    - File: Must match allowlist and not match denylist
+    - LOC impact: <= 200 lines (formatting should be small)
+    """
+    # Only quality category for now
+    if finding.get("category") != "quality":
+        return False
+
+    # Check if explicitly marked as ruff_format fix
+    # (PAL MCP review should add this field, but we infer from suggestion text)
+    suggestion = finding.get("suggestion", "").lower()
+    fix_type = finding.get("fix_type", "").lower()
+
+    is_ruff_format = (
+        "ruff format" in suggestion or
+        fix_type == "ruff_format" or
+        "formatting" in suggestion
+    )
+
+    if not is_ruff_format:
+        return False
+
+    # High confidence threshold
+    if finding.get("confidence", 0) < AUTOFIX_CONFIDENCE_THRESHOLD:
+        return False
+
+    # File allowlist check
+    file_path = finding.get("file", "")
+    if not is_file_allowed_for_autofix(file_path):
+        return False
+
+    # LOC limit (estimate from line range)
+    line_start = finding.get("line_start", 0)
+    line_end = finding.get("line_end", 0)
+    loc_affected = line_end - line_start + 1
+
+    if loc_affected > AUTOFIX_MAX_LOC_PER_FINDING:
+        return False
+
+    return True
 
 
 def group_by_category(findings: List[Dict[str, Any]]) -> Dict[str, List[Dict[str, Any]]]:
@@ -72,12 +160,37 @@ def rank_by_priority(findings: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
 
 
 def generate_fix_plan(category: str, findings: List[Dict[str, Any]]) -> Dict[str, Any]:
-    """Generate fix plan for a category."""
+    """Generate fix plan for a category with Phase 2 autofix eligibility."""
     if not findings:
         return None
 
     # Rank by priority
     ranked = rank_by_priority(findings)
+
+    # Phase 2: Mark autofix eligibility
+    autofix_eligible_count = 0
+    autofix_eligible_files = set()
+
+    for finding in ranked:
+        is_autofix = is_finding_autofix_eligible(finding)
+        finding["autofix_eligible"] = is_autofix
+
+        if is_autofix:
+            autofix_eligible_count += 1
+            autofix_eligible_files.add(finding.get("file"))
+
+    # Apply per-category file limit for autofix
+    if len(autofix_eligible_files) > AUTOFIX_MAX_FILES_PER_CATEGORY:
+        # Keep only top priority findings within file limit
+        files_kept = set()
+        for finding in ranked:
+            if finding.get("autofix_eligible"):
+                file_path = finding.get("file")
+                if file_path in files_kept or len(files_kept) >= AUTOFIX_MAX_FILES_PER_CATEGORY:
+                    finding["autofix_eligible"] = False
+                    autofix_eligible_count -= 1
+                else:
+                    files_kept.add(file_path)
 
     # Count by severity
     severity_counts = {
@@ -96,6 +209,8 @@ def generate_fix_plan(category: str, findings: List[Dict[str, Any]]) -> Dict[str
             "top_severity": ranked[0].get("severity") if ranked else "none",
             "files_affected": len(set(f.get("file") for f in ranked)),
             "avg_confidence": sum(f.get("confidence", 0) for f in ranked) / len(ranked),
+            "autofix_eligible": autofix_eligible_count,  # Phase 2
+            "autofix_files": len(autofix_eligible_files),  # Phase 2
         },
     }
 
@@ -135,6 +250,8 @@ def main():
 
     # Generate fix plans per category
     plans_created = 0
+    total_autofix_eligible = 0
+
     for category, findings in by_category.items():
         if not findings:
             continue
@@ -145,11 +262,17 @@ def main():
             with open(output_file, "w") as f:
                 json.dump(fix_plan, f, indent=2)
 
+            autofix_count = fix_plan['summary'].get('autofix_eligible', 0)
+            autofix_files = fix_plan['summary'].get('autofix_files', 0)
+            total_autofix_eligible += autofix_count
+
             print(f"\n{category.upper()}: {len(findings)} findings")
             print(f"  Critical: {fix_plan['severity_counts']['critical']}")
             print(f"  High: {fix_plan['severity_counts']['high']}")
             print(f"  Medium: {fix_plan['severity_counts']['medium']}")
             print(f"  Low: {fix_plan['severity_counts']['low']}")
+            if autofix_count > 0:
+                print(f"  Autofix eligible: {autofix_count} findings in {autofix_files} files")
             print(f"  Output: {output_file}")
 
             plans_created += 1
@@ -158,6 +281,8 @@ def main():
         print("\nNo actionable findings to create fix plans")
     else:
         print(f"\nCreated {plans_created} fix plans in {args.output_dir}")
+        if total_autofix_eligible > 0:
+            print(f"Phase 2: {total_autofix_eligible} findings eligible for autofix")
 
 
 if __name__ == "__main__":
