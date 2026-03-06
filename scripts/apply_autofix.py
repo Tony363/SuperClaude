@@ -166,7 +166,7 @@ def apply_autofix_to_file(file_path: Path) -> Tuple[bool, str, Dict[str, Any]]:
         return (False, message, details)
 
     details["checks_passed"].append("pre_check")
-    print(f"  ✅ Pre-check passed")
+    print("  ✅ Pre-check passed")
 
     # 2. Apply ruff format
     success, message = apply_ruff_format(file_path)
@@ -176,7 +176,7 @@ def apply_autofix_to_file(file_path: Path) -> Tuple[bool, str, Dict[str, Any]]:
         return (False, message, details)
 
     details["checks_passed"].append("ruff_format")
-    print(f"  ✅ Ruff format applied")
+    print("  ✅ Ruff format applied")
 
     # 3. Idempotency check
     success, message = check_idempotency(file_path)
@@ -188,7 +188,7 @@ def apply_autofix_to_file(file_path: Path) -> Tuple[bool, str, Dict[str, Any]]:
         return (False, message, details)
 
     details["checks_passed"].append("idempotency")
-    print(f"  ✅ Idempotency verified")
+    print("  ✅ Idempotency verified")
 
     # 4. Syntax check
     success, message = check_syntax(file_path)
@@ -200,7 +200,7 @@ def apply_autofix_to_file(file_path: Path) -> Tuple[bool, str, Dict[str, Any]]:
         return (False, message, details)
 
     details["checks_passed"].append("syntax")
-    print(f"  ✅ Syntax check passed")
+    print("  ✅ Syntax check passed")
 
     # 5. Git changes check
     success, message = check_git_changes(file_path)
