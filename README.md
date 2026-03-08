@@ -2,9 +2,9 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/version-7.0.0-blue" alt="Version">
-  <img src="https://img.shields.io/badge/agents-31-orange" alt="Agents">
+  <img src="https://img.shields.io/badge/agents-19-orange" alt="Agents">
   <img src="https://img.shields.io/badge/skills-38-green" alt="Skills">
-  <img src="https://img.shields.io/badge/commands-27-purple" alt="Commands">
+  <img src="https://img.shields.io/badge/commands-24-purple" alt="Commands">
   <img src="https://img.shields.io/badge/modes-6-teal" alt="Modes">
   <img src="https://img.shields.io/badge/python_core-2800_lines-red" alt="Core">
   <img src="https://img.shields.io/badge/license-MIT-lightgrey" alt="License">
@@ -12,7 +12,7 @@
   <a href="https://sonarcloud.io/summary/new_code?id=tony363_superclaude"><img src="https://sonarcloud.io/api/project_badges/measure?project=tony363_superclaude&metric=coverage" alt="Coverage"></a>
 </p>
 
-**A config-first meta-framework for Claude Code that provides 31 specialized agent personas (11 core + 12 traits + 8 extensions), 27 structured commands, 38 skills, and comprehensive MCP integration with quality-driven iterative workflows.**
+**A config-first meta-framework for Claude Code that provides 19 specialized agent personas (5 core + 7 traits + 7 extensions), 24 structured commands, 38 skills, and comprehensive MCP integration with quality-driven iterative workflows.**
 
 SuperClaude transforms Claude Code into a powerful development platform with specialized agent prompts, signal-based loop orchestration, and multi-model consensus capabilities. The core interface is markdown and YAML configuration files, with a Python orchestration layer for advanced workflows including quality gates, termination detection, and PAL MCP integration.
 
@@ -48,9 +48,9 @@ SuperClaude transforms Claude Code into a powerful development platform with spe
 
 SuperClaude is a meta-prompt framework that enhances Claude Code with:
 
-- **31 Specialized Agents**: 11 core + 12 composable traits + 8 domain extensions (tiered architecture)
+- **19 Specialized Agents**: 5 core + 7 composable traits + 7 domain extensions (tiered architecture)
 - **38 Active Skills**: 8 agent personas + 27 command workflows + 3 utility skills
-- **27 Structured Commands**: analyze, implement, test, design, document, and more
+- **24 Structured Commands**: analyze, implement, test, design, document, and more
 - **6 Framework Modes**: normal, brainstorming, introspection, task_management, token_efficiency, orchestration
 - **MCP Integration**: PAL (11 tools), Rube (500+ apps via Composio, including web search)
 - **Quality Gates**: KISS, Purity, SOLID, and Let It Crash validators with iterative quality loop
@@ -86,19 +86,19 @@ SuperClaude v7.0.0 is a **config-first hybrid framework**:
 
 ### Tiered Agent Architecture
 
-31 agents organized in a tiered system for composable expertise:
+19 agents organized in a tiered system for composable expertise:
 
 | Tier | Count | Purpose | Examples |
 |------|-------|---------|----------|
-| **Core** | 11 | High-priority generalists | general-purpose, root-cause-analyst, software-architect, security-engineer, educator |
-| **Traits** | 12 | Composable modifiers | security-first, performance-first, test-driven, minimal-changes, solid-aligned, crash-resilient, mcp-pal-enabled, mcp-rube-enabled |
-| **Extensions** | 8 | Domain specialists | typescript-expert, golang-expert, rust-expert, react-specialist, kubernetes-specialist, data-engineer, ml-engineer, python-expert |
+| **Core** | 5 | High-priority generalists | architect, developer, optimizer, guardian, communicator |
+| **Traits** | 7 | Composable modifiers | security-first, performance-first, test-driven, minimal-changes, principles-enforced, mcp-pal-enabled, mcp-rube-enabled |
+| **Extensions** | 7 | Domain specialists | typescript-react-expert, python-expert, golang-expert, rust-expert, kubernetes-specialist, data-engineer, ml-engineer |
 
-**Why Tiered?** The v7 architecture provides a lean, composable system. Core agents handle most tasks, traits modify behavior (e.g., `@security-engineer +security-first`), and extensions provide deep domain expertise when needed.
+**Why Tiered?** The v7 architecture provides a lean, composable system. Core agents handle most tasks, traits modify behavior (e.g., `@architect +security-first`), and extensions provide deep domain expertise when needed.
 
 ### Command System
 
-27 structured commands with consistent patterns:
+24 structured commands with consistent patterns:
 
 ```
 /sc:analyze      - Static analysis, security review, performance bottlenecks
@@ -149,7 +149,7 @@ flowchart TB
     end
 
     subgraph Config["Configuration Layer"]
-        AGENTS[("agents/<br/>11 core + 12 traits + 8 ext")]
+        AGENTS[("agents/<br/>5 core + 7 traits + 7 ext")]
         COMMANDS[("commands/<br/>16 templates")]
         SKILLS[(".claude/skills/<br/>38 skills")]
         YAML[("config/<br/>6 YAML files")]
@@ -196,9 +196,9 @@ SuperClaude uses a layered file-based architecture:
 
 1. **CLAUDE.md** - Master system prompt loaded by Claude Code
 2. **agents/index.yaml** - Agent registry with triggers, categories, and selection weights
-3. **agents/core/*.md** - 11 core agent persona prompts
-4. **agents/traits/*.md** - 12 composable behavior modifier prompts
-5. **agents/extensions/*.md** - 8 domain specialist prompts
+3. **agents/core/*.md** - 5 core agent persona prompts
+4. **agents/traits/*.md** - 7 composable behavior modifier prompts
+5. **agents/extensions/*.md** - 7 domain specialist prompts
 6. **commands/index.yaml** - Command registry with flags and aliases
 7. **commands/*.md** - 16 command templates
 8. **config/*.yaml** - 6 configuration files
@@ -518,7 +518,7 @@ Once configured, Claude Code automatically loads SuperClaude capabilities:
 
 ```
 User: Help me debug this authentication issue
-Claude: [Selects root-cause-analyst agent, applies debugging methodology]
+Claude: [Selects communicator agent, applies debugging methodology]
 ```
 
 ### 2. Using Commands
@@ -558,7 +558,7 @@ SuperClaude includes a native desktop dashboard for visualizing and controlling 
 
 ### Features
 
-- **Feature Inventory** - Browse all 31 agents, 27 commands, 38 skills, and 6 behavioral modes
+- **Feature Inventory** - Browse all 19 agents, 24 commands, 38 skills, and 6 behavioral modes
 - **Live Monitor** - Real-time execution tracking with event streaming, heartbeat indicator, and quality score visualization
 - **Execution Control** - Start, stop, pause, and resume executions with configurable parameters; expandable detail panel with 5 tabs (Run Instructions, Execution Log, Files Changed, Quality Breakdown, Execution Tree)
 - **Execution Tree** - Visual tree of iterations, tool calls, and subagent spawns built from streaming events
@@ -601,57 +601,45 @@ See [Dashboard README](crates/dashboard/README.md) for detailed usage guide.
 
 ## Agent System
 
-### Core Agents (11)
+### Core Agents (5)
 
 High-priority generalists for common tasks:
 
 | Agent | Triggers | Purpose |
 |-------|----------|---------|
-| general-purpose | help, assist, general, requirement, spec | Versatile task handling, requirements analysis |
-| root-cause-analyst | debug, bug, error, crash, broken, not working | Deep debugging and investigation |
-| refactoring-expert | refactor, clean, improve, technical debt | Code quality improvement |
-| technical-writer | document, docs, readme | Documentation generation |
-| security-engineer | security, auth, vulnerability, authorization | Security analysis and hardening |
-| performance-engineer | performance, optimize, slow, bottleneck | Performance optimization |
-| quality-engineer | test, qa, coverage | Testing and quality assurance |
-| software-architect | architecture, design, api, database, frontend, ui | System, backend, and frontend architecture |
-| devops-architect | devops, ci/cd, kubernetes | Infrastructure automation |
-| fullstack-developer | fullstack, end-to-end | Full-stack coordination |
-| educator | learn, teach, tutorial, mentor, explain | Teaching, tutorials, and guided learning |
+| architect | architecture, design, system, backend, frontend, api, database, infrastructure, ci/cd, deploy, fullstack | System design spanning architecture, infrastructure, backend, frontend, and deployment |
+| developer | implement, create, build, develop, task, general, requirement, spec | Versatile implementation and multi-domain coordination |
+| optimizer | optimize, performance, slow, refactor, improve, clean | Performance optimization and code quality improvement |
+| guardian | security, vulnerability, test, validate, quality, qa | Security analysis and comprehensive testing |
+| communicator | document, docs, explain, learn, tutorial, debug, investigate | Documentation, teaching, and debugging explanations |
 
-### Traits (12)
+### Traits (7)
 
 Composable behavior modifiers that can be combined with any agent:
 
 | Trait | Purpose | Example Usage |
 |-------|---------|---------------|
-| security-first | Prioritize security considerations | `@software-architect +security-first` |
-| performance-first | Focus on optimization | `@python-expert +performance-first` |
-| pedagogy-first | Include educational explanations | `@educator +pedagogy-first` |
-| test-driven | Enforce TDD practices | `@fullstack-developer +test-driven` |
-| minimal-changes | Reduce change scope | `@refactoring-expert +minimal-changes` |
-| legacy-friendly | Support older systems | `@devops-architect +legacy-friendly` |
-| cloud-native | Modern cloud patterns | `@software-architect +cloud-native` |
-| rapid-prototype | Fast iteration | `@software-architect +rapid-prototype` |
-| solid-aligned | Enforce SOLID design principles (SRP, OCP, LSP, ISP, DIP) | `@software-architect +solid-aligned` |
-| crash-resilient | Enforce "Let It Crash" error handling philosophy | `@software-architect +crash-resilient` |
-| mcp-pal-enabled | Enables PAL MCP tools (consensus, debug, codereview) | `@security-engineer +mcp-pal-enabled` |
-| mcp-rube-enabled | Enables Rube MCP tools (500+ app integrations) | `@devops-architect +mcp-rube-enabled` |
+| security-first | Prioritize security considerations | `@architect +security-first` |
+| performance-first | Focus on optimization | `@optimizer +performance-first` |
+| test-driven | Enforce TDD practices | `@developer +test-driven` |
+| minimal-changes | Reduce change scope | `@optimizer +minimal-changes` |
+| principles-enforced | Enforce SOLID, Let It Crash, KISS, Pure Functions | `@architect +principles-enforced` |
+| mcp-pal-enabled | Enables PAL MCP tools (consensus, debug, codereview) | `@guardian +mcp-pal-enabled` |
+| mcp-rube-enabled | Enables Rube MCP tools (500+ app integrations) | `@architect +mcp-rube-enabled` |
 
-### Extensions (8)
+### Extensions (7)
 
 Domain-specialist agents for deep expertise:
 
 | Extension | Triggers | Specialty |
 |-----------|----------|-----------|
-| typescript-expert | typescript, ts, angular | TypeScript ecosystem |
-| golang-expert | go, golang | Go development |
-| rust-expert | rust, cargo, wasm | Rust development |
-| react-specialist | react, nextjs, hooks | React ecosystem |
-| kubernetes-specialist | kubernetes, k8s, helm | Kubernetes orchestration |
-| data-engineer | data, pipeline, etl | Data engineering |
-| ml-engineer | ml, machine learning, model | Machine learning |
-| python-expert | python, django, fastapi | Python development |
+| typescript-react-expert | typescript, ts, node, react, hooks, nextjs | TypeScript and React with strong typing |
+| python-expert | python, django, fastapi, pytest | Python development with modern patterns |
+| golang-expert | go, golang, goroutine | Go development with idiomatic patterns |
+| rust-expert | rust, cargo, ownership | Rust with ownership patterns |
+| kubernetes-specialist | kubernetes, k8s, helm, pod | Kubernetes orchestration |
+| data-engineer | data, pipeline, etl, spark, kafka | Data engineering and pipelines |
+| ml-engineer | ml, machine learning, pytorch, tensorflow | Machine learning systems |
 
 ### Agent Selection Algorithm
 
@@ -1585,8 +1573,8 @@ triggers:
     brainstorming: [explore, brainstorm, "figure out", "not sure"]
     introspection: ["analyze my reasoning", reflect, meta-cognitive]
   agent_triggers:
-    root-cause-analyst: [debug, error, broken, "not working"]
-    refactoring-expert: [refactor, "improve code", "clean up"]
+    communicator: [debug, error, broken, "not working", explain]
+    optimizer: [refactor, "improve code", "clean up", optimize]
 
 workflows:
   default_workflow: [analyze, plan, implement, test, document]
@@ -1736,24 +1724,29 @@ SuperClaude/
 │
 ├── agents/
 │   ├── index.yaml               # Agent registry
-│   ├── core/                    # 11 core agent prompts
-│   │   ├── general-purpose.md
-│   │   ├── root-cause-analyst.md
-│   │   ├── refactoring-expert.md
-│   │   └── ...
-│   ├── traits/                  # 12 composable trait prompts
+│   ├── core/                    # 5 core agent prompts
+│   │   ├── architect.md
+│   │   ├── developer.md
+│   │   ├── optimizer.md
+│   │   ├── guardian.md
+│   │   └── communicator.md
+│   ├── traits/                  # 7 composable trait prompts
 │   │   ├── security-first.md
 │   │   ├── performance-first.md
 │   │   ├── test-driven.md
+│   │   ├── minimal-changes.md
+│   │   ├── principles-enforced.md
 │   │   ├── mcp-pal-enabled.md
-│   │   ├── mcp-rube-enabled.md
-│   │   └── ...
-│   ├── extensions/              # 8 domain specialist prompts
-│   │   ├── typescript-expert.md
+│   │   └── mcp-rube-enabled.md
+│   ├── extensions/              # 7 domain specialist prompts
+│   │   ├── typescript-react-expert.md
+│   │   ├── python-expert.md
 │   │   ├── golang-expert.md
-│   │   ├── react-specialist.md
-│   │   └── ...
-│   └── DEPRECATED/              # Archived agents from previous versions
+│   │   ├── rust-expert.md
+│   │   ├── kubernetes-specialist.md
+│   │   ├── data-engineer.md
+│   │   └── ml-engineer.md
+│   └── DEPRECATED/              # Archived agents from previous versions (25 files)
 │
 ├── commands/
 │   ├── index.yaml               # Command registry
@@ -1974,5 +1967,5 @@ MIT License - see [LICENSE](LICENSE) for details.
 <p align="center">
   <strong>SuperClaude v7.0.0</strong><br>
   Config-First Meta-Framework for Claude Code<br>
-  <em>31 Agents (11 Core + 12 Traits + 8 Extensions) | 38 Skills | 27 Commands | 6 Modes | Quality-Driven Loops</em>
+  <em>19 Agents (5 Core + 7 Traits + 7 Extensions) | 38 Skills | 24 Commands | 6 Modes | Quality-Driven Loops</em>
 </p>

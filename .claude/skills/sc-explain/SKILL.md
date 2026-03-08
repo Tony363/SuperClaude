@@ -38,9 +38,9 @@ Educational explanations with adaptive depth and format.
 
 ## Personas Activated
 
-- **educator** - Learning-optimized explanations
+- **communicator** - Learning-optimized explanations
 - **architect** - System design context
-- **security** - Security practice explanations
+- **guardian** - Security practice explanations
 
 ## MCP Integration
 

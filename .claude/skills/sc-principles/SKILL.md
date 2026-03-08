@@ -198,8 +198,8 @@ For use by other skills and pre-commit hooks:
 ## Personas Activated
 
 - **code-warden** - Primary reviewer for principles enforcement
-- **refactoring-expert** - For complex refactoring guidance
-- **quality-engineer** - For metrics integration
+- **optimizer** - For complex refactoring guidance
+- **guardian** - For metrics integration
 
 ## Validator Scripts
 
@@ -495,5 +495,5 @@ python -m pytest .claude/skills/sc-principles/tests/ -v
 **Validators**: `validate_kiss.py`, `validate_purity.py`, `validate_solid.py`, `validate_crash.py`
 **Shared**: `shared.py` (common `find_python_files` utility)
 **Agent**: `code-warden`
-**Traits**: `solid-aligned`, `crash-resilient`
+**Traits**: `principles-enforced`
 **Tests**: 59 passing (all 4 validators)

@@ -212,9 +212,9 @@ python .claude/skills/sc-tdd/scripts/validate_green.py \
 ## Personas Activated
 
 - **agent-test-automator** - Test design expertise
-- **agent-quality-engineer** - Test quality validation
-- **agent-python-pro** / **agent-typescript-expert** - Language-specific implementation
-- **agent-software-architect** - Architecture guidance
+- **guardian** - Test quality validation
+- **agent-python-pro** / **agent-typescript-react-expert** - Language-specific implementation
+- **architect** - Architecture guidance
 
 ## MCP Integration
 
