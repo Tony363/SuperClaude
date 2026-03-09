@@ -508,6 +508,64 @@ For advanced workflows using the core orchestration layer:
 pip install -e .
 ```
 
+### Security Layer: Sondera Integration
+
+SuperClaude supports optional integration with **Sondera**, a security harness that validates all Claude Code tool executions using LLM-powered policy enforcement and Cedar policy language.
+
+#### Quick Start (No Security Layer)
+
+The default installation above provides full SuperClaude functionality without security restrictions. This is ideal for:
+- Local development and experimentation
+- Trusted environments
+- Research and learning
+- Scenarios where performance is critical
+
+#### Production Setup (With Sondera)
+
+For production deployments or high-security environments, install with Sondera:
+
+```bash
+./install-with-sondera.sh
+```
+
+**What Sondera provides:**
+- Pre-execution validation of every Claude Code tool call
+- LLM-powered intent analysis (ministral-3:14b-cloud)
+- Safety validation (gpt-oss-safeguard:20b)
+- Cedar policy enforcement
+- Audit logging of all operations
+
+**Prerequisites:**
+- Rust toolchain (cargo)
+- Ollama with models: `ministral-3:14b-cloud`, `gpt-oss-safeguard:20b`
+- Unix socket support (Linux/macOS)
+
+**Testing the integration:**
+
+```bash
+./test-sondera-integration.sh
+```
+
+**Tradeoffs:**
+
+| Aspect | Without Sondera | With Sondera |
+|--------|----------------|--------------|
+| **Installation** | Simple (git clone) | Complex (Rust, Ollama, models) |
+| **Performance** | Fast | Slower (LLM validation overhead) |
+| **Security** | Trust-based | Policy-enforced |
+| **Use Case** | Development, research | Production, compliance |
+| **Maintenance** | Low | Higher (harness service) |
+
+**Disabling Sondera:**
+
+```bash
+# Remove hook configuration
+rm .claude/settings.local.json
+
+# Stop harness service
+pkill sondera-harness
+```
+
 ---
 
 ## Quick Start
