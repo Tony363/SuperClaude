@@ -11,6 +11,7 @@ Enforces budget guardrails to control costs and context limits.
 """
 
 import argparse
+import fnmatch
 import json
 import subprocess
 import sys
@@ -101,8 +102,8 @@ def matches_denylist(file_path: Path) -> bool:
     """Check if file matches any denylist pattern."""
     file_str = str(file_path)
     for pattern in DENYLIST_PATTERNS:
-        # Simple pattern matching (can be enhanced with fnmatch)
-        if pattern.strip("*") in file_str:
+        # Use proper glob matching like normalize_findings.py does
+        if fnmatch.fnmatch(file_str, pattern):
             return True
     return False
 

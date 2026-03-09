@@ -313,11 +313,12 @@ def process_autofix_category(category: str, pr_content_dir: Path) -> bool:
             ]
         )
 
-        # Push branch
+        # Push branch (fail-fast on error, no force-push)
         push_result = run_command(["git", "push", "-u", "origin", branch_name])
-        if not push_result and push_result is not None:
-            # Branch might already exist remotely
-            run_command(["git", "push", "--force-with-lease", "origin", branch_name])
+        if push_result is None:
+            print(f"ERROR: Failed to push branch {branch_name}", file=sys.stderr)
+            print("Let It Crash: Push failed - investigate the error above", file=sys.stderr)
+            return False
 
         # Create PR
         return create_autofix_pr_with_gh(category, branch_name, pr_content_file)
@@ -362,11 +363,12 @@ def process_category(category: str, pr_content_dir: Path) -> bool:
             ]
         )
 
-        # Push branch
+        # Push branch (fail-fast on error, no force-push)
         push_result = run_command(["git", "push", "-u", "origin", branch_name])
-        if not push_result and push_result is not None:
-            # Branch might already exist remotely
-            run_command(["git", "push", "--force-with-lease", "origin", branch_name])
+        if push_result is None:
+            print(f"ERROR: Failed to push branch {branch_name}", file=sys.stderr)
+            print("Let It Crash: Push failed - investigate the error above", file=sys.stderr)
+            return False
 
         # Create PR
         return create_pr_with_gh(category, branch_name, pr_content_file)
