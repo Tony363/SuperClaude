@@ -187,6 +187,9 @@ jobs:
           steps.scope_selector.outputs.skip != 'true' &&
           steps.check_providers.outputs.bedrock_available == 'true'
         uses: anthropics/claude-code-action@v1
+        env:
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+          AWS_BEARER_TOKEN_BEDROCK: ${{ secrets.AWS_BEARER_TOKEN_BEDROCK }}
         continue-on-error: true
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
