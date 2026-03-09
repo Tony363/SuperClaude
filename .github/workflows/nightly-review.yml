@@ -78,7 +78,7 @@ jobs:
           fetch-depth: 0  # Full history for change detection
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: 'pip'
@@ -151,7 +151,7 @@ jobs:
 
       - name: Upload scope selection
         if: steps.scope_selector.outputs.skip != 'true'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: scope-selection
           path: scope-selection.json
@@ -458,7 +458,7 @@ jobs:
            steps.consensus_review_bedrock.outcome == 'failure' ||
            steps.consensus_review_anthropic.outcome == 'success' ||
            steps.consensus_review_anthropic.outcome == 'failure')
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: review-findings
           path: review-findings.json
@@ -486,7 +486,7 @@ jobs:
 
       - name: Upload fix plans
         if: steps.normalize.outcome == 'success'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: fix-plans
           path: fix-plans/
@@ -524,7 +524,7 @@ jobs:
 
       - name: Upload autofix results
         if: steps.autofix.outcome == 'success' || steps.autofix.outcome == 'failure'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: autofix-results
           path: autofix-results.json
@@ -599,7 +599,7 @@ jobs:
 
       - name: Upload autofix PR content
         if: steps.autofix_pr_content.outcome == 'success'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: pr-content-autofix
           path: pr-content-autofix/
@@ -631,7 +631,7 @@ jobs:
 
       - name: Upload PR content
         if: steps.suggestions.outcome == 'success'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: pr-content
           path: pr-content/
