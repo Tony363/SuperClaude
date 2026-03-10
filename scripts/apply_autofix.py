@@ -16,8 +16,13 @@ import argparse
 import json
 import subprocess
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
+
+# Import allowlist checker from normalize_findings
+sys.path.insert(0, str(Path(__file__).parent))
+from normalize_findings import is_file_allowed_for_autofix
 
 # Safety limits (must match normalize_findings.py)
 MAX_FILES_PER_RUN = 5
@@ -51,7 +56,17 @@ def pre_check_file(file_path: Path) -> Tuple[bool, str]:
     if not file_path.is_file():
         return (False, f"Not a file: {file_path}")
 
-    # 3. LOC limit check
+    # 3. Allowlist check (SECURITY: must come before any file operations)
+    if not is_file_allowed_for_autofix(str(file_path)):
+        return (False, f"File not in autofix allowlist: {file_path}")
+
+    # 4. Path traversal check (SECURITY: prevent ../../../ attacks)
+    try:
+        file_path.resolve().relative_to(Path.cwd().resolve())
+    except ValueError:
+        return (False, f"File outside repository: {file_path}")
+
+    # 5. LOC limit check
     try:
         with open(file_path, "r") as f:
             lines = f.readlines()
@@ -60,7 +75,7 @@ def pre_check_file(file_path: Path) -> Tuple[bool, str]:
     except OSError as e:
         return (False, f"Cannot read file: {e}")
 
-    # 4. Is Python file
+    # 6. Is Python file
     if file_path.suffix != ".py":
         return (False, f"Not a Python file: {file_path}")
 
@@ -127,7 +142,7 @@ def check_git_changes(file_path: Path) -> Tuple[bool, str]:
     We can't programmatically verify this is "only" formatting,
     but we can check that changes exist and are reasonable.
     """
-    success, output = run_command(["git", "diff", str(file_path)])
+    success, output = run_command(["git", "diff", "--", str(file_path)])
 
     if not success:
         return (False, "git diff failed")
@@ -184,7 +199,7 @@ def apply_autofix_to_file(file_path: Path) -> Tuple[bool, str, Dict[str, Any]]:
         details["checks_failed"].append(("idempotency", message))
         print(f"  ❌ Idempotency: {message}")
         # CRITICAL FAILURE - rollback
-        run_command(["git", "checkout", str(file_path)])
+        run_command(["git", "restore", "--source=HEAD", "--", str(file_path)])
         return (False, message, details)
 
     details["checks_passed"].append("idempotency")
@@ -196,7 +211,7 @@ def apply_autofix_to_file(file_path: Path) -> Tuple[bool, str, Dict[str, Any]]:
         details["checks_failed"].append(("syntax", message))
         print(f"  ❌ Syntax check: {message}")
         # CRITICAL FAILURE - rollback
-        run_command(["git", "checkout", str(file_path)])
+        run_command(["git", "restore", "--source=HEAD", "--", str(file_path)])
         return (False, message, details)
 
     details["checks_passed"].append("syntax")
@@ -350,9 +365,7 @@ def main():
 
     # Write results
     output_data = {
-        "timestamp": subprocess.check_output(["date", "-u", "+%Y-%m-%dT%H:%M:%SZ"])
-        .decode()
-        .strip(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
         "categories_processed": categories,
         "total_files_succeeded": total_succeeded,
         "total_files_failed": total_failed,

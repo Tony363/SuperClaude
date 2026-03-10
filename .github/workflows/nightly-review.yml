@@ -91,6 +91,15 @@ jobs:
       - name: Check for recent changes (skip logic)
         id: check_changes
         run: |
+          SCOPE="${{ github.event.inputs.scope || 'last-24h' }}"
+
+          # Skip this check if manually triggered with broader scope
+          if [[ "$SCOPE" == "all" ]] || [[ "$SCOPE" == "high-risk-dirs" ]]; then
+            echo "Manual trigger with scope=$SCOPE - bypassing change check"
+            echo "skip=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
           # Get last successful workflow run
           LAST_RUN=$(gh run list \
             --workflow=nightly-review.yml \
@@ -178,12 +187,14 @@ jobs:
           steps.scope_selector.outputs.skip != 'true' &&
           steps.check_providers.outputs.bedrock_available == 'true'
         uses: anthropics/claude-code-action@v1
+        env:
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+          AWS_BEARER_TOKEN_BEDROCK: ${{ secrets.AWS_BEARER_TOKEN_BEDROCK }}
         continue-on-error: true
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           use_bedrock: "true"
           show_full_output: false
-          max_turns: 30
           prompt: |
             # Nightly Code Review - PAL MCP Consensus Analysis
 
@@ -311,7 +322,6 @@ jobs:
           use_bedrock: "false"
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           show_full_output: false
-          max_turns: 30
           prompt: |
             # Nightly Code Review - PAL MCP Consensus Analysis
 
