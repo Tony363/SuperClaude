@@ -10,7 +10,8 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m'
 
-SONDERA_REPO="https://github.com/your-org/sondera-coding-agent-hooks"  # Update with actual repo
+SONDERA_REPO="${SONDERA_REPO:-https://github.com/your-org/sondera-coding-agent-hooks}"
+SONDERA_VERSION="${SONDERA_VERSION:-v0.1.0}"  # Pin to a specific release tag
 SONDERA_DIR="$HOME/.local/share/sondera-coding-agent-hooks"
 SOCKET_PATH="/tmp/sondera-harness.sock"
 
@@ -22,6 +23,15 @@ echo ""
 # Check if we're in the SuperClaude directory
 if [ ! -f "CLAUDE.md" ]; then
     echo -e "${RED}Error: Must be run from SuperClaude root directory${NC}"
+    exit 1
+fi
+
+# Validate repo URL is not the placeholder
+if [[ "$SONDERA_REPO" == *"your-org"* ]]; then
+    echo -e "${RED}Error: SONDERA_REPO still contains placeholder URL.${NC}"
+    echo "Set the actual repo URL before running:"
+    echo "  export SONDERA_REPO='https://github.com/actual-org/sondera-coding-agent-hooks'"
+    echo "  export SONDERA_VERSION='v0.1.0'  # optional: pin to specific tag"
     exit 1
 fi
 
@@ -90,11 +100,12 @@ echo -e "${BLUE}[2/6] Installing Sondera harness...${NC}"
 if [ -d "$SONDERA_DIR" ]; then
     echo "  Updating existing installation..."
     cd "$SONDERA_DIR"
-    git pull
+    git fetch --tags
+    git checkout "$SONDERA_VERSION"
 else
-    echo "  Cloning repository..."
+    echo "  Cloning repository (pinned to $SONDERA_VERSION)..."
     mkdir -p "$(dirname "$SONDERA_DIR")"
-    git clone "$SONDERA_REPO" "$SONDERA_DIR"
+    git clone --branch "$SONDERA_VERSION" --depth 1 "$SONDERA_REPO" "$SONDERA_DIR"
     cd "$SONDERA_DIR"
 fi
 

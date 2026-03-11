@@ -9,6 +9,10 @@ RED='\033[0;31m'
 YELLOW='\033[1;33m'
 NC='\033[0m'
 
+# Use same paths as install-with-sondera.sh
+SONDERA_DIR="$HOME/.local/share/sondera-coding-agent-hooks"
+SOCKET_PATH="/tmp/sondera-harness.sock"
+
 echo "=================================="
 echo "Sondera + SuperClaude Integration Test"
 echo "=================================="
@@ -25,17 +29,17 @@ fi
 
 # 2. Verify harness server is running
 echo -n "Checking harness server... "
-if [ -S "/tmp/sondera-harness.sock" ]; then
+if [ -S "$SOCKET_PATH" ]; then
     echo -e "${GREEN}✓${NC}"
 else
     echo -e "${RED}✗ Socket not found${NC}"
-    echo "Run: cd ~/Desktop/sondera-coding-agent-hooks && ./target/debug/sondera-harness-server --socket /tmp/sondera-harness.sock --policy-path ./policies &"
+    echo "Run: $SONDERA_DIR/target/release/sondera-harness-server --socket $SOCKET_PATH --policy-path $SONDERA_DIR/policies &"
     exit 1
 fi
 
 # 3. Check if hook binary can be built
 echo -n "Checking hook binary... "
-if cargo build --manifest-path ~/Desktop/sondera-coding-agent-hooks/apps/claude/Cargo.toml --quiet 2>/dev/null; then
+if cargo build --manifest-path "$SONDERA_DIR/apps/claude/Cargo.toml" --quiet 2>/dev/null; then
     echo -e "${GREEN}✓${NC}"
 else
     echo -e "${RED}✗ Build failed${NC}"
@@ -44,7 +48,7 @@ fi
 
 # 4. Test socket connectivity with nc
 echo -n "Testing socket connection... "
-if timeout 1 bash -c "echo '{}' | nc -U /tmp/sondera-harness.sock" 2>/dev/null; then
+if timeout 1 bash -c "echo '{}' | nc -U $SOCKET_PATH" 2>/dev/null; then
     echo -e "${GREEN}✓${NC}"
 else
     echo -e "${YELLOW}⚠ Connection test inconclusive${NC}"
@@ -60,6 +64,6 @@ echo "  3. claude"
 echo "  4. Try: /sc:implement \"Add hello world function\""
 echo ""
 echo "Monitoring:"
-echo "  - Harness logs: tail -f /tmp/sondera-harness.log"
+echo "  - Harness logs: tail -f $HOME/.local/state/sondera/harness.log"
 echo "  - Hook will execute on every Claude Code operation"
 echo ""
