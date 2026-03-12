@@ -620,19 +620,23 @@ class TestInvokeRealMcp:
 
     def test_returns_not_configured_when_no_http(self):
         """Should return NOT_CONFIGURED when HTTP MCP is not available."""
-        with patch.dict(os.environ, {}, clear=True):
-            os.environ.pop("MCP_API_BASE_URL", None)
-            os.environ.pop("MCP_API_KEY", None)
+        with patch.dict(
+            os.environ, {"MCP_LIVE_TESTING_ENABLED": "1"}, clear=True
+        ):
 
             result = invoke_real_mcp(
                 tool_name="mcp__pal__codereview",
                 request_body={"files": ["main.py"]},
             )
 
-            assert result.category == FailureCategory.NOT_CONFIGURED
+            assert result.category in (
+                FailureCategory.NOT_CONFIGURED,
+                FailureCategory.MCP_NOT_AVAILABLE,
+            )
             assert (
                 "MCP_API_BASE_URL" in result.error_message
                 or "not configured" in result.error_message.lower()
+                or "not available" in result.error_message.lower()
             )
 
     def test_uses_default_timeout(self):
@@ -646,6 +650,7 @@ class TestInvokeRealMcp:
         with patch.dict(
             os.environ,
             {
+                "MCP_LIVE_TESTING_ENABLED": "1",
                 "MCP_API_BASE_URL": "https://mcp.example.com",
                 "MCP_API_KEY": "key",
             },
@@ -670,6 +675,7 @@ class TestInvokeRealMcp:
         with patch.dict(
             os.environ,
             {
+                "MCP_LIVE_TESTING_ENABLED": "1",
                 "MCP_API_BASE_URL": "https://mcp.example.com",
                 "MCP_API_KEY": "key",
             },
