@@ -620,10 +620,7 @@ class TestInvokeRealMcp:
 
     def test_returns_not_configured_when_no_http(self):
         """Should return NOT_CONFIGURED when HTTP MCP is not available."""
-        with patch.dict(
-            os.environ, {"MCP_LIVE_TESTING_ENABLED": "1"}, clear=True
-        ):
-
+        with patch.dict(os.environ, {"MCP_LIVE_TESTING_ENABLED": "1"}, clear=True):
             result = invoke_real_mcp(
                 tool_name="mcp__pal__codereview",
                 request_body={"files": ["main.py"]},
