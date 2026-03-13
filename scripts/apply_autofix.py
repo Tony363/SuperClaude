@@ -4,10 +4,10 @@ Autofix Application Engine (Phase 2)
 
 Applies deterministic fixes with comprehensive safety checks:
 1. Pre-check: File validation, allowlist, LOC limits
-2. Apply: Run ruff format
-3. Validate: Idempotency check (run twice)
+2. Apply: Run fix handler dispatched from fix-type registry
+3. Validate: Multi-pass idempotency check
 4. Syntax check: Python compilation
-5. Git check: Ensure formatting-only changes
+5. Git check: Ensure reasonable changes
 
 Rollback on any failure.
 """
@@ -22,6 +22,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 # Import allowlist checker from normalize_findings
 sys.path.insert(0, str(Path(__file__).parent))
+from fix_type_registry import FixType, get_fix_type
 from normalize_findings import is_file_allowed_for_autofix
 
 # Safety limits (must match normalize_findings.py)
@@ -82,47 +83,65 @@ def pre_check_file(file_path: Path) -> Tuple[bool, str]:
     return (True, "Pre-checks passed")
 
 
-def apply_ruff_format(file_path: Path) -> Tuple[bool, str]:
-    """Apply ruff format to a single file."""
-    success, output = run_command(["ruff", "format", str(file_path)])
+def build_fix_command(fix_type: FixType, file_path: Path) -> List[str]:
+    """Build the shell command for a fix type, substituting placeholders."""
+    cmd_str = fix_type.tool_command.replace("{file}", str(file_path))
+
+    if fix_type.ruff_select_codes and "{codes}" in cmd_str:
+        codes = ",".join(fix_type.ruff_select_codes)
+        cmd_str = cmd_str.replace("{codes}", codes)
+
+    return cmd_str.split()
+
+
+def apply_fix(file_path: Path, fix_type_name: str) -> Tuple[bool, str]:
+    """Apply a fix from the registry to a single file."""
+    fix_type = get_fix_type(fix_type_name)
+    if fix_type is None:
+        return (False, f"Unknown fix type: {fix_type_name}")
+
+    cmd = build_fix_command(fix_type, file_path)
+    success, output = run_command(cmd)
 
     if not success:
-        return (False, f"ruff format failed: {output}")
+        return (False, f"{fix_type_name} failed: {output}")
 
-    return (True, "Applied ruff format")
+    return (True, f"Applied {fix_type_name}")
 
 
-def check_idempotency(file_path: Path) -> Tuple[bool, str]:
+def check_idempotency(file_path: Path, fix_type_name: str = "ruff_format") -> Tuple[bool, str]:
     """
-    Verify ruff format is idempotent (running twice produces same output).
+    Verify fix is idempotent via multi-pass stabilization.
 
-    This is CRITICAL - non-idempotent formatters are unsafe.
+    For deterministic tools (max_passes=1): run twice, compare.
+    For lint fixers (max_passes>1): run up to max_passes until output stabilizes.
+
+    This is CRITICAL - non-idempotent fixes are unsafe.
     """
-    # Read current content
-    try:
-        with open(file_path, "r") as f:
-            content_before = f.read()
-    except OSError as e:
-        return (False, f"Cannot read file for idempotency check: {e}")
+    fix_type = get_fix_type(fix_type_name)
+    max_passes = fix_type.max_passes if fix_type else 1
 
-    # Run ruff format again
-    success, output = run_command(["ruff", "format", str(file_path)])
+    for pass_num in range(max_passes):
+        try:
+            with open(file_path, "r") as f:
+                content_before = f.read()
+        except OSError as e:
+            return (False, f"Cannot read file for idempotency check: {e}")
 
-    if not success:
-        return (False, f"Second ruff format failed: {output}")
+        success, output = apply_fix(file_path, fix_type_name)
+        if not success:
+            return (False, f"Pass {pass_num + 1} failed: {output}")
 
-    # Read content after second run
-    try:
-        with open(file_path, "r") as f:
-            content_after = f.read()
-    except OSError as e:
-        return (False, f"Cannot read file after second format: {e}")
+        try:
+            with open(file_path, "r") as f:
+                content_after = f.read()
+        except OSError as e:
+            return (False, f"Cannot read file after pass {pass_num + 1}: {e}")
 
-    # Compare
-    if content_before != content_after:
-        return (False, "ruff format is NOT idempotent - unsafe to apply")
+        if content_before == content_after:
+            return (True, f"Idempotency verified (stabilized after {pass_num + 1} pass(es))")
 
-    return (True, "Idempotency verified")
+    return (False, f"{fix_type_name} is NOT idempotent after {max_passes} passes - unsafe to apply")
 
 
 def check_syntax(file_path: Path) -> Tuple[bool, str]:
@@ -159,73 +178,77 @@ def check_git_changes(file_path: Path) -> Tuple[bool, str]:
     return (True, f"Git changes verified ({len(diff_lines)} diff lines)")
 
 
-def apply_autofix_to_file(file_path: Path) -> Tuple[bool, str, Dict[str, Any]]:
+def apply_autofix_to_file(
+    file_path: Path, fix_type_name: str = "ruff_format"
+) -> Tuple[bool, str, Dict[str, Any]]:
     """
     Apply autofix to a single file with full safety checks.
 
+    The fix_type_name dispatches to the appropriate handler from the registry.
     Returns: (success, message, details_dict)
     """
     details = {
         "file": str(file_path),
+        "fix_type": fix_type_name,
         "checks_passed": [],
         "checks_failed": [],
     }
 
-    print(f"\n[AUTOFIX] Processing: {file_path}")
+    print(f"\n[AUTOFIX] Processing: {file_path} (fix_type={fix_type_name})")
 
     # 1. Pre-check
     success, message = pre_check_file(file_path)
     if not success:
         details["checks_failed"].append(("pre_check", message))
-        print(f"  ❌ Pre-check: {message}")
+        print(f"  FAIL Pre-check: {message}")
         return (False, message, details)
 
     details["checks_passed"].append("pre_check")
-    print("  ✅ Pre-check passed")
+    print("  OK Pre-check passed")
 
-    # 2. Apply ruff format
-    success, message = apply_ruff_format(file_path)
+    # 2. Apply fix (dispatched from registry)
+    success, message = apply_fix(file_path, fix_type_name)
     if not success:
-        details["checks_failed"].append(("ruff_format", message))
-        print(f"  ❌ Ruff format: {message}")
+        details["checks_failed"].append((fix_type_name, message))
+        print(f"  FAIL {fix_type_name}: {message}")
         return (False, message, details)
 
-    details["checks_passed"].append("ruff_format")
-    print("  ✅ Ruff format applied")
+    details["checks_passed"].append(fix_type_name)
+    print(f"  OK {fix_type_name} applied")
 
-    # 3. Idempotency check
-    success, message = check_idempotency(file_path)
+    # 3. Idempotency check (multi-pass for lint fixes)
+    success, message = check_idempotency(file_path, fix_type_name)
     if not success:
         details["checks_failed"].append(("idempotency", message))
-        print(f"  ❌ Idempotency: {message}")
+        print(f"  FAIL Idempotency: {message}")
         # CRITICAL FAILURE - rollback
         run_command(["git", "restore", "--source=HEAD", "--", str(file_path)])
         return (False, message, details)
 
     details["checks_passed"].append("idempotency")
-    print("  ✅ Idempotency verified")
+    print("  OK Idempotency verified")
 
     # 4. Syntax check
     success, message = check_syntax(file_path)
     if not success:
         details["checks_failed"].append(("syntax", message))
-        print(f"  ❌ Syntax check: {message}")
+        print(f"  FAIL Syntax check: {message}")
         # CRITICAL FAILURE - rollback
         run_command(["git", "restore", "--source=HEAD", "--", str(file_path)])
         return (False, message, details)
 
     details["checks_passed"].append("syntax")
-    print("  ✅ Syntax check passed")
+    print("  OK Syntax check passed")
 
     # 5. Git changes check
     success, message = check_git_changes(file_path)
     if not success:
         details["checks_failed"].append(("git_changes", message))
-        print(f"  ⚠️  Git changes: {message}")
+        print(f"  WARN Git changes: {message}")
         # Warning only - don't rollback, but log it
     else:
         details["checks_passed"].append("git_changes")
-        print(f"  ✅ {message}")
+        print(f"  OK {message}")
 
     return (True, "Autofix applied successfully", details)
 
@@ -305,7 +328,9 @@ def apply_autofix_to_category(category: str, fix_plans_dir: Path) -> Dict[str, A
     }
 
     for file_path, file_findings in files_to_fix.items():
-        success, message, details = apply_autofix_to_file(Path(file_path))
+        # Use the resolved fix type from normalization, default to ruff_format
+        fix_type_name = file_findings[0].get("_resolved_fix_type", "ruff_format")
+        success, message, details = apply_autofix_to_file(Path(file_path), fix_type_name)
 
         details["findings_count"] = len(file_findings)
         results["details"].append(details)

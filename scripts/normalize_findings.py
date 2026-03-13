@@ -13,8 +13,10 @@ import sys
 from pathlib import Path
 from typing import Any, Dict, List
 
+sys.path.insert(0, str(Path(__file__).parent))
+from fix_type_registry import get_fix_type, infer_fix_type
+
 CONFIDENCE_THRESHOLD = 0.7
-AUTOFIX_CONFIDENCE_THRESHOLD = 0.95  # Phase 2: High confidence required for autofix
 SEVERITY_RANK = {
     "critical": 0,
     "high": 1,
@@ -86,31 +88,36 @@ def is_finding_autofix_eligible(finding: Dict[str, Any]) -> bool:
     """
     Determine if a finding is eligible for autofix (Phase 2).
 
-    Criteria:
-    - Category: quality only (security/performance/tests remain suggestion-only)
-    - Fix type: ruff_format only (most deterministic)
-    - Confidence: >= 0.95 (very high)
-    - File: Must match allowlist and not match denylist
-    - LOC impact: <= 200 lines (formatting should be small)
+    Criteria are driven by the fix-type registry (scripts/fix_type_registry.py):
+    - Fix type: must be a known, registered type
+    - Category: must match the fix type's allowed categories
+    - Confidence: must meet the fix type's threshold
+    - File: must match allowlist and not match denylist
+    - LOC impact: <= configured limit
     """
-    # Only quality category for now
-    if finding.get("category") != "quality":
-        return False
-
-    # Check if explicitly marked as ruff_format fix
-    # (PAL MCP review should add this field, but we infer from suggestion text)
-    suggestion = finding.get("suggestion", "").lower()
-    fix_type = finding.get("fix_type", "").lower()
-
-    is_ruff_format = (
-        "ruff format" in suggestion or fix_type == "ruff_format" or "formatting" in suggestion
+    # Infer fix type from explicit field or suggestion text
+    fix_type_name = infer_fix_type(
+        suggestion=finding.get("suggestion", ""),
+        explicit_fix_type=finding.get("fix_type", ""),
     )
 
-    if not is_ruff_format:
+    if fix_type_name is None:
         return False
 
-    # High confidence threshold
-    if finding.get("confidence", 0) < AUTOFIX_CONFIDENCE_THRESHOLD:
+    fix_type = get_fix_type(fix_type_name)
+    if fix_type is None:
+        return False
+
+    # Store resolved fix_type for downstream use by apply_autofix
+    finding["_resolved_fix_type"] = fix_type_name
+
+    # Category check (from registry)
+    category = finding.get("category", "")
+    if category not in fix_type.categories:
+        return False
+
+    # Confidence check (from registry)
+    if finding.get("confidence", 0) < fix_type.confidence_threshold:
         return False
 
     # File allowlist check
