@@ -399,8 +399,10 @@ def test_fix_type_registry_structure():
         assert fix_type.name == name
         assert 0 < fix_type.confidence_threshold <= 1.0
         assert len(fix_type.categories) > 0
-        assert "{file}" in fix_type.tool_command
-        assert fix_type.max_passes >= 1
+        # LLM fix types have no CLI tool_command
+        if fix_type.tool_command:
+            assert "{file}" in fix_type.tool_command
+        assert fix_type.max_passes >= 0
         assert isinstance(fix_type.safe, bool)
 
 
@@ -751,6 +753,289 @@ def test_file_allowlist_rejects_config():
     assert is_file_allowed_for_autofix(".github/workflows/ci.yml") is False
     assert is_file_allowed_for_autofix("scripts/normalize.py") is False
     assert is_file_allowed_for_autofix("pyproject.toml") is False
+
+
+# ========== Phase 3: LLM Fix Classification Tests ==========
+
+
+def test_llm_fixable_unused_variable():
+    """Test that unused variable finding is classified as LLM-fixable."""
+    from scripts.classify_llm_fixable import is_llm_fixable
+
+    finding = {
+        "category": "quality",
+        "severity": "medium",
+        "file": "src/api/views.py",
+        "line_start": 10,
+        "line_end": 10,
+        "issue": "Unused variable 'temp_result' assigned but never read",
+        "suggestion": "Remove unused variable or use it",
+        "confidence": 0.85,
+        "actionable": True,
+    }
+    assert is_llm_fixable(finding) is True
+
+
+def test_llm_fixable_dead_code():
+    """Test that dead code finding is classified as LLM-fixable."""
+    from scripts.classify_llm_fixable import is_llm_fixable
+
+    finding = {
+        "category": "quality",
+        "severity": "low",
+        "file": "src/api/utils.py",
+        "line_start": 50,
+        "line_end": 65,
+        "issue": "Dead code: function 'old_handler' is never called",
+        "suggestion": "Remove dead code to improve maintainability",
+        "confidence": 0.90,
+        "actionable": True,
+    }
+    assert is_llm_fixable(finding) is True
+
+
+def test_llm_fixable_type_hint():
+    """Test that missing type hint finding is classified as LLM-fixable."""
+    from scripts.classify_llm_fixable import is_llm_fixable
+
+    finding = {
+        "category": "quality",
+        "severity": "low",
+        "file": "src/models/user.py",
+        "line_start": 20,
+        "line_end": 25,
+        "issue": "Missing type annotation on function parameters",
+        "suggestion": "Add type hints for clarity",
+        "confidence": 0.82,
+        "actionable": True,
+    }
+    assert is_llm_fixable(finding) is True
+
+
+def test_llm_fixable_rejects_security():
+    """Test that security findings are NOT classified as LLM-fixable."""
+    from scripts.classify_llm_fixable import is_llm_fixable
+
+    finding = {
+        "category": "security",
+        "severity": "high",
+        "file": "src/api/auth.py",
+        "line_start": 10,
+        "line_end": 15,
+        "issue": "SQL injection vulnerability",
+        "suggestion": "Use parameterized queries",
+        "confidence": 0.95,
+        "actionable": True,
+    }
+    assert is_llm_fixable(finding) is False
+
+
+def test_llm_fixable_rejects_deterministic():
+    """Test that deterministic-fixable findings are NOT classified as LLM-fixable."""
+    from scripts.classify_llm_fixable import is_llm_fixable
+
+    finding = {
+        "category": "quality",
+        "severity": "low",
+        "file": "src/api/views.py",
+        "line_start": 1,
+        "line_end": 1,
+        "issue": "Unused import os",
+        "suggestion": "Remove unused import",
+        "confidence": 0.95,
+        "actionable": True,
+    }
+    assert is_llm_fixable(finding) is False
+
+
+def test_llm_fixable_rejects_low_confidence():
+    """Test that low confidence findings are rejected."""
+    from scripts.classify_llm_fixable import is_llm_fixable
+
+    finding = {
+        "category": "quality",
+        "severity": "medium",
+        "file": "src/api/views.py",
+        "line_start": 10,
+        "line_end": 10,
+        "issue": "Unused variable 'x'",
+        "suggestion": "Remove unused variable",
+        "confidence": 0.70,  # Below 0.80 threshold
+        "actionable": True,
+    }
+    assert is_llm_fixable(finding) is False
+
+
+def test_llm_fixable_rejects_large_loc():
+    """Test that large LOC findings are rejected."""
+    from scripts.classify_llm_fixable import is_llm_fixable
+
+    finding = {
+        "category": "quality",
+        "severity": "medium",
+        "file": "src/api/views.py",
+        "line_start": 10,
+        "line_end": 100,  # 91 lines > MAX_LOC_PER_LLM_FIX (50)
+        "issue": "Dead code block",
+        "suggestion": "Remove dead code",
+        "confidence": 0.85,
+        "actionable": True,
+    }
+    assert is_llm_fixable(finding) is False
+
+
+def test_llm_fixable_rejects_denied_file():
+    """Test that files outside allowlist are rejected."""
+    from scripts.classify_llm_fixable import is_llm_fixable
+
+    finding = {
+        "category": "quality",
+        "severity": "medium",
+        "file": "tests/test_main.py",
+        "line_start": 10,
+        "line_end": 10,
+        "issue": "Unused variable in test",
+        "suggestion": "Remove unused variable",
+        "confidence": 0.85,
+        "actionable": True,
+    }
+    assert is_llm_fixable(finding) is False
+
+
+def test_llm_fixable_rejects_non_matching_issue():
+    """Test that non-conservative issue patterns are rejected."""
+    from scripts.classify_llm_fixable import is_llm_fixable
+
+    finding = {
+        "category": "quality",
+        "severity": "medium",
+        "file": "src/api/views.py",
+        "line_start": 10,
+        "line_end": 15,
+        "issue": "Function is too complex (cyclomatic complexity 25)",
+        "suggestion": "Refactor into smaller functions",
+        "confidence": 0.85,
+        "actionable": True,
+    }
+    assert is_llm_fixable(finding) is False
+
+
+def test_classify_findings_prioritization(temp_workspace):
+    """Test that classify_findings sorts by severity then confidence."""
+    from scripts.classify_llm_fixable import classify_findings
+
+    # Create fix plans with multiple LLM-fixable findings
+    plans_dir = temp_workspace / "fix-plans"
+    plans_dir.mkdir()
+
+    quality_plan = {
+        "findings": [
+            {
+                "category": "quality",
+                "severity": "low",
+                "file": "src/api/a.py",
+                "line_start": 10,
+                "line_end": 10,
+                "issue": "Unused variable 'x'",
+                "suggestion": "Remove unused variable",
+                "confidence": 0.90,
+                "actionable": True,
+            },
+            {
+                "category": "quality",
+                "severity": "high",
+                "file": "src/api/b.py",
+                "line_start": 20,
+                "line_end": 25,
+                "issue": "Dead code block never executed",
+                "suggestion": "Remove dead code",
+                "confidence": 0.85,
+                "actionable": True,
+            },
+            {
+                "category": "quality",
+                "severity": "medium",
+                "file": "src/api/c.py",
+                "line_start": 5,
+                "line_end": 5,
+                "issue": "Missing type annotation on return",
+                "suggestion": "Add type hint",
+                "confidence": 0.88,
+                "actionable": True,
+            },
+        ],
+    }
+
+    with open(plans_dir / "quality.json", "w") as f:
+        json.dump(quality_plan, f)
+
+    result = classify_findings(plans_dir, max_fixes=5)
+
+    assert result["total_candidates"] == 3
+    assert result["selected"] == 3
+    # High severity should come first
+    assert result["findings"][0]["severity"] == "high"
+    assert result["findings"][1]["severity"] == "medium"
+    assert result["findings"][2]["severity"] == "low"
+
+
+def test_classify_findings_respects_limit(temp_workspace):
+    """Test that classify_findings respects max_fixes limit."""
+    from scripts.classify_llm_fixable import classify_findings
+
+    plans_dir = temp_workspace / "fix-plans"
+    plans_dir.mkdir()
+
+    quality_plan = {
+        "findings": [
+            {
+                "category": "quality",
+                "severity": "medium",
+                "file": f"src/api/f{i}.py",
+                "line_start": 10,
+                "line_end": 10,
+                "issue": "Unused variable in function",
+                "suggestion": "Remove unused variable",
+                "confidence": 0.85,
+                "actionable": True,
+            }
+            for i in range(10)
+        ],
+    }
+
+    with open(plans_dir / "quality.json", "w") as f:
+        json.dump(quality_plan, f)
+
+    result = classify_findings(plans_dir, max_fixes=3)
+
+    assert result["total_candidates"] == 10
+    assert result["selected"] == 3
+    assert len(result["findings"]) == 3
+
+
+def test_fix_type_registry_llm_single_file():
+    """Test llm_single_file fix type has correct properties."""
+    from scripts.fix_type_registry import get_fix_type
+
+    ft = get_fix_type("llm_single_file")
+    assert ft is not None
+    assert ft.confidence_threshold == 0.80
+    assert ft.max_passes == 0  # Not applicable for LLM fixes
+    assert ft.safe is False  # Requires human review
+    assert "quality" in ft.categories
+    assert "performance" in ft.categories
+    assert ft.tool_command == ""  # No CLI tool
+
+
+def test_infer_fix_type_llm_patterns():
+    """Test fix type inference for LLM single-file patterns."""
+    from scripts.fix_type_registry import infer_fix_type
+
+    assert infer_fix_type("Remove unused variable x") == "llm_single_file"
+    assert infer_fix_type("This is dead code") == "llm_single_file"
+    assert infer_fix_type("Add type annotation for clarity") == "llm_single_file"
+    assert infer_fix_type("Missing docstring on public function") == "llm_single_file"
+    assert infer_fix_type("Unreachable code after return") == "llm_single_file"
 
 
 if __name__ == "__main__":
