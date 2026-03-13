@@ -581,6 +581,10 @@ pkill -f sondera-harness
 ---
 
 ## Quick Start
+
+### 1. Natural Language
+
+```
 User: Help me debug this authentication issue
 Claude: [Selects communicator agent, applies debugging methodology]
 ```
@@ -717,8 +721,8 @@ flowchart TD
     TRIGGER -->|"Yes (0.35)"| CORE{"Core<br/>Agent?"}
     TRIGGER -->|"No"| CATEGORY{"Category<br/>Match?"}
 
-    CORE -->|"Yes"| USE_CORE["Load Core Agent<br/>(11 available)"]
-    CORE -->|"No"| USE_EXT["Load Trait/Extension<br/>(20 available)"]
+    CORE -->|"Yes"| USE_CORE["Load Core Agent<br/>(5 available)"]
+    CORE -->|"No"| USE_EXT["Load Trait/Extension<br/>(14 available)"]
 
     CATEGORY -->|"Yes (0.25)"| CAT_SELECT["Select from Category"]
     CATEGORY -->|"No"| DESC{"Description<br/>Match?"}
@@ -1090,7 +1094,7 @@ flowchart TB
         S2["run_tests.py (344 lines)<br/>Test framework detection"]
         S3["evidence_gate.py (256 lines)<br/>Quality validation"]
         S4["skill_learn.py (466 lines)<br/>Skill extraction"]
-        S5["loop_entry.py (229 lines)<br/>Loop orchestration"]
+        S5["loop_entry.py (226 lines)<br/>Loop orchestration"]
     end
 ```
 
@@ -1710,17 +1714,40 @@ Agent selection configuration:
 
 ```yaml
 core:
-  count: 11
+  count: 5
   directory: agents/core
   cache_ttl: 3600
+  priority_order:
+    - architect
+    - developer
+    - optimizer
+    - guardian
+    - communicator
 
 traits:
-  count: 12
+  count: 7
   directory: agents/traits
+  composable: true
+  traits:
+    - security-first
+    - performance-first
+    - minimal-changes
+    - test-driven
+    - principles-enforced
+    - mcp-pal-enabled
+    - mcp-rube-enabled
 
 extensions:
-  count: 8
+  count: 7
   directory: agents/extensions
+  specialists:
+    - typescript-react-expert
+    - python-expert
+    - golang-expert
+    - rust-expert
+    - kubernetes-specialist
+    - data-engineer
+    - ml-engineer
 
 selection:
   algorithm: weighted-match
