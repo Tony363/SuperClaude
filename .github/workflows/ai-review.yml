@@ -112,9 +112,9 @@ jobs:
             2. Identify issues by severity (critical, high, medium, low)
             3. Provide expert validation of findings
 
-            ### Step 3: Post Results
-            After the consensus review completes, post the results using `gh pr comment`
-            with this format:
+            ### Step 3: Write Results to File
+            After the review completes, write the results to `pal-review.md` using
+            the Write tool. Use this format:
 
             ```markdown
             ## PAL MCP Consensus Code Review (via AWS Bedrock)
@@ -148,13 +148,28 @@ jobs:
             *Review is advisory - please use human judgment for final decisions.*
             ```
 
+            IMPORTANT: Write the review to `pal-review.md` using the Write tool.
+            Do NOT use `gh pr comment` — a follow-up step will post it for you.
+
           claude_args: >-
             --allowed-tools
-            "Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*),mcp__pal__codereview,mcp__pal__consensus"
+            "Write,Bash(gh pr diff *),Bash(gh pr view *),mcp__pal__codereview,mcp__pal__consensus"
         env:
           AWS_BEARER_TOKEN_BEDROCK: ${{ secrets.AWS_BEARER_TOKEN_BEDROCK }}
           AWS_REGION: ${{ secrets.AWS_REGION || 'us-east-1' }}
           CLAUDE_CODE_USE_BEDROCK: "1"
+
+      - name: Post Bedrock review comment
+        if: steps.bedrock_review.outcome == 'success'
+        run: |
+          if [[ -f "pal-review.md" ]]; then
+            gh pr comment ${{ github.event.pull_request.number }} --body-file pal-review.md
+            echo "Posted PAL MCP review comment (Bedrock)"
+          else
+            echo "::warning::pal-review.md not found — Claude agent may not have written the review file"
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: PAL MCP Review (Anthropic API - Fallback)
         if: steps.validate_providers.outputs.skip_review != 'true' && env.ANTHROPIC_KEY_SET == 'true' && (env.BEDROCK_CONFIGURED != 'true' || steps.bedrock_review.outcome != 'success')
@@ -198,9 +213,9 @@ jobs:
             2. Identify issues by severity (critical, high, medium, low)
             3. Provide expert validation of findings
 
-            ### Step 3: Post Results
-            After the consensus review completes, post the results using `gh pr comment`
-            with this format:
+            ### Step 3: Write Results to File
+            After the review completes, write the results to `pal-review.md` using
+            the Write tool. Use this format:
 
             ```markdown
             ## PAL MCP Consensus Code Review (via Anthropic API - Fallback)
@@ -234,9 +249,24 @@ jobs:
             *Review is advisory - please use human judgment for final decisions.*
             ```
 
+            IMPORTANT: Write the review to `pal-review.md` using the Write tool.
+            Do NOT use `gh pr comment` — a follow-up step will post it for you.
+
           claude_args: >-
             --allowed-tools
-            "Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*),mcp__pal__codereview,mcp__pal__consensus"
+            "Write,Bash(gh pr diff *),Bash(gh pr view *),mcp__pal__codereview,mcp__pal__consensus"
+
+      - name: Post Anthropic review comment
+        if: steps.anthropic_review.outcome == 'success'
+        run: |
+          if [[ -f "pal-review.md" ]]; then
+            gh pr comment ${{ github.event.pull_request.number }} --body-file pal-review.md
+            echo "Posted PAL MCP review comment (Anthropic)"
+          else
+            echo "::warning::pal-review.md not found — Claude agent may not have written the review file"
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Review status
         if: always()
