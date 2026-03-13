@@ -49,7 +49,7 @@ SuperClaude transforms Claude Code into a powerful development platform with spe
 SuperClaude is a meta-prompt framework that enhances Claude Code with:
 
 - **19 Specialized Agents**: 5 core + 7 composable traits + 7 domain extensions (tiered architecture)
-- **38 Active Skills**: 8 agent personas + 27 command workflows + 3 utility skills
+- **37 Active Skills**: 8 agent personas + 26 command workflows + 3 utility skills
 - **24 Structured Commands**: analyze, implement, test, design, document, and more
 - **6 Framework Modes**: normal, brainstorming, introspection, task_management, token_efficiency, orchestration
 - **MCP Integration**: PAL (11 tools), Rube (500+ apps via Composio, including web search)
@@ -125,7 +125,6 @@ SuperClaude v7.0.0 is a **config-first hybrid framework**:
 /sc:mcp          - MCP orchestration hub (PAL + Rube)
 /sc:code-review  - Multi-model consensus code review
 /sc:research     - Deep research with web search + consensus
-/sc:eda          - Exploratory data analysis and visualization
 /sc:evaluate     - LLM pipeline evaluation with judge scoring
 /sc:push         - Multi-remote git push with selective filtering
 ```
@@ -1044,7 +1043,7 @@ flowchart TB
             A8["agent-technical-writer"]
         end
 
-        subgraph Command["Command Skills (27)"]
+        subgraph Command["Command Skills (26)"]
             C1["sc-analyze"]
             C2["sc-brainstorm"]
             C3["sc-build"]
@@ -1053,25 +1052,24 @@ flowchart TB
             C6["sc-design"]
             C7["sc-document"]
             C8["sc-e2e"]
-            C9["sc-eda"]
-            C10["sc-estimate"]
-            C11["sc-evaluate"]
-            C12["sc-explain"]
-            C13["sc-git"]
-            C14["sc-implement"]
-            C15["sc-improve"]
-            C16["sc-log-fix"]
-            C17["sc-mcp"]
-            C18["sc-pr-check"]
-            C19["sc-pr-fix"]
-            C20["sc-principles"]
-            C21["sc-push"]
-            C22["sc-readme"]
-            C23["sc-research"]
-            C24["sc-tdd"]
-            C25["sc-test"]
-            C26["sc-workflow"]
-            C27["sc-worktree"]
+            C9["sc-estimate"]
+            C10["sc-evaluate"]
+            C11["sc-explain"]
+            C12["sc-git"]
+            C13["sc-implement"]
+            C14["sc-improve"]
+            C15["sc-log-fix"]
+            C16["sc-mcp"]
+            C17["sc-pr-check"]
+            C18["sc-pr-fix"]
+            C19["sc-principles"]
+            C20["sc-push"]
+            C21["sc-readme"]
+            C22["sc-research"]
+            C23["sc-tdd"]
+            C24["sc-test"]
+            C25["sc-workflow"]
+            C26["sc-worktree"]
         end
 
         subgraph Utility["Utility Skills (3)"]
@@ -1809,7 +1807,7 @@ SuperClaude/
 │   └── skills/                  # 38 Claude Code skills
 │       ├── agent-*/             # 8 agent persona skills
 │       │   └── SKILL.md
-│       ├── sc-*/                # 27 command skills
+│       ├── sc-*/                # 26 command skills
 │       │   ├── SKILL.md
 │       │   └── scripts/         # Optional tool implementations
 │       ├── ask/                 # Single-select questions

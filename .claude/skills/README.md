@@ -52,7 +52,6 @@ Workflow implementations for `/sc:` commands:
 - sc-design
 - sc-document
 - sc-e2e
-- sc-eda
 - sc-estimate
 - sc-evaluate
 - sc-explain
