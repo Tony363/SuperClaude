@@ -43,12 +43,37 @@ FIX_TYPES: dict[str, FixType] = {
         ruff_select_codes=("F401", "I001"),
         description="Fix unused imports (F401) and import sorting (I001)",
     ),
+    "llm_single_file": FixType(
+        name="llm_single_file",
+        confidence_threshold=0.80,
+        categories=("quality", "performance"),
+        tool_command="",  # No CLI tool — handled by Claude Code Action
+        safe=False,  # Requires human review
+        max_passes=0,  # Not applicable — no idempotency check
+        ruff_select_codes=None,
+        description="LLM-generated single-file fix (Phase 3: conservative scope)",
+    ),
 }
 
 # Inference rules: map suggestion text patterns to fix type names
 SUGGESTION_INFERENCE_RULES: list[tuple[list[str], str]] = [
     (["ruff format", "formatting", "auto-format"], "ruff_format"),
     (["unused import", "import sort", "f401", "i001", "remove import"], "ruff_lint_fix"),
+    # Phase 3: LLM single-file patterns (conservative)
+    (
+        [
+            "unused variable",
+            "dead code",
+            "unreachable code",
+            "remove dead",
+            "type hint",
+            "type annotation",
+            "add type",
+            "missing docstring",
+            "add docstring",
+        ],
+        "llm_single_file",
+    ),
 ]
 
 
