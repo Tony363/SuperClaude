@@ -309,7 +309,7 @@ def test_end_to_end_pipeline(sample_findings_file, temp_workspace):
 
 def test_validation_schema():
     """Test finding validation schema."""
-    from scripts.run_consensus_review import validate_finding
+    from scripts.finding_utils import validate_finding
 
     # Valid finding
     valid_finding = {
@@ -342,7 +342,7 @@ def test_validation_schema():
 
 def test_deduplication():
     """Test finding deduplication logic."""
-    from scripts.run_consensus_review import deduplicate_findings
+    from scripts.finding_utils import deduplicate_findings
 
     findings = [
         {"file": "test.py", "line_start": 10, "line_end": 15, "issue": "Issue 1"},
@@ -381,6 +381,376 @@ def test_scope_selector_dry_run(temp_workspace):
     # May fail if not in git repo (expected in temp dir)
     # Just validate script exists and has valid syntax
     assert "scope_selector.py" in result.stderr or result.returncode in [0, 1]
+
+
+# ========== Fix-Type Registry Tests ==========
+
+
+def test_fix_type_registry_structure():
+    """Test that fix type registry has expected structure and entries."""
+    from scripts.fix_type_registry import FIX_TYPES, FixType
+
+    assert len(FIX_TYPES) >= 2
+    assert "ruff_format" in FIX_TYPES
+    assert "ruff_lint_fix" in FIX_TYPES
+
+    for name, fix_type in FIX_TYPES.items():
+        assert isinstance(fix_type, FixType)
+        assert fix_type.name == name
+        assert 0 < fix_type.confidence_threshold <= 1.0
+        assert len(fix_type.categories) > 0
+        assert "{file}" in fix_type.tool_command
+        assert fix_type.max_passes >= 1
+        assert isinstance(fix_type.safe, bool)
+
+
+def test_fix_type_registry_ruff_format():
+    """Test ruff_format fix type has correct properties."""
+    from scripts.fix_type_registry import get_fix_type
+
+    ft = get_fix_type("ruff_format")
+    assert ft is not None
+    assert ft.confidence_threshold == 0.95
+    assert ft.max_passes == 1  # Deterministic
+    assert ft.ruff_select_codes is None
+    assert "quality" in ft.categories
+    assert ft.safe is True
+
+
+def test_fix_type_registry_ruff_lint_fix():
+    """Test ruff_lint_fix fix type has correct properties."""
+    from scripts.fix_type_registry import get_fix_type
+
+    ft = get_fix_type("ruff_lint_fix")
+    assert ft is not None
+    assert ft.confidence_threshold == 0.90
+    assert ft.max_passes == 3  # Multi-pass for lint
+    assert ft.ruff_select_codes == ("F401", "I001")
+    assert "quality" in ft.categories
+    assert "{codes}" in ft.tool_command
+
+
+def test_fix_type_registry_unknown_type():
+    """Test that unknown fix type returns None."""
+    from scripts.fix_type_registry import get_fix_type, is_known_fix_type
+
+    assert get_fix_type("nonexistent") is None
+    assert is_known_fix_type("nonexistent") is False
+
+
+# ========== Fix-Type Inference Tests ==========
+
+
+def test_infer_fix_type_explicit():
+    """Test fix type inference with explicit fix_type field."""
+    from scripts.fix_type_registry import infer_fix_type
+
+    assert infer_fix_type("anything", explicit_fix_type="ruff_format") == "ruff_format"
+    assert infer_fix_type("anything", explicit_fix_type="ruff_lint_fix") == "ruff_lint_fix"
+    assert infer_fix_type("anything", explicit_fix_type="RUFF_FORMAT") == "ruff_format"
+
+
+def test_infer_fix_type_from_suggestion():
+    """Test fix type inference from suggestion text patterns."""
+    from scripts.fix_type_registry import infer_fix_type
+
+    # ruff_format patterns
+    assert infer_fix_type("Apply ruff format to this file") == "ruff_format"
+    assert infer_fix_type("Fix formatting issues") == "ruff_format"
+    assert infer_fix_type("Auto-format the code") == "ruff_format"
+
+    # ruff_lint_fix patterns
+    assert infer_fix_type("Remove unused import os") == "ruff_lint_fix"
+    assert infer_fix_type("Fix import sorting") == "ruff_lint_fix"
+    assert infer_fix_type("F401 violation detected") == "ruff_lint_fix"
+    assert infer_fix_type("I001 issue found") == "ruff_lint_fix"
+
+
+def test_infer_fix_type_no_match():
+    """Test that non-matching suggestions return None."""
+    from scripts.fix_type_registry import infer_fix_type
+
+    assert infer_fix_type("Add input validation for security") is None
+    assert infer_fix_type("Use select_related() for N+1 query") is None
+    assert infer_fix_type("") is None
+
+
+def test_infer_fix_type_explicit_overrides_suggestion():
+    """Test that explicit fix_type takes precedence over suggestion text."""
+    from scripts.fix_type_registry import infer_fix_type
+
+    # Suggestion says "formatting" but explicit says "ruff_lint_fix"
+    result = infer_fix_type("Fix formatting", explicit_fix_type="ruff_lint_fix")
+    assert result == "ruff_lint_fix"
+
+
+# ========== Autofix Eligibility Tests ==========
+
+
+def test_autofix_eligibility_format_finding():
+    """Test autofix eligibility for a ruff_format-type finding."""
+    from scripts.normalize_findings import is_finding_autofix_eligible
+
+    finding = {
+        "category": "quality",
+        "severity": "low",
+        "file": "src/api/views.py",
+        "line_start": 10,
+        "line_end": 15,
+        "issue": "Poor formatting",
+        "suggestion": "Apply ruff format",
+        "confidence": 0.96,
+        "actionable": True,
+    }
+    assert is_finding_autofix_eligible(finding) is True
+    assert finding["_resolved_fix_type"] == "ruff_format"
+
+
+def test_autofix_eligibility_lint_finding():
+    """Test autofix eligibility for a ruff_lint_fix-type finding."""
+    from scripts.normalize_findings import is_finding_autofix_eligible
+
+    finding = {
+        "category": "quality",
+        "severity": "low",
+        "file": "src/api/views.py",
+        "line_start": 1,
+        "line_end": 1,
+        "issue": "Unused import os",
+        "suggestion": "Remove unused import",
+        "confidence": 0.95,
+        "actionable": True,
+    }
+    assert is_finding_autofix_eligible(finding) is True
+    assert finding["_resolved_fix_type"] == "ruff_lint_fix"
+
+
+def test_autofix_eligibility_low_confidence():
+    """Test that low confidence rejects autofix even with matching suggestion."""
+    from scripts.normalize_findings import is_finding_autofix_eligible
+
+    finding = {
+        "category": "quality",
+        "severity": "low",
+        "file": "src/api/views.py",
+        "line_start": 10,
+        "line_end": 15,
+        "issue": "Poor formatting",
+        "suggestion": "Apply ruff format",
+        "confidence": 0.80,  # Below ruff_format's 0.95 threshold
+        "actionable": True,
+    }
+    assert is_finding_autofix_eligible(finding) is False
+
+
+def test_autofix_eligibility_wrong_category():
+    """Test that wrong category rejects autofix."""
+    from scripts.normalize_findings import is_finding_autofix_eligible
+
+    finding = {
+        "category": "security",  # ruff_format only allows "quality"
+        "severity": "low",
+        "file": "src/api/views.py",
+        "line_start": 10,
+        "line_end": 15,
+        "issue": "Poor formatting",
+        "suggestion": "Apply ruff format",
+        "confidence": 0.96,
+        "actionable": True,
+    }
+    assert is_finding_autofix_eligible(finding) is False
+
+
+def test_autofix_eligibility_denied_file():
+    """Test that files outside allowlist are rejected."""
+    from scripts.normalize_findings import is_finding_autofix_eligible
+
+    finding = {
+        "category": "quality",
+        "severity": "low",
+        "file": "tests/test_main.py",  # In denylist
+        "line_start": 10,
+        "line_end": 15,
+        "issue": "Poor formatting",
+        "suggestion": "Apply ruff format",
+        "confidence": 0.96,
+        "actionable": True,
+    }
+    assert is_finding_autofix_eligible(finding) is False
+
+
+def test_autofix_eligibility_no_matching_fix_type():
+    """Test that unrecognized suggestions are not autofix-eligible."""
+    from scripts.normalize_findings import is_finding_autofix_eligible
+
+    finding = {
+        "category": "security",
+        "severity": "high",
+        "file": "src/api/auth.py",
+        "line_start": 10,
+        "line_end": 15,
+        "issue": "SQL injection vulnerability",
+        "suggestion": "Use parameterized queries",
+        "confidence": 0.95,
+        "actionable": True,
+    }
+    assert is_finding_autofix_eligible(finding) is False
+
+
+# ========== Command Building Tests ==========
+
+
+def test_build_fix_command_ruff_format():
+    """Test command building for ruff_format."""
+    from scripts.apply_autofix import build_fix_command
+    from scripts.fix_type_registry import get_fix_type
+
+    fix_type = get_fix_type("ruff_format")
+    cmd = build_fix_command(fix_type, Path("src/main.py"))
+    assert cmd == ["ruff", "format", "src/main.py"]
+
+
+def test_build_fix_command_ruff_lint_fix():
+    """Test command building for ruff_lint_fix with code substitution."""
+    from scripts.apply_autofix import build_fix_command
+    from scripts.fix_type_registry import get_fix_type
+
+    fix_type = get_fix_type("ruff_lint_fix")
+    cmd = build_fix_command(fix_type, Path("src/main.py"))
+    assert cmd == ["ruff", "check", "--select", "F401,I001", "--fix", "src/main.py"]
+
+
+# ========== Validate Findings Schema Tests ==========
+
+
+def test_validate_findings_schema_valid(temp_workspace):
+    """Test schema validation with valid findings."""
+    findings_file = temp_workspace / "findings.json"
+    output_file = temp_workspace / "validated.json"
+
+    data = {
+        "findings": [
+            {
+                "category": "security",
+                "severity": "high",
+                "file": "src/auth.py",
+                "line_start": 10,
+                "issue": "Test issue",
+                "suggestion": "Test fix",
+                "confidence": 0.9,
+                "actionable": True,
+            }
+        ],
+        "summary": {"total": 1},
+    }
+
+    with open(findings_file, "w") as f:
+        json.dump(data, f)
+
+    result = subprocess.run(
+        [PYTHON, "scripts/validate_findings_schema.py", str(findings_file), str(output_file)],
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0
+    assert output_file.exists()
+
+    with open(output_file) as f:
+        validated = json.load(f)
+    assert len(validated["findings"]) == 1
+
+
+def test_validate_findings_schema_rejects_invalid(temp_workspace):
+    """Test schema validation rejects invalid findings and keeps valid ones."""
+    findings_file = temp_workspace / "findings.json"
+    output_file = temp_workspace / "validated.json"
+
+    data = {
+        "findings": [
+            {
+                "category": "security",
+                "severity": "high",
+                "file": "src/auth.py",
+                "line_start": 10,
+                "issue": "Valid issue",
+                "suggestion": "Valid fix",
+                "confidence": 0.9,
+                "actionable": True,
+            },
+            {
+                "category": "INVALID_CATEGORY",  # Bad enum value
+                "severity": "high",
+                "file": "src/auth.py",
+                "line_start": 20,
+                "issue": "Invalid",
+                "suggestion": "Invalid",
+                "confidence": 0.9,
+                "actionable": True,
+            },
+        ],
+        "summary": {"total": 2},
+    }
+
+    with open(findings_file, "w") as f:
+        json.dump(data, f)
+
+    result = subprocess.run(
+        [PYTHON, "scripts/validate_findings_schema.py", str(findings_file), str(output_file)],
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0
+    assert output_file.exists()
+
+    with open(output_file) as f:
+        validated = json.load(f)
+    # Only the valid finding survives
+    assert len(validated["findings"]) == 1
+    assert validated["summary"]["total"] == 1
+
+
+def test_validate_findings_schema_bad_json(temp_workspace):
+    """Test schema validation fails on invalid JSON."""
+    findings_file = temp_workspace / "findings.json"
+    findings_file.write_text("not valid json {{{")
+
+    result = subprocess.run(
+        [PYTHON, "scripts/validate_findings_schema.py", str(findings_file)],
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 1
+
+
+# ========== File Allowlist Tests ==========
+
+
+def test_file_allowlist_accepts_src():
+    """Test allowlist accepts src/**/*.py files."""
+    from scripts.normalize_findings import is_file_allowed_for_autofix
+
+    assert is_file_allowed_for_autofix("src/api/views.py") is True
+    assert is_file_allowed_for_autofix("src/models/user.py") is True
+
+
+def test_file_allowlist_rejects_tests():
+    """Test allowlist rejects test files."""
+    from scripts.normalize_findings import is_file_allowed_for_autofix
+
+    assert is_file_allowed_for_autofix("tests/test_main.py") is False
+    assert is_file_allowed_for_autofix("tests/integration/test_api.py") is False
+
+
+def test_file_allowlist_rejects_config():
+    """Test allowlist rejects config and workflow files."""
+    from scripts.normalize_findings import is_file_allowed_for_autofix
+
+    assert is_file_allowed_for_autofix(".github/workflows/ci.yml") is False
+    assert is_file_allowed_for_autofix("scripts/normalize.py") is False
+    assert is_file_allowed_for_autofix("pyproject.toml") is False
 
 
 if __name__ == "__main__":

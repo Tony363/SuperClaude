@@ -1,6 +1,6 @@
 # SuperClaude Nightly Code Review & Improvement Workflow
 # Proactive code quality monitoring with multi-model consensus
-# Phase 2: Suggestion-only PRs + Limited Autofix (ruff format only)
+# Phase 2: Suggestion-only PRs + Autofix (formatting + lint fixes)
 
 name: Nightly Code Review
 
@@ -42,6 +42,26 @@ on:
         required: false
         type: string
         default: 'gpt-5.2,gemini-3-pro'
+      max_files:
+        description: 'Max files per run'
+        required: false
+        type: number
+        default: 50
+      max_loc:
+        description: 'Max lines of code per run'
+        required: false
+        type: number
+        default: 5000
+      max_prs:
+        description: 'Max PRs per run'
+        required: false
+        type: number
+        default: 4
+      stale_days:
+        description: 'Days before closing stale PRs'
+        required: false
+        type: number
+        default: 7
 
 # Only one nightly review can run at a time
 concurrency:
@@ -49,11 +69,11 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  # Cost control: Budget guardrails
-  MAX_FILES_PER_RUN: 50
-  MAX_LOC_PER_RUN: 5000
-  MAX_PRS_PER_RUN: 4
-  PR_STALE_DAYS: 7
+  # Cost control: Budget guardrails (overridable via workflow_dispatch inputs)
+  MAX_FILES_PER_RUN: ${{ github.event.inputs.max_files || 50 }}
+  MAX_LOC_PER_RUN: ${{ github.event.inputs.max_loc || 5000 }}
+  MAX_PRS_PER_RUN: ${{ github.event.inputs.max_prs || 4 }}
+  PR_STALE_DAYS: ${{ github.event.inputs.stale_days || 7 }}
 
   # Workflow configuration
   PYTHON_VERSION: '3.11'
@@ -166,6 +186,51 @@ jobs:
           path: scope-selection.json
           retention-days: 30
 
+      # ========== Pre-LLM: Deterministic Fixes ==========
+      # Run ruff format + lint fixes BEFORE LLM review to save API tokens.
+      # The LLM should focus on complex issues (security, performance, logic).
+
+      - name: Apply deterministic fixes (pre-LLM)
+        id: deterministic_fixes
+        if: steps.scope_selector.outputs.skip != 'true'
+        run: |
+          # Get list of Python files from scope selection
+          SCOPE_FILES=$(jq -r '.files[].path' scope-selection.json | grep '\.py$' || true)
+
+          if [[ -z "$SCOPE_FILES" ]]; then
+            echo "No Python files in scope - skipping deterministic fixes"
+            echo "fixes_applied=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          pip install ruff
+
+          FIXED_FILES=0
+          for file in $SCOPE_FILES; do
+            if [[ -f "$file" ]]; then
+              # Format
+              ruff format "$file" 2>/dev/null || true
+              # Fix unused imports and import sorting
+              ruff check --select F401,I001 --fix "$file" 2>/dev/null || true
+
+              # Check if file was modified
+              if ! git diff --quiet -- "$file" 2>/dev/null; then
+                FIXED_FILES=$((FIXED_FILES + 1))
+              fi
+            fi
+          done
+
+          echo "deterministic_fixed_count=$FIXED_FILES" >> $GITHUB_OUTPUT
+
+          if [[ $FIXED_FILES -gt 0 ]]; then
+            echo "fixes_applied=true" >> $GITHUB_OUTPUT
+            echo "Applied deterministic fixes to $FIXED_FILES files"
+            git add -A
+          else
+            echo "fixes_applied=false" >> $GITHUB_OUTPUT
+            echo "No deterministic fixes needed"
+          fi
+
       - name: Check API provider configuration
         id: check_providers
         if: steps.scope_selector.outputs.skip != 'true'
@@ -190,6 +255,7 @@ jobs:
         env:
           AWS_REGION: ${{ secrets.AWS_REGION }}
           AWS_BEARER_TOKEN_BEDROCK: ${{ secrets.AWS_BEARER_TOKEN_BEDROCK }}
+        # MCP provider may be unavailable -- suggestion PR is still generated from cached findings
         continue-on-error: true
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
@@ -207,18 +273,20 @@ jobs:
             3. **Generate findings** for categories: ${{ github.event.inputs.categories || 'security,quality,performance,tests' }}
             4. **Write findings to review-findings.json** in the exact schema specified below
 
+            ## Important: Skip Deterministic Issues
+
+            Formatting and basic lint issues (unused imports, import sorting) have
+            already been fixed by automated tools. Do NOT report findings for:
+            - Code formatting (ruff format handles this)
+            - Unused imports (F401 - already fixed)
+            - Import sorting (I001 - already fixed)
+
+            Focus your review on issues that require human judgment:
+            security, architecture, performance, logic errors, and test coverage.
+
             ## PAL MCP Consensus Instructions
 
             For EACH file in scope-selection.json, use the `mcp__pal__consensus` tool to get multi-model analysis.
-
-            Example consensus call:
-            ```
-            mcp__pal__consensus(
-              prompt="Review {file_path} for security, quality, performance, and test coverage issues.
-                      Output JSON findings with: category, severity, file, line_start, line_end, issue, suggestion, confidence, actionable",
-              models="gpt-5.2,gemini-3-pro"
-            )
-            ```
 
             ## Finding Schema (STRICT)
 
@@ -234,7 +302,8 @@ jobs:
               "issue": "Clear description of the issue",
               "suggestion": "Specific, actionable fix recommendation",
               "confidence": 0.85,
-              "actionable": true
+              "actionable": true,
+              "fix_type": "optional: ruff_format|ruff_lint_fix or omit"
             }
             ```
 
@@ -294,11 +363,11 @@ jobs:
 
             ## Critical Requirements
 
-            - ✅ Use `mcp__pal__consensus` for multi-model validation
-            - ✅ Filter findings: confidence >= 0.7 AND actionable = true
-            - ✅ Deduplicate: Remove findings with same file + line_start + line_end
-            - ✅ Validate schema: All required fields present, correct types
-            - ✅ Write to `review-findings.json` in the current directory
+            - Use `mcp__pal__consensus` for multi-model validation
+            - Filter findings: confidence >= 0.7 AND actionable = true
+            - Deduplicate: Remove findings with same file + line_start + line_end
+            - Validate schema: All required fields present, correct types
+            - Write to `review-findings.json` in the current directory
 
             ## Error Handling
 
@@ -316,6 +385,7 @@ jobs:
           steps.consensus_review_bedrock.outcome != 'success' &&
           steps.check_providers.outputs.anthropic_available == 'true'
         uses: anthropics/claude-code-action@v1
+        # MCP provider may be unavailable -- suggestion PR is still generated from cached findings
         continue-on-error: true
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
@@ -334,18 +404,20 @@ jobs:
             3. **Generate findings** for categories: ${{ github.event.inputs.categories || 'security,quality,performance,tests' }}
             4. **Write findings to review-findings.json** in the exact schema specified below
 
+            ## Important: Skip Deterministic Issues
+
+            Formatting and basic lint issues (unused imports, import sorting) have
+            already been fixed by automated tools. Do NOT report findings for:
+            - Code formatting (ruff format handles this)
+            - Unused imports (F401 - already fixed)
+            - Import sorting (I001 - already fixed)
+
+            Focus your review on issues that require human judgment:
+            security, architecture, performance, logic errors, and test coverage.
+
             ## PAL MCP Consensus Instructions
 
             For EACH file in scope-selection.json, use the `mcp__pal__consensus` tool to get multi-model analysis.
-
-            Example consensus call:
-            ```
-            mcp__pal__consensus(
-              prompt="Review {file_path} for security, quality, performance, and test coverage issues.
-                      Output JSON findings with: category, severity, file, line_start, line_end, issue, suggestion, confidence, actionable",
-              models="gpt-5.2,gemini-3-pro"
-            )
-            ```
 
             ## Finding Schema (STRICT)
 
@@ -361,7 +433,8 @@ jobs:
               "issue": "Clear description of the issue",
               "suggestion": "Specific, actionable fix recommendation",
               "confidence": 0.85,
-              "actionable": true
+              "actionable": true,
+              "fix_type": "optional: ruff_format|ruff_lint_fix or omit"
             }
             ```
 
@@ -421,11 +494,11 @@ jobs:
 
             ## Critical Requirements
 
-            - ✅ Use `mcp__pal__consensus` for multi-model validation
-            - ✅ Filter findings: confidence >= 0.7 AND actionable = true
-            - ✅ Deduplicate: Remove findings with same file + line_start + line_end
-            - ✅ Validate schema: All required fields present, correct types
-            - ✅ Write to `review-findings.json` in the current directory
+            - Use `mcp__pal__consensus` for multi-model validation
+            - Filter findings: confidence >= 0.7 AND actionable = true
+            - Deduplicate: Remove findings with same file + line_start + line_end
+            - Validate schema: All required fields present, correct types
+            - Write to `review-findings.json` in the current directory
 
             ## Error Handling
 
@@ -444,20 +517,20 @@ jobs:
         run: |
           if [[ ! -f "review-findings.json" ]]; then
             echo "::error::review-findings.json was not created by consensus review"
-            # Create empty findings file to prevent downstream failures
             echo '{"findings": [], "summary": {"total": 0, "by_category": {}}}' > review-findings.json
             echo "findings_created=false" >> $GITHUB_OUTPUT
           else
-            # Validate JSON format
-            if ! jq empty review-findings.json 2>/dev/null; then
-              echo "::error::review-findings.json is not valid JSON"
-              echo '{"findings": [], "summary": {"total": 0, "by_category": {}}}' > review-findings.json
-              echo "findings_created=false" >> $GITHUB_OUTPUT
-            else
+            # Strict schema validation (validates each finding, outputs sanitized JSON)
+            if python scripts/validate_findings_schema.py review-findings.json review-findings-validated.json; then
+              mv review-findings-validated.json review-findings.json
               FINDING_COUNT=$(jq '.findings | length' review-findings.json)
-              echo "Found $FINDING_COUNT findings"
+              echo "Found $FINDING_COUNT validated findings"
               echo "findings_created=true" >> $GITHUB_OUTPUT
               echo "finding_count=$FINDING_COUNT" >> $GITHUB_OUTPUT
+            else
+              echo "::error::review-findings.json failed schema validation"
+              echo '{"findings": [], "summary": {"total": 0, "by_category": {}}}' > review-findings.json
+              echo "findings_created=false" >> $GITHUB_OUTPUT
             fi
           fi
 
@@ -530,6 +603,7 @@ jobs:
           else
             echo "autofix_applied=false" >> $GITHUB_OUTPUT
           fi
+        # Autofix is best-effort -- failure falls back to suggestion-only PR
         continue-on-error: true
 
       - name: Upload autofix results
@@ -544,37 +618,41 @@ jobs:
         id: ci_ruff
         if: steps.autofix.outputs.autofix_applied == 'true'
         run: |
-          # Run ruff check on autofixed files
-          ruff check src/ --fix
+          # Read-only validation -- no --fix to ensure we validate the exact state
+          # produced by apply_autofix.py (using --fix here would mask idempotency failures)
+          ruff check src/
           RUFF_EXIT=$?
 
           if [[ $RUFF_EXIT -eq 0 ]]; then
             echo "ci_ruff_passed=true" >> $GITHUB_OUTPUT
-            echo "✅ Ruff check passed"
+            echo "Ruff check passed"
           else
             echo "ci_ruff_passed=false" >> $GITHUB_OUTPUT
-            echo "❌ Ruff check failed"
+            echo "Ruff check failed"
             exit 1
           fi
+        # CI validation failure triggers rollback in the ci_gate step, not a workflow abort
         continue-on-error: true
 
       - name: Run CI validation (pytest)
         id: ci_tests
-        if: steps.autofix.outputs.autofix_applied == 'true' && steps.ci_ruff.outputs.ci_ruff_passed == 'true'
+        # Runs independently of ruff -- both inform the CI gate
+        if: steps.autofix.outputs.autofix_applied == 'true'
         run: |
           # Run tests if they exist
           if [[ -d "tests" ]]; then
             pytest tests/ -v --tb=short || {
               echo "ci_tests_passed=false" >> $GITHUB_OUTPUT
-              echo "❌ Tests failed"
+              echo "Tests failed"
               exit 1
             }
             echo "ci_tests_passed=true" >> $GITHUB_OUTPUT
-            echo "✅ Tests passed"
+            echo "Tests passed"
           else
             echo "ci_tests_passed=true" >> $GITHUB_OUTPUT
-            echo "⚠️  No tests directory found - skipping"
+            echo "No tests directory found - skipping"
           fi
+        # CI validation failure triggers rollback in the ci_gate step, not a workflow abort
         continue-on-error: true
 
       - name: CI validation summary
@@ -619,7 +697,7 @@ jobs:
         id: create_autofix_prs
         if: |
           steps.autofix_pr_content.outcome == 'success' &&
-          (github.event.inputs.dry_run != 'true' || github.event.inputs.dry_run == '')
+          github.event.inputs.dry_run != 'true'
         run: |
           python scripts/create_prs.py \
             --pr-content-dir pr-content-autofix \
@@ -651,7 +729,7 @@ jobs:
         id: create_prs
         if: |
           steps.suggestions.outcome == 'success' &&
-          (github.event.inputs.dry_run != 'true' || github.event.inputs.dry_run == '')
+          github.event.inputs.dry_run != 'true'
         run: |
           python scripts/create_prs.py \
             --pr-content-dir pr-content \
@@ -661,7 +739,9 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Cleanup stale PRs
-        if: always()
+        if: |
+          always() &&
+          github.event.inputs.dry_run != 'true'
         run: |
           # Close stale nightly-review PRs (>7 days old with no activity)
           gh pr list \
@@ -758,4 +838,4 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "---" >> $GITHUB_STEP_SUMMARY
           echo "*Powered by PAL MCP Multi-Model Consensus*" >> $GITHUB_STEP_SUMMARY
-          echo "*Phase 2: Limited Autofix (ruff format only)*" >> $GITHUB_STEP_SUMMARY
+          echo "*Phase 2: Autofix (formatting + lint fixes)*" >> $GITHUB_STEP_SUMMARY
