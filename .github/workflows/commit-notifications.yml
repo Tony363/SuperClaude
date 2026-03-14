@@ -1,0 +1,89 @@
+name: Commit Notifications
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  notify-commits:
+    name: Send Slack Notifications
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # Skip if Slack secrets not configured
+    if: github.event.commits[0] != null
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: pip install requests
+
+      - name: Process and notify each commit
+        env:
+          RUBE_API_TOKEN: ${{ secrets.RUBE_API_TOKEN }}
+          SLACK_CHANNEL_ID: ${{ secrets.SLACK_CHANNEL_ID }}
+          RUBE_ENTITY_ID: ${{ secrets.RUBE_ENTITY_ID }}
+          NOTIFY_KIND: commit
+          GITHUB_EVENT_COMMITS: ${{ toJson(github.event.commits) }}
+        run: |
+          # Skip if Slack is not configured
+          if [ -z "$RUBE_API_TOKEN" ] || [ -z "$SLACK_CHANNEL_ID" ] || [ -z "$RUBE_ENTITY_ID" ]; then
+            echo "::warning::Slack secrets not configured — skipping notifications"
+            exit 0
+          fi
+
+          # Iterate over each commit safely
+          echo "$GITHUB_EVENT_COMMITS" | jq -c '.[]' | while read -r commit; do
+            COMMIT_SHA=$(echo "$commit" | jq -r '.id')
+            COMMIT_SHORT_SHA=$(echo "$COMMIT_SHA" | cut -c1-7)
+
+            COMMIT_AUTHOR_NAME=$(echo "$commit" | jq -r '.author.name')
+            COMMIT_AUTHOR_EMAIL=$(echo "$commit" | jq -r '.author.email')
+            COMMIT_COMMITTER_NAME=$(echo "$commit" | jq -r '.committer.name')
+            COMMIT_COMMITTER_EMAIL=$(echo "$commit" | jq -r '.committer.email')
+
+            COMMIT_AUTHOR="$COMMIT_AUTHOR_NAME <$COMMIT_AUTHOR_EMAIL>"
+            COMMIT_COMMITTER="$COMMIT_COMMITTER_NAME <$COMMIT_COMMITTER_EMAIL>"
+
+            COMMIT_MESSAGE=$(echo "$commit" | jq -r '.message')
+            COMMIT_URL=$(echo "$commit" | jq -r '.url')
+
+            COMMIT_MESSAGE_SUBJECT=$(echo "$COMMIT_MESSAGE" | head -n1)
+            COMMIT_MESSAGE_BODY=$(echo "$COMMIT_MESSAGE" | tail -n +2 | sed '/^$/d')
+
+            FILES_CHANGED=$(git diff-tree --no-commit-id --name-only -r "$COMMIT_SHA" | wc -l)
+
+            export RUBE_API_TOKEN="$RUBE_API_TOKEN"
+            export SLACK_CHANNEL_ID="$SLACK_CHANNEL_ID"
+            export RUBE_ENTITY_ID="$RUBE_ENTITY_ID"
+            export NOTIFY_KIND="$NOTIFY_KIND"
+            export COMMIT_BRANCH="${{ github.ref_name }}"
+            export COMMIT_SHA="$COMMIT_SHA"
+            export COMMIT_SHORT_SHA="$COMMIT_SHORT_SHA"
+            export COMMIT_AUTHOR="$COMMIT_AUTHOR"
+            export COMMIT_COMMITTER="$COMMIT_COMMITTER"
+            export COMMIT_MESSAGE_SUBJECT="$COMMIT_MESSAGE_SUBJECT"
+            export COMMIT_MESSAGE_BODY="$COMMIT_MESSAGE_BODY"
+            export FILES_CHANGED="$FILES_CHANGED"
+            export COMMIT_URL="$COMMIT_URL"
+
+            echo "Sending notification for commit $COMMIT_SHORT_SHA..."
+            python scripts/notify_slack.py
+
+            sleep 1
+          done
+
+      - name: Summary
+        if: always()
+        run: |
+          COMMIT_COUNT=$(echo '${{ toJson(github.event.commits) }}' | jq '. | length')
+          echo "Processed $COMMIT_COUNT commit(s)"
