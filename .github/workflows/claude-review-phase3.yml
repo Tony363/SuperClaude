@@ -7,7 +7,7 @@ name: Claude Review - Phase 3 (Draft PR Creation)
 
 on:
   pull_request:
-    types: [opened, ready_for_review]
+    types: [opened, ready_for_review, labeled]
 
 # Cost control: Only allow one workflow per PR at a time
 concurrency:
@@ -76,6 +76,7 @@ jobs:
     needs: security-check
     if: |
       needs.security-check.outputs.safe_to_proceed == 'true' &&
+      contains(github.event.pull_request.labels.*.name, 'ai-patch') &&
       github.actor != 'claude[bot]' &&
       github.actor != 'dependabot[bot]' &&
       github.actor != 'github-actions[bot]'
@@ -158,6 +159,7 @@ jobs:
         with:
           name: ai-suggestions-patch
           path: /tmp/ai-suggestions.patch
+          retention-days: 7
 
   pal-consensus-validation:
     name: Validate Suggestions with Multi-Model Consensus
@@ -174,7 +176,7 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Download patch
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: ai-suggestions-patch
           path: /tmp/
@@ -248,7 +250,7 @@ jobs:
           token: ${{ secrets.PAT_TOKEN || secrets.GITHUB_TOKEN }}
 
       - name: Download patch
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: ai-suggestions-patch
           path: /tmp/
@@ -258,10 +260,11 @@ jobs:
           git apply /tmp/ai-suggestions.patch
 
       - name: Run linters and formatters
+        continue-on-error: true
         run: |
           if command -v ruff &> /dev/null; then
-            ruff check . --fix || true
-            ruff format . || true
+            ruff check . --fix
+            ruff format .
           fi
 
       - name: Run secret scanning

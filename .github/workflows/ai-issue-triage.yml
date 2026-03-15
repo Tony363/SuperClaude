@@ -26,6 +26,9 @@ jobs:
     env:
       BEDROCK_CONFIGURED: ${{ secrets.AWS_BEARER_TOKEN_BEDROCK != '' }}
       ANTHROPIC_KEY_SET: ${{ secrets.ANTHROPIC_API_KEY != '' }}
+      ISSUE_NUMBER: ${{ github.event.issue.number }}
+      ISSUE_TITLE: ${{ github.event.issue.title }}
+      ISSUE_BODY: ${{ github.event.issue.body }}
     steps:
       - uses: actions/checkout@v6
         with:
@@ -58,22 +61,22 @@ jobs:
 
             Analyze this new issue and apply appropriate labels:
 
-            **Issue #${{ github.event.issue.number }}**
-            **Title**: ${{ github.event.issue.title }}
-            **Body**: ${{ github.event.issue.body }}
+            **Issue #${{ env.ISSUE_NUMBER }}**
+
+            Read the issue details using: `gh issue view ${{ env.ISSUE_NUMBER }} --json title,body`
 
             ## Instructions
 
-            1. Read the issue title and body carefully
+            1. Read the issue title and body carefully using the gh command above
             2. Determine the appropriate labels from this list:
                - **Type labels** (pick one): `bug`, `enhancement`, `question`, `documentation`
                - **Component labels** (pick all that apply): `agents`, `skills`, `workflows`, `scripts`, `runtime`, `docs`, `ci-cd`, `mcp`
                - **Priority labels** (pick one): `priority:high`, `priority:medium`, `priority:low`
-            3. Apply the labels using: `gh issue edit ${{ github.event.issue.number }} --add-label "label1,label2"`
+            3. Apply the labels using: `gh issue edit ${{ env.ISSUE_NUMBER }} --add-label "label1,label2"`
             4. Do NOT close, assign, or comment on the issue - only add labels
           claude_args: >-
             --allowed-tools
-            "Bash(gh issue edit *),Read,Glob,Grep"
+            "Bash(gh issue edit *),Bash(gh issue view *),Read,Glob,Grep"
             --max-turns 5
         env:
           AWS_BEARER_TOKEN_BEDROCK: ${{ secrets.AWS_BEARER_TOKEN_BEDROCK }}
@@ -97,20 +100,20 @@ jobs:
 
             Analyze this new issue and apply appropriate labels:
 
-            **Issue #${{ github.event.issue.number }}**
-            **Title**: ${{ github.event.issue.title }}
-            **Body**: ${{ github.event.issue.body }}
+            **Issue #${{ env.ISSUE_NUMBER }}**
+
+            Read the issue details using: `gh issue view ${{ env.ISSUE_NUMBER }} --json title,body`
 
             ## Instructions
 
-            1. Read the issue title and body carefully
+            1. Read the issue title and body carefully using the gh command above
             2. Determine the appropriate labels from this list:
                - **Type labels** (pick one): `bug`, `enhancement`, `question`, `documentation`
                - **Component labels** (pick all that apply): `agents`, `skills`, `workflows`, `scripts`, `runtime`, `docs`, `ci-cd`, `mcp`
                - **Priority labels** (pick one): `priority:high`, `priority:medium`, `priority:low`
-            3. Apply the labels using: `gh issue edit ${{ github.event.issue.number }} --add-label "label1,label2"`
+            3. Apply the labels using: `gh issue edit ${{ env.ISSUE_NUMBER }} --add-label "label1,label2"`
             4. Do NOT close, assign, or comment on the issue - only add labels
           claude_args: >-
             --allowed-tools
-            "Bash(gh issue edit *),Read,Glob,Grep"
+            "Bash(gh issue edit *),Bash(gh issue view *),Read,Glob,Grep"
             --max-turns 5

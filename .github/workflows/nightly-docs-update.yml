@@ -148,8 +148,11 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Validate required secrets
+        env:
+          HAS_ANTHROPIC_KEY: ${{ secrets.ANTHROPIC_API_KEY != '' }}
+          HAS_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN != '' }}
         run: |
-          if [ -z "${{ secrets.ANTHROPIC_API_KEY }}" ] && [ -z "${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}" ]; then
+          if [ "$HAS_ANTHROPIC_KEY" != "true" ] && [ "$HAS_OAUTH_TOKEN" != "true" ]; then
             echo "::error::Neither ANTHROPIC_API_KEY nor CLAUDE_CODE_OAUTH_TOKEN is configured"
             exit 1
           fi

@@ -13,6 +13,14 @@ permissions:
   contents: read
   pull-requests: read
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
 jobs:
   # ============================================
   # Quality Gate - Fast fail on style/lint issues
@@ -20,6 +28,7 @@ jobs:
   quality:
     name: Quality Gate
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
@@ -60,8 +69,11 @@ jobs:
     name: Claude Code Review
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    # Only run on PRs, skip dependabot
-    if: github.event_name == 'pull_request' && github.actor != 'dependabot[bot]'
+    # Only run on PRs, skip dependabot; ai-review.yml handles full PAL MCP review
+    if: >-
+      github.event_name == 'pull_request' &&
+      github.actor != 'dependabot[bot]' &&
+      !contains(github.event.pull_request.labels.*.name, 'skip-ci-review')
     needs: [quality]
     continue-on-error: true
 
@@ -96,9 +108,12 @@ jobs:
       - name: Get PR context
         if: steps.validate_providers.outputs.skip_review != 'true'
         id: pr_context
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
         run: |
-          echo "pr_number=${{ github.event.pull_request.number }}" >> $GITHUB_OUTPUT
-          echo "pr_title=${{ github.event.pull_request.title }}" >> $GITHUB_OUTPUT
+          echo "pr_number=$PR_NUMBER" >> $GITHUB_OUTPUT
+          echo "pr_title=$PR_TITLE" >> $GITHUB_OUTPUT
 
           # Get files changed count
           FILES_CHANGED=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | wc -l | tr -d ' ')
@@ -281,6 +296,7 @@ jobs:
     name: Test (Python ${{ matrix.python-version }})
     needs: quality
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
@@ -338,6 +354,7 @@ jobs:
     name: Coverage Gate (core 90%)
     needs: test
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
@@ -376,6 +393,7 @@ jobs:
     name: Build Check
     needs: quality
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
@@ -411,6 +429,7 @@ jobs:
     name: Artifact Install (${{ matrix.extra }})
     needs: build
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     strategy:
       fail-fast: false
       matrix:
@@ -481,10 +500,11 @@ jobs:
           "
 
       - name: Smoke test - module execution
+        continue-on-error: true
         run: |
           # Test that python -m SuperClaude runs without crashing
-          python -m SuperClaude || true
-          echo "Module execution completed (exit code allowed to be non-zero)"
+          python -m SuperClaude
+          echo "Module execution completed"
 
       - name: Run tests (test/full extras only)
         if: matrix.extra == 'test' || matrix.extra == 'full'
@@ -511,6 +531,7 @@ jobs:
     name: Benchmark Smoke
     needs: quality
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
@@ -616,6 +637,7 @@ jobs:
     if: always()
     needs: [quality, test, coverage-gate, build, artifact-install, sonarcloud]
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - name: Check CI status
         run: |

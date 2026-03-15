@@ -38,6 +38,9 @@ on:
         required: false
         type: string
 
+permissions:
+  contents: read
+
 concurrency:
   group: stochastic-evals-${{ github.ref }}
   cancel-in-progress: true
@@ -58,8 +61,10 @@ jobs:
     steps:
       - name: Check for ANTHROPIC_API_KEY
         id: check
+        env:
+          HAS_API_KEY: ${{ secrets.ANTHROPIC_API_KEY != '' }}
         run: |
-          if [[ -n "${{ secrets.ANTHROPIC_API_KEY }}" ]]; then
+          if [[ "$HAS_API_KEY" == "true" ]]; then
             echo "has_api_key=true" >> $GITHUB_OUTPUT
             echo "ANTHROPIC_API_KEY is configured"
           else
