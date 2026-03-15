@@ -35,9 +35,7 @@ def load_high_severity_findings(findings_path: Path) -> list[dict[str, Any]]:
         print(f"::error::Findings file not found: {findings_path}", file=sys.stderr)
         sys.exit(1)
     except json.JSONDecodeError:
-        print(
-            f"::error::Invalid JSON in findings file: {findings_path}", file=sys.stderr
-        )
+        print(f"::error::Invalid JSON in findings file: {findings_path}", file=sys.stderr)
         sys.exit(1)
 
 
@@ -202,18 +200,12 @@ def estimate_cost(input_tokens: int, output_tokens: int) -> float:
 
 def main():
     """Main entry point for security consensus validation."""
-    findings_path = Path(
-        sys.argv[1] if len(sys.argv) > 1 else "/tmp/high-severity.json"
-    )
-    output_path = Path(
-        sys.argv[2] if len(sys.argv) > 2 else "/tmp/consensus-results.json"
-    )
+    findings_path = Path(sys.argv[1] if len(sys.argv) > 1 else "/tmp/high-severity.json")
+    output_path = Path(sys.argv[2] if len(sys.argv) > 2 else "/tmp/consensus-results.json")
 
     api_key = os.getenv("ANTHROPIC_API_KEY")
     if not api_key:
-        print(
-            "::error::ANTHROPIC_API_KEY environment variable not set", file=sys.stderr
-        )
+        print("::error::ANTHROPIC_API_KEY environment variable not set", file=sys.stderr)
         sys.exit(1)
 
     print(f"Loading high severity findings from {findings_path}...")

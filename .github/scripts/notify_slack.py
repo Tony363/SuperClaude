@@ -26,9 +26,7 @@ def build_commit_message(
     if len(message_body) > 200:
         message_body = message_body[:197] + "..."
 
-    full_message = (
-        f"{message_subject}\n{message_body}" if message_body else message_subject
-    )
+    full_message = f"{message_subject}\n{message_body}" if message_body else message_subject
 
     return f"""## New Commit to `{branch}`
 
@@ -62,9 +60,7 @@ def build_scanner_message(
     status_emoji = "pass" if status == "success" else "fail"
 
     pr_lines = (
-        "\n".join(f"- {detail}" for detail in pr_details)
-        if pr_details
-        else "- No PRs created"
+        "\n".join(f"- {detail}" for detail in pr_details) if pr_details else "- No PRs created"
     )
 
     budget_info = ""
@@ -194,9 +190,7 @@ def send_slack_notification(message: str) -> bool:
 
         print(f"Sending notification to Slack channel {SLACK_CHANNEL_ID}...")
 
-        api_url = (
-            "https://backend.composio.dev/api/v2/actions/SLACK_SEND_MESSAGE/execute"
-        )
+        api_url = "https://backend.composio.dev/api/v2/actions/SLACK_SEND_MESSAGE/execute"
 
         headers = {
             "X-API-Key": api_token,
