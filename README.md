@@ -1912,6 +1912,12 @@ SuperClaude/
 │   │   ├── test_pal_integration.py
 │   │   ├── test_quality_assessment.py
 │   │   └── test_types.py
+│   ├── integration/             # Integration tests
+│   │   ├── test_nightly_review.py
+│   │   ├── test_notify_slack.py
+│   │   ├── test_security_consensus.py
+│   │   ├── test_apply_docstrings.py
+│   │   └── test_apply_type_hints.py
 │   └── fixtures/                # Test data
 │       └── consensus/
 │
@@ -1922,6 +1928,31 @@ SuperClaude/
 │
 └── archive/                     # Archived Python SDK (v5)
 ```
+
+---
+
+## GitHub Workflows
+
+SuperClaude includes 14 GitHub Actions workflows for CI/CD, AI-powered review, and automation:
+
+| Workflow | File | Trigger | Purpose |
+|----------|------|---------|---------|
+| CI | `ci.yml` | Push/PR | Linting, tests, validation |
+| AI Code Review | `ai-review.yml` | PR opened | PAL MCP consensus code review |
+| Nightly Code Review | `nightly-review.yml` | Cron (2 AM UTC) | Proactive quality monitoring with autofix |
+| Claude Review Phase 3 | `claude-review-phase3.yml` | PR opened | Draft PR creation with AI suggestions |
+| AI Issue Triage | `ai-issue-triage.yml` | Issue opened | Auto-label and categorize issues |
+| AI Review Cost Monitor | `ai-review-cost-monitor.yml` | Cron (6h) / workflow_run | Track AI spend, budget alerts ($50/day, $1000/month) |
+| Nightly Docs Update | `nightly-docs-update.yml` | Cron (4 AM UTC) | Detect code changes, update docs via Claude CLI |
+| AI Release Notes | `release-notes.yml` | Release created | Generate structured release notes |
+| Commit Notifications | `commit-notifications.yml` | Push to main | Slack notifications via Rube MCP |
+| Security | `security.yml` | Push/PR | Security scanning |
+| Stochastic Evals | `stochastic-evals.yml` | Manual | LLM evaluation runs |
+| E2E App Generation | `e2e-app-generation.yml` | Manual | End-to-end app generation tests |
+| README Quality Check | `readme-quality-check.yml` | PR | Documentation quality validation |
+| Claude Code Action | `claude.yml` | PR | Claude Code integration |
+
+All AI workflows use the **dual-provider pattern**: AWS Bedrock (primary) with Anthropic API fallback.
 
 ---
 

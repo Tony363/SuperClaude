@@ -1,0 +1,116 @@
+name: AI Issue Triage
+
+# Auto-label and categorize new issues using Claude
+# Advisory mode only - adds labels, doesn't close or modify issues
+# Helps route issues to the right team members faster
+
+on:
+  issues:
+    types: [opened]
+
+# Only one triage per issue
+concurrency:
+  group: issue-triage-${{ github.event.issue.number }}
+  cancel-in-progress: false
+
+jobs:
+  triage:
+    name: Triage Issue
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # Skip bot-created issues
+    if: github.event.issue.user.login != 'github-actions[bot]' && github.event.issue.user.login != 'dependabot[bot]'
+    permissions:
+      issues: write
+      contents: read
+    env:
+      BEDROCK_CONFIGURED: ${{ secrets.AWS_BEARER_TOKEN_BEDROCK != '' }}
+      ANTHROPIC_KEY_SET: ${{ secrets.ANTHROPIC_API_KEY != '' }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          sparse-checkout: |
+            agents/
+            .claude/skills/
+            scripts/
+            CLAUDE.md
+          sparse-checkout-cone-mode: true
+
+      - name: Validate API provider
+        run: |
+          if [ "${{ env.BEDROCK_CONFIGURED }}" != "true" ] && [ "${{ env.ANTHROPIC_KEY_SET }}" != "true" ]; then
+            echo "::warning::No API provider configured - skipping AI triage"
+            exit 0
+          fi
+
+      # ========== PRIMARY: AWS Bedrock ==========
+      - name: AI Triage (Bedrock - Primary)
+        id: bedrock
+        if: env.BEDROCK_CONFIGURED == 'true'
+        continue-on-error: true
+        uses: anthropics/claude-code-action@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          use_bedrock: "true"
+          timeout_minutes: 5
+          prompt: |
+            You are an issue triage bot for the SuperClaude project (AI-enhanced development framework for Claude Code).
+
+            Analyze this new issue and apply appropriate labels:
+
+            **Issue #${{ github.event.issue.number }}**
+            **Title**: ${{ github.event.issue.title }}
+            **Body**: ${{ github.event.issue.body }}
+
+            ## Instructions
+
+            1. Read the issue title and body carefully
+            2. Determine the appropriate labels from this list:
+               - **Type labels** (pick one): `bug`, `enhancement`, `question`, `documentation`
+               - **Component labels** (pick all that apply): `agents`, `skills`, `workflows`, `scripts`, `runtime`, `docs`, `ci-cd`, `mcp`
+               - **Priority labels** (pick one): `priority:high`, `priority:medium`, `priority:low`
+            3. Apply the labels using: `gh issue edit ${{ github.event.issue.number }} --add-label "label1,label2"`
+            4. Do NOT close, assign, or comment on the issue - only add labels
+          claude_args: >-
+            --allowed-tools
+            "Bash(gh issue edit *),Read,Glob,Grep"
+            --max-turns 5
+        env:
+          AWS_BEARER_TOKEN_BEDROCK: ${{ secrets.AWS_BEARER_TOKEN_BEDROCK }}
+          AWS_REGION: ${{ secrets.AWS_REGION || 'us-east-1' }}
+          CLAUDE_CODE_USE_BEDROCK: "1"
+
+      # ========== FALLBACK: Anthropic Direct API ==========
+      - name: AI Triage (Anthropic - Fallback)
+        id: anthropic
+        if: |
+          env.ANTHROPIC_KEY_SET == 'true' &&
+          (env.BEDROCK_CONFIGURED != 'true' || steps.bedrock.outcome != 'success')
+        continue-on-error: true
+        uses: anthropics/claude-code-action@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          timeout_minutes: 5
+          prompt: |
+            You are an issue triage bot for the SuperClaude project (AI-enhanced development framework for Claude Code).
+
+            Analyze this new issue and apply appropriate labels:
+
+            **Issue #${{ github.event.issue.number }}**
+            **Title**: ${{ github.event.issue.title }}
+            **Body**: ${{ github.event.issue.body }}
+
+            ## Instructions
+
+            1. Read the issue title and body carefully
+            2. Determine the appropriate labels from this list:
+               - **Type labels** (pick one): `bug`, `enhancement`, `question`, `documentation`
+               - **Component labels** (pick all that apply): `agents`, `skills`, `workflows`, `scripts`, `runtime`, `docs`, `ci-cd`, `mcp`
+               - **Priority labels** (pick one): `priority:high`, `priority:medium`, `priority:low`
+            3. Apply the labels using: `gh issue edit ${{ github.event.issue.number }} --add-label "label1,label2"`
+            4. Do NOT close, assign, or comment on the issue - only add labels
+          claude_args: >-
+            --allowed-tools
+            "Bash(gh issue edit *),Read,Glob,Grep"
+            --max-turns 5
