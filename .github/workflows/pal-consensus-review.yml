@@ -1,0 +1,183 @@
+name: PAL MCP Consensus Review
+
+on:
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 'PR number to review'
+        required: true
+        type: number
+      review_type:
+        description: 'Review type'
+        required: false
+        default: 'full'
+        type: choice
+        options:
+          - full
+          - security
+          - performance
+
+permissions:
+  contents: read
+  pull-requests: write
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  consensus-review:
+    name: Multi-Model Consensus Review
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    concurrency:
+      group: pal-consensus-${{ inputs.pr_number }}
+      cancel-in-progress: true
+
+    env:
+      BEDROCK_CONFIGURED: ${{ secrets.AWS_BEARER_TOKEN_BEDROCK != '' }}
+      ANTHROPIC_KEY_SET: ${{ secrets.ANTHROPIC_API_KEY != '' }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate at least one provider is configured
+        run: |
+          if [ "$BEDROCK_CONFIGURED" != "true" ] && [ "$ANTHROPIC_KEY_SET" != "true" ]; then
+            echo "::error::No API provider configured. Add AWS credentials (Bedrock) OR ANTHROPIC_API_KEY."
+            exit 1
+          fi
+
+      - name: Validate PAL MCP secrets
+        env:
+          HAS_GEMINI_KEY: ${{ secrets.GEMINI_API_KEY != '' }}
+          HAS_OPENAI_KEY: ${{ secrets.OPENAI_API_KEY != '' }}
+        run: |
+          MISSING_KEYS=""
+          if [ "$HAS_GEMINI_KEY" != "true" ]; then
+            MISSING_KEYS="GEMINI_API_KEY"
+          fi
+          if [ "$HAS_OPENAI_KEY" != "true" ]; then
+            if [ -n "$MISSING_KEYS" ]; then
+              MISSING_KEYS="$MISSING_KEYS, OPENAI_API_KEY"
+            else
+              MISSING_KEYS="OPENAI_API_KEY"
+            fi
+          fi
+          if [ -n "$MISSING_KEYS" ]; then
+            echo "::error::PAL MCP requires the following secrets: $MISSING_KEYS"
+            echo "::error::Add these secrets to enable multi-model consensus reviews."
+            exit 1
+          fi
+          echo "PAL MCP secrets validated successfully"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: Create PAL MCP Config
+        run: |
+          cat > /tmp/pal-mcp-config.json << EOF
+          {
+            "mcpServers": {
+              "pal": {
+                "command": "uvx",
+                "args": ["--from", "git+https://github.com/BeehiveInnovations/pal-mcp-server.git", "pal-mcp-server"],
+                "env": {
+                  "GEMINI_API_KEY": "${{ secrets.GEMINI_API_KEY }}",
+                  "OPENAI_API_KEY": "${{ secrets.OPENAI_API_KEY }}"
+                }
+              }
+            }
+          }
+          EOF
+
+      - name: Checkout PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh pr checkout ${{ inputs.pr_number }}
+
+      # ========== PRIMARY: AWS Bedrock ==========
+      - name: PAL MCP Consensus Review (Bedrock - Primary)
+        id: bedrock_review
+        if: env.BEDROCK_CONFIGURED == 'true'
+        continue-on-error: true
+        uses: anthropics/claude-code-action@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          use_bedrock: "true"
+          timeout_minutes: 15
+          prompt: |
+            Perform a ${{ inputs.review_type }} code review using PAL MCP multi-model consensus.
+
+            ## Instructions
+            1. Use `gh pr diff ${{ inputs.pr_number }}` to examine the PR changes
+            2. Use the `mcp__pal__consensus` tool with gemini-2.5-pro and gpt-4o models
+            3. Provide comprehensive analysis including:
+               - Executive summary of changes
+               - Security concerns (if any)
+               - Performance implications
+               - Code quality assessment
+               - Recommendations from multi-model consensus
+            4. Post findings as a PR comment using `gh pr comment`
+          claude_args: >-
+            --mcp-config /tmp/pal-mcp-config.json
+            --allowed-tools
+            "Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*),mcp__pal__codereview,mcp__pal__consensus,mcp__pal__chat,mcp__pal__thinkdeep,mcp__pal__listmodels"
+            --max-turns 20
+        env:
+          AWS_BEARER_TOKEN_BEDROCK: ${{ secrets.AWS_BEARER_TOKEN_BEDROCK }}
+          AWS_REGION: ${{ secrets.AWS_REGION || 'us-east-1' }}
+          CLAUDE_CODE_USE_BEDROCK: "1"
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+
+      # ========== FALLBACK: Anthropic Direct API ==========
+      - name: PAL MCP Consensus Review (Anthropic - Fallback)
+        id: anthropic_review
+        if: |
+          env.ANTHROPIC_KEY_SET == 'true' &&
+          (env.BEDROCK_CONFIGURED != 'true' || steps.bedrock_review.outcome != 'success')
+        continue-on-error: true
+        uses: anthropics/claude-code-action@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          timeout_minutes: 15
+          prompt: |
+            Perform a ${{ inputs.review_type }} code review using PAL MCP multi-model consensus.
+
+            ## Instructions
+            1. Use `gh pr diff ${{ inputs.pr_number }}` to examine the PR changes
+            2. Use the `mcp__pal__consensus` tool with gemini-2.5-pro and gpt-4o models
+            3. Provide comprehensive analysis including:
+               - Executive summary of changes
+               - Security concerns (if any)
+               - Performance implications
+               - Code quality assessment
+               - Recommendations from multi-model consensus
+            4. Post findings as a PR comment using `gh pr comment`
+          claude_args: >-
+            --mcp-config /tmp/pal-mcp-config.json
+            --allowed-tools
+            "Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*),mcp__pal__codereview,mcp__pal__consensus,mcp__pal__chat,mcp__pal__thinkdeep,mcp__pal__listmodels"
+            --max-turns 20
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+
+      # ========== FINAL STATUS CHECK ==========
+      - name: Verify review completed
+        run: |
+          BEDROCK_RESULT="${{ steps.bedrock_review.outcome }}"
+          ANTHROPIC_RESULT="${{ steps.anthropic_review.outcome }}"
+
+          if [ "$BEDROCK_RESULT" == "success" ] || [ "$ANTHROPIC_RESULT" == "success" ]; then
+            echo "::notice::PAL MCP Consensus Review completed successfully"
+            exit 0
+          else
+            echo "::error::PAL MCP Consensus Review failed - both providers failed"
+            exit 1
+          fi
