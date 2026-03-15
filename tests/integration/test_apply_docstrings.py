@@ -13,8 +13,6 @@ import sys
 import tempfile
 from pathlib import Path
 
-import pytest
-
 PYTHON = sys.executable
 
 
@@ -213,8 +211,6 @@ print("PASS")
             py_file.write("def foo():\n    return 1\n")
             py_file.flush()
             py_path = py_file.name
-
-        original_content = Path(py_path).read_text()
 
         # Create a suggestion that would produce invalid indentation
         suggestions = {

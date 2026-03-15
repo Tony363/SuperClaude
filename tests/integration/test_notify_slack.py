@@ -11,8 +11,6 @@ import os
 import subprocess
 import sys
 
-import pytest
-
 PYTHON = sys.executable
 SCRIPT = "scripts/notify_slack.py"
 

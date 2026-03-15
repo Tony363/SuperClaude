@@ -13,8 +13,6 @@ import sys
 import tempfile
 from pathlib import Path
 
-import pytest
-
 PYTHON = sys.executable
 
 
