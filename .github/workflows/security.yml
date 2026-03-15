@@ -18,6 +18,14 @@ permissions:
   security-events: write
   actions: read
 
+concurrency:
+  group: security-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
 jobs:
   # ============================================
   # CodeQL - Static Application Security Testing
@@ -25,6 +33,7 @@ jobs:
   codeql:
     name: CodeQL Analysis
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     # Skip on forks/repos without Code Security enabled (requires paid feature)
     if: github.repository == 'Tony363/SuperClaude'
     steps:
@@ -51,6 +60,7 @@ jobs:
   pip-audit:
     name: Dependency Audit
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
@@ -68,8 +78,9 @@ jobs:
         run: pip install ".[dev]"
 
       - name: Run pip-audit
+        continue-on-error: true
         run: |
-          pip-audit --desc on --format markdown --output audit-report.md || true
+          pip-audit --desc on --format markdown --output audit-report.md
           cat audit-report.md >> $GITHUB_STEP_SUMMARY
 
       - name: Upload audit report
@@ -85,6 +96,7 @@ jobs:
   bandit:
     name: Bandit Security Scan
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
@@ -98,9 +110,10 @@ jobs:
         run: pip install bandit[toml]
 
       - name: Run Bandit
+        continue-on-error: true
         run: |
-          bandit -c pyproject.toml -r SuperClaude/ -f json -o bandit-report.json || true
-          bandit -c pyproject.toml -r SuperClaude/ -f txt || true
+          bandit -c pyproject.toml -r SuperClaude/ -f json -o bandit-report.json
+          bandit -c pyproject.toml -r SuperClaude/ -f txt
 
       - name: Upload Bandit report
         uses: actions/upload-artifact@v7
@@ -117,6 +130,7 @@ jobs:
     if: always()
     needs: [codeql, pip-audit, bandit]
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - name: Generate summary
         run: |

@@ -29,6 +29,9 @@ on:
         default: '0.67'
         type: string
 
+permissions:
+  contents: read
+
 concurrency:
   group: e2e-app-generation-${{ github.ref }}
   cancel-in-progress: true

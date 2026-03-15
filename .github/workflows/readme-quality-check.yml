@@ -14,10 +14,15 @@ permissions:
   issues: write
   pull-requests: write
 
+concurrency:
+  group: readme-quality-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   readme-quality-check:
     name: Multi-language README Quality Assessment
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     steps:
     - name: Checkout repository

@@ -73,6 +73,10 @@ concurrency:
   group: nightly-review-${{ github.ref }}
   cancel-in-progress: true
 
+defaults:
+  run:
+    shell: bash
+
 env:
   # Cost control: Budget guardrails (overridable via workflow_dispatch inputs)
   MAX_FILES_PER_RUN: ${{ github.event.inputs.max_files || 50 }}
@@ -230,7 +234,12 @@ jobs:
           if [[ $FIXED_FILES -gt 0 ]]; then
             echo "fixes_applied=true" >> $GITHUB_OUTPUT
             echo "Applied deterministic fixes to $FIXED_FILES files"
-            git add -A
+            # Stage only the Python files that were in scope (not unrelated artifacts)
+            echo "$SCOPE_FILES" | while read -r f; do
+              if [[ -f "$f" ]] && ! git diff --quiet -- "$f" 2>/dev/null; then
+                git add "$f"
+              fi
+            done
           else
             echo "fixes_applied=false" >> $GITHUB_OUTPUT
             echo "No deterministic fixes needed"
@@ -585,7 +594,7 @@ jobs:
       - name: Install ruff (for autofix)
         if: |
           steps.normalize.outcome == 'success' &&
-          (github.event.inputs.enable_autofix != 'false' || github.event.inputs.enable_autofix == '')
+          github.event.inputs.enable_autofix != 'false'
         run: |
           pip install ruff
 
@@ -593,7 +602,7 @@ jobs:
         id: autofix
         if: |
           steps.normalize.outcome == 'success' &&
-          (github.event.inputs.enable_autofix != 'false' || github.event.inputs.enable_autofix == '')
+          github.event.inputs.enable_autofix != 'false'
         run: |
           python scripts/apply_autofix.py \
             --fix-plans-dir fix-plans \
@@ -625,7 +634,7 @@ jobs:
         run: |
           # Read-only validation -- no --fix to ensure we validate the exact state
           # produced by apply_autofix.py (using --fix here would mask idempotency failures)
-          ruff check src/
+          ruff check SuperClaude/
           RUFF_EXIT=$?
 
           if [[ $RUFF_EXIT -eq 0 ]]; then
@@ -835,7 +844,7 @@ jobs:
 
           claude_args: >-
             --allowed-tools
-            "Write,Read,Edit,Bash(git *),Bash(gh pr create *),Bash(ruff *),Bash(python -m py_compile *),Bash(pip install *)"
+            "Write,Read,Edit,Bash(git *),Bash(gh pr create *),Bash(ruff *),Bash(python -m py_compile *)"
         env:
           AWS_BEARER_TOKEN_BEDROCK: ${{ secrets.AWS_BEARER_TOKEN_BEDROCK }}
           AWS_REGION: ${{ secrets.AWS_REGION || 'us-east-1' }}

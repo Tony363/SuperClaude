@@ -12,6 +12,10 @@ on:
 # Note: This workflow is intentionally non-blocking
 # It provides AI-powered feedback but does not gate merges
 
+concurrency:
+  group: ai-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
 jobs:
   ai-review:
     name: PAL MCP Consensus Code Review
@@ -25,11 +29,12 @@ jobs:
       contents: read
       pull-requests: write
       issues: read
-      id-token: write
 
     env:
       BEDROCK_CONFIGURED: ${{ secrets.AWS_BEARER_TOKEN_BEDROCK != '' }}
       ANTHROPIC_KEY_SET: ${{ secrets.ANTHROPIC_API_KEY != '' }}
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+      PR_TITLE: ${{ github.event.pull_request.title }}
 
     steps:
       - name: Checkout repository
@@ -83,8 +88,8 @@ jobs:
             # SuperClaude PR Code Review - PAL MCP Consensus
 
             **Repository**: ${{ github.repository }}
-            **PR Number**: ${{ github.event.pull_request.number }}
-            **PR Title**: ${{ github.event.pull_request.title }}
+            **PR Number**: ${{ env.PR_NUMBER }}
+            **PR Title**: ${{ env.PR_TITLE }}
             **Files Changed**: ${{ steps.context.outputs.files_changed }}
             **Diff Stats**: ${{ steps.context.outputs.diff_stats }}
             **Python Files**: ${{ steps.context.outputs.python_files }}
@@ -97,7 +102,7 @@ jobs:
             multi-model perspectives on the changes.
 
             ### Step 1: Get the PR diff
-            First, use `gh pr diff ${{ github.event.pull_request.number }}` to examine the changes.
+            First, use `gh pr diff ${{ env.PR_NUMBER }}` to examine the changes.
 
             ### Step 2: Run PAL MCP Consensus Code Review
             Use the `mcp__pal__codereview` tool to perform a comprehensive code review.
@@ -163,13 +168,17 @@ jobs:
         if: steps.bedrock_review.outcome == 'success'
         run: |
           if [[ -f "pal-review.md" ]]; then
-            gh pr comment ${{ github.event.pull_request.number }} --body-file pal-review.md
+            gh pr comment ${{ env.PR_NUMBER }} --body-file pal-review.md
             echo "Posted PAL MCP review comment (Bedrock)"
           else
             echo "::warning::pal-review.md not found — Claude agent may not have written the review file"
           fi
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Cleanup review file before fallback
+        if: steps.bedrock_review.outcome != 'success'
+        run: rm -f pal-review.md
 
       - name: PAL MCP Review (Anthropic API - Fallback)
         if: steps.validate_providers.outputs.skip_review != 'true' && env.ANTHROPIC_KEY_SET == 'true' && (env.BEDROCK_CONFIGURED != 'true' || steps.bedrock_review.outcome != 'success')
@@ -184,8 +193,8 @@ jobs:
             # SuperClaude PR Code Review - PAL MCP Consensus
 
             **Repository**: ${{ github.repository }}
-            **PR Number**: ${{ github.event.pull_request.number }}
-            **PR Title**: ${{ github.event.pull_request.title }}
+            **PR Number**: ${{ env.PR_NUMBER }}
+            **PR Title**: ${{ env.PR_TITLE }}
             **Files Changed**: ${{ steps.context.outputs.files_changed }}
             **Diff Stats**: ${{ steps.context.outputs.diff_stats }}
             **Python Files**: ${{ steps.context.outputs.python_files }}
@@ -198,7 +207,7 @@ jobs:
             multi-model perspectives on the changes.
 
             ### Step 1: Get the PR diff
-            First, use `gh pr diff ${{ github.event.pull_request.number }}` to examine the changes.
+            First, use `gh pr diff ${{ env.PR_NUMBER }}` to examine the changes.
 
             ### Step 2: Run PAL MCP Consensus Code Review
             Use the `mcp__pal__codereview` tool to perform a comprehensive code review.
@@ -260,7 +269,7 @@ jobs:
         if: steps.anthropic_review.outcome == 'success'
         run: |
           if [[ -f "pal-review.md" ]]; then
-            gh pr comment ${{ github.event.pull_request.number }} --body-file pal-review.md
+            gh pr comment ${{ env.PR_NUMBER }} --body-file pal-review.md
             echo "Posted PAL MCP review comment (Anthropic)"
           else
             echo "::warning::pal-review.md not found — Claude agent may not have written the review file"

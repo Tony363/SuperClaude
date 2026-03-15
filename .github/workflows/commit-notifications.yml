@@ -5,6 +5,9 @@ on:
     branches:
       - main
 
+permissions:
+  contents: read
+
 jobs:
   notify-commits:
     name: Send Slack Notifications
@@ -84,6 +87,8 @@ jobs:
 
       - name: Summary
         if: always()
+        env:
+          GITHUB_EVENT_COMMITS: ${{ toJson(github.event.commits) }}
         run: |
-          COMMIT_COUNT=$(echo '${{ toJson(github.event.commits) }}' | jq '. | length')
+          COMMIT_COUNT=$(echo "$GITHUB_EVENT_COMMITS" | jq '. | length')
           echo "Processed $COMMIT_COUNT commit(s)"
