@@ -152,9 +152,7 @@ class TestApplyDocstrings:
 
     def test_insert_docstring_into_file(self):
         """Inserts docstring into a real Python file."""
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".py", delete=False
-        ) as py_file:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False) as py_file:
             py_file.write("def greet(name):\n    return f'Hello {name}'\n")
             py_file.flush()
             py_path = py_file.name
@@ -169,9 +167,7 @@ class TestApplyDocstrings:
             ]
         }
 
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".json", delete=False
-        ) as json_file:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as json_file:
             json.dump(suggestions, json_file)
             json_file.flush()
             json_path = json_file.name
@@ -204,9 +200,7 @@ print("PASS")
 
     def test_revert_on_compile_failure(self):
         """Reverts file if docstring insertion breaks compilation."""
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".py", delete=False
-        ) as py_file:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False) as py_file:
             # Valid Python that has tight formatting
             py_file.write("def foo():\n    return 1\n")
             py_file.flush()
@@ -223,9 +217,7 @@ print("PASS")
             ]
         }
 
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".json", delete=False
-        ) as json_file:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as json_file:
             json.dump(suggestions, json_file)
             json_file.flush()
             json_path = json_file.name
@@ -254,9 +246,7 @@ print("PASS")
 
     def test_skip_already_documented(self):
         """Skips functions that already have docstrings."""
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".py", delete=False
-        ) as py_file:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False) as py_file:
             py_file.write('def foo():\n    """Existing docstring."""\n    return 1\n')
             py_file.flush()
             py_path = py_file.name
@@ -271,9 +261,7 @@ print("PASS")
             ]
         }
 
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".json", delete=False
-        ) as json_file:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as json_file:
             json.dump(suggestions, json_file)
             json_file.flush()
             json_path = json_file.name

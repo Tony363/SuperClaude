@@ -32,9 +32,7 @@ class TestLoadHighSeverityFindings:
                 "code": "exec(user_input)",
             }
         ]
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".json", delete=False
-        ) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
             json.dump(findings, f)
             f.flush()
             result = subprocess.run(
@@ -79,9 +77,7 @@ load_high_severity_findings(Path("/tmp/nonexistent-findings-99999.json"))
 
     def test_load_invalid_json_crashes(self):
         """Invalid JSON file crashes (Let It Crash)."""
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".json", delete=False
-        ) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
             f.write("not valid json {{{")
             f.flush()
             result = subprocess.run(
@@ -216,9 +212,7 @@ class TestMainMissingApiKey:
         env = os.environ.copy()
         env.pop("ANTHROPIC_API_KEY", None)
 
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".json", delete=False
-        ) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
             json.dump([{"test_id": "B101"}], f)
             f.flush()
             result = subprocess.run(
