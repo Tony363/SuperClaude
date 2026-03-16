@@ -36,7 +36,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -106,7 +106,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -131,7 +131,7 @@ jobs:
 
       - name: Upload review artifact
         if: needs.detect-high-stakes.outputs.is_high_stakes == 'true'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: claude-review-result
           path: /tmp/review-artifacts/
@@ -150,7 +150,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -169,7 +169,7 @@ jobs:
       - name: Post configuration notice
         if: steps.check-pal.outputs.configured == 'false'
         continue-on-error: true
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
@@ -197,7 +197,7 @@ jobs:
 
       - name: Download Claude review
         if: steps.check-pal.outputs.configured == 'true'
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: claude-review-result
           path: /tmp/review-artifacts/
@@ -251,7 +251,7 @@ jobs:
 
       - name: Post consensus comment
         if: steps.check-pal.outputs.configured == 'true'
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
@@ -288,7 +288,7 @@ jobs:
             });
 
       - name: Upload consensus artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: pal-consensus-result
           path: /tmp/consensus-result.json

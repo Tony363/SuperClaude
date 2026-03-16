@@ -40,7 +40,7 @@ jobs:
       ANTHROPIC_KEY_SET: ${{ secrets.ANTHROPIC_API_KEY != '' }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -75,7 +75,7 @@ jobs:
           echo "PAL MCP secrets validated successfully"
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v4
+        uses: astral-sh/setup-uv@v7
 
       - name: Create PAL MCP Config
         run: |
