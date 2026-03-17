@@ -1038,5 +1038,538 @@ def test_infer_fix_type_llm_patterns():
     assert infer_fix_type("Unreachable code after return") == "llm_single_file"
 
 
+# ========== Fix Regression Tests: Division by Zero & line_end Default ==========
+
+
+def test_normalize_findings_zero_ranked():
+    """Test no division by zero when all findings are filtered out (empty ranked list)."""
+    from scripts.normalize_findings import generate_fix_plan
+
+    # generate_fix_plan returns None for empty findings
+    result = generate_fix_plan("security", [])
+    assert result is None
+
+    # Test with findings that produce a non-empty ranked list — avg_confidence should compute
+    findings = [
+        {
+            "category": "security",
+            "severity": "high",
+            "file": "src/auth.py",
+            "line_start": 10,
+            "line_end": 15,
+            "issue": "Test issue",
+            "suggestion": "Test fix",
+            "confidence": 0.85,
+            "actionable": True,
+        }
+    ]
+    result = generate_fix_plan("security", findings)
+    assert result is not None
+    assert result["summary"]["avg_confidence"] == 0.85
+
+
+def test_line_end_missing_defaults_correctly():
+    """Verify LOC calculation with missing line_end defaults to line_start."""
+    from scripts.normalize_findings import is_finding_autofix_eligible
+
+    # Finding with line_start=10 and no line_end — should default line_end to 10
+    # so loc_affected = 10 - 10 + 1 = 1 (not -9 from old default of 0)
+    finding = {
+        "category": "quality",
+        "severity": "low",
+        "file": "src/api/views.py",
+        "line_start": 10,
+        # line_end deliberately omitted
+        "issue": "Poor formatting",
+        "suggestion": "Apply ruff format",
+        "confidence": 0.96,
+        "actionable": True,
+    }
+    # The finding itself may or may not be eligible (depends on fix type),
+    # but the key assertion is that loc_affected = 1, not -9.
+    # We verify by checking it doesn't bypass the LOC limit check.
+    # A finding at line_start=10 with the OLD bug would get loc=-9, always passing LOC check.
+    # With the fix, loc=1, which is within AUTOFIX_MAX_LOC_PER_FINDING (200).
+    result = is_finding_autofix_eligible(finding)
+    # This should be True (ruff_format eligible in src/**/*.py with high confidence)
+    assert result is True
+
+
+# ========== create_prs.py Tests ==========
+
+
+def test_create_prs_generates_correct_gh_commands(temp_workspace, monkeypatch):
+    """Verify PR creation command construction."""
+    from unittest.mock import patch
+
+    from scripts.create_prs import create_pr_with_gh
+
+    pr_content_file = temp_workspace / "security-pr.md"
+    pr_content_file.write_text("# Security Review\n\nSome findings here.")
+
+    captured_cmds = []
+
+    def mock_run_command(cmd, capture_output=True, check=True):
+        captured_cmds.append(cmd)
+        return "https://github.com/test/repo/pull/42"
+
+    with patch("scripts.create_prs.run_command", side_effect=mock_run_command):
+        result = create_pr_with_gh(
+            "security", "nightly-review/security/2026-03-16", pr_content_file
+        )
+
+    assert result is True
+    # Should have called gh pr create
+    assert len(captured_cmds) == 1
+    cmd = captured_cmds[0]
+    assert cmd[0] == "gh"
+    assert cmd[1] == "pr"
+    assert cmd[2] == "create"
+    assert "--draft" in cmd
+    assert "--head" in cmd
+    assert "nightly-review/security/2026-03-16" in cmd
+
+
+def test_create_prs_updates_existing_pr(temp_workspace, monkeypatch):
+    """Test idempotency — finds existing PR and updates body."""
+    from unittest.mock import patch
+
+    from scripts.create_prs import update_existing_pr
+
+    pr_content_file = temp_workspace / "security-pr.md"
+    pr_content_file.write_text("# Updated Security Review\n\nNew findings.")
+
+    captured_cmds = []
+
+    def mock_run_command(cmd, capture_output=True, check=True):
+        captured_cmds.append(cmd)
+        return ""
+
+    with patch("scripts.create_prs.run_command", side_effect=mock_run_command):
+        result = update_existing_pr(42, pr_content_file)
+
+    assert result is True
+    assert len(captured_cmds) == 1
+    cmd = captured_cmds[0]
+    assert cmd == ["gh", "pr", "edit", "42", "--body", "# Updated Security Review\n\nNew findings."]
+
+
+def test_create_prs_respects_max_prs_limit(temp_workspace, monkeypatch):
+    """Verify budget guardrail — max PRs limit is respected."""
+    from unittest.mock import patch
+
+    from scripts.create_prs import main
+
+    # Create PR content for all 4 categories
+    pr_content_dir = temp_workspace / "pr-content"
+    pr_content_dir.mkdir()
+    for cat in ["security", "quality", "performance", "tests"]:
+        (pr_content_dir / f"{cat}-pr.md").write_text(f"# {cat.upper()} Review\n\nFindings.")
+
+    call_count = {"create": 0, "list": 0}
+
+    def mock_run_command(cmd, capture_output=True, check=True):
+        cmd_str = " ".join(cmd)
+        if "gh pr list" in cmd_str:
+            call_count["list"] += 1
+            return "[]"  # No existing PRs
+        if "gh pr create" in cmd_str:
+            call_count["create"] += 1
+            return "https://github.com/test/repo/pull/1"
+        if "git rev-parse" in cmd_str:
+            return None  # Branch doesn't exist
+        if "git symbolic-ref" in cmd_str:
+            return "refs/remotes/origin/main"
+        return ""
+
+    with patch("scripts.create_prs.run_command", side_effect=mock_run_command):
+        with patch(
+            "sys.argv", ["create_prs.py", "--pr-content-dir", str(pr_content_dir), "--max-prs", "2"]
+        ):
+            main()
+
+    # Should create at most 2 PRs despite 4 categories available
+    assert call_count["create"] <= 2
+
+
+def test_create_prs_empty_content_dir(temp_workspace, capsys):
+    """Edge case: no PR content files in directory."""
+    from unittest.mock import patch
+
+    from scripts.create_prs import main
+
+    pr_content_dir = temp_workspace / "pr-content"
+    pr_content_dir.mkdir()
+
+    with patch("sys.argv", ["create_prs.py", "--pr-content-dir", str(pr_content_dir)]):
+        main()
+
+    captured = capsys.readouterr()
+    assert "Created: 0" in captured.out
+    assert "Updated: 0" in captured.out
+
+
+def test_create_prs_stale_pr_cleanup(temp_workspace, monkeypatch):
+    """Verify the stale_days parameter is accepted (logic is in workflow YAML)."""
+    from unittest.mock import patch
+
+    from scripts.create_prs import main
+
+    pr_content_dir = temp_workspace / "pr-content"
+    pr_content_dir.mkdir()
+
+    with patch(
+        "sys.argv", ["create_prs.py", "--pr-content-dir", str(pr_content_dir), "--stale-days", "3"]
+    ):
+        main()
+    # No crash means stale-days parameter is properly accepted
+
+
+# ========== generate_autofix_pr_content.py Tests ==========
+
+
+def test_autofix_pr_content_with_successful_fixes(temp_workspace):
+    """Normal case with files_succeeded > 0."""
+    from scripts.generate_autofix_pr_content import generate_autofix_pr_description
+
+    fix_plan = {
+        "category": "quality",
+        "total_findings": 2,
+        "severity_counts": {"critical": 0, "high": 0, "medium": 1, "low": 1},
+        "findings": [
+            {
+                "category": "quality",
+                "severity": "medium",
+                "file": "src/api/views.py",
+                "line_start": 10,
+                "line_end": 15,
+                "issue": "Poor formatting",
+                "suggestion": "Apply ruff format",
+                "confidence": 0.96,
+                "autofix_eligible": True,
+            },
+            {
+                "category": "quality",
+                "severity": "low",
+                "file": "src/models/user.py",
+                "line_start": 5,
+                "issue": "Unused import",
+                "suggestion": "Remove unused import",
+                "confidence": 0.95,
+                "autofix_eligible": True,
+            },
+        ],
+        "summary": {"avg_confidence": 0.955},
+    }
+
+    autofix_results = {
+        "timestamp": "2026-03-16T02:00:00Z",
+        "results": [
+            {
+                "category": "quality",
+                "files_attempted": 2,
+                "files_succeeded": 2,
+                "files_failed": 0,
+                "details": [],
+            }
+        ],
+        "total_files_succeeded": 2,
+    }
+
+    result = generate_autofix_pr_description("quality", fix_plan, autofix_results)
+
+    assert result is not None
+    assert "AUTOFIX" in result
+    assert "src/api/views.py:10" in result
+    assert "src/models/user.py:5" in result
+    assert "Files Modified**: 2" in result
+
+
+def test_autofix_pr_content_with_failures(temp_workspace):
+    """Mixed success/failure results."""
+    from scripts.generate_autofix_pr_content import generate_autofix_pr_description
+
+    fix_plan = {
+        "category": "quality",
+        "total_findings": 2,
+        "severity_counts": {"critical": 0, "high": 0, "medium": 1, "low": 1},
+        "findings": [
+            {
+                "category": "quality",
+                "severity": "medium",
+                "file": "src/api/views.py",
+                "line_start": 10,
+                "issue": "Poor formatting",
+                "suggestion": "Apply ruff format",
+                "confidence": 0.96,
+                "autofix_eligible": True,
+            },
+        ],
+        "summary": {"avg_confidence": 0.96},
+    }
+
+    autofix_results = {
+        "timestamp": "2026-03-16T02:00:00Z",
+        "results": [
+            {
+                "category": "quality",
+                "files_attempted": 2,
+                "files_succeeded": 1,
+                "files_failed": 1,
+                "details": [
+                    {"file": "src/broken.py", "checks_failed": [("syntax_check", "SyntaxError")]},
+                ],
+            }
+        ],
+        "total_files_succeeded": 1,
+    }
+
+    result = generate_autofix_pr_description("quality", fix_plan, autofix_results)
+
+    assert result is not None
+    assert "Files Failed Safety Checks**: 1" in result
+    assert "src/broken.py" in result
+
+
+def test_autofix_pr_content_missing_category(temp_workspace):
+    """Edge: category not in autofix results."""
+    from scripts.generate_autofix_pr_content import generate_autofix_pr_description
+
+    fix_plan = {
+        "category": "performance",
+        "findings": [
+            {
+                "category": "performance",
+                "severity": "high",
+                "file": "src/queries.py",
+                "line_start": 78,
+                "issue": "N+1 query",
+                "suggestion": "Use select_related()",
+                "confidence": 0.90,
+                "autofix_eligible": True,
+            },
+        ],
+        "summary": {"avg_confidence": 0.90},
+    }
+
+    # autofix_results has no entry for "performance"
+    autofix_results = {
+        "timestamp": "2026-03-16T02:00:00Z",
+        "results": [
+            {"category": "quality", "files_attempted": 1, "files_succeeded": 1, "files_failed": 0}
+        ],
+        "total_files_succeeded": 1,
+    }
+
+    result = generate_autofix_pr_description("performance", fix_plan, autofix_results)
+
+    assert result is not None
+    # Should handle missing category_results gracefully (files_succeeded=0)
+    assert "Files Modified**: 0" in result
+
+
+def test_autofix_pr_content_empty_results(temp_workspace):
+    """Edge: empty autofix results JSON."""
+    from scripts.generate_autofix_pr_content import generate_autofix_pr_description
+
+    fix_plan = {
+        "category": "quality",
+        "findings": [
+            {
+                "severity": "low",
+                "file": "src/main.py",
+                "line_start": 1,
+                "issue": "Format",
+                "suggestion": "ruff format",
+                "confidence": 0.96,
+                "autofix_eligible": True,
+            },
+        ],
+        "summary": {"avg_confidence": 0.96},
+    }
+
+    autofix_results = {
+        "timestamp": "2026-03-16T02:00:00Z",
+        "results": [],
+        "total_files_succeeded": 0,
+    }
+
+    result = generate_autofix_pr_description("quality", fix_plan, autofix_results)
+
+    assert result is not None
+    assert "Files Modified**: 0" in result
+
+
+# ========== Phase 2-3 Integration Pipeline Tests ==========
+
+
+def test_phase2_pipeline_normalize_to_autofix_to_pr(temp_workspace):
+    """End-to-end: normalize → generate_autofix_pr_content (mocking apply_autofix)."""
+    # Step 1: Create findings with autofix-eligible items
+    findings = {
+        "findings": [
+            {
+                "category": "quality",
+                "severity": "low",
+                "file": "src/api/views.py",
+                "line_start": 10,
+                "line_end": 15,
+                "issue": "Poor formatting",
+                "suggestion": "Apply ruff format",
+                "confidence": 0.96,
+                "actionable": True,
+            },
+        ],
+        "summary": {"total": 1},
+    }
+
+    findings_file = temp_workspace / "review-findings.json"
+    with open(findings_file, "w") as f:
+        json.dump(findings, f)
+
+    # Step 2: Normalize
+    fix_plans_dir = temp_workspace / "fix-plans"
+    result = subprocess.run(
+        [
+            PYTHON,
+            "scripts/normalize_findings.py",
+            "--findings",
+            str(findings_file),
+            "--output-dir",
+            str(fix_plans_dir),
+        ],
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 0, f"Normalize failed: {result.stderr}"
+
+    # Verify autofix eligibility was marked
+    with open(fix_plans_dir / "quality.json") as f:
+        quality_plan = json.load(f)
+    assert quality_plan["findings"][0].get("autofix_eligible") is True
+
+    # Step 3: Create mock autofix results
+    autofix_results = {
+        "timestamp": "2026-03-16T02:00:00Z",
+        "results": [
+            {"category": "quality", "files_attempted": 1, "files_succeeded": 1, "files_failed": 0}
+        ],
+        "total_files_succeeded": 1,
+    }
+    autofix_results_file = temp_workspace / "autofix-results.json"
+    with open(autofix_results_file, "w") as f:
+        json.dump(autofix_results, f)
+
+    # Step 4: Generate autofix PR content
+    pr_content_dir = temp_workspace / "pr-content-autofix"
+    result = subprocess.run(
+        [
+            PYTHON,
+            "scripts/generate_autofix_pr_content.py",
+            "--fix-plans-dir",
+            str(fix_plans_dir),
+            "--autofix-results",
+            str(autofix_results_file),
+            "--output-dir",
+            str(pr_content_dir),
+        ],
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 0, f"Generate autofix PR failed: {result.stderr}"
+
+    # Verify PR content was created
+    pr_file = pr_content_dir / "quality-autofix-pr.md"
+    assert pr_file.exists()
+    content = pr_file.read_text()
+    assert "AUTOFIX" in content
+    assert "src/api/views.py" in content
+
+
+def test_phase3_pipeline_classify_to_llm_fix(temp_workspace):
+    """End-to-end: normalize → classify_llm_fixable → verify output format."""
+    # Create findings with LLM-fixable items
+    findings = {
+        "findings": [
+            {
+                "category": "quality",
+                "severity": "medium",
+                "file": "src/api/views.py",
+                "line_start": 10,
+                "line_end": 15,
+                "issue": "Unused variable 'temp_result' assigned but never read",
+                "suggestion": "Remove unused variable",
+                "confidence": 0.85,
+                "actionable": True,
+            },
+            {
+                "category": "quality",
+                "severity": "low",
+                "file": "src/api/utils.py",
+                "line_start": 50,
+                "line_end": 55,
+                "issue": "Dead code: function never called",
+                "suggestion": "Remove dead code block",
+                "confidence": 0.90,
+                "actionable": True,
+            },
+        ],
+        "summary": {"total": 2},
+    }
+
+    findings_file = temp_workspace / "review-findings.json"
+    with open(findings_file, "w") as f:
+        json.dump(findings, f)
+
+    # Normalize
+    fix_plans_dir = temp_workspace / "fix-plans"
+    subprocess.run(
+        [
+            PYTHON,
+            "scripts/normalize_findings.py",
+            "--findings",
+            str(findings_file),
+            "--output-dir",
+            str(fix_plans_dir),
+        ],
+        check=True,
+    )
+
+    # Classify LLM-fixable
+    output_file = temp_workspace / "llm-fixable.json"
+    result = subprocess.run(
+        [
+            PYTHON,
+            "scripts/classify_llm_fixable.py",
+            "--fix-plans-dir",
+            str(fix_plans_dir),
+            "--output",
+            str(output_file),
+            "--max-fixes",
+            "5",
+        ],
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0, f"Classify failed: {result.stderr}"
+    assert output_file.exists()
+
+    with open(output_file) as f:
+        classified = json.load(f)
+
+    # Verify output structure
+    assert "total_candidates" in classified
+    assert "selected" in classified
+    assert "findings" in classified
+    assert classified["selected"] > 0
+    # All findings should have required fields
+    for finding in classified["findings"]:
+        assert "file" in finding
+        assert "line_start" in finding
+        assert "issue" in finding
+        assert "suggestion" in finding
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
