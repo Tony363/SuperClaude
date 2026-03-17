@@ -183,7 +183,7 @@ If you spot issues with the autofix:
 | Files Attempted | {category_results.get("files_attempted", 0) if category_results else 0} |
 | Files Succeeded | {files_succeeded} |
 | Files Failed | {files_failed} |
-| Success Rate | {files_succeeded / max(category_results.get("files_attempted", 1), 1) * 100:.0f}% |
+| Success Rate | {files_succeeded / max(category_results.get("files_attempted", 1) if category_results else 1, 1) * 100:.0f}% |
 
 """
 

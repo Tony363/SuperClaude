@@ -30,15 +30,17 @@ AUTOFIX_CATEGORY_LABELS = {
 }
 
 
-def run_command(cmd: List[str], capture_output: bool = True) -> Optional[str]:
-    """Run shell command and return output."""
-    try:
-        result = subprocess.run(cmd, capture_output=capture_output, text=True, check=True)
-        return result.stdout.strip() if capture_output else None
-    except subprocess.CalledProcessError as e:
-        print(f"Command failed: {' '.join(cmd)}", file=sys.stderr)
-        print(f"Error: {e.stderr if e.stderr else str(e)}", file=sys.stderr)
+def run_command(cmd: List[str], capture_output: bool = True, check: bool = True) -> Optional[str]:
+    """Run shell command and return output.
+
+    Let It Crash: CalledProcessError propagates by default (check=True).
+    Callers that need to inspect failure should pass check=False;
+    returns None when check=False and the command fails.
+    """
+    result = subprocess.run(cmd, capture_output=capture_output, text=True, check=check)
+    if not check and result.returncode != 0:
         return None
+    return result.stdout.strip() if capture_output else None
 
 
 def get_existing_pr_for_category(category: str) -> Optional[Dict[str, Any]]:
@@ -59,7 +61,8 @@ def get_existing_pr_for_category(category: str) -> Optional[Dict[str, Any]]:
             "number,title,headRefName,labels",
             "--limit",
             "10",
-        ]
+        ],
+        check=False,
     )
 
     if not output:
@@ -83,7 +86,9 @@ def create_or_update_branch(category: str, pr_content_file: Path) -> str:
     branch_name = f"nightly-review/{category}/{date_str}"
 
     # Check if branch exists locally
-    branch_exists = run_command(["git", "rev-parse", "--verify", branch_name]) is not None
+    branch_exists = (
+        run_command(["git", "rev-parse", "--verify", branch_name], check=False) is not None
+    )
 
     if branch_exists:
         print(f"Branch {branch_name} exists - checking out")
@@ -91,7 +96,7 @@ def create_or_update_branch(category: str, pr_content_file: Path) -> str:
     else:
         print(f"Creating new branch: {branch_name}")
         # Ensure we're on main/master before creating branch
-        main_branch = run_command(["git", "symbolic-ref", "refs/remotes/origin/HEAD"])
+        main_branch = run_command(["git", "symbolic-ref", "refs/remotes/origin/HEAD"], check=False)
         if main_branch:
             main_branch = main_branch.split("/")[-1]
         else:
@@ -155,15 +160,10 @@ def update_existing_pr(pr_number: int, pr_content_file: Path) -> bool:
         print(f"Error reading PR content: {e}", file=sys.stderr)
         return False
 
-    # Update PR body
-    result = run_command(["gh", "pr", "edit", str(pr_number), "--body", pr_body])
-
-    if result is not None:  # Command succeeded (even if no output)
-        print(f"Updated PR #{pr_number}")
-        return True
-    else:
-        print(f"Failed to update PR #{pr_number}", file=sys.stderr)
-        return False
+    # Update PR body — Let It Crash on failure (check=True default)
+    run_command(["gh", "pr", "edit", str(pr_number), "--body", pr_body])
+    print(f"Updated PR #{pr_number}")
+    return True
 
 
 def get_existing_autofix_pr_for_category(category: str) -> Optional[Dict[str, Any]]:
@@ -184,7 +184,8 @@ def get_existing_autofix_pr_for_category(category: str) -> Optional[Dict[str, An
             "number,title,headRefName,labels",
             "--limit",
             "10",
-        ]
+        ],
+        check=False,
     )
 
     if not output:
@@ -207,7 +208,9 @@ def create_autofix_branch(category: str) -> str:
     branch_name = f"nightly-review-autofix/{category}/{date_str}"
 
     # Check if branch exists locally
-    branch_exists = run_command(["git", "rev-parse", "--verify", branch_name]) is not None
+    branch_exists = (
+        run_command(["git", "rev-parse", "--verify", branch_name], check=False) is not None
+    )
 
     if branch_exists:
         print(f"Autofix branch {branch_name} exists - checking out")
@@ -215,7 +218,7 @@ def create_autofix_branch(category: str) -> str:
     else:
         print(f"Creating new autofix branch: {branch_name}")
         # Ensure we're on main/master before creating branch
-        main_branch = run_command(["git", "symbolic-ref", "refs/remotes/origin/HEAD"])
+        main_branch = run_command(["git", "symbolic-ref", "refs/remotes/origin/HEAD"], check=False)
         if main_branch:
             main_branch = main_branch.split("/")[-1]
         else:
@@ -313,12 +316,8 @@ def process_autofix_category(category: str, pr_content_dir: Path) -> bool:
             ]
         )
 
-        # Push branch (fail-fast on error, no force-push)
-        push_result = run_command(["git", "push", "-u", "origin", branch_name])
-        if push_result is None:
-            print(f"ERROR: Failed to push branch {branch_name}", file=sys.stderr)
-            print("Let It Crash: Push failed - investigate the error above", file=sys.stderr)
-            return False
+        # Push branch — Let It Crash on failure (no force-push)
+        run_command(["git", "push", "-u", "origin", branch_name])
 
         # Create PR
         return create_autofix_pr_with_gh(category, branch_name, pr_content_file)
@@ -363,12 +362,8 @@ def process_category(category: str, pr_content_dir: Path) -> bool:
             ]
         )
 
-        # Push branch (fail-fast on error, no force-push)
-        push_result = run_command(["git", "push", "-u", "origin", branch_name])
-        if push_result is None:
-            print(f"ERROR: Failed to push branch {branch_name}", file=sys.stderr)
-            print("Let It Crash: Push failed - investigate the error above", file=sys.stderr)
-            return False
+        # Push branch — Let It Crash on failure (no force-push)
+        run_command(["git", "push", "-u", "origin", branch_name])
 
         # Create PR
         return create_pr_with_gh(category, branch_name, pr_content_file)
