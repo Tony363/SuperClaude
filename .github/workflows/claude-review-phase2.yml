@@ -116,7 +116,7 @@ jobs:
         with:
           claude_args: |
             code-review \
-            --model claude-opus-4-5-20251101 \
+            --model claude-opus-4-6 \
             --max-turns 20 \
             --allowedTools "Bash(git diff *),Bash(git log *),Bash(git blame *),Read"
 
@@ -221,21 +221,24 @@ jobs:
           CONSENSUS_REASON: ${{ needs.detect-high-stakes.outputs.reason }}
         run: |
           CLAUDE_REVIEW=$(cat /tmp/review-artifacts/claude-review.json | jq -R -s .)
-          DIFF_CONTENT=$(cat /tmp/pr-diff.patch | jq -R -s .)
+          CHANGED_FILES=$(cat /tmp/changed-files.txt)
 
-          cat > /tmp/consensus-request.json <<EOF
-          {
-            "prompt": "Review this PR for security, correctness, and architectural concerns. Claude Code Review has already analyzed it. Provide a multi-model consensus on whether this change is safe to merge.\n\nPR Description: ${PR_TITLE}\n\nChanged Files:\n$(cat /tmp/changed-files.txt)\n\nClaude Review Summary:\n${CLAUDE_REVIEW}\n\nReason for consensus: ${CONSENSUS_REASON}",
-            "models": [
-              {"model": "gpt-5-mini", "stance": "for", "stance_prompt": "Evaluate the benefits and improvements this change brings"},
-              {"model": "claude-haiku-4.5", "stance": "against", "stance_prompt": "Identify security risks, bugs, and potential issues"},
-              {"model": "gemini-2-flash", "stance": "neutral", "stance_prompt": "Provide a balanced assessment of merge-readiness"}
-            ],
-            "focus_areas": ["security", "correctness", "maintainability", "testing"],
-            "temperature": 0.2,
-            "thinking_mode": "high"
-          }
-          EOF
+          jq -n \
+            --arg pr_title "$PR_TITLE" \
+            --arg changed_files "$CHANGED_FILES" \
+            --arg claude_review "$CLAUDE_REVIEW" \
+            --arg consensus_reason "$CONSENSUS_REASON" \
+            '{
+              prompt: ("Review this PR for security, correctness, and architectural concerns. Claude Code Review has already analyzed it. Provide a multi-model consensus on whether this change is safe to merge.\n\nPR Description: " + $pr_title + "\n\nChanged Files:\n" + $changed_files + "\n\nClaude Review Summary:\n" + $claude_review + "\n\nReason for consensus: " + $consensus_reason),
+              models: [
+                {model: "gpt-5-mini", stance: "for", stance_prompt: "Evaluate the benefits and improvements this change brings"},
+                {model: "claude-haiku-4.5", stance: "against", stance_prompt: "Identify security risks, bugs, and potential issues"},
+                {model: "gemini-2-flash", stance: "neutral", stance_prompt: "Provide a balanced assessment of merge-readiness"}
+              ],
+              focus_areas: ["security", "correctness", "maintainability", "testing"],
+              temperature: 0.2,
+              thinking_mode: "high"
+            }' > /tmp/consensus-request.json
 
           RESPONSE=$(curl -s -X POST "$PAL_MCP_ENDPOINT" \
             -H "Authorization: Bearer $PAL_MCP_API_KEY" \

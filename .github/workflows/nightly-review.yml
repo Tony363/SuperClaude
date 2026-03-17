@@ -249,8 +249,8 @@ jobs:
         id: check_providers
         if: steps.scope_selector.outputs.skip != 'true'
         run: |
-          BEDROCK_CONFIGURED="${{ secrets.AWS_BEARER_TOKEN_BEDROCK != '' }}"
-          ANTHROPIC_CONFIGURED="${{ secrets.ANTHROPIC_API_KEY != '' }}"
+          BEDROCK_CONFIGURED="${{ secrets.AWS_BEARER_TOKEN_BEDROCK != '' && 'true' || 'false' }}"
+          ANTHROPIC_CONFIGURED="${{ secrets.ANTHROPIC_API_KEY != '' && 'true' || 'false' }}"
 
           echo "bedrock_available=$BEDROCK_CONFIGURED" >> $GITHUB_OUTPUT
           echo "anthropic_available=$ANTHROPIC_CONFIGURED" >> $GITHUB_OUTPUT
@@ -634,7 +634,7 @@ jobs:
         run: |
           # Read-only validation -- no --fix to ensure we validate the exact state
           # produced by apply_autofix.py (using --fix here would mask idempotency failures)
-          ruff check SuperClaude/
+          ruff check .
           RUFF_EXIT=$?
 
           if [[ $RUFF_EXIT -eq 0 ]]; then
