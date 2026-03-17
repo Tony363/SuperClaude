@@ -127,7 +127,7 @@ def is_finding_autofix_eligible(finding: Dict[str, Any]) -> bool:
 
     # LOC limit (estimate from line range)
     line_start = finding.get("line_start", 0)
-    line_end = finding.get("line_end", 0)
+    line_end = finding.get("line_end", finding.get("line_start", 0))
     loc_affected = line_end - line_start + 1
 
     if loc_affected > AUTOFIX_MAX_LOC_PER_FINDING:
@@ -213,7 +213,9 @@ def generate_fix_plan(category: str, findings: List[Dict[str, Any]]) -> Dict[str
         "summary": {
             "top_severity": ranked[0].get("severity") if ranked else "none",
             "files_affected": len(set(f.get("file") for f in ranked)),
-            "avg_confidence": sum(f.get("confidence", 0) for f in ranked) / len(ranked),
+            "avg_confidence": sum(f.get("confidence", 0) for f in ranked) / len(ranked)
+            if ranked
+            else 0,
             "autofix_eligible": autofix_eligible_count,  # Phase 2
             "autofix_files": len(autofix_eligible_files),  # Phase 2
         },
