@@ -41,7 +41,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -120,7 +120,7 @@ jobs:
           echo "- **Total**: $TOTAL files" >> $GITHUB_STEP_SUMMARY
 
       - name: Upload scannable file lists
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: scannable-files
           path: |
@@ -141,10 +141,10 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.11'
 
@@ -152,7 +152,7 @@ jobs:
         run: pip install ruff
 
       - name: Download scannable files
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: scannable-files
           path: /tmp
@@ -213,7 +213,7 @@ jobs:
 
       - name: Upload formatting summary and patch
         if: steps.detect-changes.outputs.has_changes == 'true'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: formatting-changes
           path: |
@@ -236,10 +236,10 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.11'
 
@@ -247,7 +247,7 @@ jobs:
         run: pip install bandit[toml]
 
       - name: Download scannable files
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: scannable-files
           path: /tmp
@@ -350,7 +350,7 @@ jobs:
 
       - name: Upload security findings
         if: steps.analyze-findings.outputs.has_findings == 'true'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: security-findings
           path: |
@@ -433,15 +433,15 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.11'
 
       - name: Download scannable files
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: scannable-files
           path: /tmp
@@ -584,7 +584,7 @@ jobs:
 
       - name: Upload type hints suggestions
         if: steps.analyze.outputs.has_suggestions == 'true'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: type-hints-suggestions
           path: |
@@ -608,15 +608,15 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.11'
 
       - name: Download scannable files
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: scannable-files
           path: /tmp
@@ -759,7 +759,7 @@ jobs:
 
       - name: Upload documentation suggestions
         if: steps.analyze.outputs.has_suggestions == 'true'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: documentation-suggestions
           path: |
@@ -795,13 +795,13 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           token: ${{ secrets.PAT_TOKEN }}
           fetch-depth: 0
 
       - name: Download all artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           path: /tmp/artifacts
 
@@ -897,7 +897,7 @@ jobs:
         if: |
           needs.scan-formatting.outputs.has_changes == 'true' &&
           github.event.inputs.dry_run != 'true'
-        uses: peter-evans/create-pull-request@v6
+        uses: peter-evans/create-pull-request@v8
         with:
           token: ${{ secrets.PAT_TOKEN }}
           branch: scanner/formatting-${{ github.run_id }}
@@ -938,7 +938,7 @@ jobs:
         if: |
           needs.scan-security.outputs.has_findings == 'true' &&
           github.event.inputs.dry_run != 'true'
-        uses: peter-evans/create-pull-request@v6
+        uses: peter-evans/create-pull-request@v8
         with:
           token: ${{ secrets.PAT_TOKEN }}
           branch: scanner/security-${{ github.run_id }}
@@ -1003,7 +1003,7 @@ jobs:
           needs.scan-type-hints.result == 'success' &&
           needs.scan-type-hints.outputs.has_changes == 'true' &&
           github.event.inputs.dry_run != 'true'
-        uses: peter-evans/create-pull-request@v6
+        uses: peter-evans/create-pull-request@v8
         with:
           token: ${{ secrets.PAT_TOKEN }}
           branch: scanner/type-hints-${{ github.run_id }}
@@ -1072,7 +1072,7 @@ jobs:
           needs.scan-documentation.result == 'success' &&
           needs.scan-documentation.outputs.has_changes == 'true' &&
           github.event.inputs.dry_run != 'true'
-        uses: peter-evans/create-pull-request@v6
+        uses: peter-evans/create-pull-request@v8
         with:
           token: ${{ secrets.PAT_TOKEN }}
           branch: scanner/documentation-${{ github.run_id }}
@@ -1187,7 +1187,7 @@ jobs:
 
       - name: Create issue on workflow failure
         if: failure()
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
@@ -1225,7 +1225,7 @@ jobs:
 
       - name: Set up Python for Slack notification
         if: always()
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.11'
 
@@ -1325,7 +1325,7 @@ jobs:
         if: |
           always() &&
           steps.final-summary.outputs.pr_count == '0'
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
