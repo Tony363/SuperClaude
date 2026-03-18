@@ -27,6 +27,31 @@ else
     exit 1
 fi
 
+# 1b. Validate hook schema format (array-based with CamelCase event keys)
+echo -n "Validating hook schema format... "
+if python3 -c "
+import json, sys
+with open('.claude/settings.local.json') as f:
+    data = json.load(f)
+hooks = data.get('hooks', {})
+if 'user-prompt-submit' in hooks:
+    print('ERROR: Outdated flat schema detected (kebab-case key)', file=sys.stderr)
+    sys.exit(1)
+if 'PreToolUse' not in hooks:
+    print('ERROR: Missing PreToolUse key - expected CamelCase event keys', file=sys.stderr)
+    sys.exit(1)
+if not isinstance(hooks['PreToolUse'], list):
+    print('ERROR: PreToolUse should be an array, not flat object', file=sys.stderr)
+    sys.exit(1)
+" 2>&1; then
+    echo -e "${GREEN}✓${NC}"
+else
+    echo -e "${RED}✗ Invalid hook schema${NC}"
+    echo "  Expected array-based format with CamelCase event keys (e.g., PreToolUse, PostToolUse)"
+    echo "  Re-run install-with-sondera.sh to regenerate"
+    exit 1
+fi
+
 # 2. Verify harness server is running
 echo -n "Checking harness server... "
 if [ -S "$SOCKET_PATH" ]; then

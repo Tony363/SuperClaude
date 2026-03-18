@@ -134,12 +134,48 @@ HOOK_PATH="$SONDERA_DIR/apps/claude/target/release/sondera-claude-hook"
 cat > .claude/settings.local.json <<EOF
 {
   "hooks": {
-    "user-prompt-submit": {
-      "command": "$HOOK_PATH",
-      "args": ["--socket", "$SOCKET_PATH"],
-      "blocking": true,
-      "timeout": 5000
-    }
+    "PreToolUse": [
+      { "matcher": "*", "hooks": [{ "type": "command", "command": "$HOOK_PATH --verbose pre-tool-use" }] }
+    ],
+    "PermissionRequest": [
+      { "matcher": "*", "hooks": [{ "type": "command", "command": "$HOOK_PATH --verbose permission-request" }] }
+    ],
+    "PostToolUse": [
+      { "matcher": "*", "hooks": [{ "type": "command", "command": "$HOOK_PATH --verbose post-tool-use" }] }
+    ],
+    "PostToolUseFailure": [
+      { "matcher": "*", "hooks": [{ "type": "command", "command": "$HOOK_PATH --verbose post-tool-use-failure" }] }
+    ],
+    "UserPromptSubmit": [
+      { "matcher": "*", "hooks": [{ "type": "command", "command": "$HOOK_PATH --verbose user-prompt-submit" }] }
+    ],
+    "Notification": [
+      { "matcher": "*", "hooks": [{ "type": "command", "command": "$HOOK_PATH --verbose notification" }] }
+    ],
+    "Stop": [
+      { "matcher": "*", "hooks": [{ "type": "command", "command": "$HOOK_PATH --verbose stop" }] }
+    ],
+    "SubagentStart": [
+      { "matcher": "*", "hooks": [{ "type": "command", "command": "$HOOK_PATH --verbose subagent-start" }] }
+    ],
+    "SubagentStop": [
+      { "matcher": "*", "hooks": [{ "type": "command", "command": "$HOOK_PATH --verbose subagent-stop" }] }
+    ],
+    "TeammateIdle": [
+      { "matcher": "*", "hooks": [{ "type": "command", "command": "$HOOK_PATH --verbose teammate-idle" }] }
+    ],
+    "TaskCompleted": [
+      { "matcher": "*", "hooks": [{ "type": "command", "command": "$HOOK_PATH --verbose task-completed" }] }
+    ],
+    "PreCompact": [
+      { "matcher": "*", "hooks": [{ "type": "command", "command": "$HOOK_PATH --verbose pre-compact" }] }
+    ],
+    "SessionStart": [
+      { "matcher": "*", "hooks": [{ "type": "command", "command": "$HOOK_PATH --verbose session-start" }] }
+    ],
+    "SessionEnd": [
+      { "matcher": "*", "hooks": [{ "type": "command", "command": "$HOOK_PATH --verbose session-end" }] }
+    ]
   }
 }
 EOF
