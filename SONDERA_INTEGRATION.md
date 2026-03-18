@@ -122,7 +122,7 @@ cd SuperClaude
 ./install-with-sondera.sh
 ```
 - **Use Case:** Production, compliance, high-security environments
-- **Security:** Policy-enforced validation
+- **Security:** Policy-enforced validation across all 14 lifecycle events (PreToolUse, PostToolUse, UserPromptSubmit, SessionStart, etc.)
 - **Performance:** Slower (LLM overhead)
 - **Setup Time:** 20-30 minutes (includes model downloads)
 
