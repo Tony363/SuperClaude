@@ -135,6 +135,53 @@ class AgentsComponent(Component):
 
         return removed
 
+    # Known SuperClaude agent subdirectories
+    KNOWN_AGENT_SUBDIRS = ("core", "traits", "extensions", "DEPRECATED")
+
+    def _uninstall_agent_subdirs(self) -> int:
+        """Remove known agent subdirectories (core/, traits/, extensions/, DEPRECATED/).
+
+        Removes .md files from each known subdirectory and then removes the
+        subdirectory if empty. Preserves user-created subdirectories.
+
+        Returns:
+            Number of files removed
+        """
+        import shutil
+
+        removed = 0
+        agents_dir = self.install_component_subdir
+
+        if not agents_dir.exists():
+            return 0
+
+        for subdir_name in self.KNOWN_AGENT_SUBDIRS:
+            subdir = agents_dir / subdir_name
+            if not subdir.exists() or not subdir.is_dir():
+                continue
+
+            try:
+                # Remove all .md files recursively in this subdirectory
+                for md_file in subdir.rglob("*.md"):
+                    if md_file.is_file():
+                        md_file.unlink()
+                        removed += 1
+                        self.logger.debug(f"Removed agent file: {md_file.relative_to(agents_dir)}")
+
+                # Remove empty subdirectories bottom-up
+                for dirpath in sorted(subdir.rglob("*"), reverse=True):
+                    if dirpath.is_dir() and not any(dirpath.iterdir()):
+                        dirpath.rmdir()
+
+                # Remove the subdirectory itself if empty
+                if subdir.exists() and not any(subdir.iterdir()):
+                    subdir.rmdir()
+                    self.logger.debug(f"Removed empty agent subdirectory: {subdir_name}")
+            except Exception as e:
+                self.logger.warning(f"Could not fully clean agent subdirectory {subdir_name}: {e}")
+
+        return removed
+
     def _uninstall_superclaude_dir(self) -> bool:
         """Remove the ~/.claude/superclaude/ runtime directory.
 
@@ -169,6 +216,9 @@ class AgentsComponent(Component):
                     self.logger.debug(f"Removed agent: {filename}")
                 else:
                     self.logger.warning(f"Could not remove agent: {filename}")
+
+            # Remove known agent subdirectories (core/, traits/, extensions/, DEPRECATED/)
+            self._uninstall_agent_subdirs()
 
             # Remove agents directory if empty
             try:
