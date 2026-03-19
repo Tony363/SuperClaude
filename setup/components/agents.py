@@ -147,8 +147,6 @@ class AgentsComponent(Component):
         Returns:
             Number of files removed
         """
-        import shutil
-
         removed = 0
         agents_dir = self.install_component_subdir
 

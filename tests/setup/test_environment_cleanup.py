@@ -1,8 +1,5 @@
 """Tests for environment variable and .env file cleanup during uninstall."""
 
-from pathlib import Path
-
-
 class TestCleanupEnvFile:
     """Test .env file cleanup logic."""
 

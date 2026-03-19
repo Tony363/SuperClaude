@@ -5,9 +5,6 @@ import json
 from pathlib import Path
 from unittest.mock import MagicMock
 
-import pytest
-
-
 def _make_args(**overrides):
     """Create a namespace with default uninstall args."""
     defaults = {

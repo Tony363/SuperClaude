@@ -205,7 +205,7 @@ def main():
         result = {"functions_documented": [], "_metadata": {"model": "N/A", "input_tokens": 0, "output_tokens": 0, "total_tokens": 0}}
         with open(output_path, "w") as f:
             json.dump(result, f, indent=2)
-        print(f"\n::set-output name=docstring_cost::0.00")
+        print("\n::set-output name=docstring_cost::0.00")
         return
 
     # Limit to 40 functions
@@ -258,7 +258,7 @@ def main():
     cost = estimate_cost(total_input_tokens, total_output_tokens)
 
     print(f"\nDocstring generation complete. Results saved to {output_path}")
-    print(f"\n## Docstring Generation Results\n")
+    print("\n## Docstring Generation Results\n")
     print(f"- **Functions documented**: {len(all_documented)}")
     print(f"- **Files processed**: {len(by_file)}")
     print(f"- **Cost**: ${cost}")
