@@ -1,7 +1,7 @@
 #!/bin/bash
 # SuperClaude Manual Installation Script
 
-SOURCE="/home/tony/Desktop/SuperClaude"
+SOURCE="$(cd "$(dirname "$0")" && pwd)"
 TARGET="$HOME/.claude"
 
 echo "╔══════════════════════════════════════════════════════════╗"

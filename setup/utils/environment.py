@@ -264,6 +264,59 @@ def get_superclaude_environment_variables() -> dict[str, str]:
     return found_vars
 
 
+def cleanup_env_file(env_file_path: Path | None = None) -> bool:
+    """Remove SuperClaude entries from a .env file.
+
+    Args:
+        env_file_path: Path to the .env file (defaults to ~/.env)
+
+    Returns:
+        True if cleanup succeeded or nothing to clean, False on error
+    """
+    if env_file_path is None:
+        env_file_path = Path.home() / ".env"
+
+    logger = get_logger()
+
+    if not env_file_path.exists():
+        return True
+
+    try:
+        with open(env_file_path) as f:
+            lines = f.readlines()
+
+        filtered_lines = []
+        skip_next_blank = False
+
+        for line in lines:
+            if line.strip() in ("# SuperClaude API Keys", "# SuperClaude API Key"):
+                skip_next_blank = True
+                continue
+
+            # Check for known SuperClaude env vars
+            known_vars = ["TWENTYFIRST_API_KEY", "MORPH_API_KEY"]
+            if any(line.strip().startswith(f"{var}=") for var in known_vars):
+                skip_next_blank = True
+                continue
+
+            if skip_next_blank and line.strip() == "":
+                skip_next_blank = False
+                continue
+
+            skip_next_blank = False
+            filtered_lines.append(line)
+
+        with open(env_file_path, "w") as f:
+            f.writelines(filtered_lines)
+
+        logger.info(f"Cleaned SuperClaude entries from {env_file_path}")
+        return True
+
+    except Exception as e:
+        logger.error(f"Failed to clean .env file: {e}")
+        return False
+
+
 def cleanup_environment_variables(
     env_vars_to_remove: dict[str, str], create_restore_script: bool = True
 ) -> bool:

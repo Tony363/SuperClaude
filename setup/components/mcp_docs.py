@@ -150,11 +150,28 @@ class MCPDocsComponent(Component):
         return ["core"]
 
     def uninstall(self) -> bool:
-        """Remove documentation files."""
+        """Remove documentation files, CLAUDE.md imports, and metadata."""
+        # Remove CLAUDE.md imports for MCP docs
+        try:
+            service = CLAUDEMdService(self.install_dir)
+            import_files = list(self.server_docs_map.values())
+            service.remove_imports(import_files)
+        except Exception:
+            pass  # CLAUDEMdService may not be available
+
+        # Remove documentation files
         for doc_file in self.server_docs_map.values():
             target = self.install_dir / doc_file
             if target.exists():
                 target.unlink()
+
+        # Remove component from metadata
+        try:
+            if self.settings_manager.is_component_installed("mcp_docs"):
+                self.settings_manager.remove_component_registration("mcp_docs")
+        except Exception:
+            pass
+
         return True
 
     def validate_installation(self, installSubPath: Path | None = None) -> tuple[bool, list[str]]:
