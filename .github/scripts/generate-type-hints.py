@@ -88,10 +88,7 @@ def group_by_file(functions: list[dict[str, Any]]) -> dict[str, list[dict[str, A
 
 def build_prompt(file_path: str, source: str, functions: list[dict[str, Any]]) -> str:
     """Build the prompt for generating type hints for functions in a file."""
-    func_list = "\n".join(
-        f"- `{f['function']}` (line {f.get('line', '?')})"
-        for f in functions
-    )
+    func_list = "\n".join(f"- `{f['function']}` (line {f.get('line', '?')})" for f in functions)
 
     return f"""You are a Python type annotation expert. Analyze the following source file and add type hints to the specified functions.
 
@@ -202,7 +199,10 @@ def main():
     # Handle empty input
     if not functions:
         print("No functions to annotate. Writing empty output.")
-        result = {"functions_annotated": [], "_metadata": {"model": "N/A", "input_tokens": 0, "output_tokens": 0, "total_tokens": 0}}
+        result = {
+            "functions_annotated": [],
+            "_metadata": {"model": "N/A", "input_tokens": 0, "output_tokens": 0, "total_tokens": 0},
+        }
         with open(output_path, "w") as f:
             json.dump(result, f, indent=2)
         print("\n::set-output name=type_hints_cost::0.00")
@@ -262,7 +262,9 @@ def main():
     print(f"- **Functions annotated**: {len(all_annotations)}")
     print(f"- **Files processed**: {len(by_file)}")
     print(f"- **Cost**: ${cost}")
-    print(f"- **Tokens**: {total_input_tokens + total_output_tokens:,} ({total_input_tokens:,} in + {total_output_tokens:,} out)")
+    print(
+        f"- **Tokens**: {total_input_tokens + total_output_tokens:,} ({total_input_tokens:,} in + {total_output_tokens:,} out)"
+    )
 
     print(f"\n::set-output name=type_hints_cost::{cost}")
 

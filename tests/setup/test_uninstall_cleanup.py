@@ -191,7 +191,12 @@ class TestRulesCleanup:
     def test_template_rules_removed(self, tmp_path):
         rules_dir = tmp_path / "rules"
         rules_dir.mkdir()
-        for name in ["architecture-reference.md", "logging.md", "project-conventions.md", "README.md"]:
+        for name in [
+            "architecture-reference.md",
+            "logging.md",
+            "project-conventions.md",
+            "README.md",
+        ]:
             (rules_dir / name).write_text("template content")
 
         args = _make_args(install_dir=tmp_path)

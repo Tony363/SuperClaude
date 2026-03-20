@@ -1061,9 +1061,7 @@ def cleanup_sondera_artifacts(logger) -> bool:
             logger.warning(f"Could not remove Sondera data directory: {e}")
 
     # Sondera systemd service
-    sondera_service = (
-        Path.home() / ".config" / "systemd" / "user" / "sondera-harness.service"
-    )
+    sondera_service = Path.home() / ".config" / "systemd" / "user" / "sondera-harness.service"
     if sondera_service.exists():
         try:
             sondera_service.unlink()

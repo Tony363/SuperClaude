@@ -1,5 +1,6 @@
 """Tests for environment variable and .env file cleanup during uninstall."""
 
+
 class TestCleanupEnvFile:
     """Test .env file cleanup logic."""
 
@@ -48,12 +49,7 @@ class TestCleanupEnvFile:
         from setup.utils.environment import cleanup_env_file
 
         env_file = tmp_path / ".env"
-        env_file.write_text(
-            "# SuperClaude API Key\n"
-            'TWENTYFIRST_API_KEY="abc"\n'
-            "\n"
-            'KEEP_ME="yes"\n'
-        )
+        env_file.write_text('# SuperClaude API Key\nTWENTYFIRST_API_KEY="abc"\n\nKEEP_ME="yes"\n')
 
         cleanup_env_file(env_file)
 
