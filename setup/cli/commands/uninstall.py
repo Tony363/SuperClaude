@@ -197,6 +197,12 @@ Examples:
         help="Skip creating environment variable restore script",
     )
 
+    parser.add_argument(
+        "--cleanup-sondera",
+        action="store_true",
+        help="Remove Sondera security harness artifacts",
+    )
+
     return parser
 
 
@@ -357,6 +363,7 @@ def _ask_complete_uninstall_options(env_vars: dict[str, str]) -> dict[str, bool]
         "remove_mcp_configs": True,
         "cleanup_env_vars": False,
         "create_restore_script": True,
+        "cleanup_sondera": False,
     }
 
     print(f"\n{Colors.YELLOW}{Colors.BRIGHT}Complete Uninstall Options{Colors.RESET}")
@@ -377,7 +384,33 @@ def _ask_complete_uninstall_options(env_vars: dict[str, str]) -> dict[str, bool]
             )
             cleanup_options["create_restore_script"] = create_script
 
+    # Detect and offer Sondera cleanup
+    if _detect_sondera_artifacts():
+        print(f"\n{Colors.BLUE}Sondera security harness artifacts detected{Colors.RESET}")
+        cleanup_sondera = confirm("Also remove Sondera security harness?", default=False)
+        cleanup_options["cleanup_sondera"] = cleanup_sondera
+
     return cleanup_options
+
+
+def _detect_sondera_artifacts() -> bool:
+    """Check if any Sondera artifacts exist on the system."""
+    paths_to_check = [
+        Path.home() / ".claude" / "settings.local.json",
+        Path.home() / ".local" / "share" / "sondera-coding-agent-hooks",
+        Path.home() / ".config" / "systemd" / "user" / "sondera-harness.service",
+    ]
+    for path in paths_to_check:
+        if path.exists():
+            if path.name == "settings.local.json":
+                try:
+                    if "sondera" in path.read_text().lower():
+                        return True
+                except Exception:
+                    pass
+            else:
+                return True
+    return False
 
 
 def _custom_component_selection(
@@ -741,6 +774,11 @@ def perform_uninstall(
             else:
                 logger.warning("Some environment variables could not be removed")
 
+        # Handle Sondera artifact cleanup
+        if getattr(args, "cleanup_sondera", False):
+            logger.info("Cleaning up Sondera artifacts...")
+            cleanup_sondera_artifacts(logger)
+
         # Show results
         duration = time.time() - start_time
 
@@ -774,11 +812,15 @@ def cleanup_installation_directory(install_dir: Path, args: argparse.Namespace) 
     # Files owned by SuperClaude (safe to remove)
     SUPERCLAUDE_OWNED_FILES = [
         ".superclaude-metadata.json",
+        ".component-registry.json",
+        ".component-registry.json.backup",
+        "settings.json.backup",
         "superclaude_env_vars.json",
         "hooks.log",
         "learned_skills.db",
         "MCP_Pal.md",
         "MCP_Rube.md",
+        "CLAUDE.md",
     ]
 
     # Directories owned by SuperClaude (safe to remove entirely)
@@ -796,12 +838,22 @@ def cleanup_installation_directory(install_dir: Path, args: argparse.Namespace) 
     }
 
     try:
-        # Remove SC-owned files
+        # Handle CLAUDE.md intelligently before bulk file removal
+        _cleanup_claude_md(install_dir, logger)
+
+        # Remove SC-owned files (skip CLAUDE.md, already handled above)
         for filename in SUPERCLAUDE_OWNED_FILES:
+            if filename == "CLAUDE.md":
+                continue  # Already handled by _cleanup_claude_md
             file_path = install_dir / filename
             if file_path.exists():
                 if file_manager.remove_file(file_path):
                     logger.debug(f"Removed: {filename}")
+
+        # Remove corrupted metadata glob files (*.corrupted.*)
+        for corrupted_file in install_dir.glob(".superclaude-metadata.json.corrupted.*"):
+            if file_manager.remove_file(corrupted_file):
+                logger.debug(f"Removed corrupted metadata: {corrupted_file.name}")
 
         # Remove SC-owned directories
         for dirname in SUPERCLAUDE_OWNED_DIRS:
@@ -826,6 +878,9 @@ def cleanup_installation_directory(install_dir: Path, args: argparse.Namespace) 
                 except Exception as e:
                     logger.warning(f"Could not remove {dirname}: {e}")
 
+        # Clean up template rules from rules/ directory
+        _cleanup_rules_directory(install_dir, logger, file_manager)
+
         # Remove external SC artifacts
         restore_script = Path.home() / "restore_superclaude_env.sh"
         if restore_script.exists():
@@ -840,10 +895,196 @@ def cleanup_installation_directory(install_dir: Path, args: argparse.Namespace) 
             except Exception as e:
                 logger.warning(f"Could not remove ~/.cache/superclaude/: {e}")
 
+        # Clean up ~/.env SuperClaude entries
+        _cleanup_env_file(logger)
+
         logger.info("Cleanup of SuperClaude-owned files complete")
 
     except Exception as e:
         logger.error(f"Error during cleanup: {e}")
+
+
+def _cleanup_claude_md(install_dir: Path, logger) -> None:
+    """Intelligently clean up CLAUDE.md during complete uninstall.
+
+    If CLAUDE.md has no user content (only framework boilerplate + imports),
+    delete it entirely. If it has user content, strip only the framework
+    imports section and preserve the rest.
+    """
+    from ...services.claude_md import CLAUDEMdService
+
+    claude_md = install_dir / "CLAUDE.md"
+    if not claude_md.exists():
+        return
+
+    try:
+        service = CLAUDEMdService(install_dir)
+        content = service.read_existing_content()
+        user_content = service.extract_user_content(content)
+
+        # Check if user content is only the default boilerplate
+        boilerplate_markers = [
+            "# SuperClaude Entry Point",
+            "This file serves as the entry point for the SuperClaude framework.",
+            "You can add your own custom instructions and configurations here.",
+            "The SuperClaude framework components will be automatically imported below.",
+        ]
+        stripped = user_content.strip()
+        is_only_boilerplate = not stripped or all(
+            line.strip() == "" or any(m in line for m in boilerplate_markers)
+            for line in stripped.splitlines()
+        )
+
+        if is_only_boilerplate:
+            claude_md.unlink()
+            logger.debug("Removed CLAUDE.md (no user content)")
+        else:
+            # Strip framework section, keep user content
+            framework_marker = "# ═══════════════════════════════════════════════════\n# SuperClaude Framework Components"
+            if framework_marker in content:
+                cleaned = content.split(framework_marker)[0].rstrip() + "\n"
+                claude_md.write_text(cleaned, encoding="utf-8")
+                logger.debug("Stripped framework section from CLAUDE.md, preserved user content")
+            else:
+                logger.debug("CLAUDE.md has no framework section, leaving as-is")
+    except Exception as e:
+        logger.warning(f"Could not clean up CLAUDE.md: {e}")
+
+
+def _cleanup_rules_directory(install_dir: Path, logger, file_manager) -> None:
+    """Remove known SuperClaude template rule files from rules/ directory.
+
+    Preserves user-created rule files. Removes rules/ dir if empty after cleanup.
+    """
+    rules_dir = install_dir / "rules"
+    if not rules_dir.exists():
+        return
+
+    # Template rules shipped with SuperClaude
+    TEMPLATE_RULES = [
+        "architecture-reference.md",
+        "logging.md",
+        "project-conventions.md",
+        "README.md",
+    ]
+
+    for filename in TEMPLATE_RULES:
+        file_path = rules_dir / filename
+        if file_path.exists():
+            if file_manager.remove_file(file_path):
+                logger.debug(f"Removed template rule: {filename}")
+
+    # Remove rules/ dir if empty
+    try:
+        if rules_dir.exists() and not any(rules_dir.iterdir()):
+            rules_dir.rmdir()
+            logger.debug("Removed empty rules directory")
+    except Exception as e:
+        logger.warning(f"Could not remove rules directory: {e}")
+
+
+def _cleanup_env_file(logger) -> None:
+    """Remove SuperClaude entries from ~/.env file."""
+    env_file = Path.home() / ".env"
+    if not env_file.exists():
+        return
+
+    try:
+        with open(env_file) as f:
+            lines = f.readlines()
+
+        filtered_lines = []
+        skip_next_blank = False
+
+        for line in lines:
+            # Skip SuperClaude comment headers and their associated env vars
+            if line.strip() == "# SuperClaude API Keys" or line.strip() == "# SuperClaude API Key":
+                skip_next_blank = True
+                continue
+
+            # Check for known SuperClaude env vars
+            if any(
+                line.strip().startswith(f"{var}=")
+                for var in ["TWENTYFIRST_API_KEY", "MORPH_API_KEY"]
+            ):
+                skip_next_blank = True
+                continue
+
+            if skip_next_blank and line.strip() == "":
+                skip_next_blank = False
+                continue
+
+            skip_next_blank = False
+            filtered_lines.append(line)
+
+        with open(env_file, "w") as f:
+            f.writelines(filtered_lines)
+
+        logger.debug("Cleaned SuperClaude entries from ~/.env")
+    except Exception as e:
+        logger.warning(f"Could not clean ~/.env: {e}")
+
+
+def cleanup_sondera_artifacts(logger) -> bool:
+    """Remove Sondera security harness artifacts.
+
+    Only removes settings.local.json if it contains Sondera references.
+    Removes Sondera-specific directories and temp files.
+
+    Returns:
+        True if cleanup succeeded or nothing to clean, False on error
+    """
+    import shutil
+
+    cleaned_any = False
+
+    # settings.local.json - only if Sondera-related
+    settings_local = Path.home() / ".claude" / "settings.local.json"
+    if settings_local.exists():
+        try:
+            content = settings_local.read_text()
+            if "sondera" in content.lower():
+                settings_local.unlink()
+                logger.debug("Removed Sondera settings.local.json")
+                cleaned_any = True
+        except Exception as e:
+            logger.warning(f"Could not check/remove settings.local.json: {e}")
+
+    # Sondera data directory
+    sondera_dir = Path.home() / ".local" / "share" / "sondera-coding-agent-hooks"
+    if sondera_dir.exists():
+        try:
+            shutil.rmtree(sondera_dir)
+            logger.debug("Removed Sondera data directory")
+            cleaned_any = True
+        except Exception as e:
+            logger.warning(f"Could not remove Sondera data directory: {e}")
+
+    # Sondera systemd service
+    sondera_service = Path.home() / ".config" / "systemd" / "user" / "sondera-harness.service"
+    if sondera_service.exists():
+        try:
+            sondera_service.unlink()
+            logger.debug("Removed Sondera systemd service")
+            cleaned_any = True
+        except Exception as e:
+            logger.warning(f"Could not remove Sondera service: {e}")
+
+    # Temp files
+    for tmp_name in ["sondera-harness.sock", "sondera-harness.log"]:
+        tmp_path = Path("/tmp") / tmp_name  # noqa: S108
+        if tmp_path.exists():
+            try:
+                tmp_path.unlink()
+                logger.debug(f"Removed {tmp_name}")
+                cleaned_any = True
+            except Exception:
+                pass
+
+    if cleaned_any:
+        logger.info("Cleaned up Sondera artifacts")
+
+    return True
 
 
 def run(args: argparse.Namespace) -> int:
@@ -922,6 +1163,7 @@ def run(args: argparse.Namespace) -> int:
             # Override command-line args with interactive choices
             args.cleanup_env = cleanup_options.get("cleanup_env_vars", False)
             args.no_restore_script = not cleanup_options.get("create_restore_script", True)
+            args.cleanup_sondera = cleanup_options.get("cleanup_sondera", False)
 
         # Display uninstall plan
         if not args.quiet:
@@ -939,7 +1181,8 @@ def run(args: argparse.Namespace) -> int:
                 return 0
 
         # Create backup if not dry run and not keeping backups
-        if not args.dry_run and not args.keep_backups:
+        # Skip backup for --complete without --keep-backups since cleanup would delete it
+        if not args.dry_run and not args.keep_backups and not args.complete:
             create_uninstall_backup(args.install_dir, components)
 
         # Perform uninstall

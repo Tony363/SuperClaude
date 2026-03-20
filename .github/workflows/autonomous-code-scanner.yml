@@ -533,7 +533,7 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
 
           if [ -f /tmp/type-hints-suggestions.json ]; then
-            python .github/scripts/apply-type-hints.py \
+            python scripts/apply_type_hints.py \
               /tmp/type-hints-suggestions.json >> $GITHUB_STEP_SUMMARY
           else
             echo "No suggestions file found, skipping apply step" >> $GITHUB_STEP_SUMMARY
@@ -708,7 +708,7 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
 
           if [ -f /tmp/documentation-suggestions.json ]; then
-            python .github/scripts/apply-docstrings.py \
+            python scripts/apply_docstrings.py \
               /tmp/documentation-suggestions.json >> $GITHUB_STEP_SUMMARY
           else
             echo "No suggestions file found, skipping apply step" >> $GITHUB_STEP_SUMMARY
