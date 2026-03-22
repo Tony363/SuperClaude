@@ -237,6 +237,10 @@ def send_slack_notification(message: str) -> bool:
 
 def main():
     """Main entry point - reads environment variables and sends notification."""
+    if not os.environ.get("RUBE_API_TOKEN"):
+        print("RUBE_API_TOKEN not set — skipping Slack notification")
+        sys.exit(0)
+
     notify_kind = os.environ.get("NOTIFY_KIND", "scanner")
 
     if notify_kind == "docs-update":

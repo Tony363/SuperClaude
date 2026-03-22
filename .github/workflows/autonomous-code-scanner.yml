@@ -1242,6 +1242,10 @@ jobs:
           BUDGET_REMAINING: ${{ steps.final-summary.outputs.remaining_budget || '100' }}
           PR_DETAILS: ${{ needs.scan-formatting.outputs.has_changes == 'true' && '[P0] Formatting fixes' || '' }}${{ needs.scan-security.outputs.has_findings == 'true' && ',[P1] Security findings (REVIEW REQUIRED)' || '' }}${{ needs.scan-type-hints.outputs.has_changes == 'true' && ',[P2] Type hints applied' || '' }}${{ needs.scan-documentation.outputs.has_changes == 'true' && ',[P3] Documentation applied' || '' }}
         run: |
+          if [ -z "$RUBE_API_TOKEN" ]; then
+            echo "::notice::RUBE_API_TOKEN not configured — skipping Slack notification"
+            exit 0
+          fi
           pip install requests
           python .github/scripts/notify_slack.py
 
