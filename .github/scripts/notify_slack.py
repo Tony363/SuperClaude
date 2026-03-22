@@ -197,17 +197,18 @@ def send_slack_notification(message: str) -> bool:
             "Content-Type": "application/json",
         }
 
+        connected_account_id = os.environ.get("SLACK_CONNECTED_ACCOUNT_ID")
         payload = {
-            "entityId": os.environ.get(
-                "SLACK_CONNECTED_ACCOUNT_ID",
-                "default",
-            ),
             "appName": "slack",
             "input": {
                 "channel": SLACK_CHANNEL_ID,
                 "markdown_text": message,
             },
         }
+        if connected_account_id:
+            payload["connectedAccountId"] = connected_account_id
+        else:
+            payload["entityId"] = "default"
 
         response = requests.post(api_url, headers=headers, json=payload, timeout=30)
         response.raise_for_status()
