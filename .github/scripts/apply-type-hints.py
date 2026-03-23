@@ -133,9 +133,7 @@ def apply_type_hints(suggestions_path: str) -> dict:
         for func in file_funcs:
             actual_line = find_function_line(source, func["function"])
             if actual_line is None:
-                print(
-                    f"  Could not find function '{func['function']}' in AST, skipping"
-                )
+                print(f"  Could not find function '{func['function']}' in AST, skipping")
                 continue
             located.append((actual_line, func))
 
@@ -233,9 +231,7 @@ def apply_type_hints(suggestions_path: str) -> dict:
 
 
 def main():
-    suggestions_path = (
-        sys.argv[1] if len(sys.argv) > 1 else "/tmp/type-hints-suggestions.json"
-    )
+    suggestions_path = sys.argv[1] if len(sys.argv) > 1 else "/tmp/type-hints-suggestions.json"
 
     if not Path(suggestions_path).exists():
         print(f"Suggestions file not found: {suggestions_path}")

@@ -145,14 +145,10 @@ def apply_docstrings(suggestions_path: str) -> dict:
         for func in file_funcs:
             info = find_function_info(source, func["function"])
             if info is None:
-                print(
-                    f"  Could not find function '{func['function']}' in AST, skipping"
-                )
+                print(f"  Could not find function '{func['function']}' in AST, skipping")
                 continue
             if info["has_docstring"]:
-                print(
-                    f"  Function '{func['function']}' already has docstring, skipping"
-                )
+                print(f"  Function '{func['function']}' already has docstring, skipping")
                 skipped_existing += 1
                 continue
             located.append((info["lineno"], func))
@@ -177,9 +173,7 @@ def apply_docstrings(suggestions_path: str) -> dict:
             insert_point = def_end_idx + 1
             lines[insert_point:insert_point] = doc_lines
             inserted_in_file += 1
-            print(
-                f"  Inserted docstring: {func['function']} (after line {def_end_idx + 1})"
-            )
+            print(f"  Inserted docstring: {func['function']} (after line {def_end_idx + 1})")
 
         if inserted_in_file == 0:
             continue
@@ -206,9 +200,7 @@ def apply_docstrings(suggestions_path: str) -> dict:
 
 
 def main():
-    suggestions_path = (
-        sys.argv[1] if len(sys.argv) > 1 else "/tmp/documentation-suggestions.json"
-    )
+    suggestions_path = sys.argv[1] if len(sys.argv) > 1 else "/tmp/documentation-suggestions.json"
 
     if not Path(suggestions_path).exists():
         print(f"Suggestions file not found: {suggestions_path}")
