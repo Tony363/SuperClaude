@@ -6,7 +6,7 @@ Reads a JSON array of {file, function, line} entries for functions missing
 docstrings, sends source context to Claude, and produces a suggestions JSON
 with Google-style docstrings.
 
-Output contract (consumed by scripts/apply_docstrings.py):
+Output contract (consumed by .github/scripts/apply-docstrings.py):
   {
     "functions_documented": [
       {"file": "...", "function": "...", "docstring": "..."}
