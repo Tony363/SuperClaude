@@ -24,7 +24,7 @@ jobs:
     outputs:
       has_package: ${{ steps.check.outputs.has_package }}
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
     - name: Check for pyproject.toml
       id: check
       run: |
@@ -46,10 +46,10 @@ jobs:
         python-version: ['3.11', '3.12']
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
 
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@v6
       with:
         python-version: ${{ matrix.python-version }}
 
@@ -64,7 +64,7 @@ jobs:
 
     - name: Upload coverage reports (Linux only)
       if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.12'
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: coverage-report
         path: htmlcov/
