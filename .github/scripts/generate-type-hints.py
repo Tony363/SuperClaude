@@ -6,7 +6,7 @@ Reads a JSON array of {file, function, line} entries for functions missing
 type hints, sends source context to Claude, and produces a suggestions JSON
 with typed signatures and required imports.
 
-Output contract (consumed by scripts/apply_type_hints.py):
+Output contract (consumed by .github/scripts/apply-type-hints.py):
   {
     "functions_annotated": [
       {"file": "...", "function": "...", "typed_signature": "...", "imports_needed": [...]}

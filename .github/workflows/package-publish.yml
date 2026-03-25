@@ -1,0 +1,88 @@
+# PyPI publishing workflow with TestPyPI/PyPI dual-target
+# Imported from Ocelot's agentic-context-engine, adapted for SuperClaude.
+# Activate when a pyproject.toml with [build-system] is configured.
+name: Publish to PyPI
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      test_pypi:
+        description: 'Publish to TestPyPI instead of PyPI'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+
+    - name: Install build dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install build
+
+    - name: Build package
+      run: python -m build
+
+    - name: Store the distribution packages
+      uses: actions/upload-artifact@v4
+      with:
+        name: python-package-distributions
+        path: dist/
+
+  publish-to-testpypi:
+    name: Publish to TestPyPI
+    if: github.event.inputs.test_pypi == 'true' || github.event_name == 'workflow_dispatch'
+    needs:
+    - build
+    runs-on: ubuntu-latest
+    environment:
+      name: testpypi
+      url: https://test.pypi.org/project/superClaude/
+    permissions:
+      id-token: write
+    steps:
+    - name: Download all the dists
+      uses: actions/download-artifact@v4
+      with:
+        name: python-package-distributions
+        path: dist/
+
+    - name: Publish to TestPyPI
+      uses: pypa/gh-action-pypi-publish@release/v1
+      with:
+        repository-url: https://test.pypi.org/legacy/
+        skip-existing: true
+
+  publish-to-pypi:
+    name: Publish to PyPI
+    if: github.event_name == 'release'
+    needs:
+    - build
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/project/superClaude/
+    permissions:
+      id-token: write
+    steps:
+    - name: Download all the dists
+      uses: actions/download-artifact@v4
+      with:
+        name: python-package-distributions
+        path: dist/
+
+    - name: Publish to PyPI
+      uses: pypa/gh-action-pypi-publish@release/v1
