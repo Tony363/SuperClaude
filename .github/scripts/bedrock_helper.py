@@ -83,7 +83,7 @@ def _create_via_anthropic(*, model, max_tokens, temperature, messages, thinking)
     """Call Anthropic Messages API directly."""
     import anthropic
 
-    client = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
+    client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
 
     kwargs: dict[str, Any] = dict(model=model, max_tokens=max_tokens, messages=messages)
     if thinking:
@@ -114,8 +114,8 @@ def _create_via_bedrock(*, model, max_tokens, temperature, messages, thinking) -
     """Call Bedrock InvokeModel with bearer token auth (Anthropic Messages format)."""
     import httpx
 
-    token = os.environ["AWS_BEARER_TOKEN_BEDROCK"]
-    region = os.environ.get("AWS_REGION", "us-east-1")
+    token = os.getenv("AWS_BEARER_TOKEN_BEDROCK")
+    region = os.getenv("AWS_REGION", "us-east-1")
 
     bedrock_model = BEDROCK_MODEL_MAP.get(model, model)
     encoded_model = quote(bedrock_model, safe="")
