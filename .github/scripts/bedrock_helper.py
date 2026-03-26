@@ -79,9 +79,7 @@ def create_message(
     sys.exit(1)
 
 
-def _create_via_anthropic(
-    *, model, max_tokens, temperature, messages, thinking
-) -> MessageResponse:
+def _create_via_anthropic(*, model, max_tokens, temperature, messages, thinking) -> MessageResponse:
     """Call Anthropic Messages API directly."""
     import anthropic
 
@@ -112,9 +110,7 @@ def _create_via_anthropic(
     )
 
 
-def _create_via_bedrock(
-    *, model, max_tokens, temperature, messages, thinking
-) -> MessageResponse:
+def _create_via_bedrock(*, model, max_tokens, temperature, messages, thinking) -> MessageResponse:
     """Call Bedrock InvokeModel with bearer token auth (Anthropic Messages format)."""
     import httpx
 
@@ -148,9 +144,7 @@ def _create_via_bedrock(
     with httpx.Client(timeout=300) as http_client:
         response = http_client.post(url, headers=headers, json=body)
         if response.status_code >= 400:
-            raise RuntimeError(
-                f"Bedrock API error: {response.status_code} - {response.text}"
-            )
+            raise RuntimeError(f"Bedrock API error: {response.status_code} - {response.text}")
         data = response.json()
 
     content_blocks = [
