@@ -174,6 +174,18 @@ from unittest.mock import MagicMock, patch  # noqa: E402
 from notify_slack import main, send_slack_notification  # noqa: E402
 
 
+def _make_mock_requests(mock_response=None, side_effect=None):
+    """Build a mock requests module with post and exceptions."""
+    mock_requests = MagicMock()
+    if side_effect is not None:
+        mock_requests.post.side_effect = side_effect
+    elif mock_response is not None:
+        mock_requests.post.return_value = mock_response
+    # Wire up a real-ish exception hierarchy
+    mock_requests.exceptions.RequestException = type("RequestException", (Exception,), {})
+    return mock_requests
+
+
 class TestSendSlackNotification:
     """Tests for send_slack_notification."""
 
@@ -189,12 +201,14 @@ class TestSendSlackNotification:
         mock_response.json.return_value = {"successful": True}
         mock_response.raise_for_status = MagicMock()
 
-        with patch("requests.post", return_value=mock_response) as mock_post:
+        mock_requests = _make_mock_requests(mock_response)
+
+        with patch.dict("sys.modules", {"requests": mock_requests}):
             result = send_slack_notification("test message")
 
         assert result is True
-        mock_post.assert_called_once()
-        call_kwargs = mock_post.call_args
+        mock_requests.post.assert_called_once()
+        call_kwargs = mock_requests.post.call_args
         assert call_kwargs[1]["json"]["entityId"] == "default"
         assert call_kwargs[1]["json"]["input"]["markdown_text"] == "test message"
 
@@ -206,11 +220,13 @@ class TestSendSlackNotification:
         mock_response.json.return_value = {"successful": True}
         mock_response.raise_for_status = MagicMock()
 
-        with patch("requests.post", return_value=mock_response) as mock_post:
+        mock_requests = _make_mock_requests(mock_response)
+
+        with patch.dict("sys.modules", {"requests": mock_requests}):
             result = send_slack_notification("msg")
 
         assert result is True
-        payload = mock_post.call_args[1]["json"]
+        payload = mock_requests.post.call_args[1]["json"]
         assert payload["connectedAccountId"] == "acct-456"
         assert "entityId" not in payload
 
@@ -222,7 +238,9 @@ class TestSendSlackNotification:
         mock_response.json.return_value = {"successful": False, "error": "channel_not_found"}
         mock_response.raise_for_status = MagicMock()
 
-        with patch("requests.post", return_value=mock_response):
+        mock_requests = _make_mock_requests(mock_response)
+
+        with patch.dict("sys.modules", {"requests": mock_requests}):
             result = send_slack_notification("msg")
 
         assert result is False
@@ -231,12 +249,12 @@ class TestSendSlackNotification:
         monkeypatch.setenv("RUBE_API_TOKEN", "tok-123")
         monkeypatch.delenv("SLACK_CONNECTED_ACCOUNT_ID", raising=False)
 
-        import requests as req_mod
-
-        exc = req_mod.exceptions.RequestException("timeout")
+        mock_requests = _make_mock_requests()
+        exc = mock_requests.exceptions.RequestException("timeout")
         exc.response = None
+        mock_requests.post.side_effect = exc
 
-        with patch("requests.post", side_effect=exc):
+        with patch.dict("sys.modules", {"requests": mock_requests}):
             result = send_slack_notification("msg")
 
         assert result is False
@@ -245,14 +263,14 @@ class TestSendSlackNotification:
         monkeypatch.setenv("RUBE_API_TOKEN", "tok-123")
         monkeypatch.delenv("SLACK_CONNECTED_ACCOUNT_ID", raising=False)
 
-        import requests as req_mod
-
+        mock_requests = _make_mock_requests()
         mock_resp = MagicMock()
         mock_resp.text = "Internal Server Error"
-        exc = req_mod.exceptions.RequestException("500")
+        exc = mock_requests.exceptions.RequestException("500")
         exc.response = mock_resp
+        mock_requests.post.side_effect = exc
 
-        with patch("requests.post", side_effect=exc):
+        with patch.dict("sys.modules", {"requests": mock_requests}):
             result = send_slack_notification("msg")
 
         assert result is False
@@ -261,7 +279,9 @@ class TestSendSlackNotification:
         monkeypatch.setenv("RUBE_API_TOKEN", "tok-123")
         monkeypatch.delenv("SLACK_CONNECTED_ACCOUNT_ID", raising=False)
 
-        with patch("requests.post", side_effect=RuntimeError("boom")):
+        mock_requests = _make_mock_requests(side_effect=RuntimeError("boom"))
+
+        with patch.dict("sys.modules", {"requests": mock_requests}):
             result = send_slack_notification("msg")
 
         assert result is False
