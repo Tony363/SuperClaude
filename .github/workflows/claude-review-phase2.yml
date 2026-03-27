@@ -26,7 +26,7 @@ jobs:
     timeout-minutes: 5
 
     concurrency:
-      group: claude-review-phase2-detect-${{ github.event.pull_request.number || github.event.issue.number }}
+      group: claude-review-phase2-detect-${{ github.event_name }}-${{ github.event.pull_request.number || github.event.issue.number }}
       cancel-in-progress: true
 
     outputs:
@@ -98,7 +98,7 @@ jobs:
     timeout-minutes: 15
 
     concurrency:
-      group: claude-review-phase2-review-${{ github.event.pull_request.number || github.event.issue.number }}
+      group: claude-review-phase2-review-${{ github.event_name }}-${{ github.event.pull_request.number || github.event.issue.number }}
       cancel-in-progress: true
 
     outputs:
@@ -145,7 +145,7 @@ jobs:
     continue-on-error: true
 
     concurrency:
-      group: claude-review-phase2-consensus-${{ github.event.pull_request.number || github.event.issue.number }}
+      group: claude-review-phase2-consensus-${{ github.event_name }}-${{ github.event.pull_request.number || github.event.issue.number }}
       cancel-in-progress: true
 
     steps:
