@@ -9,6 +9,8 @@ Provides a unified `create_message()` function that works with either:
 Used by scanner scripts: security-consensus.py, generate-type-hints.py, generate-docstrings.py
 """
 
+from __future__ import annotations
+
 import os
 import sys
 from dataclasses import dataclass, field
@@ -79,7 +81,14 @@ def create_message(
     sys.exit(1)
 
 
-def _create_via_anthropic(*, model, max_tokens, temperature, messages, thinking) -> MessageResponse:
+def _create_via_anthropic(
+    *,
+    model: str,
+    max_tokens: int,
+    temperature: float,
+    messages: list[dict[str, Any]],
+    thinking: dict[str, Any] | None,
+) -> MessageResponse:
     """Call Anthropic Messages API directly."""
     import anthropic
 
@@ -110,7 +119,14 @@ def _create_via_anthropic(*, model, max_tokens, temperature, messages, thinking)
     )
 
 
-def _create_via_bedrock(*, model, max_tokens, temperature, messages, thinking) -> MessageResponse:
+def _create_via_bedrock(
+    *,
+    model: str,
+    max_tokens: int,
+    temperature: float,
+    messages: list[dict[str, Any]],
+    thinking: dict[str, Any] | None,
+) -> MessageResponse:
     """Call Bedrock InvokeModel with bearer token auth (Anthropic Messages format)."""
     import httpx
 
@@ -144,7 +160,7 @@ def _create_via_bedrock(*, model, max_tokens, temperature, messages, thinking) -
     with httpx.Client(timeout=300) as http_client:
         response = http_client.post(url, headers=headers, json=body)
         if response.status_code >= 400:
-            raise RuntimeError(f"Bedrock API error: {response.status_code} - {response.text}")
+            raise RuntimeError(f"Bedrock API error: {response.status_code} - {response.text[:200]}")
         data = response.json()
 
     content_blocks = [

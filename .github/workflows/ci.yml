@@ -124,16 +124,17 @@ jobs:
           echo "diff_stats=$DIFF_STATS" >> $GITHUB_OUTPUT
 
           # Get list of Python files changed (first 20)
-          PYTHON_FILES=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | grep '\.py$' | head -20 | tr '\n' ',' | sed 's/,$//')
+          PYTHON_FILES=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | { grep '\.py$' || true; } | head -20 | tr '\n' ',' | sed 's/,$//')
           echo "python_files=$PYTHON_FILES" >> $GITHUB_OUTPUT
 
           # Check if tests were modified
-          TESTS_MODIFIED=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | grep '^tests/' | wc -l | tr -d ' ')
+          TESTS_MODIFIED=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | { grep '^tests/' || true; } | wc -l | tr -d ' ')
           echo "tests_modified=${TESTS_MODIFIED:-0}" >> $GITHUB_OUTPUT
 
       - name: Claude Review (AWS Bedrock - Primary)
         if: steps.validate_providers.outputs.skip_review != 'true' && env.BEDROCK_CONFIGURED == 'true'
         id: bedrock_review
+        continue-on-error: true
         uses: anthropics/claude-code-action@v1
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}

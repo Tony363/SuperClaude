@@ -380,6 +380,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
 
+    permissions:
+      issues: write
+      pull-requests: write
+
     steps:
       - name: Post security notice
         uses: actions/github-script@v8

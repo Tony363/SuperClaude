@@ -2,7 +2,7 @@
 # Claude Review + PAL MCP Integration Setup Script
 # Automates the setup process for AI code review workflows
 
-set -e  # Exit on error
+set -euo pipefail  # Exit on error, undefined vars, pipe failures
 
 # Colors for output
 RED='\033[0;31m'
@@ -76,7 +76,7 @@ select_phase() {
     echo "  3) Phase 3 - Draft PR Creation ($3-$8/PR, 8-20 min)"
     echo "  4) All phases (for evaluation)"
     echo ""
-    read -p "Enter choice [1-4]: " phase_choice
+    read -rp "Enter choice [1-4]: " phase_choice
 
     case $phase_choice in
         1)
@@ -109,8 +109,11 @@ configure_secrets() {
     echo ""
     info "Configuring GitHub Secrets..."
 
+    # Cache secret list to avoid repeated API calls
+    SECRET_LIST=$(gh secret list 2>/dev/null || true)
+
     # Claude OAuth Token (required for all phases)
-    if ! gh secret list | grep -q "CLAUDE_CODE_OAUTH_TOKEN"; then
+    if ! echo "$SECRET_LIST" | grep -q "CLAUDE_CODE_OAUTH_TOKEN"; then
         warning "CLAUDE_CODE_OAUTH_TOKEN not found"
         echo ""
         echo "📋 Steps to get Claude OAuth token:"
@@ -119,7 +122,7 @@ configure_secrets() {
         echo "  3. Create new OAuth token"
         echo "  4. Copy the token"
         echo ""
-        read -p "Paste your Claude OAuth token: " claude_token
+        read -rp "Paste your Claude OAuth token: " claude_token
 
         if [ -z "$claude_token" ]; then
             error "Token cannot be empty"
@@ -134,16 +137,16 @@ configure_secrets() {
 
     # PAL MCP credentials (required for Phase 2 & 3)
     if [ "$PHASE" == "phase2" ] || [ "$PHASE" == "phase3" ] || [ "$PHASE" == "all" ]; then
-        if ! gh secret list | grep -q "PAL_MCP_API_KEY"; then
+        if ! echo "$SECRET_LIST" | grep -q "PAL_MCP_API_KEY"; then
             warning "PAL_MCP_API_KEY not found"
-            read -p "Do you have a PAL MCP API key? [y/n]: " has_pal
+            read -rp "Do you have a PAL MCP API key? [y/n]: " has_pal
 
             if [ "$has_pal" == "y" ]; then
-                read -p "Paste your PAL MCP API key: " pal_key
+                read -rp "Paste your PAL MCP API key: " pal_key
                 echo "$pal_key" | gh secret set PAL_MCP_API_KEY
                 success "PAL_MCP_API_KEY configured"
 
-                read -p "Enter PAL MCP endpoint URL (or press Enter for default): " pal_endpoint
+                read -rp "Enter PAL MCP endpoint URL (or press Enter for default): " pal_endpoint
                 if [ -n "$pal_endpoint" ]; then
                     echo "$pal_endpoint" | gh secret set PAL_MCP_ENDPOINT
                     success "PAL_MCP_ENDPOINT configured"
@@ -159,7 +162,7 @@ configure_secrets() {
 
     # PAT Token (required for Phase 3)
     if [ "$PHASE" == "phase3" ] || [ "$PHASE" == "all" ]; then
-        if ! gh secret list | grep -q "PAT_TOKEN"; then
+        if ! echo "$SECRET_LIST" | grep -q "PAT_TOKEN"; then
             warning "PAT_TOKEN not found (required for PR creation)"
             echo ""
             echo "📋 Steps to create PAT token:"
@@ -168,7 +171,7 @@ configure_secrets() {
             echo "  3. Required scopes: repo, workflow"
             echo "  4. Copy the token"
             echo ""
-            read -p "Paste your PAT token (or press Enter to skip): " pat_token
+            read -rp "Paste your PAT token (or press Enter to skip): " pat_token
 
             if [ -n "$pat_token" ]; then
                 echo "$pat_token" | gh secret set PAT_TOKEN
@@ -232,7 +235,7 @@ install_github_app() {
     echo "     - Read: Contents, Issues, Pull Requests"
     echo "     - Write: Contents (Phase 3), Issues, Pull Requests"
     echo ""
-    read -p "Press Enter after installing the app..."
+    read -rp "Press Enter after installing the app..."
 
     success "Claude GitHub App installation complete"
 }
@@ -240,8 +243,7 @@ install_github_app() {
 # Create CLAUDE.md template
 create_claude_md() {
     echo ""
-    prompt "Create CLAUDE.md file with coding guidelines? [y/n]: "
-    read create_md
+    read -rp $'\033[0;34m?\033[0m Create CLAUDE.md file with coding guidelines? [y/n]: ' create_md
 
     if [ "$create_md" == "y" ]; then
         if [ -f CLAUDE.md ]; then
@@ -330,8 +332,7 @@ EOF
 # Test the setup
 test_setup() {
     echo ""
-    prompt "Create a test PR to verify the setup? [y/n]: "
-    read create_test
+    read -rp $'\033[0;34m?\033[0m Create a test PR to verify the setup? [y/n]: ' create_test
 
     if [ "$create_test" == "y" ]; then
         info "Creating test PR..."
