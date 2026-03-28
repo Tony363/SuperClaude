@@ -39,15 +39,10 @@ jobs:
     env:
       BEDROCK_CONFIGURED: ${{ secrets.AWS_BEARER_TOKEN_BEDROCK != '' }}
       ANTHROPIC_KEY_SET: ${{ secrets.ANTHROPIC_API_KEY != '' }}
-      HAS_PAT: ${{ secrets.PAT_TOKEN != '' }}
 
     steps:
       - name: Validate required secrets
         run: |
-          if [ "$HAS_PAT" != "true" ]; then
-            echo "::error::PAT_TOKEN required for PR creation"
-            exit 1
-          fi
           if [ "$BEDROCK_CONFIGURED" != "true" ] && [ "$ANTHROPIC_KEY_SET" != "true" ]; then
             echo "::error::No API provider configured. Add AWS Bedrock credentials OR ANTHROPIC_API_KEY."
             exit 1
@@ -57,7 +52,7 @@ jobs:
       - name: Check for duplicate PRs
         id: dedup
         env:
-          GH_TOKEN: ${{ secrets.PAT_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           EXISTING_PR=$(gh pr list --repo "${{ github.repository }}" --state open \
             --json number,headRefName \
@@ -90,7 +85,7 @@ jobs:
         uses: actions/checkout@v6
         with:
           fetch-depth: 0
-          token: ${{ secrets.PAT_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v6
@@ -355,7 +350,7 @@ jobs:
         if: needs.guardrails.outputs.passed == 'true'
         uses: actions/checkout@v6
         with:
-          token: ${{ secrets.PAT_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Download clean patch
         if: needs.guardrails.outputs.passed == 'true'
@@ -373,7 +368,7 @@ jobs:
         if: needs.guardrails.outputs.passed == 'true'
         uses: peter-evans/create-pull-request@v8
         with:
-          token: ${{ secrets.PAT_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
           branch: issue-fix/${{ github.event.issue.number }}-${{ github.run_id }}
           delete-branch: true
           draft: true
@@ -408,7 +403,7 @@ jobs:
       - name: Comment on issue (success)
         if: needs.guardrails.outputs.passed == 'true' && steps.create.outputs.pull-request-number
         env:
-          GH_TOKEN: ${{ secrets.PAT_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh issue comment "${{ github.event.issue.number }}" \
             --repo "${{ github.repository }}" \
@@ -434,7 +429,7 @@ jobs:
       - name: Comment on issue (no PR)
         if: needs.guardrails.outputs.passed != 'true' && needs.validate.outputs.should_proceed == 'true'
         env:
-          GH_TOKEN: ${{ secrets.PAT_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           FAILURE_REASON: ${{ steps.failure.outputs.reason }}
         run: |
           gh issue comment "${{ github.event.issue.number }}" \
