@@ -483,6 +483,8 @@ jobs:
       - name: Send Slack notification
         env:
           RUBE_API_TOKEN: ${{ secrets.RUBE_API_TOKEN }}
+          SLACK_CHANNEL_ID: ${{ secrets.SLACK_CHANNEL_ID }}
+          RUBE_ENTITY_ID: ${{ secrets.RUBE_ENTITY_ID }}
           NOTIFY_KIND: issue-fix
           WORKFLOW_STATUS: ${{ steps.status.outputs.status }}
           ISSUE_NUMBER: ${{ github.event.issue.number }}
@@ -491,4 +493,9 @@ jobs:
           PR_NUMBER: ${{ needs.create-pr.outputs.pr_number }}
           PR_URL: ${{ needs.create-pr.outputs.pr_url }}
           WORKFLOW_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-        run: python .github/scripts/notify_slack.py
+        run: |
+          if [ -z "$RUBE_API_TOKEN" ] || [ -z "$SLACK_CHANNEL_ID" ] || [ -z "$RUBE_ENTITY_ID" ]; then
+            echo "::warning::Slack secrets not configured — skipping notifications"
+            exit 0
+          fi
+          python .github/scripts/notify_slack.py

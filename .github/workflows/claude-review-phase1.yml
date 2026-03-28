@@ -49,8 +49,10 @@ jobs:
       - name: Check PR size (cost control)
         id: pr_size
         run: |
-          FILES_CHANGED=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | wc -l)
-          LINES_CHANGED=$(git diff --stat origin/${{ github.base_ref }}...HEAD | tail -1 | awk '{print $4+$6}')
+          BASE_REF="${{ github.base_ref }}"
+          BASE_REF="${BASE_REF:-main}"
+          FILES_CHANGED=$(git diff --name-only origin/${BASE_REF}...HEAD | wc -l)
+          LINES_CHANGED=$(git diff --stat origin/${BASE_REF}...HEAD | tail -1 | awk '{print $4+$6}')
 
           echo "files_changed=$FILES_CHANGED" >> $GITHUB_OUTPUT
           echo "lines_changed=$LINES_CHANGED" >> $GITHUB_OUTPUT

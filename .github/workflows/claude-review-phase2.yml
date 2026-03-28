@@ -43,6 +43,9 @@ jobs:
       - name: Check for high-stakes changes
         id: check
         run: |
+          BASE_REF="${{ github.base_ref }}"
+          BASE_REF="${BASE_REF:-main}"
+
           # SuperClaude high-stakes patterns
           HIGH_STAKES_PATTERNS=(
             "agents/core/"
@@ -55,7 +58,7 @@ jobs:
             "secrets/"
           )
 
-          CHANGED_FILES=$(git diff --name-only origin/${{ github.base_ref }}...HEAD)
+          CHANGED_FILES=$(git diff --name-only origin/${BASE_REF}...HEAD)
 
           IS_HIGH_STAKES="false"
           SENSITIVE_FILES=""
@@ -206,9 +209,11 @@ jobs:
         if: steps.check-pal.outputs.configured == 'true'
         id: context
         run: |
-          git diff origin/${{ github.base_ref }}...HEAD > /tmp/pr-diff.patch
-          git diff --name-only origin/${{ github.base_ref }}...HEAD | head -10 > /tmp/changed-files.txt
-          LINES_CHANGED=$(git diff --stat origin/${{ github.base_ref }}...HEAD | tail -1 | awk '{print $4+$6}')
+          BASE_REF="${{ github.base_ref }}"
+          BASE_REF="${BASE_REF:-main}"
+          git diff origin/${BASE_REF}...HEAD > /tmp/pr-diff.patch
+          git diff --name-only origin/${BASE_REF}...HEAD | head -10 > /tmp/changed-files.txt
+          LINES_CHANGED=$(git diff --stat origin/${BASE_REF}...HEAD | tail -1 | awk '{print $4+$6}')
           echo "lines_changed=$LINES_CHANGED" >> $GITHUB_OUTPUT
 
       - name: Run PAL MCP Consensus
