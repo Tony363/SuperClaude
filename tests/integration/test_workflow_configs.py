@@ -42,7 +42,10 @@ class TestYAMLValidity:
             result = yaml.safe_load(content)
         except yaml.YAMLError as e:
             pytest.fail(f"{workflow_file.name}: Invalid YAML: {e}")
-        assert isinstance(result, dict), f"{workflow_file.name}: Expected dict, got {type(result)}"
+        else:
+            assert isinstance(result, dict), (
+                f"{workflow_file.name}: Expected dict, got {type(result)}"
+            )
 
     @pytest.mark.parametrize("workflow_file", list(WORKFLOWS_DIR.glob("*.yml")))
     def test_has_required_keys(self, workflow_file):
