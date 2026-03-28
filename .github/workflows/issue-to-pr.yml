@@ -131,7 +131,7 @@ jobs:
             echo "${ISSUE_BODY}"
           } | npx -y @anthropic-ai/claude-code \
             --print \
-            --model claude-sonnet-4-6-20250514 \
+            --model claude-sonnet-4-6 \
             --max-turns 30 \
             --allowedTools "Read,Edit,Write,Glob,Grep,Bash(git diff *),Bash(git log *),Bash(git status),Bash(ruff *),Bash(python -m py_compile *),Bash(pytest *),Bash(ls *),Bash(find *),Bash(cat *),Bash(head *),Bash(tail *)"
 
@@ -161,7 +161,7 @@ jobs:
             echo "${ISSUE_BODY}"
           } | npx -y @anthropic-ai/claude-code \
             --print \
-            --model claude-sonnet-4-6-20250514 \
+            --model claude-sonnet-4-6 \
             --max-turns 30 \
             --allowedTools "Read,Edit,Write,Glob,Grep,Bash(git diff *),Bash(git log *),Bash(git status),Bash(ruff *),Bash(python -m py_compile *),Bash(pytest *),Bash(ls *),Bash(find *),Bash(cat *),Bash(head *),Bash(tail *)"
 
