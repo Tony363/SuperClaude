@@ -329,3 +329,185 @@ class TestCreateViaBedrock:
 
         url = mock_client.post.call_args[0][0]
         assert "us.anthropic.claude-haiku" in url
+
+    def test_error_response_truncated_to_200_chars(self, monkeypatch):
+        """PR #91: Error body is truncated to prevent token leakage."""
+        from bedrock_helper import _create_via_bedrock
+
+        monkeypatch.setenv("AWS_BEARER_TOKEN_BEDROCK", "test-token")
+        monkeypatch.setenv("AWS_REGION", "us-east-1")
+
+        long_error = "x" * 500
+        mock_response = MagicMock()
+        mock_response.status_code = 500
+        mock_response.text = long_error
+
+        mock_client = MagicMock()
+        mock_client.__enter__ = MagicMock(return_value=mock_client)
+        mock_client.__exit__ = MagicMock(return_value=False)
+        mock_client.post.return_value = mock_response
+
+        mock_httpx = MagicMock()
+        mock_httpx.Client.return_value = mock_client
+
+        import pytest
+
+        with patch.dict("sys.modules", {"httpx": mock_httpx}):
+            with pytest.raises(RuntimeError, match="Bedrock API error: 500") as exc_info:
+                _create_via_bedrock(
+                    model="claude-haiku-4-5-20251001",
+                    max_tokens=100,
+                    temperature=0.5,
+                    messages=[{"role": "user", "content": "test"}],
+                    thinking=None,
+                )
+
+        # Error message should contain at most 200 chars of response body
+        error_msg = str(exc_info.value)
+        # The full 500-char body should NOT appear
+        assert long_error not in error_msg
+        # But a truncated portion should
+        assert "x" * 200 in error_msg
+
+    def test_default_region_fallback(self, monkeypatch):
+        """Default AWS region is us-east-1 when AWS_REGION is not set."""
+        from bedrock_helper import _create_via_bedrock
+
+        monkeypatch.setenv("AWS_BEARER_TOKEN_BEDROCK", "test-token")
+        monkeypatch.delenv("AWS_REGION", raising=False)
+
+        mock_httpx, mock_client = self._make_mock_httpx(
+            {
+                "content": [{"type": "text", "text": "ok"}],
+                "usage": {"input_tokens": 1, "output_tokens": 1},
+            }
+        )
+
+        with patch.dict("sys.modules", {"httpx": mock_httpx}):
+            _create_via_bedrock(
+                model="claude-haiku-4-5-20251001",
+                max_tokens=100,
+                temperature=0.5,
+                messages=[{"role": "user", "content": "test"}],
+                thinking=None,
+            )
+
+        url = mock_client.post.call_args[0][0]
+        assert "us-east-1" in url
+
+    def test_missing_usage_data_defaults_to_zero(self, monkeypatch):
+        """Bedrock response without usage data should default to zero tokens."""
+        from bedrock_helper import _create_via_bedrock
+
+        monkeypatch.setenv("AWS_BEARER_TOKEN_BEDROCK", "test-token")
+
+        mock_httpx, _ = self._make_mock_httpx({"content": [{"type": "text", "text": "ok"}]})
+
+        with patch.dict("sys.modules", {"httpx": mock_httpx}):
+            result = _create_via_bedrock(
+                model="claude-haiku-4-5-20251001",
+                max_tokens=100,
+                temperature=0.5,
+                messages=[{"role": "user", "content": "test"}],
+                thinking=None,
+            )
+
+        assert result.usage.input_tokens == 0
+        assert result.usage.output_tokens == 0
+
+    def test_empty_content_returns_empty_list(self, monkeypatch):
+        """Bedrock response with no content blocks returns empty content list."""
+        from bedrock_helper import _create_via_bedrock
+
+        monkeypatch.setenv("AWS_BEARER_TOKEN_BEDROCK", "test-token")
+
+        mock_httpx, _ = self._make_mock_httpx(
+            {"content": [], "usage": {"input_tokens": 5, "output_tokens": 0}}
+        )
+
+        with patch.dict("sys.modules", {"httpx": mock_httpx}):
+            result = _create_via_bedrock(
+                model="claude-haiku-4-5-20251001",
+                max_tokens=100,
+                temperature=0.5,
+                messages=[{"role": "user", "content": "test"}],
+                thinking=None,
+            )
+
+        assert result.content == []
+
+    def test_non_text_blocks_filtered(self, monkeypatch):
+        """Only text blocks are returned; thinking blocks are filtered out."""
+        from bedrock_helper import _create_via_bedrock
+
+        monkeypatch.setenv("AWS_BEARER_TOKEN_BEDROCK", "test-token")
+
+        mock_httpx, _ = self._make_mock_httpx(
+            {
+                "content": [
+                    {"type": "thinking", "thinking": "internal thoughts"},
+                    {"type": "text", "text": "visible response"},
+                    {"type": "tool_use", "id": "tool_1"},
+                ],
+                "usage": {"input_tokens": 10, "output_tokens": 10},
+            }
+        )
+
+        with patch.dict("sys.modules", {"httpx": mock_httpx}):
+            result = _create_via_bedrock(
+                model="claude-haiku-4-5-20251001",
+                max_tokens=100,
+                temperature=0.5,
+                messages=[{"role": "user", "content": "test"}],
+                thinking=None,
+            )
+
+        assert len(result.content) == 1
+        assert result.content[0].text == "visible response"
+
+    def test_unmapped_model_passes_through(self, monkeypatch):
+        """Unknown model IDs are used as-is without mapping."""
+        from bedrock_helper import _create_via_bedrock
+
+        monkeypatch.setenv("AWS_BEARER_TOKEN_BEDROCK", "test-token")
+        monkeypatch.setenv("AWS_REGION", "us-east-1")
+
+        mock_httpx, mock_client = self._make_mock_httpx(
+            {"content": [], "usage": {"input_tokens": 0, "output_tokens": 0}}
+        )
+
+        custom_model = "my-custom-model-v1"
+        with patch.dict("sys.modules", {"httpx": mock_httpx}):
+            _create_via_bedrock(
+                model=custom_model,
+                max_tokens=100,
+                temperature=0.5,
+                messages=[{"role": "user", "content": "test"}],
+                thinking=None,
+            )
+
+        url = mock_client.post.call_args[0][0]
+        assert "my-custom-model-v1" in url
+
+    def test_bearer_token_in_auth_header(self, monkeypatch):
+        """Bearer token is passed in Authorization header."""
+        from bedrock_helper import _create_via_bedrock
+
+        monkeypatch.setenv("AWS_BEARER_TOKEN_BEDROCK", "my-secret-token")
+        monkeypatch.setenv("AWS_REGION", "us-east-1")
+
+        mock_httpx, mock_client = self._make_mock_httpx(
+            {"content": [], "usage": {"input_tokens": 0, "output_tokens": 0}}
+        )
+
+        with patch.dict("sys.modules", {"httpx": mock_httpx}):
+            _create_via_bedrock(
+                model="claude-haiku-4-5-20251001",
+                max_tokens=100,
+                temperature=0.5,
+                messages=[{"role": "user", "content": "test"}],
+                thinking=None,
+            )
+
+        headers = mock_client.post.call_args[1]["headers"]
+        assert headers["Authorization"] == "Bearer my-secret-token"
