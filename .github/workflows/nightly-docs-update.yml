@@ -368,7 +368,6 @@ jobs:
           fi
 
       - name: Send Slack notification
-        if: env.RUBE_API_TOKEN != ''
         env:
           RUBE_API_TOKEN: ${{ secrets.RUBE_API_TOKEN }}
           SLACK_CHANNEL_ID: ${{ secrets.SLACK_CHANNEL_ID }}
@@ -377,4 +376,9 @@ jobs:
           WORKFLOW_STATUS: ${{ steps.status.outputs.status }}
           AFFECTED_DOCS: ${{ needs.detect-changes.outputs.affected_docs }}
           WORKFLOW_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-        run: python scripts/notify_slack.py
+        run: |
+          if [ -z "$RUBE_API_TOKEN" ] || [ -z "$SLACK_CHANNEL_ID" ] || [ -z "$RUBE_ENTITY_ID" ]; then
+            echo "::warning::Slack secrets not configured — skipping notifications"
+            exit 0
+          fi
+          python scripts/notify_slack.py
