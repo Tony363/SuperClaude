@@ -173,17 +173,16 @@ jobs:
           AFFECTED_DOCS: ${{ needs.detect-changes.outputs.affected_docs }}
           COMMITS: ${{ needs.detect-changes.outputs.commits_analyzed }}
         run: |
-          PROMPT=$(cat .github/prompts/nightly-docs-update.md)
-
-          npx -y @anthropic-ai/claude-code \
+          {
+            cat .github/prompts/nightly-docs-update.md
+            echo ""
+            echo "AFFECTED_DOCS: ${AFFECTED_DOCS}"
+            echo "COMMITS_TO_ANALYZE: ${COMMITS}"
+          } | npx -y @anthropic-ai/claude-code \
             --print \
             --model claude-sonnet-4-6-v1 \
             --max-turns 40 \
-            --allowedTools "Read,Edit,Glob,Grep,Bash(git log *),Bash(git diff *)" \
-            "${PROMPT}
-
-          AFFECTED_DOCS: ${AFFECTED_DOCS}
-          COMMITS_TO_ANALYZE: ${COMMITS}"
+            --allowedTools "Read,Edit,Glob,Grep,Bash(git log *),Bash(git diff *)"
 
       - name: Enforce file allowlist
         id: guardrails
