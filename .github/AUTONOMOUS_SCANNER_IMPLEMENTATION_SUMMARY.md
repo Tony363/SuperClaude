@@ -13,7 +13,7 @@ The autonomous overnight code scanner is **100% implemented** with all AI integr
 **Job 1: Pre-Flight Security Check**
 - ✅ Protected file filtering (workflows, secrets, auth, pipeline, prompts, migrations)
 - ✅ Generates scannable file lists (~450 Python, ~220 TypeScript)
-- ✅ Secret validation (PAT_TOKEN, ANTHROPIC_API_KEY)
+- ✅ Secret validation (ANTHROPIC_API_KEY)
 - ✅ Uploads artifacts for downstream jobs
 - ⏱️ Runtime: ~5 minutes
 - 💰 Cost: $0

@@ -47,13 +47,8 @@ jobs:
 
       - name: Validate required secrets
         env:
-          HAS_PAT: ${{ secrets.PAT_TOKEN != '' }}
           HAS_ANTHROPIC: ${{ secrets.ANTHROPIC_API_KEY != '' }}
         run: |
-          if [ "$HAS_PAT" != "true" ]; then
-            echo "::error::PAT_TOKEN required for PR creation"
-            exit 1
-          fi
           if [ "$HAS_ANTHROPIC" != "true" ]; then
             echo "::error::ANTHROPIC_API_KEY required for scanning"
             exit 1
@@ -797,7 +792,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v6
         with:
-          token: ${{ secrets.PAT_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
           fetch-depth: 0
 
       - name: Download all artifacts
@@ -899,7 +894,7 @@ jobs:
           github.event.inputs.dry_run != 'true'
         uses: peter-evans/create-pull-request@v8
         with:
-          token: ${{ secrets.PAT_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
           branch: scanner/formatting-${{ github.run_id }}
           draft: true
           delete-branch: true
@@ -940,7 +935,7 @@ jobs:
           github.event.inputs.dry_run != 'true'
         uses: peter-evans/create-pull-request@v8
         with:
-          token: ${{ secrets.PAT_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
           branch: scanner/security-${{ github.run_id }}
           draft: true
           delete-branch: true
@@ -1005,7 +1000,7 @@ jobs:
           github.event.inputs.dry_run != 'true'
         uses: peter-evans/create-pull-request@v8
         with:
-          token: ${{ secrets.PAT_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
           branch: scanner/type-hints-${{ github.run_id }}
           draft: true
           delete-branch: true
@@ -1074,7 +1069,7 @@ jobs:
           github.event.inputs.dry_run != 'true'
         uses: peter-evans/create-pull-request@v8
         with:
-          token: ${{ secrets.PAT_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
           branch: scanner/documentation-${{ github.run_id }}
           draft: true
           delete-branch: true

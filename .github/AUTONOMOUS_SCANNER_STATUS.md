@@ -9,7 +9,7 @@
 - Generates scannable Python/TypeScript file lists
 - Uploads artifacts for downstream jobs
 - File count reporting in step summary
-- Secret validation (PAT_TOKEN, ANTHROPIC_API_KEY)
+- Secret validation (ANTHROPIC_API_KEY)
 
 **✅ Job 4: Cost Tracker & Budget Gates**
 - Calculates total cost from P0/P1 jobs
@@ -254,16 +254,15 @@ Add these to GitHub repository secrets:
 
 | Secret | Purpose | Scope |
 |--------|---------|-------|
-| `PAT_TOKEN` | PR creation | repo + workflow |
+| `GITHUB_TOKEN` | PR creation, checkout, comments | Automatically provided |
 | `ANTHROPIC_API_KEY` | Claude API (consensus, types, docs) | API key from console.anthropic.com |
 
 **Validation**:
 ```bash
-# Check secrets exist
+# Check secrets exist (GITHUB_TOKEN is automatic)
 gh secret list
 
 # Expected output:
-# PAT_TOKEN             Updated YYYY-MM-DD
 # ANTHROPIC_API_KEY     Updated YYYY-MM-DD
 ```
 
@@ -277,11 +276,10 @@ gh secret list
 
 **Solution**:
 ```bash
-# Verify secrets exist
+# Verify secrets exist (GITHUB_TOKEN is automatic)
 gh secret list
 
 # Add missing secrets
-gh secret set PAT_TOKEN
 gh secret set ANTHROPIC_API_KEY
 ```
 
@@ -310,11 +308,10 @@ gh workflow run autonomous-code-scanner.yml \
   --field dry_run=false
 ```
 
-**Solution 2**: Check PAT_TOKEN permissions
+**Solution 2**: Check GITHUB_TOKEN permissions
 ```bash
-# PAT must have:
-# - repo (full control)
-# - workflow (update workflows)
+# Ensure workflow has write permissions:
+# Settings > Actions > General > Workflow permissions > Read and write
 ```
 
 ### Protected Files Modified

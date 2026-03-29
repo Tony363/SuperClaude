@@ -95,7 +95,7 @@ jobs:
         uses: actions/checkout@v6
         with:
           fetch-depth: 0
-          token: ${{ secrets.PAT_TOKEN || secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       # ========== PRIMARY: AWS Bedrock ==========
       - name: Claude Review (Bedrock - Primary)
@@ -104,7 +104,7 @@ jobs:
         continue-on-error: true
         uses: anthropics/claude-code-action@v1
         with:
-          github_token: ${{ secrets.PAT_TOKEN || secrets.GITHUB_TOKEN }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
           use_bedrock: "true"
           timeout_minutes: 15
           claude_args: >-
@@ -125,7 +125,7 @@ jobs:
         continue-on-error: true
         uses: anthropics/claude-code-action@v1
         with:
-          github_token: ${{ secrets.PAT_TOKEN || secrets.GITHUB_TOKEN }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           timeout_minutes: 15
           claude_args: >-
@@ -247,7 +247,7 @@ jobs:
         uses: actions/checkout@v6
         with:
           fetch-depth: 0
-          token: ${{ secrets.PAT_TOKEN || secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Download patch
         uses: actions/download-artifact@v8
@@ -277,7 +277,7 @@ jobs:
         id: create_pr
         uses: peter-evans/create-pull-request@v8
         with:
-          token: ${{ secrets.PAT_TOKEN || secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
           commit-message: |
             AI-suggested improvements from PR #${{ github.event.pull_request.number }}
 
@@ -411,7 +411,7 @@ jobs:
 
 # Required secrets:
 # - GITHUB_TOKEN (automatically provided)
-# - PAT_TOKEN (Personal Access Token with repo scope, optional)
+# - (PAT_TOKEN removed — GITHUB_TOKEN is used for all operations)
 # - ANTHROPIC_API_KEY or AWS_BEARER_TOKEN_BEDROCK (at least one required)
 # - PAL_MCP_API_KEY (optional - consensus skipped if missing)
 # - PAL_MCP_ENDPOINT (optional - has default)

@@ -160,29 +160,7 @@ configure_secrets() {
         fi
     fi
 
-    # PAT Token (required for Phase 3)
-    if [ "$PHASE" == "phase3" ] || [ "$PHASE" == "all" ]; then
-        if ! echo "$SECRET_LIST" | grep -q "PAT_TOKEN"; then
-            warning "PAT_TOKEN not found (required for PR creation)"
-            echo ""
-            echo "📋 Steps to create PAT token:"
-            echo "  1. Visit https://github.com/settings/tokens"
-            echo "  2. Generate new token (classic)"
-            echo "  3. Required scopes: repo, workflow"
-            echo "  4. Copy the token"
-            echo ""
-            read -rp "Paste your PAT token (or press Enter to skip): " pat_token
-
-            if [ -n "$pat_token" ]; then
-                echo "$pat_token" | gh secret set PAT_TOKEN
-                success "PAT_TOKEN configured"
-            else
-                warning "PAT_TOKEN not configured - Phase 3 PR creation will not work"
-            fi
-        else
-            success "PAT_TOKEN already configured"
-        fi
-    fi
+    # Note: PAT_TOKEN is no longer required — all workflows use GITHUB_TOKEN
 }
 
 # Install workflow files

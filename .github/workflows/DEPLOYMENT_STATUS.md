@@ -67,10 +67,7 @@ gh secret set CLAUDE_CODE_OAUTH_TOKEN
 gh secret set PAL_MCP_API_KEY
 gh secret set PAL_MCP_ENDPOINT
 
-# Required for Phase 3 only (PR creation)
-gh secret set PAT_TOKEN
-# Create at: https://github.com/settings/tokens
-# Scopes: repo, workflow
+# Phase 3: PAT_TOKEN no longer required (GITHUB_TOKEN is used for PR creation)
 ```
 
 ### Step 3: Install Claude GitHub App
