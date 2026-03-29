@@ -297,9 +297,7 @@ fi
 
 **Solution**: Add secrets to repository
 ```bash
-# Add PAT_TOKEN (for PR creation)
-gh secret set PAT_TOKEN
-# Paste token with repo + workflow scopes
+# GITHUB_TOKEN is automatic — no PAT needed for PR creation
 
 # Add ANTHROPIC_API_KEY (for AI features)
 gh secret set ANTHROPIC_API_KEY
@@ -324,7 +322,7 @@ gh run view <run-id> --web
 **Solutions**:
 1. Check dry run mode: `--field dry_run=false`
 2. Check if changes detected: View step summary
-3. Check PAT_TOKEN permissions: repo + workflow scopes
+3. Check GITHUB_TOKEN write permissions in repo Settings > Actions
 
 ### Protected Files Modified
 

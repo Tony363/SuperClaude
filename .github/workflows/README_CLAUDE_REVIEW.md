@@ -91,9 +91,7 @@ This implementation provides a **three-phase approach** to AI code review:
 - `PAL_MCP_ENDPOINT` - PAL MCP API URL (optional, has default)
 
 ### Phase 3:
-- `PAT_TOKEN` - GitHub Personal Access Token
-  - Scopes: `repo`, `workflow`
-  - [Create here](https://github.com/settings/tokens)
+- Uses `GITHUB_TOKEN` (automatically provided, no additional secrets needed)
 
 ---
 

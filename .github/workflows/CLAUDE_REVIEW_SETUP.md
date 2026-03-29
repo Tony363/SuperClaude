@@ -81,9 +81,7 @@ PAL_MCP_ENDPOINT=https://your-pal-mcp-server.com/api/tools/consensus
 
 #### Phase 3 (Additional):
 ```
-PAT_TOKEN=<github-personal-access-token>
-# Required scopes: repo, workflow
-# Create at: https://github.com/settings/tokens
+# PAT_TOKEN is no longer required — GITHUB_TOKEN is used for all operations
 ```
 
 ### 3. PAL MCP Setup (Phase 2 & 3)
@@ -149,8 +147,7 @@ gh secret set CLAUDE_CODE_OAUTH_TOKEN
 gh secret set PAL_MCP_API_KEY
 gh secret set PAL_MCP_ENDPOINT --body "https://your-endpoint.com/api/tools/consensus"
 
-# Phase 3: Add PAT
-gh secret set PAT_TOKEN
+# Phase 3: PAT_TOKEN no longer required (GITHUB_TOKEN is used)
 ```
 
 ### Step 3: Create CLAUDE.md (Optional but Recommended)
@@ -403,8 +400,7 @@ gh run view <run-id> --log
 ### Issue: Draft PR not created (Phase 3)
 
 **Common causes**:
-1. **No PAT_TOKEN**: Phase 3 requires PAT with `repo` scope
-2. **Protected branch**: Claude can't push to `main` directly
+1. **Protected branch**: GITHUB_TOKEN can't push to protected branches directly
 3. **Consensus rejected changes**: Check workflow logs for recommendation
 4. **Security block**: Modifying protected files (`.github/`, secrets)
 
