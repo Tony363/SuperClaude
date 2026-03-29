@@ -168,6 +168,8 @@ Multi-phase quality pipeline with 12+ workflows.
 | Evals | `stochastic-evals.yml` | Schedule — probabilistic agent testing |
 | Automation | `issue-to-pr.yml` | Issue labeled — auto-PR creation |
 
+> **Note**: All workflows migrated from PAT_TOKEN to GITHUB_TOKEN on 2026-03-29 (PR #104) to use GitHub's built-in token for workflow operations.
+
 ---
 
 ## Key Execution Flows
