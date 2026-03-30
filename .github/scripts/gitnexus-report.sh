@@ -1,21 +1,44 @@
 #!/usr/bin/env bash
 # gitnexus-report.sh — Bridge git diff → GitNexus impact → markdown report
 # Usage: bash .github/scripts/gitnexus-report.sh <base_ref>
-# Output: REPORT.md written to stdout, risk level to $GITHUB_OUTPUT (if available)
+# Output: Markdown report to stdout, risk level to $GITHUB_OUTPUT (if available)
 set -euo pipefail
 
+# ── Dependency validation ─────────────────────────────────────────────
+check_deps() {
+  local missing=()
+  for cmd in jq git npx; do
+    if ! command -v "$cmd" &>/dev/null; then
+      missing+=("$cmd")
+    fi
+  done
+  if [[ ${#missing[@]} -gt 0 ]]; then
+    echo "::error::Missing required dependencies: ${missing[*]}" >&2
+    exit 1
+  fi
+}
+
+check_deps
+
 BASE_REF="${1:?Usage: gitnexus-report.sh <base_ref>}"
+REMOTE="${GITNEXUS_REMOTE:-origin}"
 MAX_DEPTH="${GITNEXUS_DEPTH:-3}"
 MAX_FILES="${GITNEXUS_MAX_FILES:-50}"
 
 # ── Collect changed files ─────────────────────────────────────────────
-mapfile -t CHANGED_FILES < <(git diff --name-only "origin/${BASE_REF}...HEAD" -- '*.py' '*.rs' '*.js' '*.ts' '*.tsx' '*.jsx' '*.yml' '*.yaml' 2>/dev/null || true)
+mapfile -t CHANGED_FILES < <(git diff --name-only "${REMOTE}/${BASE_REF}...HEAD" -- '*.py' '*.rs' '*.js' '*.ts' '*.tsx' '*.jsx' '*.yml' '*.yaml' 2>/dev/null || true)
 
 if [[ ${#CHANGED_FILES[@]} -eq 0 ]]; then
-  echo "No code files changed — skipping impact analysis."
+  cat <<'EOF'
+<!-- gitnexus-impact -->
+## GitNexus Impact Analysis
+
+:white_circle: **NONE** Overall Risk Level
+
+No code files changed — skipping impact analysis.
+EOF
   if [[ -n "${GITHUB_OUTPUT:-}" ]]; then
     echo "risk=NONE" >> "$GITHUB_OUTPUT"
-    echo "report=No code files changed." >> "$GITHUB_OUTPUT"
   fi
   exit 0
 fi
@@ -30,7 +53,7 @@ fi
 
 # ── Run impact analysis per file ──────────────────────────────────────
 declare -A FILE_RISKS
-OVERALL_RISK="LOW"
+OVERALL_RISK="NONE"
 TOTAL_IMPACTED=0
 ALL_PROCESSES=()
 ALL_MODULES=()
@@ -57,8 +80,8 @@ risk_badge() {
 }
 
 for file in "${CHANGED_FILES[@]}"; do
-  # Try file-level impact first
-  result=$(npx gitnexus impact "$file" --direction upstream --depth "$MAX_DEPTH" 2>/dev/null || echo '{"error":"not found"}')
+  # Use -- to prevent file paths from being interpreted as flags
+  result=$(npx gitnexus impact -- "$file" --direction upstream --depth "$MAX_DEPTH" 2>/dev/null || echo '{"error":"not found"}')
 
   if echo "$result" | jq -e '.error' >/dev/null 2>&1; then
     FILE_RISKS["$file"]="UNKNOWN"
@@ -103,8 +126,8 @@ for file in "${CHANGED_FILES[@]}"; do
 done
 
 # ── Deduplicate processes and modules ─────────────────────────────────
-UNIQUE_PROCESSES=($(printf '%s\n' "${ALL_PROCESSES[@]}" 2>/dev/null | sort -u || true))
-UNIQUE_MODULES=($(printf '%s\n' "${ALL_MODULES[@]}" 2>/dev/null | sort -u || true))
+mapfile -t UNIQUE_PROCESSES < <(printf '%s\n' "${ALL_PROCESSES[@]}" 2>/dev/null | sort -u || true)
+mapfile -t UNIQUE_MODULES < <(printf '%s\n' "${ALL_MODULES[@]}" 2>/dev/null | sort -u || true)
 
 # ── Generate markdown report ──────────────────────────────────────────
 cat <<REPORT
@@ -131,12 +154,12 @@ done)
 
 $(if [[ ${#UNIQUE_PROCESSES[@]} -gt 0 ]]; then
   echo "### Affected Processes"
-  for p in "${UNIQUE_PROCESSES[@]}"; do echo "- $p"; done
+  for p in "${UNIQUE_PROCESSES[@]}"; do [[ -n "$p" ]] && echo "- $p"; done
 fi)
 
 $(if [[ ${#UNIQUE_MODULES[@]} -gt 0 ]]; then
   echo "### Affected Modules"
-  for m in "${UNIQUE_MODULES[@]}"; do echo "- $m"; done
+  for m in "${UNIQUE_MODULES[@]}"; do [[ -n "$m" ]] && echo "- $m"; done
 fi)
 
 <details>

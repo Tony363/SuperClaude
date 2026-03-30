@@ -9,7 +9,7 @@ permissions:
   pull-requests: write
 
 concurrency:
-  group: gitnexus-${{ github.event.pull_request.number }}
+  group: gitnexus-impact-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 
 jobs:
