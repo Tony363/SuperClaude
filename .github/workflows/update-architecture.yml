@@ -1,0 +1,79 @@
+name: Update Architecture Map
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - 'ARCHITECTURE.md'
+      - '.github/workflows/update-architecture.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: update-architecture-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  update-architecture:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    # Skip bot commits to prevent infinite loops
+    if: github.actor != 'github-actions[bot]'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Cache GitNexus index
+        uses: actions/cache@v4
+        with:
+          path: .gitnexus
+          key: gitnexus-${{ runner.os }}-main-${{ github.sha }}
+          restore-keys: |
+            gitnexus-${{ runner.os }}-main-
+            gitnexus-${{ runner.os }}-
+
+      - name: Index codebase
+        run: npx gitnexus analyze
+
+      - name: Generate ARCHITECTURE.md
+        run: bash .github/scripts/generate-architecture.sh
+
+      - name: Check for changes
+        id: changes
+        run: |
+          if git diff --quiet ARCHITECTURE.md 2>/dev/null; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "No changes to ARCHITECTURE.md"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo "ARCHITECTURE.md has been updated"
+          fi
+
+      - name: Create pull request
+        if: steps.changes.outputs.changed == 'true'
+        uses: peter-evans/create-pull-request@v8
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: 'docs: update ARCHITECTURE.md [skip ci]'
+          title: 'docs: update ARCHITECTURE.md'
+          body: |
+            ## Auto-generated Architecture Update
+
+            The GitNexus knowledge graph detected structural changes in `main` and regenerated `ARCHITECTURE.md`.
+
+            This PR was created automatically by the `update-architecture` workflow.
+          branch: auto/update-architecture
+          labels: documentation,automated
+          delete-branch: true

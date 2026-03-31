@@ -1,0 +1,111 @@
+name: GitNexus Impact Analysis
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: gitnexus-impact-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  analyze-impact:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Cache GitNexus index
+        uses: actions/cache@v4
+        with:
+          path: .gitnexus
+          key: gitnexus-${{ runner.os }}-${{ github.base_ref }}
+          restore-keys: |
+            gitnexus-${{ runner.os }}-
+
+      - name: Index codebase
+        run: npx gitnexus analyze
+
+      - name: Run impact analysis
+        id: impact
+        env:
+          GITNEXUS_DEPTH: '3'
+          GITNEXUS_MAX_FILES: '50'
+        run: |
+          REPORT=$(bash .github/scripts/gitnexus-report.sh "${{ github.base_ref }}")
+          # Write report to file for the comment step
+          echo "$REPORT" > /tmp/gitnexus-report.md
+          # Also write to job summary
+          echo "$REPORT" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Post or update PR comment
+        uses: actions/github-script@v8
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+            const report = fs.readFileSync('/tmp/gitnexus-report.md', 'utf8');
+            const marker = '<!-- gitnexus-impact -->';
+
+            // Find existing bot comment
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            const existing = comments.find(c => c.body.includes(marker));
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body: report,
+              });
+              console.log(`Updated existing comment ${existing.id}`);
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: report,
+              });
+              console.log('Created new comment');
+            }
+
+      - name: Gate on CRITICAL risk
+        env:
+          RISK: ${{ steps.impact.outputs.risk }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [[ "$RISK" != "CRITICAL" ]]; then
+            echo "Risk level: ${RISK:-NONE} — passing"
+            exit 0
+          fi
+
+          # Check for bypass label
+          LABELS=$(gh pr view "${{ github.event.pull_request.number }}" \
+            --repo "${{ github.repository }}" \
+            --json labels --jq '.labels[].name' 2>/dev/null || true)
+
+          if echo "$LABELS" | grep -q "bypass-risk-check"; then
+            echo "::warning::CRITICAL risk detected but bypass-risk-check label present — allowing"
+            exit 0
+          fi
+
+          echo "::error::CRITICAL blast radius detected. Add the 'bypass-risk-check' label to override."
+          exit 1
