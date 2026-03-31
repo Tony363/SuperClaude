@@ -190,3 +190,4 @@ TODO.txt
 # File-based skill persistence (no SQLite)
 .claude/skills/learned/
 .claude/feedback/
+.gitnexus
