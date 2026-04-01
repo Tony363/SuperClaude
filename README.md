@@ -3,8 +3,8 @@
 <p align="center">
   <img src="https://img.shields.io/badge/version-7.0.0-blue" alt="Version">
   <img src="https://img.shields.io/badge/agents-19-orange" alt="Agents">
-  <img src="https://img.shields.io/badge/skills-38-green" alt="Skills">
-  <img src="https://img.shields.io/badge/commands-24-purple" alt="Commands">
+  <img src="https://img.shields.io/badge/skills-43-green" alt="Skills">
+  <img src="https://img.shields.io/badge/commands-27-purple" alt="Commands">
   <img src="https://img.shields.io/badge/modes-6-teal" alt="Modes">
   <img src="https://img.shields.io/badge/python_core-2800_lines-red" alt="Core">
   <img src="https://img.shields.io/badge/license-MIT-lightgrey" alt="License">
@@ -12,7 +12,7 @@
   <a href="https://sonarcloud.io/summary/new_code?id=tony363_superclaude"><img src="https://sonarcloud.io/api/project_badges/measure?project=tony363_superclaude&metric=coverage" alt="Coverage"></a>
 </p>
 
-**A config-first meta-framework for Claude Code that provides 19 specialized agent personas (5 core + 7 traits + 7 extensions), 24 structured commands, 38 skills, and comprehensive MCP integration with quality-driven iterative workflows.**
+**A config-first meta-framework for Claude Code that provides 19 specialized agent personas (5 core + 7 traits + 7 extensions), 27 structured commands, 43 skills, and comprehensive MCP integration with quality-driven iterative workflows.**
 
 SuperClaude transforms Claude Code into a powerful development platform with specialized agent prompts, signal-based loop orchestration, and multi-model consensus capabilities. The core interface is markdown and YAML configuration files, with a Python orchestration layer for advanced workflows including quality gates, termination detection, and PAL MCP integration.
 
@@ -49,8 +49,8 @@ SuperClaude transforms Claude Code into a powerful development platform with spe
 SuperClaude is a meta-prompt framework that enhances Claude Code with:
 
 - **19 Specialized Agents**: 5 core + 7 composable traits + 7 domain extensions (tiered architecture)
-- **37 Active Skills**: 8 agent personas + 26 command workflows + 3 utility skills
-- **24 Structured Commands**: analyze, implement, test, design, document, and more
+- **43 Active Skills**: 8 agent personas + 26 command workflows + 6 GitNexus code intelligence + 3 utility skills
+- **27 Structured Commands**: analyze, implement, test, design, document, and more
 - **6 Framework Modes**: normal, brainstorming, introspection, task_management, token_efficiency, orchestration
 - **MCP Integration**: PAL (11 tools), Rube (500+ apps via Composio, including web search)
 - **Quality Gates**: KISS, Purity, SOLID, and Let It Crash validators with iterative quality loop
@@ -98,7 +98,7 @@ SuperClaude v7.0.0 is a **config-first hybrid framework**:
 
 ### Command System
 
-24 structured commands with consistent patterns:
+27 structured commands with consistent patterns:
 
 ```
 /sc:analyze      - Static analysis, security review, performance bottlenecks
@@ -125,6 +125,7 @@ SuperClaude v7.0.0 is a **config-first hybrid framework**:
 /sc:mcp          - MCP orchestration hub (PAL + Rube)
 /sc:code-review  - Multi-model consensus code review
 /sc:research     - Deep research with web search + consensus
+/sc:eda          - Exploratory data analysis and visualization
 /sc:evaluate     - LLM pipeline evaluation with judge scoring
 /sc:push         - Multi-remote git push with selective filtering
 ```
@@ -203,7 +204,7 @@ SuperClaude uses a layered file-based architecture:
 8. **config/*.yaml** - 6 configuration files
 9. **core/*.py** - Python orchestration modules
 10. **mcp/*.md** - MCP integration guides
-11. **.claude/skills/** - 38 Claude Code skills
+11. **.claude/skills/** - 43 Claude Code skills
 
 ---
 
@@ -1027,11 +1028,11 @@ Web search capabilities are available through Rube MCP's LINKUP_SEARCH tool:
 
 ## Skills System
 
-SuperClaude includes 38 active Claude Code skills in `.claude/skills/`:
+SuperClaude includes 43 active Claude Code skills in `.claude/skills/`:
 
 ```mermaid
 flowchart TB
-    subgraph Skills[".claude/skills/ (38 active)"]
+    subgraph Skills[".claude/skills/ (43 active)"]
         subgraph Agent["Agent Skills (8)"]
             A1["agent-data-engineer"]
             A2["agent-fullstack-developer"]
@@ -1072,6 +1073,15 @@ flowchart TB
             C26["sc-worktree"]
         end
 
+        subgraph GitNexus["GitNexus Skills (6)"]
+            G1["gitnexus-cli"]
+            G2["gitnexus-exploring"]
+            G3["gitnexus-guide"]
+            G4["gitnexus-impact-analysis"]
+            G5["gitnexus-debugging"]
+            G6["gitnexus-refactoring"]
+        end
+
         subgraph Utility["Utility Skills (3)"]
             U1["ask<br/>(single-select)"]
             U2["ask-multi<br/>(multi-select)"]
@@ -1101,7 +1111,8 @@ flowchart TB
 | Type | Pattern | Count | Purpose |
 |------|---------|-------|---------|
 | Agent Skills | `agent-*` | 8 | Specialized personas for domains |
-| Command Skills | `sc-*` | 27 | Structured workflow implementations |
+| Command Skills | `sc-*` | 26 | Structured workflow implementations |
+| GitNexus Skills | `gitnexus-*` | 6 | Code intelligence, impact analysis, refactoring |
 | Utility Skills | `ask`, `ask-multi`, `learned` | 3 | User interaction and learning |
 
 ### Skill Architecture
@@ -1804,12 +1815,19 @@ SuperClaude/
 ├── test-sondera-integration.sh  # Sondera integration verification
 │
 ├── .claude/
-│   └── skills/                  # 38 Claude Code skills
+│   └── skills/                  # 43 Claude Code skills
 │       ├── agent-*/             # 8 agent persona skills
 │       │   └── SKILL.md
 │       ├── sc-*/                # 26 command skills
 │       │   ├── SKILL.md
 │       │   └── scripts/         # Optional tool implementations
+│       ├── gitnexus/            # 6 GitNexus code intelligence skills
+│       │   ├── gitnexus-cli/
+│       │   ├── gitnexus-exploring/
+│       │   ├── gitnexus-guide/
+│       │   ├── gitnexus-impact-analysis/
+│       │   ├── gitnexus-debugging/
+│       │   └── gitnexus-refactoring/
 │       ├── ask/                 # Single-select questions
 │       ├── ask-multi/           # Multi-select questions
 │       └── learned/             # Auto-learned skills
@@ -1908,18 +1926,17 @@ SuperClaude/
 │
 ├── tests/                       # Test suite
 │   ├── core/                    # Core module tests
-│   │   ├── test_loop_orchestrator.py
-│   │   ├── test_pal_integration.py
-│   │   ├── test_quality_assessment.py
-│   │   └── test_types.py
+│   ├── github_scripts/          # GitHub Actions script tests
 │   ├── integration/             # Integration tests
-│   │   ├── test_nightly_review.py
-│   │   ├── test_notify_slack.py
-│   │   ├── test_security_consensus.py
-│   │   ├── test_apply_docstrings.py
-│   │   └── test_apply_type_hints.py
+│   ├── scripts/                 # Script unit tests
+│   ├── setup/                   # Setup/installer tests
+│   ├── skills/                  # Skill tests
+│   ├── orchestrator/            # Orchestrator tests
+│   ├── loop/                    # Loop tests
+│   ├── mcp/                     # MCP integration tests
+│   ├── e2e/                     # End-to-end tests
+│   ├── services/                # Service tests
 │   └── fixtures/                # Test data
-│       └── consensus/
 │
 ├── Docs/                        # Documentation
 │   ├── claude-code-reference.md # Claude Code reference guide
@@ -1933,20 +1950,29 @@ SuperClaude/
 
 ## GitHub Workflows
 
-SuperClaude includes 14 GitHub Actions workflows for CI/CD, AI-powered review, and automation:
+SuperClaude includes 23 GitHub Actions workflows for CI/CD, AI-powered review, and automation:
 
 | Workflow | File | Trigger | Purpose |
 |----------|------|---------|---------|
 | CI | `ci.yml` | Push/PR | Linting, tests, validation |
 | AI Code Review | `ai-review.yml` | PR opened | PAL MCP consensus code review |
+| PAL Consensus Review | `pal-consensus-review.yml` | PR | Multi-model consensus code review |
 | Nightly Code Review | `nightly-review.yml` | Cron (2 AM UTC) | Proactive quality monitoring with autofix |
+| Claude Review Phase 1 | `claude-review-phase1.yml` | PR | Initial AI review pass |
+| Claude Review Phase 2 | `claude-review-phase2.yml` | PR | Deep AI review pass |
 | Claude Review Phase 3 | `claude-review-phase3.yml` | PR opened | Draft PR creation with AI suggestions |
 | AI Issue Triage | `ai-issue-triage.yml` | Issue opened | Auto-label and categorize issues |
+| Issue to PR | `issue-to-pr.yml` | Issue labeled | Auto-generate PR from issue |
 | AI Review Cost Monitor | `ai-review-cost-monitor.yml` | Cron (6h) / workflow_run | Track AI spend, budget alerts ($50/day, $1000/month) |
 | Nightly Docs Update | `nightly-docs-update.yml` | Cron (4 AM UTC) | Detect code changes, update docs via Claude CLI |
+| Update Architecture | `update-architecture.yml` | Push/Manual | Auto-update ARCHITECTURE.md |
 | AI Release Notes | `release-notes.yml` | Release created | Generate structured release notes |
 | Commit Notifications | `commit-notifications.yml` | Push to main | Slack notifications via Rube MCP |
 | Security | `security.yml` | Push/PR | Security scanning |
+| Autonomous Code Scanner | `autonomous-code-scanner.yml` | Cron/Manual | Proactive code scanning with autofix |
+| GitNexus Impact | `gitnexus-impact.yml` | PR | PR impact analysis via GitNexus |
+| Package Publish | `package-publish.yml` | Release/Manual | PyPI package publishing |
+| Package Test | `package-test.yml` | Push/PR | Package installation and import testing |
 | Stochastic Evals | `stochastic-evals.yml` | Manual | LLM evaluation runs |
 | E2E App Generation | `e2e-app-generation.yml` | Manual | End-to-end app generation tests |
 | README Quality Check | `readme-quality-check.yml` | PR | Documentation quality validation |
@@ -2090,5 +2116,5 @@ MIT License - see [LICENSE](LICENSE) for details.
 <p align="center">
   <strong>SuperClaude v7.0.0</strong><br>
   Config-First Meta-Framework for Claude Code<br>
-  <em>19 Agents (5 Core + 7 Traits + 7 Extensions) | 38 Skills | 24 Commands | 6 Modes | Quality-Driven Loops</em>
+  <em>19 Agents (5 Core + 7 Traits + 7 Extensions) | 43 Skills | 27 Commands | 6 Modes | Quality-Driven Loops</em>
 </p>
