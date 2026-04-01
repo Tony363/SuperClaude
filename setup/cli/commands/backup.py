@@ -293,7 +293,9 @@ def create_backup(args: argparse.Namespace) -> bool:
             with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as temp_file:
                 json.dump(metadata, temp_file, indent=2)
                 temp_file.flush()
+            try:
                 tar.add(temp_file.name, arcname="backup_metadata.json")
+            finally:
                 Path(temp_file.name).unlink()  # Clean up temp file
 
             # Add installation directory contents (excluding backups and local dirs)
@@ -484,7 +486,9 @@ def run(args: argparse.Namespace) -> int:
     expected_home = Path.home().resolve()
     actual_dir = args.install_dir.resolve()
 
-    if not str(actual_dir).startswith(str(expected_home)):
+    try:
+        actual_dir.relative_to(expected_home)
+    except ValueError:
         print("\n[✗] Installation must be inside your user profile directory.")
         print(f"    Expected prefix: {expected_home}")
         print(f"    Provided path:   {actual_dir}")

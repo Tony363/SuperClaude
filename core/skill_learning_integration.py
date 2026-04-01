@@ -355,16 +355,25 @@ class LearningLoopOrchestrator(LoopOrchestrator):
         initial_quality = (
             result.iteration_history[0].input_quality if result.iteration_history else 0.0
         )
-        quality_impact = final_quality - initial_quality
+        total_quality_impact = final_quality - initial_quality
         was_helpful = result.termination_reason == TerminationReason.QUALITY_MET
+
+        # Distribute quality impact across applied skills rather than
+        # attributing the full impact to each skill individually
+        num_skills = len(self._applied_skills)
+        per_skill_impact = total_quality_impact / num_skills if num_skills > 0 else 0.0
 
         for skill in self._applied_skills:
             self.store.record_skill_application(
                 skill_id=skill.skill_id,
                 session_id=self.session_id,
                 was_helpful=was_helpful,
-                quality_impact=quality_impact,
-                feedback=f"Final quality: {final_quality:.1f}, Termination: {result.termination_reason.value}",
+                quality_impact=per_skill_impact,
+                feedback=(
+                    f"Final quality: {final_quality:.1f}, "
+                    f"Termination: {result.termination_reason.value}, "
+                    f"Skills applied: {num_skills}"
+                ),
             )
 
 

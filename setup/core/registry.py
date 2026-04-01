@@ -5,6 +5,7 @@ Component registry for auto-discovery and dependency resolution
 import importlib
 import inspect
 from pathlib import Path
+from typing import Any
 
 from ..utils.logger import get_logger
 from .base import Component
@@ -372,7 +373,7 @@ class ComponentRegistry:
 
         return instances
 
-    def get_registry_info(self) -> dict[str, any]:
+    def get_registry_info(self) -> dict[str, Any]:
         """
         Get comprehensive registry information
 
