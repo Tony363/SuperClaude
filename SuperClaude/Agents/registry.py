@@ -201,10 +201,19 @@ class AgentRegistry:
                     else:  # trait
                         config["priority"] = 0  # Traits don't participate in selection
 
-                # Store agent
+                # Store agent (skip if name already registered by a higher-priority tier)
                 if tier == "trait":
                     self._traits[name] = config
                 else:
+                    if name in self._agents:
+                        existing = self._agents[name]
+                        self.logger.warning(
+                            f"Agent name collision: '{name}' from {tier} tier "
+                            f"({md_file.name}) conflicts with existing "
+                            f"{existing['tier']} tier ({Path(existing['file_path']).name}). "
+                            f"Keeping {existing['tier']} agent."
+                        )
+                        continue
                     self._agents[name] = config
 
                 # Track by tier

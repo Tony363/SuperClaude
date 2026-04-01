@@ -161,6 +161,76 @@ class TestLearningLoopOrchestrator:
         assert learning_orchestrator.repo_path is not None
         assert len(learning_orchestrator.repo_path) > 0
 
+    def test_record_skill_effectiveness_distributes_impact(
+        self, learning_orchestrator, sample_skill
+    ):
+        """Quality impact should be divided across applied skills, not duplicated."""
+        from unittest.mock import MagicMock
+
+        from core.types import IterationResult, LoopResult, QualityAssessment, TerminationReason
+
+        # Simulate 3 applied skills
+        skill2 = LearnedSkill(
+            skill_id="skill-002",
+            name="Skill 2",
+            description="Second",
+            triggers=["x"],
+            domain="testing",
+            source_session="s",
+            source_repo="/r",
+            learned_at="2025-01-01T00:00:00Z",
+            patterns=[],
+            anti_patterns=[],
+            quality_score=80.0,
+            iteration_count=2,
+            provenance={},
+            applicability_conditions=[],
+            promoted=False,
+            promotion_reason="",
+        )
+        skill3 = LearnedSkill(
+            skill_id="skill-003",
+            name="Skill 3",
+            description="Third",
+            triggers=["y"],
+            domain="testing",
+            source_session="s",
+            source_repo="/r",
+            learned_at="2025-01-01T00:00:00Z",
+            patterns=[],
+            anti_patterns=[],
+            quality_score=80.0,
+            iteration_count=2,
+            provenance={},
+            applicability_conditions=[],
+            promoted=False,
+            promotion_reason="",
+        )
+        learning_orchestrator._applied_skills = [sample_skill, skill2, skill3]
+
+        # Create a LoopResult with 30 points of improvement
+        result = LoopResult(
+            final_output={},
+            final_assessment=QualityAssessment(overall_score=90.0, passed=True, threshold=70.0),
+            iteration_history=[
+                IterationResult(iteration=0, input_quality=60.0, output_quality=75.0),
+                IterationResult(iteration=1, input_quality=75.0, output_quality=90.0),
+            ],
+            termination_reason=TerminationReason.QUALITY_MET,
+            total_iterations=2,
+            total_time=10.0,
+        )
+
+        # Mock the store to capture calls
+        learning_orchestrator.store = MagicMock()
+        learning_orchestrator._record_skill_effectiveness(result)
+
+        # Each skill should get 1/3 of the total impact (30/3 = 10)
+        assert learning_orchestrator.store.record_skill_application.call_count == 3
+        for c in learning_orchestrator.store.record_skill_application.call_args_list:
+            assert c.kwargs["quality_impact"] == pytest.approx(10.0)
+            assert c.kwargs["was_helpful"] is True
+
 
 # --- Utility Function Tests ---
 

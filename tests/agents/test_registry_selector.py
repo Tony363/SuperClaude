@@ -264,6 +264,35 @@ class TestAgentRegistryDiscovery:
         registry.discover_agents()
         assert registry.get_trait_config("missing") is None
 
+    def test_extension_does_not_overwrite_core_agent(self, tmp_path):
+        """Extension with same name as core agent should be skipped."""
+        from SuperClaude.Agents.registry import AgentRegistry
+
+        self._create_agent(tmp_path / "core", "shared-name", category="core-cat")
+        self._create_agent(tmp_path / "extensions", "shared-name", category="ext-cat")
+
+        registry = AgentRegistry(agents_dir=tmp_path)
+        registry.discover_agents()
+        config = registry.get_agent_config("shared-name")
+        assert config is not None
+        assert config["tier"] == "core"
+        assert config["category"] == "core-cat"
+
+    def test_name_collision_preserves_count(self, tmp_path):
+        """Colliding extension should not inflate agent count."""
+        from SuperClaude.Agents.registry import AgentRegistry
+
+        self._create_agent(tmp_path / "core", "duplicated")
+        self._create_agent(tmp_path / "extensions", "duplicated")
+        self._create_agent(tmp_path / "extensions", "unique-ext")
+
+        registry = AgentRegistry(agents_dir=tmp_path)
+        registry.discover_agents()
+        all_agents = registry.get_all_agents()
+        # "duplicated" should appear only once (core kept, extension skipped)
+        assert all_agents.count("duplicated") == 1
+        assert "unique-ext" in all_agents
+
 
 # --- SelectionResult Tests ---
 
