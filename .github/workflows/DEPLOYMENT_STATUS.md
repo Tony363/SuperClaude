@@ -4,94 +4,52 @@
 
 All components have been successfully implemented and are ready for deployment.
 
-### Files Created (7 total, ~70KB)
+### Files
 
-#### Workflow Files (4)
-| File | Size | Purpose | Cost/PR | Latency |
-|------|------|---------|---------|---------|
-| `claude-review-phase1.yml` | 3.6K | Comment-only review | ~$1.50 | 2-5 min |
-| `claude-review-phase2.yml` | 9.8K | Selective consensus | $1.50-$5 | 5-13 min |
-| `claude-review-phase3.yml` | 14K | Draft PR creation | $3-$8 | 8-20 min |
-| `ai-review-cost-monitor.yml` | 9.4K | Cost tracking & alerts | N/A | N/A |
+#### Workflow Files
+| File | Purpose | Cost/PR | Latency |
+|------|---------|---------|---------|
+| `ai-code-review.yml` | Consolidated review + consensus + autofix | $1.50-$8 | 2-20 min |
+| `ai-review-cost-monitor.yml` | Cost tracking & alerts | N/A | N/A |
 
-#### Setup & Documentation (3)
-| File | Size | Purpose |
-|------|------|---------|
-| `setup-claude-review.sh` | 13K | Automated setup script (executable) |
-| `CLAUDE_REVIEW_SETUP.md` | 12K | Comprehensive setup guide |
-| `README_CLAUDE_REVIEW.md` | 9.2K | Quick start guide |
+#### Setup & Documentation
+| File | Purpose |
+|------|---------|
+| `setup-claude-review.sh` | Automated setup script (executable) |
+| `CLAUDE_REVIEW_SETUP.md` | Comprehensive setup guide |
+| `README_CLAUDE_REVIEW.md` | Quick start guide |
 
 ---
 
-## 🚀 Quick Start (< 5 minutes)
+## Quick Start
 
 ```bash
-# Run automated setup
-cd .github/workflows
-bash setup-claude-review.sh
+bash .github/workflows/setup-claude-review.sh
 ```
 
-The script will guide you through:
-1. ✅ Installing Claude GitHub App
-2. ✅ Configuring secrets (Claude OAuth, PAL MCP API keys)
-3. ✅ Selecting which phase to install
-4. ✅ Creating test PR
-
----
-
-## 📋 Manual Setup (if preferred)
-
-### Step 1: Choose Your Phase
-
-**Recommendation**: Start with Phase 1 for 2-4 weeks, then graduate to Phase 2/3.
+Or manually configure:
 
 ```bash
-# Phase 1: Safest starting point
-cp claude-review-phase1.yml claude-review.yml
+# Required — at least one Claude API provider
+gh secret set ANTHROPIC_API_KEY
+# or
+gh secret set AWS_BEARER_TOKEN_BEDROCK
+gh secret set AWS_REGION
 
-# Phase 2: Add selective consensus (requires PAL MCP)
-cp claude-review-phase2.yml claude-review.yml
-
-# Phase 3: Automated draft PRs (requires PAL MCP + PAT)
-cp claude-review-phase3.yml claude-review.yml
-```
-
-### Step 2: Configure GitHub Secrets
-
-```bash
-# Required for all phases
-gh secret set CLAUDE_CODE_OAUTH_TOKEN
-# Get from: https://claude.com/console
-
-# Required for Phase 2 & 3 (PAL MCP)
+# Optional — for multi-model consensus
 gh secret set PAL_MCP_API_KEY
 gh secret set PAL_MCP_ENDPOINT
-
-# Phase 3: PAT_TOKEN no longer required (GITHUB_TOKEN is used for PR creation)
 ```
 
-### Step 3: Install Claude GitHub App
-
-1. Visit: https://github.com/apps/claude/installations/new
-2. Select this repository
-3. Grant permissions:
-   - Read: Contents, Issues, Pull Requests
-   - Write: Contents (Phase 3 only), Issues, Pull Requests
-
-### Step 4: Test It
+### Test It
 
 ```bash
-# Create test PR
 git checkout -b test/ai-review
 echo "# AI Review Test" >> test-file.md
 git add test-file.md
 git commit -m "test: trigger AI review"
 git push origin test/ai-review
 gh pr create --title "Test: AI Review" --body "Testing integration"
-
-# Phase 1: Check for review comment
-# Phase 2: Add 'ai-consensus' label to trigger multi-model
-# Phase 3: Wait for draft PR to be created
 ```
 
 ---
@@ -327,8 +285,8 @@ gh secret set PAL_MCP_API_KEY
 - [ ] Run `setup-claude-review.sh` OR manually configure secrets
 - [ ] Install Claude GitHub App with proper permissions
 - [ ] Choose starting phase (recommend Phase 1)
-- [ ] Copy workflow file: `cp claude-review-phase1.yml claude-review.yml`
-- [ ] Commit and push: `git add .github/workflows/ && git commit -m "feat: add AI code review workflows"`
+- [ ] Verify `ai-code-review.yml` exists in `.github/workflows/`
+- [ ] Commit and push: `git add .github/workflows/ && git commit -m "feat: add AI code review workflow"`
 - [ ] Create test PR to verify integration
 - [ ] Monitor cost with `ai-review-cost-monitor.yml` workflow
 - [ ] Update CLAUDE.md with project-specific review guidelines (optional)
