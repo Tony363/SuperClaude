@@ -171,26 +171,15 @@ install_workflows() {
     # Create workflows directory if it doesn't exist
     mkdir -p .github/workflows
 
-    case $PHASE in
-        phase1)
-            cp .github/workflows/claude-review-phase1.yml .github/workflows/claude-review.yml
-            success "Installed Phase 1 workflow"
-            ;;
-        phase2)
-            cp .github/workflows/claude-review-phase2.yml .github/workflows/claude-review.yml
-            success "Installed Phase 2 workflow"
-            ;;
-        phase3)
-            cp .github/workflows/claude-review-phase3.yml .github/workflows/claude-review.yml
-            success "Installed Phase 3 workflow"
-            ;;
-        all)
-            # Keep all phase files with their original names
-            success "All phase workflows available"
-            ;;
-    esac
+    # The consolidated workflow (ai-code-review.yml) is already in place
+    if [ -f .github/workflows/ai-code-review.yml ]; then
+        success "Consolidated AI code review workflow found"
+    else
+        error "ai-code-review.yml not found in .github/workflows/"
+        exit 1
+    fi
 
-    # Install cost monitor
+    # Cost monitor
     if [ -f .github/workflows/ai-review-cost-monitor.yml ]; then
         success "Cost monitor workflow available"
     else
