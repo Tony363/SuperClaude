@@ -26,10 +26,10 @@ jobs:
 
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v6
+      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6
 
     - name: Set up Python
-      uses: actions/setup-python@v6
+      uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405  # v6
       with:
         python-version: '3.11'
 
@@ -41,7 +41,7 @@ jobs:
 
     - name: Upload quality report
       if: always()
-      uses: actions/upload-artifact@v7
+      uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f  # v7
       with:
         name: readme-quality-report
         path: readme-quality-report.json
@@ -49,7 +49,7 @@ jobs:
 
     - name: Comment PR (if applicable)
       if: github.event_name == 'pull_request' && always()
-      uses: actions/github-script@v8
+      uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd  # v8
       with:
         script: |
           const fs = require('fs');
