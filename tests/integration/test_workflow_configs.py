@@ -156,15 +156,17 @@ class TestAICodeReviewWorkflow:
     def test_preflight_checks_high_stakes_files(self, ai_code_review_config):
         """Preflight job detects high-stakes files for consensus."""
         steps = ai_code_review_config["jobs"]["preflight"]["steps"]
-        check_step = None
+        gate_step = None
         for step in steps:
-            if "high-stakes" in step.get("name", "").lower() or "high_stakes" in step.get("id", ""):
-                check_step = step
+            if step.get("id") == "gate" or "evaluate" in step.get("name", "").lower():
+                gate_step = step
                 break
-        assert check_step is not None, "High-stakes detection step not found"
-        run_script = check_step["run"]
-        # Should check for workflow files
+        assert gate_step is not None, "Evaluate gates step not found"
+        run_script = gate_step["run"]
+        # Should check for workflow files in high-stakes patterns
         assert ".github/workflows/" in run_script
+        # Should output should_consensus
+        assert "should_consensus" in run_script.lower()
 
     def test_autofix_blocks_protected_files(self, ai_code_review_config):
         """Autofix job prevents modifications to protected files."""
