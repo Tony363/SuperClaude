@@ -19,18 +19,18 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6
         with:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f  # v6
         with:
           node-version: '20'
 
       - name: Cache GitNexus index
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830  # v4
         with:
           path: .gitnexus
           key: gitnexus-${{ runner.os }}-${{ github.base_ref }}
@@ -53,7 +53,7 @@ jobs:
           echo "$REPORT" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Post or update PR comment
-        uses: actions/github-script@v8
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd  # v8
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
