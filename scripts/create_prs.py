@@ -15,18 +15,31 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 CATEGORY_LABELS = {
-    "security": ["nightly-review", "security", "ai-generated"],
-    "quality": ["nightly-review", "quality", "ai-generated"],
-    "performance": ["nightly-review", "performance", "ai-generated"],
-    "tests": ["nightly-review", "tests", "ai-generated"],
+    "security": ["nightly-review", "security", "ai-generated", "skip-ci-review"],
+    "quality": ["nightly-review", "quality", "ai-generated", "skip-ci-review"],
+    "performance": ["nightly-review", "performance", "ai-generated", "skip-ci-review"],
+    "tests": ["nightly-review", "tests", "ai-generated", "skip-ci-review"],
 }
 
 # Phase 2: Autofix PR labels (distinct from suggestion-only)
 AUTOFIX_CATEGORY_LABELS = {
-    "security": ["nightly-review-autofix", "security", "ai-generated", "autofix"],
-    "quality": ["nightly-review-autofix", "quality", "ai-generated", "autofix", "formatting"],
-    "performance": ["nightly-review-autofix", "performance", "ai-generated", "autofix"],
-    "tests": ["nightly-review-autofix", "tests", "ai-generated", "autofix"],
+    "security": ["nightly-review-autofix", "security", "ai-generated", "autofix", "skip-ci-review"],
+    "quality": [
+        "nightly-review-autofix",
+        "quality",
+        "ai-generated",
+        "autofix",
+        "formatting",
+        "skip-ci-review",
+    ],
+    "performance": [
+        "nightly-review-autofix",
+        "performance",
+        "ai-generated",
+        "autofix",
+        "skip-ci-review",
+    ],
+    "tests": ["nightly-review-autofix", "tests", "ai-generated", "autofix", "skip-ci-review"],
 }
 
 
