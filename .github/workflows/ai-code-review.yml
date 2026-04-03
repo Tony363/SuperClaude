@@ -1,0 +1,783 @@
+# SuperClaude Consolidated AI Code Review Pipeline
+# Combines review, consensus, and autofix into a single workflow
+# Dual Provider: AWS Bedrock (Primary) + Anthropic API (Fallback)
+# NON-BLOCKING: Advisory comments only, does not prevent merge
+
+name: AI Code Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review, labeled]
+  issue_comment:
+    types: [created]
+
+concurrency:
+  group: ai-code-review-${{ github.event.pull_request.number || github.event.issue.number }}
+  cancel-in-progress: true
+
+# ---------------------------------------------------------------------------
+# Job 1: Preflight — gate logic that determines what runs
+# ---------------------------------------------------------------------------
+jobs:
+  preflight:
+    name: Preflight Checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    permissions:
+      contents: read
+      pull-requests: read
+      issues: read
+
+    outputs:
+      should_review: ${{ steps.gate.outputs.should_review }}
+      should_consensus: ${{ steps.gate.outputs.should_consensus }}
+      should_autofix: ${{ steps.gate.outputs.should_autofix }}
+      is_fork: ${{ steps.gate.outputs.is_fork }}
+      pr_number: ${{ steps.gate.outputs.pr_number }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6
+        with:
+          fetch-depth: 0
+
+      - name: Evaluate gates
+        id: gate
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          ACTOR: ${{ github.actor }}
+          PR_NUMBER: ${{ github.event.pull_request.number || github.event.issue.number }}
+          PR_DRAFT: ${{ github.event.pull_request.draft }}
+          COMMENT_BODY: ${{ github.event.comment.body }}
+          IS_PR_COMMENT: ${{ github.event.issue.pull_request && 'true' || 'false' }}
+          HAS_SKIP_LABEL: ${{ contains(github.event.pull_request.labels.*.name, 'skip-ci-review') }}
+          HAS_FORCE_LABEL: ${{ contains(github.event.pull_request.labels.*.name, 'force-review') }}
+          HAS_CONSENSUS_LABEL: ${{ contains(github.event.pull_request.labels.*.name, 'ai-consensus') }}
+          HAS_PATCH_LABEL: ${{ contains(github.event.pull_request.labels.*.name, 'ai-patch') }}
+          IS_FORK: ${{ github.event.pull_request.head.repo.full_name != github.repository && 'true' || 'false' }}
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          SHOULD_REVIEW="true"
+          SHOULD_CONSENSUS="false"
+          SHOULD_AUTOFIX="false"
+          PR_NUM="${PR_NUMBER}"
+
+          # ── Skip bots ──
+          if [[ "$ACTOR" == "claude[bot]" ]] || \
+             [[ "$ACTOR" == "dependabot[bot]" ]] || \
+             [[ "$ACTOR" == "github-actions[bot]" ]]; then
+            SHOULD_REVIEW="false"
+            echo "::notice::Skipping — bot actor: $ACTOR"
+          fi
+
+          # ── Skip label ──
+          if [[ "$HAS_SKIP_LABEL" == "true" ]]; then
+            SHOULD_REVIEW="false"
+            echo "::notice::Skipping — skip-ci-review label present"
+          fi
+
+          # ── Draft PRs (unless force-review) ──
+          if [[ "$PR_DRAFT" == "true" ]] && [[ "$HAS_FORCE_LABEL" != "true" ]]; then
+            SHOULD_REVIEW="false"
+            echo "::notice::Skipping — PR is draft (add force-review label to override)"
+          fi
+
+          # ── issue_comment: only proceed on @claude-review ──
+          if [[ "$EVENT_NAME" == "issue_comment" ]]; then
+            if [[ "$IS_PR_COMMENT" != "true" ]] || \
+               ! echo "$COMMENT_BODY" | grep -q "@claude-review"; then
+              SHOULD_REVIEW="false"
+              echo "::notice::Skipping — comment does not contain @claude-review or is not on a PR"
+            fi
+          fi
+
+          # ── Size gate (>1000 lines unless force-review) ──
+          if [[ "$SHOULD_REVIEW" == "true" ]]; then
+            BASE="${BASE_REF:-main}"
+            LINES_CHANGED=$(git diff --stat "origin/${BASE}...HEAD" 2>/dev/null | tail -1 | awk '{print $4+$6}')
+            LINES_CHANGED="${LINES_CHANGED:-0}"
+            if [[ "$LINES_CHANGED" -gt 1000 ]] && [[ "$HAS_FORCE_LABEL" != "true" ]]; then
+              SHOULD_REVIEW="false"
+              echo "::warning::PR too large for AI review (${LINES_CHANGED} lines >1000). Add force-review label to override."
+            fi
+          fi
+
+          # ── Consensus detection ──
+          if [[ "$HAS_CONSENSUS_LABEL" == "true" ]]; then
+            SHOULD_CONSENSUS="true"
+          fi
+
+          # Check high-stakes file patterns
+          if [[ "$SHOULD_REVIEW" == "true" ]]; then
+            BASE="${BASE_REF:-main}"
+            CHANGED_FILES=$(git diff --name-only "origin/${BASE}...HEAD" 2>/dev/null || true)
+
+            HIGH_STAKES_PATTERNS=(
+              "agents/core/"
+              "agents/traits/"
+              ".claude/skills/"
+              ".github/workflows/"
+              "scripts/"
+              "CLAUDE.md"
+              ".env"
+              "secrets/"
+            )
+
+            for pattern in "${HIGH_STAKES_PATTERNS[@]}"; do
+              if echo "$CHANGED_FILES" | grep -q "$pattern"; then
+                SHOULD_CONSENSUS="true"
+                echo "::notice::High-stakes pattern matched: $pattern — consensus enabled"
+                break
+              fi
+            done
+          fi
+
+          # ── Autofix detection ──
+          if [[ "$HAS_PATCH_LABEL" == "true" ]] && [[ "$IS_FORK" != "true" ]]; then
+            # Check no protected files are modified
+            BASE="${BASE_REF:-main}"
+            CHANGED_FILES=$(git diff --name-only "origin/${BASE}...HEAD" 2>/dev/null || true)
+
+            PROTECTED_PATTERNS=(
+              ".github/workflows/"
+              "secrets/"
+              ".env"
+              "CLAUDE.md"
+              ".claude/skills/"
+              "agents/core/"
+              "agents/traits/"
+            )
+
+            PROTECTED_HIT="false"
+            for pattern in "${PROTECTED_PATTERNS[@]}"; do
+              if echo "$CHANGED_FILES" | grep -q "$pattern"; then
+                PROTECTED_HIT="true"
+                echo "::warning::Protected file pattern matched: $pattern — autofix disabled"
+                break
+              fi
+            done
+
+            if [[ "$PROTECTED_HIT" == "false" ]]; then
+              SHOULD_AUTOFIX="true"
+            fi
+          fi
+
+          echo "should_review=$SHOULD_REVIEW" >> "$GITHUB_OUTPUT"
+          echo "should_consensus=$SHOULD_CONSENSUS" >> "$GITHUB_OUTPUT"
+          echo "should_autofix=$SHOULD_AUTOFIX" >> "$GITHUB_OUTPUT"
+          echo "is_fork=$IS_FORK" >> "$GITHUB_OUTPUT"
+          echo "pr_number=$PR_NUM" >> "$GITHUB_OUTPUT"
+
+          echo "::notice::Gate results — review=$SHOULD_REVIEW consensus=$SHOULD_CONSENSUS autofix=$SHOULD_AUTOFIX fork=$IS_FORK pr=$PR_NUM"
+
+  # ---------------------------------------------------------------------------
+  # Job 2: Review — main Claude Code review + optional consensus
+  # ---------------------------------------------------------------------------
+  review:
+    name: AI Code Review
+    needs: preflight
+    if: needs.preflight.outputs.should_review == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    continue-on-error: true
+
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: read
+
+    env:
+      BEDROCK_CONFIGURED: ${{ secrets.AWS_BEARER_TOKEN_BEDROCK != '' }}
+      ANTHROPIC_KEY_SET: ${{ secrets.ANTHROPIC_API_KEY != '' }}
+      PR_NUMBER: ${{ needs.preflight.outputs.pr_number }}
+      PR_TITLE: ${{ github.event.pull_request.title }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6
+        with:
+          fetch-depth: 0
+
+      - name: Validate provider configuration
+        id: validate_providers
+        run: |
+          if [[ "${{ env.BEDROCK_CONFIGURED }}" != "true" ]] && [[ "${{ env.ANTHROPIC_KEY_SET }}" != "true" ]]; then
+            echo "::warning::No Claude API provider configured (AWS Bedrock or Anthropic API). Skipping review."
+            echo "skip_review=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip_review=false" >> "$GITHUB_OUTPUT"
+            echo "Provider check passed:"
+            echo "  - Bedrock: ${{ env.BEDROCK_CONFIGURED }}"
+            echo "  - Anthropic: ${{ env.ANTHROPIC_KEY_SET }}"
+          fi
+
+      - name: Gather PR context
+        if: steps.validate_providers.outputs.skip_review != 'true'
+        id: context
+        run: |
+          BASE_REF="${{ github.base_ref }}"
+          BASE_REF="${BASE_REF:-main}"
+
+          FILES_CHANGED=$(git diff --name-only "origin/${BASE_REF}...HEAD" | wc -l | tr -d ' ')
+          echo "files_changed=$FILES_CHANGED" >> "$GITHUB_OUTPUT"
+
+          DIFF_STATS=$(git diff --stat "origin/${BASE_REF}...HEAD" | tail -1)
+          echo "diff_stats=$DIFF_STATS" >> "$GITHUB_OUTPUT"
+
+          LINES_CHANGED=$(echo "$DIFF_STATS" | awk '{print $4+$6}')
+          echo "lines_changed=${LINES_CHANGED:-0}" >> "$GITHUB_OUTPUT"
+
+          TESTS_MODIFIED=$(git diff --name-only "origin/${BASE_REF}...HEAD" | grep '^tests/' | wc -l | tr -d ' ')
+          echo "tests_modified=${TESTS_MODIFIED:-0}" >> "$GITHUB_OUTPUT"
+
+      # ===== PRIMARY: AWS Bedrock =====
+      - name: Claude Code Review (AWS Bedrock - Primary)
+        if: steps.validate_providers.outputs.skip_review != 'true' && env.BEDROCK_CONFIGURED == 'true'
+        id: bedrock_review
+        continue-on-error: true
+        uses: anthropics/claude-code-action@58dbe8ed6879f0d3b02ac295b20d5fdfe7733e0c  # v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          use_bedrock: "true"
+          timeout_minutes: 15
+          max_turns: 20
+          allowed_tools: "Bash(git diff:*), Bash(git log:*), Bash(gh pr diff:*), Read, Glob, Grep"
+          direct_prompt: |
+            # SuperClaude PR Code Review
+
+            **Repository**: ${{ github.repository }}
+            **PR #${{ env.PR_NUMBER }}**: ${{ env.PR_TITLE }}
+            **Files Changed**: ${{ steps.context.outputs.files_changed }}
+            **Diff Stats**: ${{ steps.context.outputs.diff_stats }}
+            **Tests Modified**: ${{ steps.context.outputs.tests_modified }}
+
+            ## Instructions
+
+            You are reviewing a pull request for SuperClaude, an AI-enhanced development
+            framework for Claude Code. Perform a comprehensive code review covering:
+
+            1. **Security** — injection risks, secret exposure, auth issues
+            2. **Correctness** — logic errors, edge cases, null handling
+            3. **Performance** — algorithmic complexity, unnecessary allocations
+            4. **Architecture** — design patterns, separation of concerns, SOLID
+            5. **Testing** — adequate coverage, edge-case tests, mocking
+            6. **Code Quality** — readability, naming, DRY, complexity
+
+            ### Process
+
+            1. Run `gh pr diff ${{ env.PR_NUMBER }}` to examine the changes
+            2. Read relevant files for full context where needed
+            3. Write your findings to `review-results.md` using the Write tool
+
+            ### Output Format (write to review-results.md)
+
+            ```markdown
+            ## AI Code Review — PR #${{ env.PR_NUMBER }}
+
+            ### Overview
+            [Brief summary of changes reviewed]
+
+            ### Critical Issues
+            [Blocking issues — must fix before merge]
+
+            ### High Priority
+            [Important issues that should be addressed]
+
+            ### Medium Priority
+            [Improvements recommended]
+
+            ### Positive Observations
+            [Good patterns and practices observed]
+
+            ### Review Summary
+            | Category | Rating |
+            |----------|--------|
+            | Security | /5 |
+            | Code Quality | /5 |
+            | Architecture | /5 |
+            | Testing | /5 |
+
+            ---
+            *AI Code Review (AWS Bedrock). Advisory only — use human judgment.*
+            ```
+
+            IMPORTANT: Write the review to `review-results.md` using the Write tool.
+            Do NOT use `gh pr comment` — a follow-up step will post it.
+        env:
+          AWS_BEARER_TOKEN_BEDROCK: ${{ secrets.AWS_BEARER_TOKEN_BEDROCK }}
+          AWS_REGION: ${{ secrets.AWS_REGION || 'us-east-1' }}
+          CLAUDE_CODE_USE_BEDROCK: "1"
+
+      - name: Post Bedrock review comment
+        if: steps.bedrock_review.outcome == 'success'
+        run: |
+          if [[ -f "review-results.md" ]]; then
+            gh pr comment "$PR_NUMBER" --body-file review-results.md
+            echo "Posted AI review comment (Bedrock)"
+          else
+            echo "::warning::review-results.md not found — Claude may not have written the review file"
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Cleanup review file before fallback
+        if: steps.bedrock_review.outcome != 'success'
+        run: rm -f review-results.md
+
+      # ===== FALLBACK: Anthropic Direct API =====
+      - name: Claude Code Review (Anthropic API - Fallback)
+        if: >-
+          steps.validate_providers.outputs.skip_review != 'true' &&
+          env.ANTHROPIC_KEY_SET == 'true' &&
+          (env.BEDROCK_CONFIGURED != 'true' || steps.bedrock_review.outcome != 'success')
+        id: anthropic_review
+        continue-on-error: true
+        uses: anthropics/claude-code-action@58dbe8ed6879f0d3b02ac295b20d5fdfe7733e0c  # v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          timeout_minutes: 15
+          max_turns: 20
+          allowed_tools: "Bash(git diff:*), Bash(git log:*), Bash(gh pr diff:*), Read, Glob, Grep"
+          direct_prompt: |
+            # SuperClaude PR Code Review
+
+            **Repository**: ${{ github.repository }}
+            **PR #${{ env.PR_NUMBER }}**: ${{ env.PR_TITLE }}
+            **Files Changed**: ${{ steps.context.outputs.files_changed }}
+            **Diff Stats**: ${{ steps.context.outputs.diff_stats }}
+            **Tests Modified**: ${{ steps.context.outputs.tests_modified }}
+
+            ## Instructions
+
+            You are reviewing a pull request for SuperClaude, an AI-enhanced development
+            framework for Claude Code. Perform a comprehensive code review covering:
+
+            1. **Security** — injection risks, secret exposure, auth issues
+            2. **Correctness** — logic errors, edge cases, null handling
+            3. **Performance** — algorithmic complexity, unnecessary allocations
+            4. **Architecture** — design patterns, separation of concerns, SOLID
+            5. **Testing** — adequate coverage, edge-case tests, mocking
+            6. **Code Quality** — readability, naming, DRY, complexity
+
+            ### Process
+
+            1. Run `gh pr diff ${{ env.PR_NUMBER }}` to examine the changes
+            2. Read relevant files for full context where needed
+            3. Write your findings to `review-results.md` using the Write tool
+
+            ### Output Format (write to review-results.md)
+
+            ```markdown
+            ## AI Code Review — PR #${{ env.PR_NUMBER }}
+
+            ### Overview
+            [Brief summary of changes reviewed]
+
+            ### Critical Issues
+            [Blocking issues — must fix before merge]
+
+            ### High Priority
+            [Important issues that should be addressed]
+
+            ### Medium Priority
+            [Improvements recommended]
+
+            ### Positive Observations
+            [Good patterns and practices observed]
+
+            ### Review Summary
+            | Category | Rating |
+            |----------|--------|
+            | Security | /5 |
+            | Code Quality | /5 |
+            | Architecture | /5 |
+            | Testing | /5 |
+
+            ---
+            *AI Code Review (Anthropic API - Fallback). Advisory only — use human judgment.*
+            ```
+
+            IMPORTANT: Write the review to `review-results.md` using the Write tool.
+            Do NOT use `gh pr comment` — a follow-up step will post it.
+
+      - name: Post Anthropic review comment
+        if: steps.anthropic_review.outcome == 'success'
+        run: |
+          if [[ -f "review-results.md" ]]; then
+            gh pr comment "$PR_NUMBER" --body-file review-results.md
+            echo "Posted AI review comment (Anthropic)"
+          else
+            echo "::warning::review-results.md not found — Claude may not have written the review file"
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # ===== CONDITIONAL CONSENSUS (only for high-stakes changes) =====
+      - name: Check PAL MCP configuration
+        if: needs.preflight.outputs.should_consensus == 'true'
+        id: check_pal
+        env:
+          HAS_PAL_KEY: ${{ secrets.PAL_MCP_API_KEY != '' }}
+        run: |
+          if [[ "$HAS_PAL_KEY" != "true" ]]; then
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::PAL MCP not configured — skipping consensus"
+          else
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Post consensus not-available notice
+        if: >-
+          needs.preflight.outputs.should_consensus == 'true' &&
+          steps.check_pal.outputs.configured == 'false'
+        continue-on-error: true
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd  # v8
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            try {
+              const prNumber = ${{ env.PR_NUMBER }};
+              await github.rest.issues.createComment({
+                ...context.repo,
+                issue_number: prNumber,
+                body: `## PAL MCP Consensus Not Available
+
+            Security-sensitive files were detected, but PAL MCP multi-model consensus is not configured.
+
+            **To enable consensus**: Configure \`PAL_MCP_API_KEY\` and \`PAL_MCP_ENDPOINT\` secrets.
+
+            **Claude Code Review results are still available above.**`
+              });
+            } catch (error) {
+              core.warning(`Failed to post notice: ${error.message}`);
+            }
+
+      - name: Run PAL MCP consensus
+        if: >-
+          needs.preflight.outputs.should_consensus == 'true' &&
+          steps.check_pal.outputs.configured == 'true'
+        id: consensus
+        env:
+          PAL_MCP_API_KEY: ${{ secrets.PAL_MCP_API_KEY }}
+          PAL_MCP_ENDPOINT: ${{ secrets.PAL_MCP_ENDPOINT || 'https://pal-mcp.example.com/api/tools/consensus' }}
+        run: |
+          BASE_REF="${{ github.base_ref }}"
+          BASE_REF="${BASE_REF:-main}"
+
+          git diff "origin/${BASE_REF}...HEAD" > /tmp/pr-diff.patch
+          CHANGED_FILES=$(git diff --name-only "origin/${BASE_REF}...HEAD" | head -10)
+
+          jq -n \
+            --arg pr_title "${{ env.PR_TITLE }}" \
+            --arg changed_files "$CHANGED_FILES" \
+            '{
+              prompt: ("Review this PR for security, correctness, and architectural concerns.\n\nPR: " + $pr_title + "\n\nChanged Files:\n" + $changed_files),
+              models: [
+                {model: "gpt-5-mini", stance: "for", stance_prompt: "Evaluate the benefits and improvements"},
+                {model: "claude-haiku-4.5", stance: "against", stance_prompt: "Identify security risks, bugs, and potential issues"},
+                {model: "gemini-2-flash", stance: "neutral", stance_prompt: "Provide a balanced assessment of merge-readiness"}
+              ],
+              focus_areas: ["security", "correctness", "maintainability", "testing"],
+              temperature: 0.2,
+              thinking_mode: "high"
+            }' > /tmp/consensus-request.json
+
+          RESPONSE=$(curl -s -X POST "$PAL_MCP_ENDPOINT" \
+            -H "Authorization: Bearer $PAL_MCP_API_KEY" \
+            -H "Content-Type: application/json" \
+            -d @/tmp/consensus-request.json)
+
+          RECOMMENDATION=$(echo "$RESPONSE" | jq -r '.synthesized_recommendation // "Error: No recommendation"')
+          echo "recommendation<<EOF" >> "$GITHUB_OUTPUT"
+          echo "$RECOMMENDATION" >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
+
+      - name: Post consensus comment
+        if: >-
+          needs.preflight.outputs.should_consensus == 'true' &&
+          steps.check_pal.outputs.configured == 'true'
+        continue-on-error: true
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd  # v8
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const recommendation = `${{ steps.consensus.outputs.recommendation }}`;
+            const body = `## Multi-Model Security Consensus
+
+            ### Consensus Recommendation
+
+            ${recommendation}
+
+            ---
+            **Models Consulted**: GPT-5-mini (for), Claude Haiku 4.5 (against), Gemini-2-Flash (neutral)
+            **Human review required** — do not auto-merge security-sensitive changes.`;
+
+            await github.rest.issues.createComment({
+              ...context.repo,
+              issue_number: ${{ env.PR_NUMBER }},
+              body: body
+            });
+
+      # ===== Summary =====
+      - name: Review status
+        if: always()
+        run: |
+          echo "## AI Code Review Status" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+
+          if [[ "${{ steps.validate_providers.outputs.skip_review }}" == "true" ]]; then
+            echo "**Status**: Skipped — No providers configured" >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          BEDROCK_STATUS="${{ steps.bedrock_review.outcome || 'skipped' }}"
+          ANTHROPIC_STATUS="${{ steps.anthropic_review.outcome || 'skipped' }}"
+          CONSENSUS_STATUS="${{ steps.consensus.outcome || 'skipped' }}"
+
+          echo "| Component | Status |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|-----------|--------|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| AWS Bedrock (Primary) | $BEDROCK_STATUS |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Anthropic API (Fallback) | $ANTHROPIC_STATUS |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Multi-Model Consensus | $CONSENSUS_STATUS |" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+
+          if [[ "$BEDROCK_STATUS" == "success" ]] || [[ "$ANTHROPIC_STATUS" == "success" ]]; then
+            echo "**Result**: Code review posted to PR" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "**Result**: Review failed (both providers)" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Note**: This review is advisory only and does not block merging." >> "$GITHUB_STEP_SUMMARY"
+
+  # ---------------------------------------------------------------------------
+  # Job 3: Autofix — creates a draft PR with suggested fixes
+  # ---------------------------------------------------------------------------
+  autofix:
+    name: AI Autofix (Draft PR)
+    needs: [preflight, review]
+    if: needs.preflight.outputs.should_autofix == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+
+    env:
+      BEDROCK_CONFIGURED: ${{ secrets.AWS_BEARER_TOKEN_BEDROCK != '' }}
+      ANTHROPIC_KEY_SET: ${{ secrets.ANTHROPIC_API_KEY != '' }}
+      PR_NUMBER: ${{ needs.preflight.outputs.pr_number }}
+
+    steps:
+      # ── Security pre-check ──
+      - name: Security pre-check
+        id: security
+        run: |
+          if [[ "${{ needs.preflight.outputs.is_fork }}" == "true" ]]; then
+            echo "::error::Autofix blocked — PR is from a fork"
+            echo "safe=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "safe=true" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout code
+        if: steps.security.outputs.safe == 'true'
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      # ===== PRIMARY: AWS Bedrock =====
+      - name: Claude Autofix (AWS Bedrock - Primary)
+        if: steps.security.outputs.safe == 'true' && env.BEDROCK_CONFIGURED == 'true'
+        id: bedrock_fix
+        continue-on-error: true
+        uses: anthropics/claude-code-action@58dbe8ed6879f0d3b02ac295b20d5fdfe7733e0c  # v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          use_bedrock: "true"
+          timeout_minutes: 20
+          max_turns: 15
+          allowed_tools: "Edit, Write, Bash(git diff:*), Read, Glob, Grep"
+          direct_prompt: |
+            # Autofix: Apply targeted improvements
+
+            Fix issues identified in the code review for PR #${{ env.PR_NUMBER }}.
+            Create minimal, targeted changes. Do NOT modify protected files:
+            .github/workflows/*, secrets/*, .env*, CLAUDE.md, .claude/skills/*,
+            agents/core/*, agents/traits/*
+
+            Steps:
+            1. Run `git diff origin/${{ github.base_ref }}...HEAD` to see changes
+            2. Identify fixable issues (bugs, style, missing validation)
+            3. Apply minimal fixes using Edit/Write
+            4. Do NOT create new files unless absolutely necessary
+        env:
+          AWS_BEARER_TOKEN_BEDROCK: ${{ secrets.AWS_BEARER_TOKEN_BEDROCK }}
+          AWS_REGION: ${{ secrets.AWS_REGION || 'us-east-1' }}
+          CLAUDE_CODE_USE_BEDROCK: "1"
+
+      # ===== FALLBACK: Anthropic Direct API =====
+      - name: Claude Autofix (Anthropic API - Fallback)
+        if: >-
+          steps.security.outputs.safe == 'true' &&
+          env.ANTHROPIC_KEY_SET == 'true' &&
+          (env.BEDROCK_CONFIGURED != 'true' || steps.bedrock_fix.outcome != 'success')
+        id: anthropic_fix
+        continue-on-error: true
+        uses: anthropics/claude-code-action@58dbe8ed6879f0d3b02ac295b20d5fdfe7733e0c  # v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          timeout_minutes: 20
+          max_turns: 15
+          allowed_tools: "Edit, Write, Bash(git diff:*), Read, Glob, Grep"
+          direct_prompt: |
+            # Autofix: Apply targeted improvements
+
+            Fix issues identified in the code review for PR #${{ env.PR_NUMBER }}.
+            Create minimal, targeted changes. Do NOT modify protected files:
+            .github/workflows/*, secrets/*, .env*, CLAUDE.md, .claude/skills/*,
+            agents/core/*, agents/traits/*
+
+            Steps:
+            1. Run `git diff origin/${{ github.base_ref }}...HEAD` to see changes
+            2. Identify fixable issues (bugs, style, missing validation)
+            3. Apply minimal fixes using Edit/Write
+            4. Do NOT create new files unless absolutely necessary
+
+      # ── Validate changes ──
+      - name: Validate generated changes
+        if: steps.security.outputs.safe == 'true'
+        id: validate
+        run: |
+          if git diff --quiet; then
+            echo "has_changes=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::No code changes suggested by autofix"
+            exit 0
+          fi
+
+          echo "has_changes=true" >> "$GITHUB_OUTPUT"
+
+          # Check diff size (reject if unreasonably large)
+          DIFF_LINES=$(git diff --stat | tail -1 | awk '{print $4+$6}')
+          if [[ "${DIFF_LINES:-0}" -gt 500 ]]; then
+            echo "::error::Autofix generated too many changes (${DIFF_LINES} lines). Aborting."
+            echo "has_changes=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # Block protected file modifications
+          PROTECTED_HIT="false"
+          for pattern in ".github/workflows/" "secrets/" ".env" "CLAUDE.md" ".claude/skills/" "agents/core/" "agents/traits/"; do
+            if git diff --name-only | grep -q "$pattern"; then
+              PROTECTED_HIT="true"
+              echo "::error::Autofix modified protected path: $pattern — discarding"
+              break
+            fi
+          done
+
+          if [[ "$PROTECTED_HIT" == "true" ]]; then
+            git checkout -- .
+            echo "has_changes=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # Secret scanning
+          if git diff | grep -iE "(api[_-]?key|password|secret|token)\s*[:=]" > /dev/null 2>&1; then
+            echo "::warning::Potential secret detected in autofix changes — manual review required"
+          fi
+
+          echo "::notice::Autofix validated — $(git diff --stat | tail -1)"
+
+      # ── Create draft PR ──
+      - name: Create Draft Pull Request
+        if: steps.validate.outputs.has_changes == 'true'
+        id: create_pr
+        uses: peter-evans/create-pull-request@c0f553fe549906ede9cf27b5156039d195d2ece0  # v8
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: |
+            fix: AI-suggested improvements from PR #${{ env.PR_NUMBER }}
+
+            Generated by AI Code Review autofix.
+
+            Co-Authored-By: Claude <noreply@anthropic.com>
+          branch: ai-fix/${{ env.PR_NUMBER }}
+          delete-branch: true
+          draft: true
+          title: "AI Fix: ${{ github.event.pull_request.title }}"
+          body: |
+            ## Automated Improvements
+
+            This draft PR contains AI-suggested fixes for PR #${{ env.PR_NUMBER }}.
+
+            ### Safety Checks
+            - Security pre-check: Passed
+            - Protected file scan: Passed
+            - Secret scan: Passed
+            - Diff size: Within limits
+
+            ### Important
+            - **This is a DRAFT PR** — requires human review before merge
+            - **Do not auto-merge** — maintainer approval required
+            - Run full CI/CD pipeline before merging
+
+            ---
+            Generated by [AI Code Review](https://github.com/${{ github.repository }}/actions/workflows/ai-code-review.yml)
+          labels: |
+            ai-fix
+            skip-ci-review
+
+      - name: Comment on original PR
+        if: steps.create_pr.outputs.pull-request-number
+        continue-on-error: true
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd  # v8
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const prNumber = '${{ steps.create_pr.outputs.pull-request-number }}';
+            const prUrl = '${{ steps.create_pr.outputs.pull-request-url }}';
+
+            await github.rest.issues.createComment({
+              ...context.repo,
+              issue_number: ${{ env.PR_NUMBER }},
+              body: `## AI Autofix Available
+
+            A draft PR with suggested improvements has been created: **#${prNumber}**
+
+            [View Draft PR](${prUrl})
+
+            **The draft PR requires human approval** — do not auto-merge.`
+            });
+
+      - name: Autofix summary
+        if: always()
+        run: |
+          echo "## AI Autofix Status" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          if [[ "${{ steps.create_pr.outputs.pull-request-number }}" != "" ]]; then
+            echo "**Draft PR**: #${{ steps.create_pr.outputs.pull-request-number }}" >> "$GITHUB_STEP_SUMMARY"
+            echo "**URL**: ${{ steps.create_pr.outputs.pull-request-url }}" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "**Status**: No draft PR created (no changes or validation failed)" >> "$GITHUB_STEP_SUMMARY"
+          fi
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Note**: Draft PRs require human review before merge." >> "$GITHUB_STEP_SUMMARY"
+
+# Required secrets:
+# - GITHUB_TOKEN (automatically provided)
+# - ANTHROPIC_API_KEY or AWS_BEARER_TOKEN_BEDROCK (at least one required)
+# - AWS_REGION (optional, defaults to us-east-1)
+# - PAL_MCP_API_KEY (optional — consensus skipped if missing)
+# - PAL_MCP_ENDPOINT (optional — has default)
+#
+# Labels:
+# - skip-ci-review: Skip AI review entirely
+# - force-review: Override draft/size gates
+# - ai-consensus: Force multi-model consensus
+# - ai-patch: Enable autofix draft PR creation

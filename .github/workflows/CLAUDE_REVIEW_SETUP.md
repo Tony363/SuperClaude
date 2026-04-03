@@ -122,32 +122,23 @@ docker-compose up -d
 
 ## Setup Instructions
 
-### Step 1: Choose Your Phase
+### Step 1: Verify Workflow File
 
-Copy the desired workflow file:
-
-```bash
-# Phase 1: Comment-only review
-cp .github/workflows/claude-review-phase1.yml .github/workflows/claude-review.yml
-
-# Phase 2: Selective consensus
-cp .github/workflows/claude-review-phase2.yml .github/workflows/claude-review.yml
-
-# Phase 3: Draft PR creation
-cp .github/workflows/claude-review-phase3.yml .github/workflows/claude-review.yml
-```
+The consolidated workflow is already at `.github/workflows/ai-code-review.yml`.
+No copying needed — all features (review, consensus, autofix) are in one file.
 
 ### Step 2: Add Secrets
 
 ```bash
-# Add Claude OAuth token
-gh secret set CLAUDE_CODE_OAUTH_TOKEN
+# At least one Claude API provider (required)
+gh secret set ANTHROPIC_API_KEY
+# or for AWS Bedrock:
+gh secret set AWS_BEARER_TOKEN_BEDROCK
+gh secret set AWS_REGION
 
-# Phase 2/3: Add PAL MCP credentials
+# PAL MCP credentials (optional — for multi-model consensus)
 gh secret set PAL_MCP_API_KEY
 gh secret set PAL_MCP_ENDPOINT --body "https://your-endpoint.com/api/tools/consensus"
-
-# Phase 3: PAT_TOKEN no longer required (GITHUB_TOKEN is used)
 ```
 
 ### Step 3: Create CLAUDE.md (Optional but Recommended)
