@@ -1,14 +1,18 @@
 #!/usr/bin/env bash
-# generate-architecture.sh — Query GitNexus knowledge graph and generate ARCHITECTURE.md
+# generate-architecture.sh — Update data-driven sections in ARCHITECTURE.md
+# Uses marker-based partial updates to preserve hand-curated content.
 # Usage: bash .github/scripts/generate-architecture.sh
-# Requires: npx (with gitnexus), jq, git
-# Output: Writes ARCHITECTURE.md to the current directory
+# Requires: npx (with gitnexus), jq, awk
+# Output: Updates content between <!-- auto:* --> markers in ARCHITECTURE.md
 set -euo pipefail
+
+ARCH_FILE="ARCHITECTURE.md"
+REPO_NAME="${GITNEXUS_REPO:-}"
 
 # ── Dependency validation ─────────────────────────────────────────────
 check_deps() {
   local missing=()
-  for cmd in jq npx; do
+  for cmd in jq npx awk; do
     if ! command -v "$cmd" &>/dev/null; then
       missing+=("$cmd")
     fi
@@ -21,19 +25,56 @@ check_deps() {
 
 check_deps
 
-# ── Query GitNexus for architectural data ─────────────────────────────
-query_gitnexus() {
-  local query="$1"
-  local result
-  if ! result=$(npx gitnexus query "$query" --limit 10 2>&1); then
-    echo "::warning::GitNexus query failed for '$query': $result" >&2
-    echo '{"processes":[]}'
+# ── Resolve repo name ────────────────────────────────────────────────
+resolve_repo() {
+  if [[ -n "$REPO_NAME" ]]; then
+    echo "$REPO_NAME"
     return
   fi
-  # Validate we got valid JSON
-  if ! echo "$result" | jq -e '.processes' >/dev/null 2>&1; then
-    echo "::warning::GitNexus returned invalid JSON for '$query'" >&2
-    echo '{"processes":[]}'
+  # Check how many repos are indexed; parse "Indexed Repositories (N)" header
+  local repo_list
+  repo_list=$(npx gitnexus list 2>&1 || true)
+  local count
+  count=$(echo "$repo_list" | grep -oP 'Indexed Repositories \(\K[0-9]+' 2>/dev/null || echo "1")
+  if [[ "$count" -le 1 ]]; then
+    # Single repo — no --repo flag needed
+    echo ""
+  else
+    # Multiple repos — use current directory name as repo identifier
+    basename "$(pwd)"
+  fi
+}
+
+REPO=$(resolve_repo)
+REPO_FLAG=""
+if [[ -n "$REPO" ]]; then
+  REPO_FLAG="--repo $REPO"
+fi
+
+# ── Validate ARCHITECTURE.md exists with markers ─────────────────────
+if [[ ! -f "$ARCH_FILE" ]]; then
+  echo "::error::$ARCH_FILE not found. Cannot perform marker-based update." >&2
+  exit 1
+fi
+
+if ! grep -q '<!-- auto:overview -->' "$ARCH_FILE"; then
+  echo "::error::$ARCH_FILE missing <!-- auto:overview --> marker. Add markers before running." >&2
+  exit 1
+fi
+
+if ! grep -q '<!-- /auto:overview -->' "$ARCH_FILE"; then
+  echo "::error::$ARCH_FILE missing <!-- /auto:overview --> closing marker." >&2
+  exit 1
+fi
+
+# ── Query GitNexus for graph stats ───────────────────────────────────
+cypher_query() {
+  local query="$1"
+  local result
+  # shellcheck disable=SC2086
+  if ! result=$(npx gitnexus cypher $REPO_FLAG "$query" 2>&1); then
+    echo "::warning::Cypher query failed: $result" >&2
+    echo ""
     return
   fi
   echo "$result"
@@ -41,90 +82,107 @@ query_gitnexus() {
 
 echo "Querying GitNexus knowledge graph..." >&2
 
-ENTRY_POINTS=$(query_gitnexus "entry points main CLI")
-CORE_MODULES=$(query_gitnexus "core modules services")
-DATA_FLOW=$(query_gitnexus "data flow pipeline")
-AGENTS=$(query_gitnexus "agent orchestration")
+SYMBOL_COUNT=$(cypher_query 'MATCH (n) RETURN count(n) as c' | jq -r '.markdown' | tail -1 | tr -d '| ' || echo "0")
+EDGE_COUNT=$(cypher_query 'MATCH ()-[r]->() RETURN count(r) as c' | jq -r '.markdown' | tail -1 | tr -d '| ' || echo "0")
+PROCESS_COUNT=$(cypher_query 'MATCH (p:Process) RETURN count(p) as c' | jq -r '.markdown' | tail -1 | tr -d '| ' || echo "0")
 
-# ── Extract process summaries ─────────────────────────────────────────
-extract_summaries() {
-  echo "$1" | jq -r '[.processes[]? | .summary] | join("\n")' 2>/dev/null || echo "none"
+# Format numbers with commas
+format_number() {
+  echo "$1" | sed ':a;s/\B[0-9]\{3\}\>$/,&/;ta'
 }
 
-ENTRY_SUMMARY=$(extract_summaries "$ENTRY_POINTS")
-CORE_SUMMARY=$(extract_summaries "$CORE_MODULES")
-DATA_SUMMARY=$(extract_summaries "$DATA_FLOW")
-AGENT_SUMMARY=$(extract_summaries "$AGENTS")
+SYMBOL_FMT=$(format_number "$SYMBOL_COUNT")
+EDGE_FMT=$(format_number "$EDGE_COUNT")
+PROCESS_FMT=$(format_number "$PROCESS_COUNT")
 
-# ── Count files by extension ──────────────────────────────────────────
-PY_COUNT=$(find . -name '*.py' -not -path './.git/*' -not -path './.gitnexus/*' | wc -l)
-RS_COUNT=$(find . -name '*.rs' -not -path './.git/*' -not -path './.gitnexus/*' | wc -l)
-YML_COUNT=$(find . -name '*.yml' -path './.github/*' | wc -l)
-MD_COUNT=$(find . -name '*.md' -not -path './.git/*' -not -path './.gitnexus/*' | wc -l)
+echo "  Symbols: $SYMBOL_FMT, Relationships: $EDGE_FMT, Flows: $PROCESS_FMT" >&2
 
-# ── Helper: render section ────────────────────────────────────────────
-render_section() {
-  local title="$1"
-  local summary="$2"
-  local fallback="$3"
+# ── Count files by extension (with correct exclusions) ───────────────
+PY_COUNT=$(find . -name '*.py' \
+  -not -path './.git/*' \
+  -not -path './.gitnexus/*' \
+  -not -path './.venv/*' \
+  -not -path './venv/*' \
+  -not -path './node_modules/*' \
+  | wc -l | tr -d ' ')
 
-  echo "## $title"
-  echo ""
-  if [[ -n "$summary" && "$summary" != "none" ]]; then
-    echo "$summary" | while IFS= read -r line; do
-      [[ -n "$line" ]] && echo "- $line"
-    done
-  else
-    echo "- $fallback"
-  fi
-  echo ""
-}
+RS_COUNT=$(find . -name '*.rs' \
+  -not -path './.git/*' \
+  -not -path './.gitnexus/*' \
+  -not -path './target/*' \
+  | wc -l | tr -d ' ')
 
-# ── Generate ARCHITECTURE.md ──────────────────────────────────────────
-GENERATED_DATE=$(date -u '+%Y-%m-%d %H:%M UTC')
+YML_COUNT=$(find .github/workflows -maxdepth 1 -name '*.yml' 2>/dev/null | wc -l | tr -d ' ')
 
-cat > ARCHITECTURE.md <<EOF
-# SuperClaude Architecture
+MD_COUNT=$(find . \( -name '*.md' -o -name '*.rst' \) \
+  -not -path './.git/*' \
+  -not -path './.gitnexus/*' \
+  -not -path './.venv/*' \
+  -not -path './venv/*' \
+  -not -path './node_modules/*' \
+  -not -path './target/*' \
+  | wc -l | tr -d ' ')
 
-> Auto-generated by GitNexus knowledge graph analysis.
-> Last updated: ${GENERATED_DATE}
+echo "  Files: py=$PY_COUNT rs=$RS_COUNT yml=$YML_COUNT md=$MD_COUNT" >&2
 
-## Codebase Overview
-
-| Metric | Count |
+# ── Build replacement content for overview section ───────────────────
+OVERVIEW_CONTENT="| Metric | Count |
 |--------|-------|
+| Total symbols | ${SYMBOL_FMT} |
+| Relationships | ${EDGE_FMT} |
+| Execution flows | ${PROCESS_FMT} |
 | Python files | ${PY_COUNT} |
 | Rust files | ${RS_COUNT} |
 | GitHub workflows | ${YML_COUNT} |
-| Documentation files | ${MD_COUNT} |
+| Documentation files | ${MD_COUNT} |"
 
-EOF
+# ── Replace content between markers ──────────────────────────────────
+replace_marker_content() {
+  local file="$1"
+  local marker="$2"
+  local content="$3"
+  local start_marker="<!-- auto:${marker} -->"
+  local end_marker="<!-- /auto:${marker} -->"
 
-{
-  render_section "Entry Points" "$ENTRY_SUMMARY" "No entry points detected"
-  render_section "Core Modules" "$CORE_SUMMARY" "No core modules detected"
-  render_section "Data Flow" "$DATA_SUMMARY" "No data flows detected"
-  render_section "Agent Orchestration" "$AGENT_SUMMARY" "No agent orchestration detected"
-  echo "---"
-  echo "*Generated by [GitNexus](https://github.com/nicholasgriffintn/gitnexus) code intelligence*"
-} >> ARCHITECTURE.md
+  awk -v start="$start_marker" -v end="$end_marker" -v replacement="$content" '
+    $0 == start {
+      print
+      print replacement
+      skip = 1
+      next
+    }
+    $0 == end {
+      print
+      skip = 0
+      next
+    }
+    !skip { print }
+  ' "$file" > "${file}.tmp" && mv "${file}.tmp" "$file"
+}
 
-# ── Validate output ───────────────────────────────────────────────────
-if [[ ! -s ARCHITECTURE.md ]]; then
-  echo "::error::Generated ARCHITECTURE.md is empty" >&2
+replace_marker_content "$ARCH_FILE" "overview" "$OVERVIEW_CONTENT"
+
+# ── Update timestamp ─────────────────────────────────────────────────
+GENERATED_DATE=$(date -u '+%Y-%m-%d %H:%M UTC')
+sed -i "s|^> Last updated:.*|> Last updated: ${GENERATED_DATE}|" "$ARCH_FILE"
+
+# ── Validate output ──────────────────────────────────────────────────
+LINE_COUNT=$(wc -l < "$ARCH_FILE")
+if [[ "$LINE_COUNT" -lt 100 ]]; then
+  echo "::error::Generated $ARCH_FILE has only $LINE_COUNT lines (expected >100). Marker replacement may have failed." >&2
   exit 1
 fi
 
-if ! head -1 ARCHITECTURE.md | grep -q '^# '; then
-  echo "::error::Generated ARCHITECTURE.md does not start with a heading" >&2
+if ! head -1 "$ARCH_FILE" | grep -q '^# '; then
+  echo "::error::$ARCH_FILE does not start with a heading" >&2
   exit 1
 fi
 
-for section in "Codebase Overview" "Entry Points" "Core Modules"; do
-  if ! grep -q "## $section" ARCHITECTURE.md; then
-    echo "::error::Generated ARCHITECTURE.md missing expected section: $section" >&2
+for section in "Codebase Overview" "Architecture Diagram" "Functional Areas" "Key Execution Flows" "Testing Architecture"; do
+  if ! grep -q "## $section" "$ARCH_FILE"; then
+    echo "::error::$ARCH_FILE missing expected section: $section" >&2
     exit 1
   fi
 done
 
-echo "ARCHITECTURE.md generated successfully ($(wc -l < ARCHITECTURE.md) lines)" >&2
+echo "ARCHITECTURE.md updated successfully ($LINE_COUNT lines)" >&2

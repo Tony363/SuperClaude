@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths-ignore:
       - 'ARCHITECTURE.md'
+      - 'AGENTS.md'
       - '.github/workflows/update-architecture.yml'
   workflow_dispatch:
 
@@ -53,12 +54,12 @@ jobs:
       - name: Check for changes
         id: changes
         run: |
-          if git diff --quiet ARCHITECTURE.md 2>/dev/null; then
+          if git diff --quiet ARCHITECTURE.md AGENTS.md 2>/dev/null; then
             echo "changed=false" >> "$GITHUB_OUTPUT"
-            echo "No changes to ARCHITECTURE.md"
+            echo "No changes detected"
           else
             echo "changed=true" >> "$GITHUB_OUTPUT"
-            echo "ARCHITECTURE.md has been updated"
+            echo "Architecture docs have been updated"
           fi
 
       - name: Create pull request
