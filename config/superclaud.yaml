@@ -22,22 +22,8 @@ agents:
   parallel_execution: true
   default_timeout: 300
 
-  # Core agents (always available)
-  core:
-    - general-purpose
-    - root-cause-analyst
-    - refactoring-expert
-    - technical-writer
-    - performance-engineer
-    - quality-engineer
-    - security-engineer
-    - software-architect
-    - devops-architect
-    - fullstack-developer
-    - educator
-
-  # Extended agents (loaded on demand)
-  extended_path: agents/extensions
+  # Agent discovery is filesystem-based (agents/core/, agents/traits/, agents/extensions/)
+  # No need to list agents here — the filesystem IS the registry
 
 # Command system configuration
 commands:
@@ -218,39 +204,8 @@ triggers:
       - "multi-tool"
       - "optimize"
 
-  # Agent triggers
-  agent_triggers:
-    root-cause-analyst:
-      - "debug"
-      - "error"
-      - "broken"
-      - "not working"
-
-    refactoring-expert:
-      - "refactor"
-      - "improve code"
-      - "clean up"
-      - "technical debt"
-
-    performance-engineer:
-      - "slow"
-      - "optimize"
-      - "performance"
-      - "bottleneck"
-
-    security-engineer:
-      - "security"
-      - "vulnerability"
-      - "authentication"
-      - "authorization"
-
-    quality-engineer:
-      - "TDD"
-      - "test-driven"
-      - "write tests first"
-      - "red green refactor"
-      - "test first"
-      - "failing test"
+  # Agent triggers are defined in each agent's frontmatter (agents/core/*.md)
+  # No need to duplicate them here — the filesystem IS the registry
 
 # Workflow definitions
 workflows:
@@ -281,5 +236,5 @@ environment:
   SUPERCLAUD_ENV: ${SUPERCLAUD_ENV:-development}
   SUPERCLAUD_HOME: ${SUPERCLAUD_HOME:-~/.superclaud}
   SUPERCLAUD_CONFIG: ${SUPERCLAUD_CONFIG:-config/superclaud.yaml}
-  SUPERCLAUD_MODELS: ${SUPERCLAUD_MODELS:-config/models.yaml}
+  # Model routing handled by PAL MCP at runtime (mcp__pal__listmodels)
   SUPERCLAUD_LOG_LEVEL: ${SUPERCLAUD_LOG_LEVEL:-INFO}

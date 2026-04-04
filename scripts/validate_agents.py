@@ -35,9 +35,8 @@ ACTIVE_PATHS = [
     "agents/extensions",
 ]
 
-# Paths to ignore (deprecated/legacy)
+# Paths to ignore (legacy)
 IGNORED_PATHS = [
-    "agents/DEPRECATED",
     "agents/extended",  # Legacy, to be moved
 ]
 

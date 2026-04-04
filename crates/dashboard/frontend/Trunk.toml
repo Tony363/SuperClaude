@@ -1,9 +1,0 @@
-[build]
-target = "index.html"
-dist = "dist"
-
-[watch]
-watch = ["src", "style"]
-
-[serve]
-port = 1420
