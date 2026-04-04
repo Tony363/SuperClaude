@@ -1,10 +1,13 @@
 # SuperClaude Framework Main Configuration
 # Version 7.0.0
+#
+# Read by: crates/superclaude-core/src/config.rs
+# Parsed into: SuperClaudeConfig (types.rs) — version, name, modes, quality
 
 version: 7.0.0
 name: SuperClaude Framework
 
-# Framework modes
+# Framework modes (consumed by inventory.rs for mode discovery)
 modes:
   default: normal
   available:
@@ -21,75 +24,27 @@ agents:
   circular_detection: true
   parallel_execution: true
   default_timeout: 300
+  # Agent discovery is filesystem-based (agents/core/, agents/traits/, agents/extensions/)
 
-  # Core agents (always available)
-  core:
-    - general-purpose
-    - root-cause-analyst
-    - refactoring-expert
-    - technical-writer
-    - performance-engineer
-    - quality-engineer
-    - security-engineer
-    - software-architect
-    - devops-architect
-    - fullstack-developer
-    - educator
-
-  # Extended agents (loaded on demand)
-  extended_path: agents/extensions
-
-# Command system configuration
-commands:
-  prefix: "/sc:"
-  discovery_path: commands
-  cache_ttl: 3600
-  parallel_execution: true
-
-  # Command categories
-  categories:
-    - workflow
-    - analysis
-    - implementation
-    - testing
-    - documentation
-    - optimization
-
-# Dynamic loading configuration
-dynamic_loading:
-  enabled: true
-  max_cache_size: 10
-  default_ttl: 3600
-  load_time_target: 0.1
-
-  # Component priorities
-  priorities:
-    agents: high
-    commands: high
-    mcp_servers: medium
-    modes: medium
-    quality: low
-
-# Quality scoring configuration
+# Quality scoring configuration (consumed by QualityConfig struct)
 quality:
   enabled: true
   default_threshold: 70.0
   max_iterations: 5
 
   # Quality dimensions and weights (9 dimensions, must sum to 1.0)
-  # These align with QualityDimension enum in quality_scorer.py
   dimensions:
-    correctness: 0.25      # Tests pass, no runtime errors, output validation
-    completeness: 0.20     # Feature coverage, edge cases, documentation
-    performance: 0.10      # Time/space complexity, resource usage
-    maintainability: 0.10  # Readability, modularity, naming
-    security: 0.10         # Input validation, authentication, data protection
-    scalability: 0.10      # Architecture, database design, caching
-    testability: 0.10      # Unit tests, integration tests, test quality
-    pal_review: 0.00       # External code review via mcp__pal__codereview (dynamic)
-    usability: 0.05        # UI consistency, error messages, accessibility
+    correctness: 0.25
+    completeness: 0.20
+    performance: 0.10
+    maintainability: 0.10
+    security: 0.10
+    scalability: 0.10
+    testability: 0.10
+    pal_review: 0.00       # Dynamic — external review via mcp__pal__codereview
+    usability: 0.05
 
-# Worktree management configuration
+# Worktree management
 worktree:
   enabled: true
   base_dir: .worktrees
@@ -97,18 +52,11 @@ worktree:
   cleanup_age_days: 7
   integration_branch: integration
 
-  # Validation requirements
-  validation:
-    run_tests: true
-    check_conflicts: true
-    require_clean: true
-
 # MCP server configuration
 mcp_servers:
   enabled: true
   timeout: 300
   retry_attempts: 3
-
   servers:
     pal:
       enabled: true
@@ -116,170 +64,3 @@ mcp_servers:
         - gpt-5
         - claude-opus-4.1
         - gemini-2.5-pro
-
-# Logging configuration
-logging:
-  level: INFO
-  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-  file: logs/superclaud.log
-  rotate: true
-  max_bytes: 10485760  # 10MB
-  backup_count: 5
-
-# Performance settings
-performance:
-  max_parallel_operations: 15
-  batch_size: 10
-  cache_enabled: true
-  lazy_loading: true
-
-# Security settings
-security:
-  validate_inputs: true
-  sanitize_outputs: true
-  max_file_size: 52428800  # 50MB
-  allowed_file_extensions:
-    - .py
-    - .js
-    - .ts
-    - .jsx
-    - .tsx
-    - .java
-    - .go
-    - .rs
-    - .cpp
-    - .c
-    - .h
-    - .md
-    - .txt
-    - .json
-    - .yaml
-    - .yml
-    - .toml
-    - .xml
-    - .html
-    - .css
-    - .scss
-    - .sass
-
-# Development settings
-development:
-  debug: false
-  verbose: false
-  profile: false
-  test_mode: false
-
-# Token optimization settings
-token_optimization:
-  enabled: true
-  compression_level: medium
-  symbol_mode: auto
-  abbreviations: true
-
-  # Token budgets
-  budgets:
-    analysis: 10000
-    implementation: 20000
-    documentation: 5000
-    testing: 15000
-
-# Behavioral triggers
-triggers:
-  # Mode triggers
-  mode_triggers:
-    brainstorming:
-      - "explore"
-      - "brainstorm"
-      - "figure out"
-      - "not sure"
-      - "thinking about"
-
-    introspection:
-      - "analyze my reasoning"
-      - "reflect"
-      - "self-analysis"
-      - "meta-cognitive"
-
-    task_management:
-      - ">3 steps"
-      - "complex task"
-      - "multi-step"
-      - "orchestrate"
-
-    token_efficiency:
-      - "--uc"
-      - "save tokens"
-      - "compress"
-      - ">75% context"
-
-    orchestration:
-      - "parallel"
-      - "coordinate"
-      - "multi-tool"
-      - "optimize"
-
-  # Agent triggers
-  agent_triggers:
-    root-cause-analyst:
-      - "debug"
-      - "error"
-      - "broken"
-      - "not working"
-
-    refactoring-expert:
-      - "refactor"
-      - "improve code"
-      - "clean up"
-      - "technical debt"
-
-    performance-engineer:
-      - "slow"
-      - "optimize"
-      - "performance"
-      - "bottleneck"
-
-    security-engineer:
-      - "security"
-      - "vulnerability"
-      - "authentication"
-      - "authorization"
-
-    quality-engineer:
-      - "TDD"
-      - "test-driven"
-      - "write tests first"
-      - "red green refactor"
-      - "test first"
-      - "failing test"
-
-# Workflow definitions
-workflows:
-  default_workflow:
-    - analyze
-    - plan
-    - implement
-    - test
-    - document
-
-  debug_workflow:
-    - reproduce
-    - analyze
-    - isolate
-    - fix
-    - verify
-
-  feature_workflow:
-    - requirements
-    - design
-    - implement
-    - test
-    - integrate
-    - document
-
-# Environment variables
-environment:
-  SUPERCLAUD_ENV: ${SUPERCLAUD_ENV:-development}
-  SUPERCLAUD_HOME: ${SUPERCLAUD_HOME:-~/.superclaud}
-  SUPERCLAUD_CONFIG: ${SUPERCLAUD_CONFIG:-config/superclaud.yaml}
-  SUPERCLAUD_MODELS: ${SUPERCLAUD_MODELS:-config/models.yaml}
-  SUPERCLAUD_LOG_LEVEL: ${SUPERCLAUD_LOG_LEVEL:-INFO}

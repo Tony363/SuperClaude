@@ -1658,146 +1658,10 @@ workflows:
   debug_workflow: [reproduce, analyze, isolate, fix, verify]
 ```
 
-### config/quality.yaml
-
-Quality scoring configuration:
-
-```yaml
-dimensions:
-  correctness:
-    weight: 0.25
-    description: Code works as intended, tests pass
-  completeness:
-    weight: 0.20
-    description: All requirements addressed, edge cases handled
-  # ... additional dimensions
-
-scoring:
-  thresholds:
-    excellent: 90
-    good: 70
-    acceptable: 50
-    poor: 30
-
-validation:
-  pre_execution: [syntax, dependencies, security]
-  post_execution: [tests, performance, coverage]
-  continuous: [resources, errors, trends]
-```
-
-### config/models.yaml
-
-Model routing configuration:
-
-```yaml
-providers:
-  openai:
-    models:
-      - name: gpt-5
-        context: 400000
-        priority: 1
-      - name: gpt-4.1
-        context: 1000000
-        priority: 3
-  anthropic:
-    models:
-      - name: claude-opus-4.1
-        context: 200000
-        priority: 2
-  google:
-    models:
-      - name: gemini-2.5-pro
-        context: 2000000
-        priority: 1
-
-routing:
-  deep_thinking: [gpt-5, gemini-2.5-pro]
-  consensus: [gpt-5, claude-opus-4.1, gemini-2.5-pro]
-  long_context: [gemini-2.5-pro]
-  fast_iteration: [grok-code-fast-1]
-```
-
-### config/agents.yaml
-
-Agent selection configuration:
-
-```yaml
-core:
-  count: 5
-  directory: agents/core
-  cache_ttl: 3600
-  priority_order:
-    - architect
-    - developer
-    - optimizer
-    - guardian
-    - communicator
-
-traits:
-  count: 7
-  directory: agents/traits
-  composable: true
-  traits:
-    - security-first
-    - performance-first
-    - minimal-changes
-    - test-driven
-    - principles-enforced
-    - mcp-pal-enabled
-    - mcp-rube-enabled
-
-extensions:
-  count: 7
-  directory: agents/extensions
-  specialists:
-    - typescript-react-expert
-    - python-expert
-    - golang-expert
-    - rust-expert
-    - kubernetes-specialist
-    - data-engineer
-    - ml-engineer
-
-selection:
-  algorithm: weighted-match
-  weights:
-    trigger_match: 0.35
-    category_match: 0.25
-    description_match: 0.20
-    tool_match: 0.20
-  thresholds:
-    minimum_score: 0.6
-    confidence_level: 0.8
-```
-
-### config/mcp.yaml
-
-MCP server reference:
-
-```yaml
-servers:
-  pal:
-    tools: 11
-    categories: [analysis, planning, validation, utility]
-  rube:
-    integrations: 500+
-    categories: [development, communication, productivity, google, microsoft]
-    # Web search available via LINKUP_SEARCH tool
-```
-
-### config/consensus_policies.yaml
-
-Multi-model consensus configuration:
-
-```yaml
-policies:
-  quorum:
-    min_models: 2
-    threshold: 0.7
-  voting:
-    method: weighted
-    tie_breaker: priority
-```
+Quality dimensions, model routing, and consensus policies are configured at runtime:
+- Quality dimensions and weights are in `config/superclaud.yaml` (quality section)
+- Model routing is handled by PAL MCP (`mcp__pal__listmodels` at runtime)
+- Agent selection is filesystem-based (`agents/core/`, `agents/traits/`, `agents/extensions/`)
 
 ---
 
@@ -1867,12 +1731,8 @@ SuperClaude/
 │   └── ...                      # 16 command templates
 │
 ├── config/
-│   ├── superclaud.yaml          # Main framework config (281 lines)
-│   ├── quality.yaml             # Quality scoring config
-│   ├── models.yaml              # Model routing config
-│   ├── agents.yaml              # Agent selection config
-│   ├── mcp.yaml                 # MCP server reference
-│   └── consensus_policies.yaml  # Consensus voting config
+│   ├── superclaud.yaml          # Main framework config (read by Rust crates)
+│   └── schemas/                 # JSON schemas for validation
 │
 ├── core/                        # Python orchestration layer
 │   ├── __init__.py

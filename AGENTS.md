@@ -1,112 +1,82 @@
-# Repository Guidelines
+# SuperClaude Repository Guidelines
 
-## ⚠️ CRITICAL INSTRUCTIONS - READ FIRST ⚠️
+## Command Safety Rules
 
-### 🧠 Intelligence Maximization Rules
-- **Use parallel tool calls** - Read/search multiple files simultaneously for efficiency
-- **Check dependencies first** - Understand what libraries are available before coding
-- **Follow existing patterns** - Mimic the codebase's style and conventions exactly
-- **Consider edge cases** - Think about error handling, null checks, race conditions
-- **Write testable code** - Structure code to be easily unit tested
-- **NEVER do quick fixes or overengineering** - Always ultrathink about the best clean, maintainable solution for the long term. Avoid band-aid fixes that accumulate technical debt. Avoid over-complicated solutions that add unnecessary complexity. Find the elegant middle ground that is simple, robust, and maintainable
-- **NEVER create documentation files unless explicitly requested** - When done with tasks, just respond to the user directly
-
-### 🚫 Command Safety Rules (MUST FOLLOW)
 - **Never run destructive or bulk-reset commands** (`git checkout -- <path>`, `git reset --hard`, `git clean -fdx`, `rm -rf`, etc.) unless the user explicitly instructs you to do so for that exact path.
-- **Never use `git checkout`, `git restore`, or similar commands to revert tracked files** unless the user explicitly requests it for that specific file. These commands can silently discard changes created by other agents.
-- **Always consult `.claude/settings.json`** before running shell commands. Respect the `denyList`, `askList`, and any other guardrails defined there. If a command appears on the deny list, do not run it. If a command appears on the ask list (or you are unsure), ask the user for explicit approval first.
-- **Treat uncertainties as denials.** When in doubt about whether a command is destructive or violates the settings, stop and ask the user.
-- **Prefer targeted edits** (e.g., `sed -n`, `apply_patch`, file-specific changes) instead of repo-wide operations. Do not reset or roll back large sections of the codebase to “undo” mistakes.
-- **Log every potentially mutating command in your reasoning** so it’s clear why it is safe and allowed.
+- **Never use `git checkout`, `git restore`, or similar commands to revert tracked files** unless the user explicitly requests it. These commands can silently discard changes created by other agents.
+- **Prefer targeted edits** over repo-wide operations. Do not reset or roll back large sections of the codebase to "undo" mistakes.
+- **Treat uncertainties as denials.** When in doubt about whether a command is destructive, stop and ask the user.
 
-### 📅 Current Context
-- **Note**: Claude does not have real-time clock access; the current date is injected via system context
+## Web Search via Rube MCP
 
-### Web Search Instructions - CRITICAL
+Built-in WebSearch is DISABLED. Use Rube MCP's LINKUP_SEARCH for all web searches:
 
-**IMPORTANT: Built-in WebSearch is DISABLED. You MUST use Rube MCP's LINKUP_SEARCH tool for ALL web searches.**
-
-**Simple Web Search Call:**
 ```
-// mcp__rube__RUBE_MULTI_EXECUTE_TOOL
-{
-  "tools": [{
-    "tool_slug": "LINKUP_SEARCH",
-    "arguments": {
-      "query": "your search query here",
-      "depth": "deep",
-      "output_type": "sourcedAnswer"
-    }
-  }],
-  "session_id": "WEB-SESSION-001",
-  "memory": {},
-  "sync_response_to_workbench": false,
-  "thought": "Searching for [topic]",
-  "current_step": "SEARCHING",
-  "current_step_metric": {"completed": 0, "total": 1, "unit": "searches"},
-  "next_step": "COMPLETE"
-}
+mcp__rube__RUBE_MULTI_EXECUTE_TOOL({
+  tools: [{ tool_slug: "LINKUP_SEARCH", arguments: { query: "...", depth: "deep", output_type: "sourcedAnswer" }}],
+  session_id: "WEB-SESSION-001", memory: {}, sync_response_to_workbench: false,
+  thought: "Searching for [topic]", current_step: "SEARCHING",
+  current_step_metric: {completed: 0, total: 1, unit: "searches"}, next_step: "COMPLETE"
+})
 ```
 
-**Key Parameters:**
-- `depth`: Always use `"deep"` for comprehensive results
-- `output_type`: Use `"sourcedAnswer"` (most common), `"searchResults"`, or `"structured"`
+## Agent System
 
-**Be Proactive - Search Frequently:**
-- Current library/framework versions
-- Latest API documentation and syntax
-- Recent security updates and best practices
-- Error messages and deprecation warnings
-- External service status and configuration
+SuperClaude uses a **3-tier agent system** — filesystem-based personas in `agents/`. Agents are markdown files with YAML frontmatter, NOT instantiated classes. They serve as prompting blueprints that guide Claude's behavior.
 
-**Remember**: Your training data is static. Rube MCP's LINKUP_SEARCH gives you CURRENT information. Use it liberally when information might have changed.
+### Tiers
 
-## Project Structure & Module Organization
-- `SuperClaude/` contains the orchestrator: `Commands/` for `/sc:` playbooks, `ModelRouter/` for
-  routing, `Quality/` for scoring, `Monitoring/` for telemetry, and `Implementation/Auto/` for
-  generated evidence.
-- Supporting assets live in `tests/` (pytest suites mirroring package paths), `setup/` (CLI
-  installer), `scripts/` (reporting, builds, cleanup), `Docs/` (user references), and
-  `.superclaude_metrics/` for run artifacts.
+| Tier | Path | Purpose | Count |
+|------|------|---------|-------|
+| **core** | `agents/core/` | Primary personas (architect, developer, guardian, optimizer, communicator) | 5 |
+| **trait** | `agents/traits/` | Composable modifiers applied to any agent (security-first, test-driven, mcp-pal-enabled, etc.) | 7 |
+| **extension** | `agents/extensions/` | Domain specialists (python-expert, rust-expert, ml-engineer, kubernetes-specialist, etc.) | 7 |
 
-## Build, Test, and Development Commands
-- Bootstrap with `python -m venv .venv && source .venv/bin/activate && pip install -e .[dev]`;
-  run `SuperClaude --help` to confirm the CLI wiring.
-- Core validation: `PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 pytest -m "not slow" tests/`; LinkUp flows add `-p pytest_asyncio`
-  flows add `-p pytest_asyncio`. Smoke benchmarks run via
-  `python benchmarks/run_benchmarks.py --suite smoke`.
-- Release prep relies on `python -m build` (wheel/sdist), `scripts/build_and_upload.py` for
-  automation, and `npm run lint` to keep the Node wrapper tidy.
+### Frontmatter Schema
 
-## Coding Style & Naming Conventions
-- Python targets 3.8+ with Black (88 cols), Flake8, and MyPy; use 4-space indents, snake_case
-  modules, and PascalCase agent classes aligned with their persona names.
-- JavaScript CLI shims under `bin/` follow ESLint defaults from `package.json`; keep filenames
-  kebab-case and prefer CommonJS `module.exports`.
-- Markdown guidance (README, Docs/, `.codex-os/`) uses ATX headings, wraps near 100 characters, and
-  should link to decisions or specs when behavior changes.
+```yaml
+---
+name: lowercase-hyphenated       # Required. Must match NAME_PATTERN: ^[a-z][a-z0-9-]*[a-z0-9]$
+description: One-line purpose    # Required. Max 200 chars recommended.
+tier: core|trait|extension       # Required.
+category: string                 # Optional. Organization label.
+triggers: [keyword, list]        # Recommended for core/extension. NOT for traits.
+tools: [Read, Write, Edit, ...]  # Optional. Claude Code tool names.
+traits: [security-first, ...]    # Optional. Compose traits into core/extension agents.
+priority: 1-3                    # Optional (core/extension only). NOT for traits.
+---
+```
 
-## Testing Guidelines
-- Mirror production paths when adding tests (`tests/<domain>/test_<module>.py`) and name functions
-  `test_<behavior>`; mark slower journeys with `@pytest.mark.slow` or `integration` per
-  `pyproject.toml`.
-- Always export `PYTEST_DISABLE_PLUGIN_AUTOLOAD=1` before invoking pytest to avoid host plugin
-  bleed; collect coverage for `SuperClaude` and `setup` packages.
-- Include fixtures that validate `requires_evidence` guardrails and `.superclaude_metrics`
-  outputs whenever agent workflows, telemetry, or auto-implementation logic changes.
+### Selection
 
-## Commit & Pull Request Guidelines
-- History favors concise, imperative subjects (`reduce context`, `cli clean flag`); keep messages
-  tight but document reasoning and spec links in the body.
-- Reference relevant ADRs (`.codex-os/product/decisions.md`) or specs, enumerate tests/benchmarks
-  run, and attach evidence when touching guardrails or installer behavior.
-- PRs should describe risk surface, highlight configuration changes (e.g., MCP updates), and note
-  any follow-up tasks for consensus, telemetry, or cleanup tooling.
+Agent selection is handled by `sc-implement/scripts/select_agent.py` (standalone, JSON I/O). Scoring: 35% keywords + 25% domains + 20% task type + 10% files + 10% priority. Traits are applied additively; conflicts (e.g., performance-first vs security-first) are detected.
+
+### Creating an Agent
+
+1. Create `agents/{tier}/your-agent.md` with frontmatter matching the schema above
+2. Add the agent body (markdown) with expertise, patterns, and behavioral instructions
+3. Validate: `python scripts/validate_agents.py --verbose`
+
+## Build & Test
+
+```bash
+# Bootstrap
+python -m venv .venv && source .venv/bin/activate && pip install -e .[dev]
+
+# Tests
+PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 pytest -m "not slow" tests/
+
+# Lint
+ruff check . && ruff format --check .
+
+# Agent validation
+python scripts/validate_agents.py --verbose
+```
 
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **SuperClaude** (8994 symbols, 21155 relationships, 300 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+This project is indexed by GitNexus as **SuperClaude** (6382 symbols, 16783 relationships, 300 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
 > If any GitNexus tool warns the index is stale, run `npx gitnexus analyze` in terminal first.
 

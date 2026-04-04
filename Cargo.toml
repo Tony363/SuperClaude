@@ -5,10 +5,6 @@ members = [
     "crates/superclaude-core",
     "crates/superclaude-daemon",
     "crates/superclaude-runtime",
-    "crates/dashboard",
-    "crates/snake-game",
-    "crates/hangman-game",
-    # "crates/dashboard/frontend",  # Temporarily disabled - has missing dependency
 ]
 
 [workspace.package]
