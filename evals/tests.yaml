@@ -29,10 +29,10 @@ agents:
   # Quality & Security Agents
   # ============================================
 
-  security-engineer:
+  guardian:
     prompt: |
       Review this code for security vulnerabilities:
-      def query(id): return db.execute(f"SELECT * FROM users WHERE id={id}")
+      def query(id): return db.execute('SELECT * FROM users WHERE id=' + str(id))
 
       Identify all issues and suggest fixes.
     keywords:
