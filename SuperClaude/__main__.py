@@ -1,7 +1,7 @@
 """
 SuperClaude v7 CLI entry point.
 
-Dispatches to setup operations (install, update, uninstall, backup, clean, agent)
+Dispatches to setup operations (install, update, uninstall, backup, clean)
 when given a subcommand, or shows usage info when invoked without arguments.
 
 Usage:
@@ -10,7 +10,6 @@ Usage:
     python -m SuperClaude uninstall [options]
     python -m SuperClaude backup [options]
     python -m SuperClaude clean [options]
-    python -m SuperClaude agent [options]
 """
 
 import argparse
@@ -28,7 +27,6 @@ _OPERATIONS = {
     "uninstall": "Remove SuperClaude installation",
     "backup": "Backup and restore operations",
     "clean": "Clean corrupted metadata, cache, and temporary files",
-    "agent": "Interact with the agent system",
 }
 
 
