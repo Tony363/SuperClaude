@@ -265,7 +265,7 @@ jobs:
         if: |
           steps.scope_selector.outputs.skip != 'true' &&
           steps.check_providers.outputs.bedrock_available == 'true'
-        uses: anthropics/claude-code-action@58dbe8ed6879f0d3b02ac295b20d5fdfe7733e0c  # v1
+        uses: anthropics/claude-code-action@6e2bd52842c65e914eba5c8badd17560bd26b5de  # v1
         env:
           AWS_REGION: ${{ secrets.AWS_REGION }}
           AWS_BEARER_TOKEN_BEDROCK: ${{ secrets.AWS_BEARER_TOKEN_BEDROCK }}
@@ -398,7 +398,7 @@ jobs:
           steps.scope_selector.outputs.skip != 'true' &&
           steps.consensus_review_bedrock.outcome != 'success' &&
           steps.check_providers.outputs.anthropic_available == 'true'
-        uses: anthropics/claude-code-action@58dbe8ed6879f0d3b02ac295b20d5fdfe7733e0c  # v1
+        uses: anthropics/claude-code-action@6e2bd52842c65e914eba5c8badd17560bd26b5de  # v1
         # MCP provider may be unavailable -- suggestion PR is still generated from cached findings
         continue-on-error: true
         with:
@@ -755,7 +755,7 @@ jobs:
           steps.classify_llm.outputs.has_llm_fixes == 'true' &&
           github.event.inputs.dry_run != 'true' &&
           (steps.check_providers.outputs.bedrock_available == 'true' || steps.check_providers.outputs.anthropic_available == 'true')
-        uses: anthropics/claude-code-action@58dbe8ed6879f0d3b02ac295b20d5fdfe7733e0c  # v1
+        uses: anthropics/claude-code-action@6e2bd52842c65e914eba5c8badd17560bd26b5de  # v1
         continue-on-error: true
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
