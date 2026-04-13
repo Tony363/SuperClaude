@@ -355,7 +355,7 @@ jobs:
           cat eval-result.json
 
       - name: Upload result artifact
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f  # v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7
         with:
           name: result-${{ matrix.agent }}-run${{ matrix.run }}
           path: eval-result.json
@@ -363,7 +363,7 @@ jobs:
 
       - name: Upload full response (for debugging)
         if: failure() || github.event_name == 'workflow_dispatch'
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f  # v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7
         with:
           name: response-${{ matrix.agent }}-run${{ matrix.run }}
           path: result.json
@@ -426,7 +426,7 @@ jobs:
             --output "$GITHUB_STEP_SUMMARY" || true
 
       - name: Upload aggregated results
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f  # v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7
         with:
           name: aggregated-results
           path: results.json

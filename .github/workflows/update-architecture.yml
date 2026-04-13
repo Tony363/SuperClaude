@@ -37,7 +37,7 @@ jobs:
           node-version: '20'
 
       - name: Cache GitNexus index
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830  # v4
+        uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7  # v5.0.4
         with:
           path: .gitnexus
           key: gitnexus-${{ runner.os }}-main-${{ github.sha }}
@@ -64,7 +64,7 @@ jobs:
 
       - name: Create pull request
         if: steps.changes.outputs.changed == 'true'
-        uses: peter-evans/create-pull-request@c0f553fe549906ede9cf27b5156039d195d2ece0  # v8
+        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1  # v8
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           commit-message: 'docs: update ARCHITECTURE.md [skip ci]'
