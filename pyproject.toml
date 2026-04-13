@@ -39,7 +39,7 @@ GitHub = "https://github.com/SuperClaude-Org/SuperClaude_Framework"
 [project.optional-dependencies]
 # Orchestrator dependencies for SDK-based agentic loop
 orchestrator = [
-    "claude-agent-sdk>=0.1.0",  # Official Anthropic Agent SDK
+    "claude-agent-sdk>=0.1.58",  # Official Anthropic Agent SDK
     "aiofiles>=23.0",
 ]
 # Runtime dependencies for loop orchestration
@@ -48,7 +48,7 @@ runtime = [
 ]
 # Full installation with all optional dependencies
 full = [
-    "claude-agent-sdk>=0.1.0",  # Official Anthropic Agent SDK
+    "claude-agent-sdk>=0.1.58",  # Official Anthropic Agent SDK
     "aiofiles>=23.0",
     "watchdog>=3.0",
     "gitpython>=3.1",
