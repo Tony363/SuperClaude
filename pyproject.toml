@@ -51,7 +51,7 @@ full = [
     "claude-agent-sdk>=0.1.0",  # Official Anthropic Agent SDK
     "aiofiles>=23.0",
     "watchdog>=3.0",
-    "gitpython>=3.1",
+    "gitpython>=3.1.46",
     "jinja2>=3.1",
     "jsonschema>=4.0",
 ]
