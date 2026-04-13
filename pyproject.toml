@@ -53,7 +53,7 @@ full = [
     "watchdog>=3.0",
     "gitpython>=3.1",
     "jinja2>=3.1",
-    "jsonschema>=4.0",
+    "jsonschema>=4.26.0",
 ]
 # Development dependencies
 dev = [
@@ -65,7 +65,7 @@ test = [
     "pytest-cov>=4.0",
     "pytest-asyncio>=0.21.0",
     "aiofiles>=23.0",
-    "jsonschema>=4.0",
+    "jsonschema>=4.26.0",
 ]
 
 [tool.setuptools]
