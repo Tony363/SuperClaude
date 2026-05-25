@@ -54,7 +54,7 @@ jobs:
         id: bedrock
         if: env.BEDROCK_CONFIGURED == 'true'
         continue-on-error: true
-        uses: anthropics/claude-code-action@58dbe8ed6879f0d3b02ac295b20d5fdfe7733e0c  # v1
+        uses: anthropics/claude-code-action@787c5a0ce96a9a6cfb050ea0c8f4c05f2447c251  # v1
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           use_bedrock: "true"
@@ -93,7 +93,7 @@ jobs:
           env.ANTHROPIC_KEY_SET == 'true' &&
           (env.BEDROCK_CONFIGURED != 'true' || steps.bedrock.outcome != 'success')
         continue-on-error: true
-        uses: anthropics/claude-code-action@58dbe8ed6879f0d3b02ac295b20d5fdfe7733e0c  # v1
+        uses: anthropics/claude-code-action@787c5a0ce96a9a6cfb050ea0c8f4c05f2447c251  # v1
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
