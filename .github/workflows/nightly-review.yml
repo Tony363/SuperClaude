@@ -102,7 +102,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6
         with:
           fetch-depth: 0  # Full history for change detection
 
@@ -189,7 +189,7 @@ jobs:
 
       - name: Upload scope selection
         if: steps.scope_selector.outputs.skip != 'true'
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f  # v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7
         with:
           name: scope-selection
           path: scope-selection.json
@@ -265,7 +265,7 @@ jobs:
         if: |
           steps.scope_selector.outputs.skip != 'true' &&
           steps.check_providers.outputs.bedrock_available == 'true'
-        uses: anthropics/claude-code-action@58dbe8ed6879f0d3b02ac295b20d5fdfe7733e0c  # v1
+        uses: anthropics/claude-code-action@fbda2eb1bdc90d319b8d853f5deb53bca199a7c1  # v1
         env:
           AWS_REGION: ${{ secrets.AWS_REGION }}
           AWS_BEARER_TOKEN_BEDROCK: ${{ secrets.AWS_BEARER_TOKEN_BEDROCK }}
@@ -398,7 +398,7 @@ jobs:
           steps.scope_selector.outputs.skip != 'true' &&
           steps.consensus_review_bedrock.outcome != 'success' &&
           steps.check_providers.outputs.anthropic_available == 'true'
-        uses: anthropics/claude-code-action@58dbe8ed6879f0d3b02ac295b20d5fdfe7733e0c  # v1
+        uses: anthropics/claude-code-action@fbda2eb1bdc90d319b8d853f5deb53bca199a7c1  # v1
         # MCP provider may be unavailable -- suggestion PR is still generated from cached findings
         continue-on-error: true
         with:
@@ -555,7 +555,7 @@ jobs:
            steps.consensus_review_bedrock.outcome == 'failure' ||
            steps.consensus_review_anthropic.outcome == 'success' ||
            steps.consensus_review_anthropic.outcome == 'failure')
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f  # v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7
         with:
           name: review-findings
           path: review-findings.json
@@ -583,7 +583,7 @@ jobs:
 
       - name: Upload fix plans
         if: steps.normalize.outcome == 'success'
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f  # v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7
         with:
           name: fix-plans
           path: fix-plans/
@@ -622,7 +622,7 @@ jobs:
 
       - name: Upload autofix results
         if: steps.autofix.outcome == 'success' || steps.autofix.outcome == 'failure'
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f  # v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7
         with:
           name: autofix-results
           path: autofix-results.json
@@ -701,7 +701,7 @@ jobs:
 
       - name: Upload autofix PR content
         if: steps.autofix_pr_content.outcome == 'success'
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f  # v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7
         with:
           name: pr-content-autofix
           path: pr-content-autofix/
@@ -755,7 +755,7 @@ jobs:
           steps.classify_llm.outputs.has_llm_fixes == 'true' &&
           github.event.inputs.dry_run != 'true' &&
           (steps.check_providers.outputs.bedrock_available == 'true' || steps.check_providers.outputs.anthropic_available == 'true')
-        uses: anthropics/claude-code-action@58dbe8ed6879f0d3b02ac295b20d5fdfe7733e0c  # v1
+        uses: anthropics/claude-code-action@fbda2eb1bdc90d319b8d853f5deb53bca199a7c1  # v1
         continue-on-error: true
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
@@ -852,7 +852,7 @@ jobs:
 
       - name: Upload LLM fix results
         if: steps.llm_fixes.outcome == 'success' || steps.llm_fixes.outcome == 'failure'
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f  # v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7
         with:
           name: llm-fix-results
           path: |
@@ -873,7 +873,7 @@ jobs:
 
       - name: Upload PR content
         if: steps.suggestions.outcome == 'success'
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f  # v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7
         with:
           name: pr-content
           path: pr-content/

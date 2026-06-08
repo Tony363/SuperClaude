@@ -30,7 +30,7 @@ jobs:
       ANTHROPIC_KEY_SET: ${{ secrets.ANTHROPIC_API_KEY != '' }}
       RELEASE_TAG: ${{ github.event.release.tag_name || inputs.tag }}
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6
         with:
           fetch-depth: 0
 
@@ -57,7 +57,7 @@ jobs:
         id: bedrock
         if: env.BEDROCK_CONFIGURED == 'true'
         continue-on-error: true
-        uses: anthropics/claude-code-action@58dbe8ed6879f0d3b02ac295b20d5fdfe7733e0c  # v1
+        uses: anthropics/claude-code-action@fbda2eb1bdc90d319b8d853f5deb53bca199a7c1  # v1
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           use_bedrock: "true"
@@ -131,7 +131,7 @@ jobs:
           env.ANTHROPIC_KEY_SET == 'true' &&
           (env.BEDROCK_CONFIGURED != 'true' || steps.bedrock.outcome != 'success')
         continue-on-error: true
-        uses: anthropics/claude-code-action@58dbe8ed6879f0d3b02ac295b20d5fdfe7733e0c  # v1
+        uses: anthropics/claude-code-action@fbda2eb1bdc90d319b8d853f5deb53bca199a7c1  # v1
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
