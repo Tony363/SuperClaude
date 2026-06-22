@@ -38,7 +38,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v6
         with:
           fetch-depth: 0
 
@@ -195,7 +195,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v6
         with:
           fetch-depth: 0
 
@@ -236,7 +236,7 @@ jobs:
         if: steps.validate_providers.outputs.skip_review != 'true' && env.BEDROCK_CONFIGURED == 'true'
         id: bedrock_review
         continue-on-error: true
-        uses: anthropics/claude-code-action@58dbe8ed6879f0d3b02ac295b20d5fdfe7733e0c  # v1
+        uses: anthropics/claude-code-action@2fee15510437d71399d9139ed60433470484a8fb  # v1
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           use_bedrock: "true"
@@ -333,7 +333,7 @@ jobs:
           (env.BEDROCK_CONFIGURED != 'true' || steps.bedrock_review.outcome != 'success')
         id: anthropic_review
         continue-on-error: true
-        uses: anthropics/claude-code-action@58dbe8ed6879f0d3b02ac295b20d5fdfe7733e0c  # v1
+        uses: anthropics/claude-code-action@2fee15510437d71399d9139ed60433470484a8fb  # v1
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
@@ -433,7 +433,7 @@ jobs:
           needs.preflight.outputs.should_consensus == 'true' &&
           steps.check_pal.outputs.configured == 'false'
         continue-on-error: true
-        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd  # v8
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3  # v9.0.0
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
@@ -499,7 +499,7 @@ jobs:
           needs.preflight.outputs.should_consensus == 'true' &&
           steps.check_pal.outputs.configured == 'true'
         continue-on-error: true
-        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd  # v8
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3  # v9.0.0
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
@@ -586,7 +586,7 @@ jobs:
 
       - name: Checkout code
         if: steps.security.outputs.safe == 'true'
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v6
         with:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -596,7 +596,7 @@ jobs:
         if: steps.security.outputs.safe == 'true' && env.BEDROCK_CONFIGURED == 'true'
         id: bedrock_fix
         continue-on-error: true
-        uses: anthropics/claude-code-action@58dbe8ed6879f0d3b02ac295b20d5fdfe7733e0c  # v1
+        uses: anthropics/claude-code-action@2fee15510437d71399d9139ed60433470484a8fb  # v1
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           use_bedrock: "true"
@@ -629,7 +629,7 @@ jobs:
           (env.BEDROCK_CONFIGURED != 'true' || steps.bedrock_fix.outcome != 'success')
         id: anthropic_fix
         continue-on-error: true
-        uses: anthropics/claude-code-action@58dbe8ed6879f0d3b02ac295b20d5fdfe7733e0c  # v1
+        uses: anthropics/claude-code-action@2fee15510437d71399d9139ed60433470484a8fb  # v1
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
@@ -698,7 +698,7 @@ jobs:
       - name: Create Draft Pull Request
         if: steps.validate.outputs.has_changes == 'true'
         id: create_pr
-        uses: peter-evans/create-pull-request@c0f553fe549906ede9cf27b5156039d195d2ece0  # v8
+        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1  # v8
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           commit-message: |
@@ -736,7 +736,7 @@ jobs:
       - name: Comment on original PR
         if: steps.create_pr.outputs.pull-request-number
         continue-on-error: true
-        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd  # v8
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3  # v9.0.0
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
